@@ -285,6 +285,7 @@ body.light #lockScreen{background-image:radial-gradient(ellipse 60% 60% at 50% 4
         <button class="tool-btn" onclick="aiInspiration()" id="aiBtnInspire" title="根据上下文提供灵感"><svg class="ic ic-sm"><use href="#ic-bulb"/></svg> 实时灵感</button>
         <button class="tool-btn" onclick="aiResearch()" id="aiBtnResearch" title="搜索相关资料和知识"><svg class="ic ic-sm"><use href="#ic-search"/></svg> 资料搜索</button>
         <button class="tool-btn" onclick="aiHumanize()" id="aiBtnHumanize" title="降低AI检测率，让文字更像人写的"><svg class="ic ic-sm"><use href="#ic-shield"/></svg> 降AI率</button>
+        <button class="tool-btn" onclick="aiDetect()" id="aiBtnDetect" title="检测文字的AI特征"><svg class="ic ic-sm"><use href="#ic-search"/></svg> 查AI</button>
       </div>
       <!-- AI Result Inline Panel (for quick tools) -->
       <div id="aiQuickResult" style="display:none;border-bottom:1px solid var(--border);background:var(--bg-panel);padding:12px 24px;max-height:280px;overflow-y:auto">
@@ -502,7 +503,7 @@ async function delChar(id){if(!confirm('确定删除？'))return;await dbDel('ch
 async function saveDoc(){if(!S.active||!S.proj)return;const text=document.getElementById('mainEditor').value,title=document.getElementById('chapterTitle').value;if(S.active.type==='outline'){const o=S.proj.outlines.find(x=>x.id===S.active.id);if(o){o.title=title;o.content=text;await dbPut('outlines',{...o,title,content:text});renderOutlineList();}}else if(S.active.type==='chapter'){const c=S.proj.chapters.find(x=>x.id===S.active.id);if(c){c.title=title;c.content=text;c.word_count=countWords(text);c.updated_at=Date.now();await dbPut('chapters',{...c,title,content:text,word_count:countWords(text),updated_at:Date.now()});renderChapterList();}}S.proj.project.updated_at=Date.now();await dbPut('projects',S.proj.project);S.unsaved=false;document.getElementById('saveBtn').classList.remove('unsaved');showToast('💾','已保存');}
 
 // ═══ AI Modes ═══
-const AI_MODES={'润色':{icon:'✨',group:'基础',p:'请对以下文字进行润色，提升语言的流畅度、文学性和表达力，保持原意和风格：'},'扩写':{icon:'📈',group:'基础',p:'请对以下文字进行扩写，增加细节描写、画面感和情感层次：'},'缩写':{icon:'📉',group:'基础',p:'请对以下文字进行精炼缩写，保留核心内容，简洁有力：'},'改写':{icon:'🔄',group:'基础',p:'请用不同的表达方式改写以下文字，保持核心意思：'},'续写':{icon:'➡️',group:'基础',p:'请根据以下内容自然地续写下文，保持风格和情节逻辑：'},'补写':{icon:'🧩',group:'基础',p:'请为以下内容填补缺失的过渡或细节部分：'},'对话':{icon:'💬',group:'描写',p:'请为以下场景创作自然生动的对话，符合人物性格：'},'心理':{icon:'🧠',group:'描写',p:'请为以下内容增加细腻的人物心理描写：'},'环境':{icon:'🌿',group:'描写',p:'请为以下内容增加生动的环境和氛围描写：'},'战斗':{icon:'⚔️',group:'描写',p:'请将以下内容改写为紧张刺激的战斗场景描写：'},'古风':{icon:'🏮',group:'风格',p:'请将以下内容改写为古典文学风格：'},'现代':{icon:'🏙️',group:'风格',p:'请将以下内容改写为现代白话文风格：'},'幽默':{icon:'😂',group:'风格',p:'请将以下内容改写得轻松幽默：'},'悬疑':{icon:'🔍',group:'风格',p:'请将以下内容改写为悬疑神秘风格：'},'唯美':{icon:'🌸',group:'风格',p:'请将以下内容改写为唯美诗意风格：'},'霸气':{icon:'👑',group:'风格',p:'请将以下内容改写为霸气豪迈风格：'},'分析':{icon:'📊',group:'分析',p:'请分析以下文字的结构、节奏和表达问题：'},'校对':{icon:'✅',group:'分析',p:'请检查以下文字的错别字、语病和标点错误：'},'节奏':{icon:'🎵',group:'分析',p:'请分析以下文字的叙事节奏：'},'情感':{icon:'❤️',group:'分析',p:'请分析以下文字的情感层次和情绪弧度：'},'大纲':{icon:'📋',group:'创作',p:'请根据以下信息生成详细的故事大纲：'},'人物':{icon:'👤',group:'创作',p:'请根据以下信息生成详细的人物档案：'},'伏笔':{icon:'🪡',group:'创作',p:'请为以下故事设计3-5个巧妙的伏笔：'},'转折':{icon:'🔀',group:'创作',p:'请为以下故事情节设计2-3个出乎意料的转折：'},'结局':{icon:'🏁',group:'创作',p:'请为以下故事提供3种不同风格的结局：'},'翻译':{icon:'🌐',group:'工具',p:'请将以下中文内容翻译为英文：'},'总结':{icon:'📝',group:'工具',p:'请为以下内容生成简洁摘要：'},'标题':{icon:'🏷️',group:'工具',p:'请为以下内容生成5个吸引人的标题：'},'降AI':{icon:'🛡️',group:'工具',p:'请将以下AI生成的文字重写为自然的人类写作风格。要求：1.使用口语化、不规则的句式 2.加入个人化的表达和语气词 3.偶尔使用短句或碎片化表达 4.避免完美排比和过度修饰 5.添加一些即兴感和不完美感 6.保持核心意思不变 7.让文字读起来像真人随手写的，而不是AI精心构造的。输出重写后的全文：'}};
+const AI_MODES={'润色':{icon:'✨',group:'基础',p:'请对以下文字进行润色，提升语言的流畅度、文学性和表达力，保持原意和风格：'},'扩写':{icon:'📈',group:'基础',p:'请对以下文字进行扩写，增加细节描写、画面感和情感层次：'},'缩写':{icon:'📉',group:'基础',p:'请对以下文字进行精炼缩写，保留核心内容，简洁有力：'},'改写':{icon:'🔄',group:'基础',p:'请用不同的表达方式改写以下文字，保持核心意思：'},'续写':{icon:'➡️',group:'基础',p:'请根据以下内容自然地续写下文，保持风格和情节逻辑：'},'补写':{icon:'🧩',group:'基础',p:'请为以下内容填补缺失的过渡或细节部分：'},'对话':{icon:'💬',group:'描写',p:'请为以下场景创作自然生动的对话，符合人物性格：'},'心理':{icon:'🧠',group:'描写',p:'请为以下内容增加细腻的人物心理描写：'},'环境':{icon:'🌿',group:'描写',p:'请为以下内容增加生动的环境和氛围描写：'},'战斗':{icon:'⚔️',group:'描写',p:'请将以下内容改写为紧张刺激的战斗场景描写：'},'古风':{icon:'🏮',group:'风格',p:'请将以下内容改写为古典文学风格：'},'现代':{icon:'🏙️',group:'风格',p:'请将以下内容改写为现代白话文风格：'},'幽默':{icon:'😂',group:'风格',p:'请将以下内容改写得轻松幽默：'},'悬疑':{icon:'🔍',group:'风格',p:'请将以下内容改写为悬疑神秘风格：'},'唯美':{icon:'🌸',group:'风格',p:'请将以下内容改写为唯美诗意风格：'},'霸气':{icon:'👑',group:'风格',p:'请将以下内容改写为霸气豪迈风格：'},'分析':{icon:'📊',group:'分析',p:'请分析以下文字的结构、节奏和表达问题：'},'校对':{icon:'✅',group:'分析',p:'请检查以下文字的错别字、语病和标点错误：'},'节奏':{icon:'🎵',group:'分析',p:'请分析以下文字的叙事节奏：'},'情感':{icon:'❤️',group:'分析',p:'请分析以下文字的情感层次和情绪弧度：'},'大纲':{icon:'📋',group:'创作',p:'请根据以下信息生成详细的故事大纲：'},'人物':{icon:'👤',group:'创作',p:'请根据以下信息生成详细的人物档案：'},'伏笔':{icon:'🪡',group:'创作',p:'请为以下故事设计3-5个巧妙的伏笔：'},'转折':{icon:'🔀',group:'创作',p:'请为以下故事情节设计2-3个出乎意料的转折：'},'结局':{icon:'🏁',group:'创作',p:'请为以下故事提供3种不同风格的结局：'},'翻译':{icon:'🌐',group:'工具',p:'请将以下中文内容翻译为英文：'},'总结':{icon:'📝',group:'工具',p:'请为以下内容生成简洁摘要：'},'标题':{icon:'🏷️',group:'工具',p:'请为以下内容生成5个吸引人的标题：'},'降AI':{icon:'🛡️',group:'工具',p:'请将以下AI生成的文字重写为自然的人类写作风格。要求：1.使用口语化、不规则的句式 2.加入个人化的表达和语气词 3.偶尔使用短句或碎片化表达 4.避免完美排比和过度修饰 5.添加一些即兴感和不完美感 6.保持核心意思不变 7.让文字读起来像真人随手写的，而不是AI精心构造的。输出重写后的全文：'},'查AI':{icon:'🔎',group:'工具',p:'请分析以下文字的AI生成特征。从句式规律性、词汇丰富度、情感自然度、结构完美度、口语化程度、重复冗余度六个维度各给0-100评分，给出综合AI概率评估和具体特征描述。⚠️ 仅供参考，不构成正式判定。文字：'}};
 function renderAiModeGrid(){const el=document.getElementById('aiModeGrid'),g={};for(const[k,v]of Object.entries(AI_MODES)){if(!g[v.group])g[v.group]=[];g[v.group].push(k);}let h='';for(const[label,keys]of Object.entries(g)){h+='<div class="mode-group"><div class="mode-group-title">'+label+'</div><div class="mode-grid">';for(const k of keys)h+='<button class="mode-btn'+(S.aiMode===k?' selected':'')+'" onclick="selectMode(this,\''+k+'\')"><span class="micon">'+AI_MODES[k].icon+'</span>'+k+'</button>';h+='</div></div>';}el.innerHTML=h;}
 function selectMode(btn,m){document.querySelectorAll('.mode-btn').forEach(b=>b.classList.remove('selected'));btn.classList.add('selected');S.aiMode=m;}
 function setTemp(v,btn){btn.parentElement.querySelectorAll('.seg-btn').forEach(b=>b.classList.remove('on'));btn.classList.add('on');S.aiTemp=v;}
@@ -674,6 +675,21 @@ async function aiHumanize(){
     aiQuickLastResult=result;aiQuickMode='humanize';
   }catch(e){showToast('❌',e.message||'处理失败');}
   setLoading('aiBtnHumanize',false);
+}
+
+async function aiDetect(){
+  if(!aiCheckApi())return;
+  const ed=document.getElementById('mainEditor');
+  const text=ed.value.trim();
+  if(!text||text.length<50){showToast('✍️','请先输入至少50字');return;}
+  setLoading('aiBtnDetect',true);
+  try{
+    const prompt='你是一位文本分析专家。请分析以下文字的AI生成特征，给出详细报告。\n\n⚠️ 重要声明：本分析结果仅供参考，不构成任何权威判定。AI检测本身存在误判率，人类写作也可能被误判为AI。\n\n请从以下维度分析，每项给出0-100的评分（越高越像AI）：\n\n1. **句式规律性** — 句子长度和结构是否过于整齐规律\n2. **词汇丰富度** — 是否过度使用某些高频AI词汇（如"此外""值得注意的是""总而言之"等）\n3. **情感自然度** — 情感表达是否过于"得体"，缺少真实的情绪波动\n4. **结构完美度** — 段落和逻辑是否过于工整，像模板输出\n5. **口语化程度** — 是否缺少口语、方言、碎片句等人类特征\n6. **重复与冗余** — 人类写作常有适度重复和冗余，AI往往过于精炼\n\n最后给出：\n- 综合AI概率评估（仅供参考）\n- 3-5条具体的AI特征描述\n- 如果想让文字更像人写，建议修改哪些方面\n\n格式要求：用清晰的编号和分隔线，便于阅读。\n\n待分析文字：\n'+text.slice(0,3000);
+    const result=await callAI(prompt,S.apiConfig);
+    const disclaimer='\n\n────────────────\n⚠️ 以上分析仅供参考，不作为任何正式判定依据。AI检测工具本身存在较大误判率。';
+    showAiQuickResult('🔍 AI特征分析报告\n⚠️ 仅供参考，不构成正式判定',result+disclaimer,'detect');
+  }catch(e){showToast('❌',e.message||'检测失败');}
+  setLoading('aiBtnDetect',false);
 }
 
 // ═══ Toast ═══
