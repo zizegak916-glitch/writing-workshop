@@ -184,8 +184,9 @@ body.light #lockScreen{background-image:radial-gradient(ellipse 60% 60% at 50% 4
   .topbar-sep{display:none}
   .project-selector{max-width:140px;font-size:12px;padding:6px 8px}
   .bottom-nav{display:block}
-  .main-body{padding-bottom:52px}
-  .editor-area{position:fixed;top:var(--topbar-h);bottom:52px;left:0;right:0;z-index:15}
+  .main-body{position:absolute;top:var(--topbar-h);bottom:52px;left:0;right:0;overflow:hidden}
+  .editor-area{position:absolute;top:0;bottom:0;left:0;right:0;z-index:1}
+  .mobile-panel{z-index:5}
   .chapter-title-bar{padding:12px 16px 0}
   .chapter-meta{padding:6px 16px}
   .editor-wrap{padding:8px 16px 30px}
@@ -703,10 +704,14 @@ function swMobileTab(tab,btn){
   document.querySelectorAll('#bottomNav .btab').forEach(b=>b.classList.remove('on'));
   btn.classList.add('on');
   document.querySelectorAll('.mobile-panel').forEach(p=>p.classList.remove('on'));
-  const ea=document.querySelector('.editor-area');
-  if(tab==='editor'){ea.style.display='';ea.style.position='';ea.style.top='';ea.style.bottom='';ea.style.left='';ea.style.right='';ea.style.zIndex='';}
-  else{ea.style.display='none';const p=document.getElementById('mp-'+tab);if(p)p.classList.add('on');
-    if(tab==='outline')renderMpOutline();if(tab==='chapters')renderMpChapter();if(tab==='chars')renderMpChar();if(tab==='ai')renderMpAi();}
+  if(tab==='editor'){
+    document.querySelector('.editor-area').style.display='';
+  }else{
+    document.querySelector('.editor-area').style.display='none';
+    const p=document.getElementById('mp-'+tab);
+    if(p)p.classList.add('on');
+    if(tab==='outline')renderMpOutline();if(tab==='chapters')renderMpChapter();if(tab==='chars')renderMpChar();if(tab==='ai')renderMpAi();
+  }
 }
 function backToEditor(){const btn=document.querySelector('#bottomNav .btab');if(btn)swMobileTab('editor',btn);}
 function renderMpOutline(){if(!S.proj)return;const el=document.getElementById('mpOutlineList');if(!S.proj.outlines.length){el.innerHTML='<div style="text-align:center;padding:40px;color:var(--text-hint)">暂无大纲</div>';return;}el.innerHTML=S.proj.outlines.map(o=>'<div class="outline-item'+(S.active&&S.active.type==='outline'&&S.active.id===o.id?' active':'')+'" onclick="loadOutlineContent('+o.id+');backToEditor()"><span class="oi-icon"><svg class="ic ic-sm"><use href="#ic-outline"/></svg></span><span class="oi-text">'+o.title+'</span><span class="oi-count">'+(o.content?countWords(o.content):0)+'字</span></div>').join('');}
