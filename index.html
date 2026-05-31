@@ -362,7 +362,11 @@ const S={proj:null,active:null,editCharId:null,aiMode:'润色',aiTemp:'mid',aiLe
 async function sha256(t){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(t));return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join('');}
 
 // ═══ Lock ═══
-(function(){const h=localStorage.getItem('ww_pwd_hash');if(h){document.getElementById('lockSub').textContent='请输入密码解锁工坊';document.getElementById('lockHint').innerHTML='忘记密码？<span onclick="clearPwd()">重置</span>';document.getElementById('lockBtn').textContent='解锁';}document.getElementById('lockInput').addEventListener('keydown',e=>{if(e.key==='Enter')handleLock();});})();
+(function(){const h=localStorage.getItem('ww_pwd_hash');if(!h){document.getElementById('lockSub').textContent='首次使用请设置密码';document.getElementById('lockBtn').textContent='设置密码';document.getElementById('lockHint').innerHTML='';}else{document.getElementById('lockSub').textContent='请输入密码解锁工坊';document.getElementById('lockHint').innerHTML='忘记密码？<span onclick="clearPwd()">重置</span>';document.getElementById('lockBtn').textContent='解锁';}document.getElementById('lockInput').addEventListener('keydown',e=>{if(e.key==='Enter')handleLock();});
+// Skip lock on refresh if password already set — only lock on explicit button
+const h2=localStorage.getItem('ww_pwd_hash');
+if(h2){document.getElementById('lockScreen').style.display='none';document.getElementById('app').classList.add('visible');initApp();}else{document.getElementById('lockScreen').style.display='flex';}
+})();
 async function handleLock(){const v=document.getElementById('lockInput').value.trim();if(!v||v.length<4){showToast('❌','密码至少4位');return;}const h=localStorage.getItem('ww_pwd_hash');if(!h){localStorage.setItem('ww_pwd_hash',await sha256(v));showToast('✓','密码设置成功');unlockApp();}else{if(await sha256(v)===h){unlockApp();}else{showToast('❌','密码错误');document.getElementById('lockInput').value='';}}}
 function unlockApp(){document.getElementById('lockScreen').style.display='none';document.getElementById('app').classList.add('visible');initApp();}
 function clearPwd(){if(confirm('确定重置？将清除所有数据。')){localStorage.clear();indexedDB.deleteDatabase(DB_NAME);location.reload();}}
@@ -370,7 +374,7 @@ function lockApp(){document.getElementById('lockScreen').style.display='flex';do
 
 // ═══ Init ═══
 async function initApp(){await openDB();renderAiModeGrid();renderMultiSlots();await loadProjects();renderHistory();setInterval(()=>{if(S.autoSave&&S.unsaved)saveDoc();},30000);const ed=document.getElementById('mainEditor');ed.addEventListener('input',onEditorInput);ed.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='s'){e.preventDefault();saveDoc();}});document.getElementById('focusEditor').addEventListener('input',()=>{document.getElementById('focusInfo').textContent=countWords(document.getElementById('focusEditor').value)+' 字 · Esc 退出';});document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeFocus();closeAiResult();}});if(S.projects.length>0)await loadProject(S.projects[0].id);updateAllStats();}
-document.addEventListener('DOMContentLoaded',()=>{document.getElementById('lockScreen').style.display='flex';});
+document.addEventListener('DOMContentLoaded',()=>{/* lock handled in IIFE above */});
 
 // ═══ Editor ═══
 let editorTimer;
