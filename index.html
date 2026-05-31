@@ -248,6 +248,25 @@ body.light #lockScreen{background-image:radial-gradient(ellipse 60% 60% at 50% 4
       </div>
       <div class="chapter-title-bar"><input class="chapter-title-input" id="chapterTitle" placeholder="章节标题..." oninput="S.unsaved=true"></div>
       <div class="chapter-meta"><span>📊 <span id="paraCount">1</span> 段</span><span>📝 <span id="sentCount">0</span> 句</span><span>⏱ <span id="readTime">约0分钟</span></span><span id="editorWords">0</span> 字</div>
+      <!-- AI Quick Tools Bar -->
+      <div id="aiQuickBar" style="display:flex;gap:6px;padding:6px 24px;border-bottom:1px solid var(--border);background:var(--bg-mid);flex-wrap:wrap">
+        <button class="tool-btn" onclick="aiProofread()" id="aiBtnProof" title="检查错别字、语病">✅ 纠错</button>
+        <button class="tool-btn" onclick="aiAutoTitle()" id="aiBtnTitle" title="根据内容生成标题">🏷️ 自动标题</button>
+        <button class="tool-btn" onclick="aiInspiration()" id="aiBtnInspire" title="根据上下文提供灵感">💡 实时灵感</button>
+        <button class="tool-btn" onclick="aiResearch()" id="aiBtnResearch" title="搜索相关资料和知识">🔍 资料搜索</button>
+      </div>
+      <!-- AI Result Inline Panel (for quick tools) -->
+      <div id="aiQuickResult" style="display:none;border-bottom:1px solid var(--border);background:var(--bg-panel);padding:12px 24px;max-height:280px;overflow-y:auto">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <span id="aiQuickResultTitle" style="font-size:12px;font-weight:600;color:var(--accent)">AI 结果</span>
+          <div style="display:flex;gap:6px">
+            <button class="tool-btn" onclick="aiQuickApply()" style="font-size:11px;padding:3px 8px">✅ 应用</button>
+            <button class="tool-btn" onclick="aiQuickCopy()" style="font-size:11px;padding:3px 8px">📋 复制</button>
+            <button class="tool-btn" onclick="closeAiQuickResult()" style="font-size:11px;padding:3px 8px">✕</button>
+          </div>
+        </div>
+        <div id="aiQuickResultText" style="font-family:var(--font-serif);font-size:14px;line-height:1.8;color:var(--text-primary);white-space:pre-wrap"></div>
+      </div>
       <div class="editor-wrap" id="editorWrap"><textarea id="mainEditor" placeholder="开始写作..."></textarea></div>
       <div id="previewPane" style="display:none;flex:1;overflow-y:auto;padding:16px 24px;font-family:var(--font-serif);font-size:16px;line-height:1.9;color:var(--text-primary)"></div>
       <div class="bottom-bar"><div class="wc-info"><div class="wc-item">总字数: <strong id="totalWordsBar">0</strong></div><div class="wc-item">段落: <strong id="paraCountBar">1</strong></div></div><div class="goal-bar-wrap"><div class="goal-track"><div class="goal-fill" id="goalFill"></div></div><div class="wc-item" id="goalTextBar">0/2000</div></div></div>
@@ -524,6 +543,90 @@ async function changePassword(){
 }
 // Hook: render stats when profile modal opens
 (function(){const orig=openModal;openModal=function(id){orig(id);if(id==='profileModal')renderProfileStats();};})();
+
+// ═══ AI Quick Tools ═══
+let aiQuickLastResult='',aiQuickMode='';
+function aiCheckApi(){const ac=S.apiConfig;if(!ac.key){showToast('⚙️','请先配置 API');openModal('apiModal');return false;}return true;}
+function showAiQuickResult(title,text,mode){aiQuickLastResult=text;aiQuickMode=mode;document.getElementById('aiQuickResultTitle').textContent=title;document.getElementById('aiQuickResultText').textContent=text;document.getElementById('aiQuickResult').style.display='block';}
+function closeAiQuickResult(){document.getElementById('aiQuickResult').style.display='none';aiQuickLastResult='';aiQuickMode='';}
+function aiQuickApply(){if(!aiQuickLastResult)return;if(aiQuickMode==='title'){document.getElementById('chapterTitle').value=aiQuickLastResult;S.unsaved=true;showToast('✓','标题已应用');closeAiQuickResult();return;}const ed=document.getElementById('mainEditor');if(aiQuickMode==='proofread'){ed.value=aiQuickLastResult;onEditorInput();showToast('✓','纠错已应用');}else if(aiQuickMode==='inspire'){const pos=ed.selectionStart;ed.value=ed.value.slice(0,pos)+'\n\n'+aiQuickLastResult+'\n'+ed.value.slice(pos);onEditorInput();showToast('✓','灵感已插入');}closeAiQuickResult();}
+function aiQuickCopy(){if(!aiQuickLastResult)return;navigator.clipboard.writeText(aiQuickLastResult).then(()=>showToast('✓','已复制')).catch(()=>showToast('❌','复制失败'));}
+function setLoading(btnId,loading){const b=document.getElementById(btnId);if(b){if(loading){b.disabled=true;b.dataset.origText=b.textContent;b.textContent='⏳ ...';}else{b.disabled=false;b.textContent=b.dataset.origText||b.textContent;}}}
+
+async function aiProofread(){
+  if(!aiCheckApi())return;
+  const text=document.getElementById('mainEditor').value.trim();
+  if(!text){showToast('✍️','请先输入内容');return;}
+  setLoading('aiBtnProof',true);
+  try{
+    const ctx=S.proj?buildCtx()+'\n\n':'';
+    const prompt='你是一位专业的中文校对编辑。请仔细检查以下文字中的错别字、语病、标点错误和不通顺的句子。\n\n请按以下格式输出：\n1. 先列出所有发现的问题（编号列出，标注原文和修正）\n2. 然后输出一段"修正后全文"，直接给出修正后的完整文字\n\n如果文字没有问题，请直接回复"✅ 未发现错误"。\n\n'+ctx+'原文：\n'+text;
+    const result=await callAI(prompt,S.apiConfig);
+    // Check if it contains corrected text
+    const correctedMatch=result.match(/修正后全文[：:]\s*([\s\S]*)/);
+    if(correctedMatch){
+      aiQuickLastResult=correctedMatch[1].trim();
+      aiQuickMode='proofread';
+    }
+    showAiQuickResult('✅ 纠错结果',result,'proofread');
+    // If there's a corrected version, store it for apply
+    if(correctedMatch)aiQuickLastResult=correctedMatch[1].trim();
+  }catch(e){showToast('❌',e.message||'纠错失败');}
+  setLoading('aiBtnProof',false);
+}
+
+async function aiAutoTitle(){
+  if(!aiCheckApi())return;
+  const text=document.getElementById('mainEditor').value.trim();
+  if(!text){showToast('✍️','请先输入内容');return;}
+  setLoading('aiBtnTitle',true);
+  try{
+    const ctx=S.proj?buildCtx()+'\n\n':'';
+    const prompt='你是一位资深编辑。请根据以下文字内容，生成5个吸引人的章节标题。要求：\n1. 每个标题简洁有力（不超过15字）\n2. 风格多样（有悬念型、诗意型、直白型等）\n3. 能概括核心内容或吸引读者\n\n请用编号列出，每行一个标题。\n\n'+ctx+'内容：\n'+text.slice(0,2000);
+    const result=await callAI(prompt,S.apiConfig);
+    showAiQuickResult('🏷️ 标题建议（点击"应用"使用第一个标题）',result,'title');
+    // Extract first title for apply
+    const titles=result.match(/\d+[.、．)\s]+(.+)/g);
+    if(titles&&titles.length>0){
+      const first=titles[0].replace(/^\d+[.、．)\s]+/,'').trim().replace(/^["「『]|["」』]$/g,'');
+      aiQuickLastResult=first;aiQuickMode='title';
+    }
+  }catch(e){showToast('❌',e.message||'生成失败');}
+  setLoading('aiBtnTitle',false);
+}
+
+async function aiInspiration(){
+  if(!aiCheckApi())return;
+  const text=document.getElementById('mainEditor').value.trim();
+  const title=document.getElementById('chapterTitle').value.trim();
+  setLoading('aiBtnInspire',true);
+  try{
+    const ctx=S.proj?buildCtx()+'\n\n':'';
+    const selectedText=text.slice(document.getElementById('mainEditor').selectionStart,document.getElementById('mainEditor').selectionEnd).trim();
+    const content=selectedText||text.slice(-800);
+    const prompt='你是一位创意写作顾问。根据以下内容，提供3-5条创作灵感和建议，包括：\n1. 情节发展方向\n2. 人物互动建议\n3. 场景/氛围增强\n4. 可以添加的细节\n\n每条建议简洁具体，能直接用于写作。用emoji标注类型。\n\n'+ctx+(title?'当前标题：'+title+'\n':'')+'内容：\n'+(content||'（空文档，请提供通用创作灵感）');
+    const result=await callAI(prompt,S.apiConfig);
+    showAiQuickResult('💡 实时灵感',result,'inspire');
+  }catch(e){showToast('❌',e.message||'获取灵感失败');}
+  setLoading('aiBtnInspire',false);
+}
+
+async function aiResearch(){
+  if(!aiCheckApi())return;
+  const text=document.getElementById('mainEditor').value.trim();
+  const title=document.getElementById('chapterTitle').value.trim();
+  // Extract keywords from content
+  const selectedText=text.slice(document.getElementById('mainEditor').selectionStart,document.getElementById('mainEditor').selectionEnd).trim();
+  setLoading('aiBtnResearch',true);
+  try{
+    const ctx=S.proj?buildCtx()+'\n\n':'';
+    const content=selectedText||text.slice(-500);
+    const prompt='你是一位知识渊博的研究助手。根据以下写作内容，提供相关的背景知识和参考资料，帮助作者丰富内容。包括：\n1. 相关的历史/文化/科学背景\n2. 可参考的经典作品或案例\n3. 专业术语解释\n4. 细节描写的素材建议\n\n请分点列出，简洁实用。\n\n'+ctx+(title?'当前标题：'+title+'\n':'')+'内容/关键词：\n'+(content||'请提供通用写作参考资料');
+    const result=await callAI(prompt,S.apiConfig);
+    showAiQuickResult('🔍 资料搜索结果',result,'research');
+  }catch(e){showToast('❌',e.message||'搜索失败');}
+  setLoading('aiBtnResearch',false);
+}
 
 // ═══ Toast ═══
 let toastTimer;function showToast(i,m){document.getElementById('toastIcon').textContent=i;document.getElementById('toastMsg').textContent=m;const t=document.getElementById('toast');t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),2200);}
