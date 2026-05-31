@@ -193,6 +193,20 @@ body.light #lockScreen{background-image:radial-gradient(ellipse 60% 60% at 50% 4
   .editor-wrap{padding:8px 16px 30px}
   .bottom-bar{padding:6px 16px}
 }
+.settings-tabs{display:flex;gap:2px;margin-bottom:20px;background:var(--bg-deep);border-radius:var(--radius-sm);padding:3px}
+.settings-tab{flex:1;padding:8px;text-align:center;border-radius:var(--radius-sm);cursor:pointer;font-size:12px;font-weight:500;color:var(--text-muted);transition:.2s;background:transparent;border:none;font-family:var(--font-sans)}
+.settings-tab.active{background:var(--accent);color:#fff}
+.settings-tab:hover:not(.active){background:var(--bg-hover);color:var(--text-secondary)}
+.lang-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.lang-card{padding:12px;border-radius:var(--radius-sm);background:var(--bg-card);border:1px solid var(--border);cursor:pointer;text-align:center;font-size:13px;transition:.2s;display:flex;align-items:center;gap:8px;justify-content:center}
+.lang-card:hover{border-color:var(--accent-dim);background:var(--bg-hover)}
+.lang-card.active{border-color:var(--accent);background:var(--accent-glow);color:var(--accent)}
+.theme-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.theme-card{padding:20px;border-radius:var(--radius);cursor:pointer;text-align:center;border:2px solid var(--border);transition:.2s}
+.theme-card.dark-preview{background:#0d0f14;color:#e8eaf2}
+.theme-card.light-preview{background:#f8f9fa;color:#1a1a2e}
+.theme-card:hover{border-color:var(--accent-dim)}
+.theme-card.active{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-glow)}
 </style>
 </head>
 <body>
@@ -246,23 +260,9 @@ body.light #lockScreen{background-image:radial-gradient(ellipse 60% 60% at 50% 4
     </div>
     <div class="topbar-actions">
       <button class="icon-btn" onclick="openModal('newProjectModal')" title="新建">＋</button>
-      <button class="icon-btn" onclick="openModal('apiModal')" title="API 设置"><svg class="ic ic-sm"><use href="#ic-settings"/></svg></button>
+      <button class="icon-btn" onclick="openModal('settingsModal')" title="设置"><svg class="ic ic-sm"><use href="#ic-settings"/></svg></button>
       <button class="icon-btn" onclick="exportProject()" title="导出"><svg class="ic ic-sm"><use href="#ic-download"/></svg></button>
       <button class="icon-btn" id="saveBtn" onclick="saveDoc()" title="保存"><svg class="ic ic-sm"><use href="#ic-save"/></svg><span class="save-badge"></span></button>
-      <button class="icon-btn" id="themeBtn" onclick="toggleTheme()" title="切换主题"><svg class="ic ic-sm"><use href="#ic-moon"/></svg></button>
-      <div style="position:relative;display:inline-block">
-        <button class="icon-btn" id="langBtn" onclick="toggleLangMenu()" title="Language" style="font-size:11px;font-weight:700;color:var(--accent);min-width:28px">中</button>
-        <div id="langMenu" style="display:none;position:absolute;top:100%;right:0;background:var(--bg-panel);border:1px solid var(--border-light);border-radius:var(--radius);padding:4px 0;z-index:100;min-width:120px;box-shadow:var(--shadow-lg)">
-          <div class="lang-option" onclick="setLang('zh')" style="padding:8px 14px;font-size:13px;cursor:pointer;color:var(--text-secondary);display:flex;align-items:center;gap:8px"><span>🇨🇳</span> 中文</div>
-          <div class="lang-option" onclick="setLang('en')" style="padding:8px 14px;font-size:13px;cursor:pointer;color:var(--text-secondary);display:flex;align-items:center;gap:8px"><span>🇺🇸</span> English</div>
-          <div class="lang-option" onclick="setLang('ja')" style="padding:8px 14px;font-size:13px;cursor:pointer;color:var(--text-secondary);display:flex;align-items:center;gap:8px"><span>🇯🇵</span> 日本語</div>
-          <div class="lang-option" onclick="setLang('ko')" style="padding:8px 14px;font-size:13px;cursor:pointer;color:var(--text-secondary);display:flex;align-items:center;gap:8px"><span>🇰🇷</span> 한국어</div>
-          <div class="lang-option" onclick="setLang('fr')" style="padding:8px 14px;font-size:13px;cursor:pointer;color:var(--text-secondary);display:flex;align-items:center;gap:8px"><span>🇫🇷</span> Français</div>
-          <div class="lang-option" onclick="setLang('es')" style="padding:8px 14px;font-size:13px;cursor:pointer;color:var(--text-secondary);display:flex;align-items:center;gap:8px"><span>🇪🇸</span> Español</div>
-          <div class="lang-option" onclick="setLang('de')" style="padding:8px 14px;font-size:13px;cursor:pointer;color:var(--text-secondary);display:flex;align-items:center;gap:8px"><span>🇩🇪</span> Deutsch</div>
-          <div class="lang-option" onclick="setLang('ru')" style="padding:8px 14px;font-size:13px;cursor:pointer;color:var(--text-secondary);display:flex;align-items:center;gap:8px"><span>🇷🇺</span> Русский</div>
-        </div>
-      </div>
       <button class="icon-btn" onclick="openModal('profileModal')" title="个人中心"><svg class="ic ic-sm"><use href="#ic-user"/></svg></button>
     </div>
   </div>
@@ -405,6 +405,58 @@ body.light #lockScreen{background-image:radial-gradient(ellipse 60% 60% at 50% 4
   <div class="form-row"><div class="form-label">模型</div><input class="form-input" id="apiModel" placeholder="留空使用默认"></div>
   <div class="modal-footer"><button class="btn-cancel" onclick="closeModal('apiModal')">取消</button><button class="btn-confirm" onclick="saveApi()">保存 ✓</button></div>
 </div></div>
+<div class="modal-overlay" id="settingsModal"><div class="modal" style="width:min(520px,94vw)">
+  <div class="modal-title">⚙️ 设置</div><div class="modal-sub">语言、API 和主题设置</div>
+  <div class="settings-tabs">
+    <button class="settings-tab active" onclick="openSettingsTab('lang',this)">语言/Language</button>
+    <button class="settings-tab" onclick="openSettingsTab('api',this)">API</button>
+    <button class="settings-tab" onclick="openSettingsTab('theme',this)">主题/Theme</button>
+  </div>
+  <div id="settingsTab-lang">
+    <div class="lang-grid">
+      <div class="lang-card active" onclick="settingsSetLang('zh',this)">🇨🇳 中文</div>
+      <div class="lang-card" onclick="settingsSetLang('en',this)">🇺🇸 English</div>
+      <div class="lang-card" onclick="settingsSetLang('ja',this)">🇯🇵 日本語</div>
+      <div class="lang-card" onclick="settingsSetLang('ko',this)">🇰🇷 한국어</div>
+      <div class="lang-card" onclick="settingsSetLang('fr',this)">🇫🇷 Français</div>
+      <div class="lang-card" onclick="settingsSetLang('es',this)">🇪🇸 Español</div>
+      <div class="lang-card" onclick="settingsSetLang('de',this)">🇩🇪 Deutsch</div>
+      <div class="lang-card" onclick="settingsSetLang('ru',this)">🇷🇺 Русский</div>
+    </div>
+  </div>
+  <div id="settingsTab-api" style="display:none">
+    <div class="form-row"><div class="form-label">选择服务商</div><div class="provider-grid" id="sProviderGrid">
+      <div class="provider-chip on" onclick="selectProvider(this,'claude')">🤖 Claude</div>
+      <div class="provider-chip" onclick="selectProvider(this,'openai')">⚡ OpenAI</div>
+      <div class="provider-chip" onclick="selectProvider(this,'deepseek')">🌊 DeepSeek</div>
+      <div class="provider-chip" onclick="selectProvider(this,'xiaomi')">📱 MiMo</div>
+      <div class="provider-chip" onclick="selectProvider(this,'qwen')">☁️ 通义</div>
+      <div class="provider-chip" onclick="selectProvider(this,'zhipu')">🧠 智谱</div>
+      <div class="provider-chip" onclick="selectProvider(this,'moonshot')">🌙 Kimi</div>
+      <div class="provider-chip" onclick="selectProvider(this,'siliconflow')">🔬 SiliconFlow</div>
+      <div class="provider-chip" onclick="selectProvider(this,'openrouter')">🔀 OpenRouter</div>
+      <div class="provider-chip" onclick="selectProvider(this,'custom')">🔧 自定义</div>
+    </div></div>
+    <div class="form-row" id="sCustomUrlRow" style="display:none"><div class="form-label">Base URL</div><input class="form-input" id="sApiBaseUrl" placeholder="https://api.example.com/v1"></div>
+    <div class="form-row"><div class="form-label">API Key</div><div class="test-row"><input class="form-input" id="sApiKey" type="password" placeholder="sk-..."><button class="btn-test" onclick="settingsTestApi()">测试</button></div><div class="test-result" id="sTestResult"></div></div>
+    <div class="form-row"><div class="form-label">模型</div><input class="form-input" id="sApiModel" placeholder="留空使用默认"></div>
+  </div>
+  <div id="settingsTab-theme" style="display:none">
+    <div class="theme-grid">
+      <div class="theme-card dark-preview active" onclick="settingsSetTheme('dark',this)" id="themeCardDark">
+        <div style="font-size:24px;margin-bottom:8px">🌙</div>
+        <div style="font-weight:600;font-size:14px">深色模式</div>
+        <div style="font-size:12px;opacity:0.6;margin-top:4px">Dark Mode</div>
+      </div>
+      <div class="theme-card light-preview" onclick="settingsSetTheme('light',this)" id="themeCardLight">
+        <div style="font-size:24px;margin-bottom:8px">☀️</div>
+        <div style="font-weight:600;font-size:14px">浅色模式</div>
+        <div style="font-size:12px;opacity:0.6;margin-top:4px">Light Mode</div>
+      </div>
+    </div>
+  </div>
+  <div class="modal-footer"><button class="btn-cancel" onclick="closeModal('settingsModal')">关闭</button><button class="btn-confirm" onclick="saveSettings()">保存 ✓</button></div>
+</div></div>
 <div class="modal-overlay" id="charModal"><div class="modal">
   <div class="modal-title" id="charModalTitle">👤 添加人物</div><div class="modal-sub">建立人物档案</div>
   <div class="form-row"><div class="form-label">姓名</div><input class="form-input" id="charName" placeholder="例如：陆云深"></div>
@@ -528,7 +580,7 @@ function setLen(v,btn){btn.parentElement.querySelectorAll('.seg-btn').forEach(b=
 const PROVIDERS={claude:{url:'https://api.anthropic.com/v1/messages',model:'claude-sonnet-4-20250514',type:'claude'},openai:{url:'https://api.openai.com/v1/chat/completions',model:'gpt-4o',type:'openai'},deepseek:{url:'https://api.deepseek.com/v1/chat/completions',model:'deepseek-chat',type:'openai'},xiaomi:{url:'https://api.xiaomimimo.com/v1/chat/completions',model:'mimo-v2.5-pro',type:'openai'},qwen:{url:'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',model:'qwen-plus',type:'openai'},zhipu:{url:'https://open.bigmodel.cn/api/paas/v4/chat/completions',model:'glm-4-flash',type:'openai'},moonshot:{url:'https://api.moonshot.cn/v1/chat/completions',model:'moonshot-v1-8k',type:'openai'},siliconflow:{url:'https://api.siliconflow.cn/v1/chat/completions',model:'deepseek-ai/DeepSeek-V3',type:'openai'},openrouter:{url:'https://openrouter.ai/api/v1/chat/completions',model:'anthropic/claude-sonnet-4',type:'openai'},custom:{url:'',model:'',type:'openai'}};
 async function callAI(prompt,conf){const pr=conf.provider||'claude',p=PROVIDERS[pr]||PROVIDERS.claude,url=conf.baseUrl||p.url,h={'Content-Type':'application/json'};let body;if(p.type==='claude'){h['x-api-key']=conf.key;h['anthropic-version']='2023-06-01';body=JSON.stringify({model:conf.model||p.model,max_tokens:2000,messages:[{role:'user',content:prompt}]});}else{h['Authorization']='Bearer '+conf.key;body=JSON.stringify({model:conf.model||p.model,max_tokens:2000,messages:[{role:'user',content:prompt}]});}const r=await fetch(url,{method:'POST',headers:h,body});if(!r.ok)throw new Error('HTTP '+r.status);const d=await r.json();if(p.type==='claude')return d.content?.[0]?.text||'（无返回）';return d.choices?.[0]?.message?.content||'（无返回）';}
 function buildCtx(){if(!S.proj)return'';const p=S.proj.project,a=[];a.push('作品：《'+p.name+'》');if(p.genre)a.push('类型：'+p.genre);if(p.description)a.push('简介：'+p.description);if(p.world_setting)a.push('世界观：'+p.world_setting);if(S.proj.characters.length)a.push('人物：'+S.proj.characters.map(c=>c.name+'('+c.role+')').join('、'));return a.join('\n');}
-function selectProvider(el,p){document.querySelectorAll('.provider-chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');S.selectedProvider=p;document.getElementById('customUrlRow').style.display=p==='custom'?'block':'none';const d={claude:'claude-sonnet-4-20250514',openai:'gpt-4o',deepseek:'deepseek-chat',xiaomi:'mimo-v2.5-pro',qwen:'qwen-plus',zhipu:'glm-4-flash',moonshot:'moonshot-v1-8k',siliconflow:'deepseek-ai/DeepSeek-V3',openrouter:'anthropic/claude-sonnet-4',custom:''};document.getElementById('apiModel').placeholder=d[p]||'';}
+function selectProvider(el,p){el.parentElement.querySelectorAll('.provider-chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');S.selectedProvider=p;const cur=el.closest('.provider-grid').id;const urlRow=cur==='sProviderGrid'?'sCustomUrlRow':'customUrlRow';document.getElementById(urlRow).style.display=p==='custom'?'block':'none';const d={claude:'claude-sonnet-4-20250514',openai:'gpt-4o',deepseek:'deepseek-chat',xiaomi:'mimo-v2.5-pro',qwen:'qwen-plus',zhipu:'glm-4-flash',moonshot:'moonshot-v1-8k',siliconflow:'deepseek-ai/DeepSeek-V3',openrouter:'anthropic/claude-sonnet-4',custom:''};const modelEl=cur==='sProviderGrid'?document.getElementById('sApiModel'):document.getElementById('apiModel');if(modelEl)modelEl.placeholder=d[p]||'';}
 async function testApi(){const k=document.getElementById('apiKey').value.trim(),r=document.getElementById('testResult');if(!k){r.className='test-result fail';r.textContent='请输入 Key';return;}r.className='test-result ok';r.textContent='⏳ 测试中...';try{const conf={key:k,provider:S.selectedProvider,model:document.getElementById('apiModel').value.trim(),baseUrl:document.getElementById('apiBaseUrl').value.trim()};const t=await callAI('请回复"连接成功"',conf);r.className='test-result ok';r.textContent='✓ '+t.slice(0,30);}catch(e){r.className='test-result fail';r.textContent='✗ '+e.message;}}
 function saveApi(){const c={provider:S.selectedProvider,key:document.getElementById('apiKey').value.trim(),model:document.getElementById('apiModel').value.trim(),baseUrl:document.getElementById('apiBaseUrl').value.trim()};if(!c.key){showToast('❌','请输入 Key');return;}S.apiConfig=c;localStorage.setItem('ww_api',JSON.stringify(c));closeModal('apiModal');showToast('✓','已保存');}
 function loadApiUI(){const c=S.apiConfig;if(c.provider){const el=document.querySelector('.provider-chip[onclick*="'+c.provider+'"]');if(el)selectProvider(el,c.provider);}document.getElementById('apiKey').value=c.key||'';document.getElementById('apiModel').value=c.model||'';document.getElementById('apiBaseUrl').value=c.baseUrl||'';}
@@ -556,14 +608,14 @@ async function clearHistory(){if(!confirm('清空历史？'))return;const items=
 function switchAiTab(t,el){document.querySelectorAll('.ai-tab').forEach(x=>x.classList.remove('active'));el.classList.add('active');['modes','multi','history'].forEach(x=>{document.getElementById('aiTab-'+x).style.display=x===t?'block':'none';});}
 
 // ═══ Modals ═══
-function openModal(id){document.getElementById(id).classList.add('show');if(id==='projectModal')renderProjectList();if(id==='apiModal')loadApiUI();}
+function openModal(id){document.getElementById(id).classList.add('show');if(id==='projectModal')renderProjectList();if(id==='apiModal')loadApiUI();if(id==='settingsModal')initSettingsModal();}
 function closeModal(id){document.getElementById(id).classList.remove('show');}
 function toggleGenre(el){el.parentElement.querySelectorAll('.genre-chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');}
 document.querySelectorAll('.modal-overlay').forEach(o=>{o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('show');});});
 
 // ═══ Theme ═══
-function toggleTheme(){document.body.classList.toggle('light');const isLight=document.body.classList.contains('light');localStorage.setItem('ww_theme',isLight?'light':'dark');document.getElementById('themeBtn').innerHTML='<svg class="ic ic-sm"><use href="#ic-'+(isLight?'sun':'moon')+'"/></svg>';}
-(function loadTheme(){if(localStorage.getItem('ww_theme')==='light'){document.body.classList.add('light');setTimeout(()=>{const b=document.getElementById('themeBtn');if(b)b.innerHTML='<svg class="ic ic-sm"><use href="#ic-sun"/></svg>';},0);}})();
+function toggleTheme(){document.body.classList.toggle('light');const isLight=document.body.classList.contains('light');localStorage.setItem('ww_theme',isLight?'light':'dark');}
+(function loadTheme(){if(localStorage.getItem('ww_theme')==='light'){document.body.classList.add('light');}})();
 
 // ═══ i18n ═══
 const LANG={
@@ -990,21 +1042,69 @@ function t(k){return LANG[currentLang]?.[k]||LANG['zh']?.[k]||k;}
 const LANGS=['zh','en','ja','ko','fr','es','de','ru'];
 const LANG_LABELS={zh:'中',en:'EN',ja:'日',ko:'한',fr:'FR',es:'ES',de:'DE',ru:'RU'};
 
-function toggleLangMenu(){const m=document.getElementById('langMenu');m.style.display=m.style.display==='none'?'block':'none';}
-document.addEventListener('click',e=>{const m=document.getElementById('langMenu');if(m&&!m.contains(e.target)&&e.target.id!=='langBtn')m.style.display='none';});
+function toggleLangMenu(){}
+document.addEventListener('click',()=>{});
 
 function setLang(lang){
   currentLang=lang;
   localStorage.setItem('ww_lang',lang);
-  document.getElementById('langBtn').textContent=LANG_LABELS[lang];
-  document.getElementById('langMenu').style.display='none';
   applyLang();
-  // Highlight selected
-  document.querySelectorAll('.lang-option').forEach(o=>{o.style.background=o.textContent.includes(LANG_LABELS[lang])?'var(--accent-glow)':'';o.style.color=o.textContent.includes(LANG_LABELS[lang])?'var(--accent)':'';});
+  // Highlight selected lang card in settings modal
+  document.querySelectorAll('.lang-card').forEach(c=>{c.classList.toggle('active',c.onclick&&c.getAttribute('onclick')?.includes("'"+lang+"'"));});
+}
+
+// ═══ Settings Modal ═══
+function openSettingsTab(tab,el){
+  document.querySelectorAll('.settings-tab').forEach(t=>t.classList.remove('active'));
+  if(el)el.classList.add('active');
+  ['lang','api','theme'].forEach(t=>{document.getElementById('settingsTab-'+t).style.display=t===tab?'block':'none';});
+}
+
+function initSettingsModal(){
+  // Highlight current language
+  document.querySelectorAll('.lang-card').forEach(c=>{c.classList.toggle('active',c.getAttribute('onclick')?.includes("'"+currentLang+"'"));});
+  // Load API settings into settings modal fields
+  const c=S.apiConfig;
+  if(c.provider){const el=document.querySelector('#sProviderGrid .provider-chip[onclick*="'+c.provider+'"]');if(el)selectProvider(el,c.provider);}
+  document.getElementById('sApiKey').value=c.key||'';
+  document.getElementById('sApiModel').value=c.model||'';
+  document.getElementById('sApiBaseUrl').value=c.baseUrl||'';
+  // Highlight current theme
+  const isLight=document.body.classList.contains('light');
+  document.getElementById('themeCardDark').classList.toggle('active',!isLight);
+  document.getElementById('themeCardLight').classList.toggle('active',isLight);
+  // Reset to lang tab
+  openSettingsTab('lang',document.querySelector('.settings-tab'));
+}
+
+function settingsSetLang(lang,el){
+  setLang(lang);
+}
+
+function settingsSetTheme(theme,el){
+  if(theme==='light'&&!document.body.classList.contains('light'))toggleTheme();
+  else if(theme==='dark'&&document.body.classList.contains('light'))toggleTheme();
+  document.getElementById('themeCardDark').classList.toggle('active',theme==='dark');
+  document.getElementById('themeCardLight').classList.toggle('active',theme==='light');
+}
+
+function settingsTestApi(){
+  const key=document.getElementById('sApiKey').value.trim();
+  const provider=S.selectedProvider||'claude';
+  if(!key){document.getElementById('sTestResult').textContent='❌ 请输入 Key';return;}
+  document.getElementById('sTestResult').textContent='⏳ 测试中...';
+  try{const conf={key,provider,model:document.getElementById('sApiModel').value.trim(),baseUrl:document.getElementById('sApiBaseUrl').value.trim()};callAI('请回复"连接成功"',conf).then(t=>{document.getElementById('sTestResult').textContent='✅ '+t.slice(0,30);}).catch(e=>{document.getElementById('sTestResult').textContent='❌ '+e.message;});}catch(e){document.getElementById('sTestResult').textContent='❌ 错误';}
+}
+
+function saveSettings(){
+  // Save API settings from settings modal
+  const c={provider:S.selectedProvider,key:document.getElementById('sApiKey').value.trim(),model:document.getElementById('sApiModel').value.trim(),baseUrl:document.getElementById('sApiBaseUrl').value.trim()};
+  if(c.key){S.apiConfig=c;localStorage.setItem('ww_api',JSON.stringify(c));}
+  closeModal('settingsModal');
+  showToast('✓','设置已保存');
 }
 
 function applyLang(){
-  const L=LANG[currentLang];
   // Sidebar nav tabs
   const navTabs=document.querySelectorAll('.nav-tab');
   const navKeys=['nav-outline','nav-chapters','nav-chars','nav-notes'];
@@ -1091,9 +1191,6 @@ function applyLang(){
   if(lockBtn)lockBtn.textContent=localStorage.getItem('ww_pwd_hash')?t('lock-btn-unlock'):t('lock-btn-set');
   const lockInput=document.getElementById('lockInput');
   if(lockInput)lockInput.placeholder=t('lock-placeholder');
-  // Lang button
-  document.getElementById('langBtn').textContent=LANG_LABELS[currentLang];
-  document.getElementById('langBtn').title=currentLang==='zh'?'Switch Language':'切换语言';
   // Logo
   document.querySelector('.topbar-logo').lastChild.textContent=t('logo');
   // Bottom bar stats
@@ -1220,7 +1317,7 @@ function applyLang(){
 })();
 
 // Load language on boot
-(function(){if(currentLang!=='zh'){setTimeout(()=>{applyLang();document.getElementById('langBtn').textContent=LANG_LABELS[currentLang];},100);}})();
+(function(){if(currentLang!=='zh'){setTimeout(()=>{applyLang();},100);}})();
 
 // ═══ Profile Center ═══
 async function renderProfileStats(){
