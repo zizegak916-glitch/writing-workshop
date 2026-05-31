@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Poster</title>
+<style>
+body{margin:0;display:flex;justify-content:center;align-items:center;min-height:100vh;background:#0a0c12}
+.poster{width:800px;height:1200px;background:linear-gradient(160deg,#0d0f14 0%,#13161e 40%,#0d0f14 100%);border-radius:16px;position:relative;overflow:hidden;font-family:-apple-system,'Noto Sans SC',sans-serif}
+.glow{position:absolute;width:400px;height:400px;border-radius:50%;filter:blur(100px);opacity:0.15}
+.glow1{background:#6c9bff;top:-100px;right:-100px}
+.glow2{background:#7c5cbf;bottom:-100px;left:-100px}
+.content{position:relative;z-index:1;padding:60px 50px;height:100%;display:flex;flex-direction:column}
+.logo{display:flex;align-items:center;gap:12px;margin-bottom:8px}
+.logo-dot{width:14px;height:14px;border-radius:50%;background:#6c9bff;box-shadow:0 0 16px #6c9bff}
+.logo-text{font-size:28px;font-weight:700;color:#eef0f6}
+.sub{font-size:15px;color:#7a8299;margin-bottom:40px;padding-left:26px;line-height:1.6}
+.features{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:36px}
+.feat{background:rgba(30,35,48,0.6);border:1px solid #2a2f3f;border-radius:12px;padding:18px 16px}
+.feat-icon{font-size:24px;margin-bottom:8px;display:block;color:#6c9bff}
+.feat-title{font-size:14px;font-weight:600;color:#eef0f6;margin-bottom:4px}
+.feat-desc{font-size:11px;color:#7a8299;line-height:1.5}
+.divider{width:100%;height:1px;background:linear-gradient(90deg,transparent,#2a2f3f,transparent);margin:12px 0}
+.modes{text-align:center;margin-bottom:24px}
+.modes-title{font-size:12px;color:#5a6380;letter-spacing:2px;margin-bottom:12px}
+.mode-tags{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+.tag{padding:5px 12px;border-radius:20px;background:rgba(108,155,255,0.08);border:1px solid #2a2f3f;color:#a8afc2;font-size:11px}
+.tag.hot{background:rgba(108,155,255,0.15);border-color:#4a72cc;color:#6c9bff}
+.cta{margin-top:auto;text-align:center}
+.cta-text{font-size:14px;color:#8b8fc7;margin-bottom:16px;line-height:1.6}
+.cta-btn{display:inline-block;background:linear-gradient(135deg,#6c9bff,#7c5cbf);color:#fff;padding:14px 40px;border-radius:12px;font-size:16px;font-weight:700;box-shadow:0 4px 20px rgba(108,155,255,0.35)}
+.footer{font-size:10px;color:#3d4560;margin-top:16px}
+</style>
+</head>
+<body>
+<div class="poster">
+<div class="glow glow1"></div>
+<div class="glow glow2"></div>
+<div class="content">
+<div class="logo"><div class="logo-dot"></div><span class="logo-text">AI 写作工坊</span></div>
+<p class="sub">纯前端写作工具 · 数据存在浏览器 · 免费使用</p>
+
+<div class="features">
+<div class="feat">
+<span class="feat-icon">✎</span>
+<div class="feat-title">沉浸式编辑器</div>
+<div class="feat-desc">专注模式、字数目标、Markdown预览，大纲/章节/人物管理</div>
+</div>
+<div class="feat">
+<span class="feat-icon">⚡</span>
+<div class="feat-title">30种AI模式</div>
+<div class="feat-desc">润色/扩写/续写/降AI率/查AI检测，支持10+AI服务商</div>
+</div>
+<div class="feat">
+<span class="feat-icon">◉</span>
+<div class="feat-title">人物档案系统</div>
+<div class="feat-desc">性格/背景/外貌/技能完整档案，AI自动参考保持一致性</div>
+</div>
+<div class="feat">
+<span class="feat-icon">🔒</span>
+<div class="feat-title">安全锁屏</div>
+<div class="feat-desc">SHA-256加密、暗色/亮色双主题、项目导入导出</div>
+</div>
+</div>
+
+<div class="divider"></div>
+
+<div class="modes">
+<div class="modes-title">AI 功能一览</div>
+<div class="mode-tags">
+<span class="tag">纠错校对</span>
+<span class="tag">自动标题</span>
+<span class="tag hot">降AI率</span>
+<span class="tag hot">查AI检测</span>
+<span class="tag">实时灵感</span>
+<span class="tag">资料搜索</span>
+<span class="tag">多AI对比</span>
+<span class="tag">续写/扩写</span>
+</div>
+</div>
+
+<div class="divider"></div>
+
+<div class="cta">
+<p class="cta-text">如果你感兴趣的话<br>请点击下面的链接试试吧！</p>
+<div class="cta-btn">zizegak916-glitch.github.io/writing-workshop</div>
+<p class="footer">纯前端 · 数据存在浏览器 · 无需注册 · 免费使用</p>
+</div>
+</div>
+</div>
+</body>
+</html>

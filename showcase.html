@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AI 写作工坊 - 界面展示</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,'Noto Sans SC',sans-serif;background:#0a0c12;color:#e8eaf2;display:flex;flex-direction:column;align-items:center;padding:20px 16px 60px}
+h1{font-size:22px;font-weight:700;margin:20px 0 6px;color:#eef0f6}
+.sub{font-size:13px;color:#7a8299;margin-bottom:30px}
+.cards{display:grid;grid-template-columns:1fr 1fr;gap:16px;max-width:720px;width:100%}
+.card{background:#13161e;border:1px solid #2a2f3f;border-radius:14px;overflow:hidden;transition:transform .2s}
+.card:hover{transform:translateY(-4px)}
+.card svg{width:100%;height:auto;display:block}
+.card-info{padding:12px 14px}
+.card-title{font-size:14px;font-weight:600;color:#eef0f6;margin-bottom:3px}
+.card-desc{font-size:11px;color:#7a8299;line-height:1.5}
+.cta-area{text-align:center;margin-top:36px;max-width:500px}
+.cta-text{font-size:16px;color:#8b8fc7;line-height:1.8;margin-bottom:16px}
+.cta-link{display:inline-block;background:linear-gradient(135deg,#6c9bff,#7c5cbf);color:#fff;padding:12px 32px;border-radius:10px;font-size:15px;font-weight:600;text-decoration:none;transition:all .2s;box-shadow:0 4px 16px rgba(108,155,255,0.3)}
+.cta-link:hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(108,155,255,0.4)}
+.footer{margin-top:40px;font-size:11px;color:#3d4560;text-align:center}
+@media(max-width:560px){.cards{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<h1>AI 写作工坊</h1>
+<p class="sub">纯前端 · 数据存在浏览器 · 登录保护 · 多AI对比</p>
+
+<div class="cards">
+
+<!-- Card 1: Editor -->
+<div class="card">
+<svg viewBox="0 0 360 220" xmlns="http://www.w3.org/2000/svg">
+<rect width="360" height="220" fill="#0d0f14"/>
+<rect x="0" y="0" width="360" height="32" fill="#13161e"/>
+<circle cx="14" cy="16" r="5" fill="#6c9bff"/>
+<text x="26" y="20" fill="#eef0f6" font-size="11" font-weight="600">AI 写作工坊</text>
+<rect x="100" y="8" width="120" height="18" rx="4" fill="#1e2330" stroke="#2a2f3f"/>
+<text x="130" y="21" fill="#7a8299" font-size="9">我的项目...</text>
+<rect x="0" y="32" width="80" height="188" fill="#13161e"/>
+<text x="14" y="52" fill="#6c9bff" font-size="9" font-weight="600">☰ 大纲</text>
+<text x="14" y="72" fill="#7a8299" font-size="9">▤ 章节</text>
+<text x="14" y="92" fill="#7a8299" font-size="9">◉ 人物</text>
+<rect x="8" y="100" width="64" height="16" rx="3" fill="#1e2330"/>
+<text x="12" y="111" fill="#a8afc2" font-size="7">第一章</text>
+<rect x="8" y="120" width="64" height="16" rx="3" fill="#1e2330"/>
+<text x="12" y="131" fill="#7a8299" font-size="7">第二章</text>
+<rect x="80" y="32" width="280" height="160" fill="#0d0f14"/>
+<text x="96" y="56" fill="#eef0f6" font-size="14" font-weight="600">第一章 命运的开端</text>
+<rect x="96" y="64" width="248" height="1" fill="#2a2f3f"/>
+<text x="96" y="84" fill="#a8afc2" font-size="9" font-family="serif">那是一个风雨交加的夜晚，陆云深独自走在</text>
+<text x="96" y="98" fill="#a8afc2" font-size="9" font-family="serif">空无一人的街道上。路灯忽明忽暗，像是在</text>
+<text x="96" y="112" fill="#a8afc2" font-size="9" font-family="serif">诉说着某种不祥的预感。他紧了紧衣领，</text>
+<text x="96" y="126" fill="#a8afc2" font-size="9" font-family="serif">加快了脚步。身后的巷子里传来一阵异响...</text>
+<rect x="96" y="140" width="248" height="1" fill="#2a2f3f"/>
+<rect x="96" y="150" width="60" height="20" rx="4" fill="#1e2330" stroke="#2a2f3f"/>
+<text x="106" y="163" fill="#7a8299" font-size="8">◎ 专注</text>
+<rect x="162" y="150" width="60" height="20" rx="4" fill="#1e2330" stroke="#2a2f3f"/>
+<text x="172" y="163" fill="#7a8299" font-size="8">◉ 预览</text>
+<rect x="228" y="150" width="40" height="20" rx="4" fill="#1e2330" stroke="#2a2f3f"/>
+<text x="236" y="163" fill="#7a8299" font-size="8">B I</text>
+<rect x="96" y="176" width="20" height="10" rx="2" fill="#6c9bff"/>
+<rect x="120" y="176" width="200" height="10" rx="2" fill="#1e2330"/>
+<text x="324" y="185" fill="#7a8299" font-size="7">820/2000</text>
+<rect x="0" y="196" width="360" height="24" fill="#13161e"/>
+<text x="12" y="211" fill="#5a6380" font-size="8">总字数: 820 · 段落: 4 · 句子: 12 · 约3分钟阅读</text>
+</svg>
+<div class="card-info">
+<div class="card-title">编辑器</div>
+<div class="card-desc">沉浸式写作界面，侧边栏管理大纲/章节/人物，实时字数统计与目标追踪</div>
+</div>
+</div>
+
+<!-- Card 2: AI Panel -->
+<div class="card">
+<svg viewBox="0 0 360 220" xmlns="http://www.w3.org/2000/svg">
+<rect width="360" height="220" fill="#0d0f14"/>
+<rect x="0" y="0" width="360" height="32" fill="#13161e"/>
+<circle cx="14" cy="16" r="5" fill="#6c9bff"/>
+<text x="26" y="20" fill="#eef0f6" font-size="11" font-weight="600">AI 写作工坊</text>
+<rect x="230" y="0" width="130" height="220" fill="#13161e"/>
+<rect x="230" y="0" width="130" height="1" fill="#2a2f3f"/>
+<text x="242" y="20" fill="#eef0f6" font-size="10" font-weight="600">⚡ AI 助手</text>
+<circle cx="340" cy="16" r="3" fill="#4ade80"/>
+<rect x="238" y="32" width="36" height="16" rx="4" fill="#0d0f14" stroke="#2a2f3f"/>
+<text x="246" y="43" fill="#eef0f6" font-size="8">助手</text>
+<rect x="278" y="32" width="36" height="16" rx="4" fill="#1e2330" stroke="#2a2f3f"/>
+<text x="286" y="43" fill="#7a8299" font-size="8">对比</text>
+<rect x="318" y="32" width="36" height="16" rx="4" fill="#1e2330" stroke="#2a2f3f"/>
+<text x="326" y="43" fill="#7a8299" font-size="8">历史</text>
+<!-- Mode grid -->
+<rect x="238" y="56" width="54" height="22" rx="4" fill="#1e2330" stroke="#6c9bff"/>
+<text x="248" y="70" fill="#6c9bff" font-size="8">◇ 润色</text>
+<rect x="296" y="56" width="54" height="22" rx="4" fill="#1e2330" stroke="#2a2f3f"/>
+<text x="304" y="70" fill="#a8afc2" font-size="8">↑ 扩写</text>
+<rect x="238" y="82" width="54" height="22" rx="4" fill="#1e2330" stroke="#2a2f3f"/>
+<text x="248" y="96" fill="#a8afc2" font-size="8">↓ 缩写</text>
+<rect x="296" y="82" width="54" height="22" rx="4" fill="#1e2330" stroke="#2a2f3f"/>
+<text x="306" y="96" fill="#a8afc2" font-size="8">↻ 改写</text>
+<rect x="238" y="108" width="54" height="22" rx="4" fill="#1e2330" stroke="#2a2f3f"/>
+<text x="246" y="122" fill="#a8afc2" font-size="8">→ 续写</text>
+<rect x="296" y="108" width="54" height="22" rx="4" fill="#1e2330" stroke="#2a2f3f"/>
+<text x="306" y="122" fill="#a8afc2" font-size="8">⊞ 补写</text>
+<text x="238" y="148" fill="#5a6380" font-size="7" font-weight="600">描写 ──────</text>
+<rect x="238" y="154" width="54" height="20" rx="4" fill="#1e2330" stroke="#2a2f3f"/>
+<text x="248" y="167" fill="#a8afc2" font-size="8">❝ 对话</text>
+<rect x="296" y="154" width="54" height="20" rx="4" fill="#1e2330" stroke="#2a2f3f"/>
+<text x="306" y="167" fill="#a8afc2" font-size="8">◉ 心理</text>
+<!-- Generate button -->
+<rect x="238" y="184" width="112" height="26" rx="6" fill="url(#grad1)"/>
+<text x="274" y="201" fill="#fff" font-size="10" font-weight="600">开始生成</text>
+<defs><linearGradient id="grad1" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#6c9bff"/><stop offset="100%" stop-color="#4a72cc"/></linearGradient></defs>
+<!-- Editor area -->
+<rect x="10" y="40" width="210" height="170" fill="#0d0f14"/>
+<text x="16" y="58" fill="#eef0f6" font-size="11" font-weight="600">第一章 命运的开端</text>
+<rect x="16" y="66" width="198" height="1" fill="#2a2f3f"/>
+<text x="16" y="82" fill="#a8afc2" font-size="8" font-family="serif">那是一个风雨交加的夜晚，陆云深独自走在</text>
+<text x="16" y="94" fill="#a8afc2" font-size="8" font-family="serif">空无一人的街道上。路灯忽明忽暗，像是在</text>
+<text x="16" y="106" fill="#a8afc2" font-size="8" font-family="serif">诉说着某种不祥的预感。</text>
+</svg>
+<div class="card-info">
+<div class="card-title">AI 助手面板</div>
+<div class="card-desc">30种AI模式，润色/扩写/续写/降AI/查AI，支持多AI并行对比</div>
+</div>
+</div>
+
+<!-- Card 3: Lock + Theme -->
+<div class="card">
+<svg viewBox="0 0 360 220" xmlns="http://www.w3.org/2000/svg">
+<!-- Dark half -->
+<rect x="0" y="0" width="180" height="220" fill="#0d0f14"/>
+<rect x="40" y="30" width="100" height="160" rx="12" fill="#181c26" stroke="#2a2f3f"/>
+<rect x="64" y="50" width="52" height="52" rx="14" fill="#1e2330" stroke="#323849"/>
+<text x="84" y="82" fill="#eef0f6" font-size="22">🔐</text>
+<text x="60" y="120" fill="#eef0f6" font-size="12" font-weight="600">AI 写作工坊</text>
+<text x="54" y="136" fill="#7a8299" font-size="8">请输入密码解锁工坊</text>
+<rect x="52" y="146" width="76" height="18" rx="6" fill="#1e2330" stroke="#323849"/>
+<text x="70" y="158" fill="#5a6380" font-size="8">••••</text>
+<rect x="52" y="170" width="76" height="18" rx="6" fill="#6c9bff"/>
+<text x="78" y="182" fill="#fff" font-size="9" font-weight="600">解锁</text>
+<!-- Light half -->
+<rect x="180" y="0" width="180" height="220" fill="#f5f6fa"/>
+<rect x="220" y="30" width="100" height="160" rx="12" fill="#fff" stroke="#dde0ea"/>
+<rect x="244" y="50" width="52" height="52" rx="14" fill="#f0f1f5" stroke="#c8ccd8"/>
+<text x="264" y="82" fill="#1a1d28" font-size="22">🔐</text>
+<text x="240" y="120" fill="#1a1d28" font-size="12" font-weight="600">AI 写作工坊</text>
+<text x="234" y="136" fill="#555f7a" font-size="8">请输入密码解锁工坊</text>
+<rect x="232" y="146" width="76" height="18" rx="6" fill="#f0f1f5" stroke="#c8ccd8"/>
+<text x="250" y="158" fill="#8b93aa" font-size="8">••••</text>
+<rect x="232" y="170" width="76" height="18" rx="6" fill="#4a72cc"/>
+<text x="258" y="182" fill="#fff" font-size="9" font-weight="600">解锁</text>
+<!-- Divider -->
+<line x1="180" y1="0" x2="180" y2="220" stroke="#2a2f3f" stroke-width="1"/>
+<text x="60" y="210" fill="#5a6380" font-size="8">暗色主题</text>
+<text x="248" y="210" fill="#8b93aa" font-size="8">亮色主题</text>
+</svg>
+<div class="card-info">
+<div class="card-title">安全锁屏 + 双主题</div>
+<div class="card-desc">SHA-256加密锁屏，暗色/亮色双主题一键切换，偏好自动保存</div>
+</div>
+</div>
+
+<!-- Card 4: Mobile -->
+<div class="card">
+<svg viewBox="0 0 360 220" xmlns="http://www.w3.org/2000/svg">
+<rect width="360" height="220" fill="#0d0f14"/>
+<!-- Phone frame -->
+<rect x="110" y="8" width="140" height="204" rx="16" fill="#13161e" stroke="#2a2f3f"/>
+<rect x="116" y="20" width="128" height="176" fill="#0d0f14"/>
+<!-- Topbar -->
+<rect x="116" y="20" width="128" height="22" fill="#13161e"/>
+<circle cx="126" cy="31" r="3" fill="#6c9bff"/>
+<text x="132" y="34" fill="#eef0f6" font-size="7" font-weight="600">AI 写作工坊</text>
+<text x="210" y="34" fill="#7a8299" font-size="7">⚙</text>
+<!-- Editor -->
+<text x="124" y="56" fill="#eef0f6" font-size="9" font-weight="600">第一章</text>
+<rect x="124" y="62" width="112" height="1" fill="#2a2f3f"/>
+<text x="124" y="76" fill="#a8afc2" font-size="6" font-family="serif">那是一个风雨交加的夜晚，</text>
+<text x="124" y="86" fill="#a8afc2" font-size="6" font-family="serif">陆云深独自走在空无一人的</text>
+<text x="124" y="96" fill="#a8afc2" font-size="6" font-family="serif">街道上。路灯忽明忽暗...</text>
+<!-- AI quick bar -->
+<rect x="116" y="106" width="128" height="16" fill="#13161e"/>
+<text x="120" y="116" fill="#7a8299" font-size="5">✓纠错</text>
+<text x="144" y="116" fill="#7a8299" font-size="5">¶标题</text>
+<text x="168" y="116" fill="#7a8299" font-size="5">◇灵感</text>
+<text x="192" y="116" fill="#7a8299" font-size="5">▷降AI</text>
+<text x="216" y="116" fill="#7a8299" font-size="5">⊕查AI</text>
+<!-- Bottom nav -->
+<rect x="116" y="174" width="128" height="22" fill="#13161e"/>
+<line x1="116" y1="174" x2="244" y2="174" stroke="#2a2f3f"/>
+<text x="120" y="187" fill="#6c9bff" font-size="6">✎编辑</text>
+<text x="148" y="187" fill="#5a6380" font-size="6">☰大纲</text>
+<text x="176" y="187" fill="#5a6380" font-size="6">▤章节</text>
+<text x="204" y="187" fill="#5a6380" font-size="6">◉人物</text>
+<text x="230" y="187" fill="#5a6380" font-size="6">⚡AI</text>
+<!-- Labels on sides -->
+<text x="16" y="40" fill="#6c9bff" font-size="10" font-weight="600">移动端适配</text>
+<text x="16" y="56" fill="#7a8299" font-size="8">底部导航栏</text>
+<text x="16" y="70" fill="#7a8299" font-size="8">5个Tab切换</text>
+<text x="16" y="90" fill="#7a8299" font-size="8">AI快捷工具</text>
+<text x="16" y="104" fill="#7a8299" font-size="8">纠错/标题/灵感</text>
+<text x="16" y="118" fill="#7a8299" font-size="8">降AI/查AI</text>
+<text x="16" y="140" fill="#6c9bff" font-size="10" font-weight="600">功能完整</text>
+<text x="16" y="156" fill="#7a8299" font-size="8">不阉割功能</text>
+<text x="16" y="170" fill="#7a8299" font-size="8">手机=电脑</text>
+<text x="260" y="40" fill="#6c9bff" font-size="10" font-weight="600">6大快捷功能</text>
+<text x="260" y="56" fill="#7a8299" font-size="8">✓ 纠错校对</text>
+<text x="260" y="70" fill="#7a8299" font-size="8">¶ 自动标题</text>
+<text x="260" y="84" fill="#7a8299" font-size="8">◇ 实时灵感</text>
+<text x="260" y="98" fill="#7a8299" font-size="8">⊕ 资料搜索</text>
+<text x="260" y="112" fill="#7a8299" font-size="8">▷ 降AI率</text>
+<text x="260" y="126" fill="#7a8299" font-size="8">⊕ 查AI检测</text>
+</svg>
+<div class="card-info">
+<div class="card-title">移动端体验</div>
+<div class="card-desc">底部导航5Tab，AI快捷工具一键纠错/降AI/查AI，功能不阉割</div>
+</div>
+</div>
+
+</div>
+
+<div class="cta-area">
+<p class="cta-text">如果你感兴趣的话，请点击下面的链接试试吧！</p>
+<a class="cta-link" href="https://zizegak916-glitch.github.io/writing-workshop/">打开 AI 写作工坊 →</a>
+</div>
+
+<div class="footer">纯前端应用 · 数据存在浏览器 · 无需注册 · 免费使用</div>
+
+</body>
+</html>
