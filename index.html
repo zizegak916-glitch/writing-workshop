@@ -172,7 +172,7 @@ body.light #lockScreen{background-image:radial-gradient(ellipse 60% 60% at 50% 4
 .btab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:10px;color:var(--text-muted);cursor:pointer;border:none;background:none;padding:4px 0;font-family:var(--font-sans);gap:2px}
 .btab.on{color:var(--accent)}.btab span{font-size:18px}
 /* Mobile panels */
-.mobile-panel{display:none;position:fixed;top:var(--topbar-h);bottom:52px;left:0;right:0;background:var(--bg-mid);z-index:20;overflow-y:auto;padding:12px}
+.mobile-panel{display:none;position:absolute;top:0;bottom:0;left:0;right:0;background:var(--bg-mid);z-index:5;overflow-y:auto;padding:12px}
 .mobile-panel.on{display:block}
 /* Mobile AI panel full width */
 @media(max-width:768px){.sidebar{display:none}.ai-panel{width:260px}:root{--ai-panel-w:260px}}
