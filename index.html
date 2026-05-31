@@ -249,6 +249,7 @@ body.light #lockScreen{background-image:radial-gradient(ellipse 60% 60% at 50% 4
       <button class="icon-btn" onclick="exportProject()" title="导出"><svg class="ic ic-sm"><use href="#ic-download"/></svg></button>
       <button class="icon-btn" id="saveBtn" onclick="saveDoc()" title="保存"><svg class="ic ic-sm"><use href="#ic-save"/></svg><span class="save-badge"></span></button>
       <button class="icon-btn" id="themeBtn" onclick="toggleTheme()" title="切换主题"><svg class="ic ic-sm"><use href="#ic-moon"/></svg></button>
+      <button class="icon-btn" id="langBtn" onclick="toggleLang()" title="Switch Language" style="font-size:11px;font-weight:700;color:var(--accent)">中</button>
       <button class="icon-btn" onclick="openModal('profileModal')" title="个人中心"><svg class="ic ic-sm"><use href="#ic-user"/></svg></button>
     </div>
   </div>
@@ -550,6 +551,234 @@ document.querySelectorAll('.modal-overlay').forEach(o=>{o.addEventListener('clic
 // ═══ Theme ═══
 function toggleTheme(){document.body.classList.toggle('light');const isLight=document.body.classList.contains('light');localStorage.setItem('ww_theme',isLight?'light':'dark');document.getElementById('themeBtn').innerHTML='<svg class="ic ic-sm"><use href="#ic-'+(isLight?'sun':'moon')+'"/></svg>';}
 (function loadTheme(){if(localStorage.getItem('ww_theme')==='light'){document.body.classList.add('light');setTimeout(()=>{const b=document.getElementById('themeBtn');if(b)b.innerHTML='<svg class="ic ic-sm"><use href="#ic-sun"/></svg>';},0);}})();
+
+// ═══ i18n ═══
+const LANG={
+zh:{
+  // Sidebar
+  'nav-outline':'大纲','nav-chapters':'章节','nav-chars':'人物','nav-notes':'笔记',
+  // Bottom nav
+  'bnav-editor':'编辑','bnav-outline':'大纲','bnav-chapters':'章节','bnav-chars':'人物','bnav-ai':'AI',
+  // Toolbar
+  'tb-focus':'◎ 专注','tb-preview':'◉ 预览','tb-save':'保存','tb-autosave':'↯ 自动保存','tb-export':'↓ 导出',
+  // AI quick bar
+  'aq-proof':'✓ 纠错','aq-title':'¶ 自动标题','aq-inspire':'◇ 实时灵感','aq-research':'⊕ 资料搜索','aq-humanize':'▷ 降AI率','aq-detect':'⊕ 查AI',
+  // Editor
+  'ed-placeholder':'开始写作...','ed-chapter':'章节标题...','ed-para':'段','ed-sent':'句','ed-read':'约','ed-min':'分钟','ed-words':'字',
+  // Bottom bar
+  'bb-total':'总字数:','bb-para':'段落:',
+  // AI panel
+  'ap-title':'AI 助手','ap-tab-modes':'助手','ap-tab-multi':'对比','ap-tab-hist':'历史',
+  'ap-temp':'创意度','ap-len':'输出长度','ap-prompt':'补充指令','ap-prompt-ph':'可选：输入额外要求...',
+  'ap-gen':'开始生成','ap-gen-ing':'生成中...',
+  // Multi AI
+  'multi-slot':'槽位','multi-gen':'⚡ 并行生成所有槽位',
+  // History
+  'hist-title':'AI 操作记录','hist-clear':'清空','hist-empty':'暂无历史记录',
+  // Modals
+  'mod-newproj':'📁 新建项目','mod-newproj-sub':'创建一个新的写作项目',
+  'mod-projname':'项目名称','mod-projname-ph':'例如：《星河往事》','mod-required':'必填',
+  'mod-genre':'作品类型','mod-goal':'每日写作目标','mod-goal-hint':'字数','mod-desc':'项目简介','mod-desc-ph':'简单描述一下这个故事...',
+  'mod-world':'世界观设定','mod-world-ph':'世界观、背景设定...',
+  'mod-cancel':'取消','mod-create':'创建项目 ✓',
+  'mod-projlist':'📚 我的项目','mod-projlist-sub':'点击项目进入写作',
+  'mod-import':'📥 导入项目','mod-close':'关闭','mod-newproj-btn':'＋ 新建项目',
+  'mod-api':'⚙️ API 设置','mod-api-sub':'配置 AI 服务商。API Key 仅存储在本地浏览器。',
+  'mod-api-provider':'选择服务商','mod-api-url':'Base URL','mod-api-url-hint':'自定义接口地址',
+  'mod-api-key':'API Key','mod-api-key-hint':'加密存储于本地','mod-api-test':'测试',
+  'mod-api-model':'模型','mod-api-model-hint':'留空使用默认模型','mod-api-save':'保存设置 ✓',
+  'mod-char':'👤 添加人物','mod-char-sub':'建立人物档案，AI会参考人物性格',
+  'mod-char-name':'人物姓名','mod-char-name-ph':'例如：陆云深','mod-char-role':'人物定位',
+  'mod-char-pers':'性格特点','mod-char-pers-ph':'性格特点...',
+  'mod-char-back':'背景故事','mod-char-back-ph':'背景故事...',
+  'mod-char-look':'外貌描述','mod-char-look-ph':'外貌描述...',
+  'mod-char-skill':'技能/能力','mod-char-skill-ph':'技能或特殊能力...',
+  'mod-char-save':'保存 ✓',
+  'mod-profile':'👤 个人中心','mod-profile-sub':'管理密码、查看项目统计',
+  'mod-profile-stats':'📊 当前项目统计','mod-profile-chpwd':'🔒 修改密码',
+  'mod-oldpwd':'当前密码','mod-newpwd':'新密码（至少4位）','mod-newpwd2':'确认新密码',
+  'mod-lock':'🔒 锁屏','mod-chpwd-btn':'修改密码',
+  // Sidebar content
+  'sb-outline':'故事大纲','sb-chapters':'章节列表','sb-chars':'人物档案','sb-notes':'笔记',
+  'sb-add-outline':'＋ 添加大纲','sb-add-chapter':'＋ 添加章节','sb-add-char':'＋ 添加人物',
+  'sb-empty-outline':'暂无大纲','sb-empty-chapter':'暂无章节','sb-empty-char':'暂无人物','sb-empty-notes':'功能开发中...',
+  // Lock screen
+  'lock-set':'首次使用请设置密码','lock-unlock':'请输入密码解锁工坊','lock-btn-set':'设置密码','lock-btn-unlock':'解锁',
+  'lock-hint':'忘记密码？','lock-reset':'重置（将清除所有数据）','lock-placeholder':'输入密码...',
+  // Toasts
+  'toast-saved':'已保存','toast-deleted':'已删除','toast-added':'已 added','toast-copied':'已复制',
+  'toast-exported':'已导出','toast-created':'已创建','toast-locked':'密码设置成功',
+  'toast-pwd-err':'密码错误','toast-pwd-short':'密码至少4位','toast-pwd-changed':'密码已修改',
+  'toast-no-proj':'请先选择项目','toast-no-api':'请先配置 API','toast-no-content':'请先输入内容',
+  // AI result
+  'arp-title':'AI 生成结果','arp-replace':'替换原文','arp-append':'追加到末尾','arp-insert':'插入光标处','arp-copy':'复制',
+  // Quick result
+  'aqr-apply':'✓ 应用','aqr-copy':'⊡ 复制',
+  // Profile stats
+  'ps-project':'项目：','ps-genre':'类型：','ps-words':'总字数：','ps-outlines':'大纲：','ps-chapters':'个 · 章节：',
+  'ps-chars':'人物：','ps-goal':'每日目标：','ps-created':'创建：','ps-updated':'更新：',
+  'ps-none':'暂无项目','ps-units-1':'个','ps-units-2':'字',
+},
+en:{
+  'nav-outline':'Outline','nav-chapters':'Chapters','nav-chars':'Characters','nav-notes':'Notes',
+  'bnav-editor':'Editor','bnav-outline':'Outline','bnav-chapters':'Chapters','bnav-chars':'Chars','bnav-ai':'AI',
+  'tb-focus':'◎ Focus','tb-preview':'◉ Preview','tb-save':'Save','tb-autosave':'↯ AutoSave','tb-export':'↓ Export',
+  'aq-proof':'✓ Proofread','aq-title':'¶ Auto Title','aq-inspire':'◇ Inspire','aq-research':'⊕ Research','aq-humanize':'▷ Humanize','aq-detect':'⊕ AI Check',
+  'ed-placeholder':'Start writing...','ed-chapter':'Chapter title...','ed-para':'¶','ed-sent':'sentences','ed-read':'~','ed-min':'min read','ed-words':'chars',
+  'bb-total':'Total:','bb-para':'¶:',
+  'ap-title':'AI Assistant','ap-tab-modes':'Modes','ap-tab-multi':'Compare','ap-tab-hist':'History',
+  'ap-temp':'Creativity','ap-len':'Length','ap-prompt':'Extra','ap-prompt-ph':'Optional instructions...',
+  'ap-gen':'Generate','ap-gen-ing':'Generating...',
+  'multi-slot':'Slot','multi-gen':'⚡ Generate All Slots',
+  'hist-title':'AI History','hist-clear':'Clear','hist-empty':'No history yet',
+  'mod-newproj':'📁 New Project','mod-newproj-sub':'Create a new writing project',
+  'mod-projname':'Project Name','mod-projname-ph':'e.g. Star Wars','mod-required':'Required',
+  'mod-genre':'Genre','mod-goal':'Daily Goal','mod-goal-hint':'words','mod-desc':'Description','mod-desc-ph':'Brief description...',
+  'mod-world':'World Setting','mod-world-ph':'World building notes...',
+  'mod-cancel':'Cancel','mod-create':'Create ✓',
+  'mod-projlist':'📚 My Projects','mod-projlist-sub':'Click to open',
+  'mod-import':'📥 Import','mod-close':'Close','mod-newproj-btn':'＋ New Project',
+  'mod-api':'⚙️ API Settings','mod-api-sub':'Configure AI provider. Key stored locally only.',
+  'mod-api-provider':'Provider','mod-api-url':'Base URL','mod-api-url-hint':'Custom endpoint',
+  'mod-api-key':'API Key','mod-api-key-hint':'Stored locally','mod-api-test':'Test',
+  'mod-api-model':'Model','mod-api-model-hint':'Leave empty for default','mod-api-save':'Save ✓',
+  'mod-char':'👤 Add Character','mod-char-sub':'AI will reference character traits',
+  'mod-char-name':'Name','mod-char-name-ph':'e.g. John','mod-char-role':'Role',
+  'mod-char-pers':'Personality','mod-char-pers-ph':'Personality traits...',
+  'mod-char-back':'Background','mod-char-back-ph':'Backstory...',
+  'mod-char-look':'Appearance','mod-char-look-ph':'Physical description...',
+  'mod-char-skill':'Skills','mod-char-skill-ph':'Special abilities...',
+  'mod-char-save':'Save ✓',
+  'mod-profile':'👤 Profile','mod-profile-sub':'Password & project stats',
+  'mod-profile-stats':'📊 Project Stats','mod-profile-chpwd':'🔒 Change Password',
+  'mod-oldpwd':'Current Password','mod-newpwd':'New Password (4+ chars)','mod-newpwd2':'Confirm Password',
+  'mod-lock':'🔒 Lock','mod-chpwd-btn':'Change Password',
+  'sb-outline':'Story Outline','sb-chapters':'Chapters','sb-chars':'Characters','sb-notes':'Notes',
+  'sb-add-outline':'＋ Add Outline','sb-add-chapter':'＋ Add Chapter','sb-add-char':'＋ Add Character',
+  'sb-empty-outline':'No outlines','sb-empty-chapter':'No chapters','sb-empty-char':'No characters','sb-empty-notes':'Coming soon...',
+  'lock-set':'Set a password to get started','lock-unlock':'Enter password to unlock','lock-btn-set':'Set Password','lock-btn-unlock':'Unlock',
+  'lock-hint':'Forgot?','lock-reset':'Reset (clears all data)','lock-placeholder':'Enter password...',
+  'toast-saved':'Saved','toast-deleted':'Deleted','toast-added':'Added','toast-copied':'Copied',
+  'toast-exported':'Exported','toast-created':'Created','toast-locked':'Password set',
+  'toast-pwd-err':'Wrong password','toast-pwd-short':'Min 4 characters','toast-pwd-changed':'Password changed',
+  'toast-no-proj':'Select a project first','toast-no-api':'Configure API first','toast-no-content':'Enter some content first',
+  'arp-title':'AI Result','arp-replace':'Replace','arp-append':'Append','arp-insert':'Insert','arp-copy':'Copy',
+  'aqr-apply':'✓ Apply','aqr-copy':'⊡ Copy',
+  'ps-project':'Project:','ps-genre':'Genre:','ps-words':'Words:','ps-outlines':'Outlines:','ps-chapters':' · Chapters:',
+  'ps-chars':'Characters:','ps-goal':'Daily Goal:','ps-created':'Created:','ps-updated':'Updated:',
+  'ps-none':'No project','ps-units-1':'','ps-units-2':'words',
+}};
+
+let currentLang=localStorage.getItem('ww_lang')||'zh';
+function t(k){return LANG[currentLang]?.[k]||LANG['zh']?.[k]||k;}
+
+function toggleLang(){
+  currentLang=currentLang==='zh'?'en':'zh';
+  localStorage.setItem('ww_lang',currentLang);
+  document.getElementById('langBtn').textContent=currentLang==='zh'?'中':'EN';
+  applyLang();
+}
+
+function applyLang(){
+  const L=LANG[currentLang];
+  // Sidebar nav tabs
+  const navTabs=document.querySelectorAll('.nav-tab');
+  const navKeys=['nav-outline','nav-chapters','nav-chars','nav-notes'];
+  navTabs.forEach((tab,i)=>{if(navKeys[i])tab.lastChild.textContent=' '+t(navKeys[i]);});
+  // Bottom nav
+  const bnavTabs=document.querySelectorAll('#bottomNav .btab');
+  const bnavKeys=['bnav-editor','bnav-outline','bnav-chapters','bnav-chars','bnav-ai'];
+  bnavTabs.forEach((tab,i)=>{if(bnavKeys[i])tab.lastChild.textContent=' '+t(bnavKeys[i]);});
+  // Toolbar
+  const toolbarBtns=document.querySelectorAll('.editor-toolbar .tool-btn');
+  toolbarBtns.forEach(btn=>{
+    const txt=btn.textContent.trim();
+    if(txt.includes('专注')||txt.includes('Focus'))btn.lastChild&&(btn.lastChild.textContent=' '+t('tb-focus').split(' ')[1]);
+    if(txt.includes('预览')||txt.includes('Preview'))btn.lastChild&&(btn.lastChild.textContent=' '+t('tb-preview').split(' ')[1]);
+    if(txt.includes('自动保存')||txt.includes('AutoSave'))btn.lastChild&&(btn.lastChild.textContent=' '+t('tb-autosave').split(' ')[1]);
+    if(txt.includes('导出')||txt.includes('Export'))btn.lastChild&&(btn.lastChild.textContent=' '+t('tb-export').split(' ')[1]);
+  });
+  // AI quick bar
+  const aqBtns=document.querySelectorAll('#aiQuickBar .tool-btn');
+  const aqKeys=['aq-proof','aq-title','aq-inspire','aq-research','aq-humanize','aq-detect'];
+  aqBtns.forEach((btn,i)=>{if(aqKeys[i])btn.textContent=t(aqKeys[i]);});
+  // Editor placeholders
+  document.getElementById('mainEditor').placeholder=t('ed-placeholder');
+  document.getElementById('chapterTitle').placeholder=t('ed-chapter');
+  // Section labels
+  document.querySelectorAll('.section-label').forEach(el=>{
+    const txt=el.textContent.trim();
+    if(txt.includes('大纲')||txt.includes('Outline'))el.textContent=t('sb-outline');
+    if(txt.includes('章节')||txt.includes('Chapter'))el.textContent=t('sb-chapters');
+    if(txt.includes('人物')||txt.includes('Character'))el.textContent=t('sb-chars');
+    if(txt.includes('笔记')||txt.includes('Notes'))el.textContent=t('sb-notes');
+  });
+  // Add buttons
+  document.querySelectorAll('.add-item-btn').forEach(btn=>{
+    const txt=btn.textContent.trim();
+    if(txt.includes('大纲')||txt.includes('Outline'))btn.textContent=t('sb-add-outline');
+    if(txt.includes('章节')||txt.includes('Chapter'))btn.textContent=t('sb-add-chapter');
+    if(txt.includes('人物')||txt.includes('Character'))btn.textContent=t('sb-add-char');
+  });
+  // AI panel
+  const apTitle=document.querySelector('.ai-panel-title');
+  if(apTitle)apTitle.lastChild.textContent=' '+t('ap-title');
+  const apTabs=document.querySelectorAll('.ai-tab');
+  const apKeys=['ap-tab-modes','ap-tab-multi','ap-tab-hist'];
+  apTabs.forEach((tab,i)=>{if(apKeys[i])tab.textContent=t(apKeys[i]);});
+  // Generate button
+  const genBtn=document.getElementById('generateBtnText');
+  if(genBtn&&!genBtn.closest('.loading'))genBtn.textContent=t('ap-gen');
+  // AI prompt
+  const aiPrompt=document.getElementById('aiPrompt');
+  if(aiPrompt)aiPrompt.placeholder=t('ap-prompt-ph');
+  // Param labels
+  document.querySelectorAll('.param-label').forEach(el=>{
+    const txt=el.textContent.trim();
+    if(txt.includes('创意')||txt.includes('Creativity'))el.textContent=t('ap-temp');
+    if(txt.includes('长度')||txt.includes('Length'))el.textContent=t('ap-len');
+  });
+  // Lock screen
+  const lockSub=document.getElementById('lockSub');
+  if(lockSub){
+    const stored=localStorage.getItem('ww_pwd_hash');
+    lockSub.textContent=stored?t('lock-unlock'):t('lock-set');
+  }
+  const lockBtn=document.getElementById('lockBtn');
+  if(lockBtn)lockBtn.textContent=localStorage.getItem('ww_pwd_hash')?t('lock-btn-unlock'):t('lock-btn-set');
+  const lockInput=document.getElementById('lockInput');
+  if(lockInput)lockInput.placeholder=t('lock-placeholder');
+  // Lang button
+  document.getElementById('langBtn').textContent=currentLang==='zh'?'中':'EN';
+  document.getElementById('langBtn').title=currentLang==='zh'?'Switch Language':'切换语言';
+  // Modals - update titles dynamically when opened
+  // (translations applied on modal open via openModal hook)
+}
+
+// Hook: apply translations when modals open
+(function(){
+  const origOpenModal=openModal;
+  openModal=function(id){
+    origOpenModal(id);
+    if(id==='newProjectModal'){
+      document.querySelector('#newProjectModal .modal-title').textContent=t('mod-newproj');
+      document.querySelector('#newProjectModal .modal-sub').textContent=t('mod-newproj-sub');
+    }
+    if(id==='apiModal'){
+      document.querySelector('#apiModal .modal-title').textContent=t('mod-api');
+      document.querySelector('#apiModal .modal-sub').textContent=t('mod-api-sub');
+    }
+    if(id==='charModal'){
+      document.getElementById('charModalTitle').textContent=t('mod-char');
+    }
+    if(id==='profileModal'){
+      document.querySelector('#profileModal .modal-title').textContent=t('mod-profile');
+    }
+  };
+})();
+
+// Load language on boot
+(function(){if(currentLang==='en'){setTimeout(applyLang,100);}})();
 
 // ═══ Profile Center ═══
 async function renderProfileStats(){
