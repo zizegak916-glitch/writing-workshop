@@ -7,9 +7,16 @@
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root{--bg-deep:#0d0f14;--bg-mid:#13161e;--bg-panel:#181c26;--bg-card:#1e2330;--bg-hover:#252a38;--bg-active:#2a3045;--border:#2a2f3f;--border-light:#323849;--accent:#6c9bff;--accent-dim:#4a72cc;--accent-glow:rgba(108,155,255,0.15);--gold:#f0b429;--green:#4ade80;--green-dim:rgba(74,222,128,0.12);--red:#f87171;--purple:#a78bfa;--text-primary:#e8eaf2;--text-secondary:#8b93aa;--text-muted:#555f7a;--text-hint:#3d4560;--radius:10px;--radius-sm:6px;--shadow:0 4px 24px rgba(0,0,0,0.4);--shadow-lg:0 8px 48px rgba(0,0,0,0.6);--font-serif:'Noto Serif SC',serif;--font-sans:'Noto Sans SC',sans-serif;--font-mono:'JetBrains Mono',monospace;--sidebar-w:220px;--ai-panel-w:300px;--topbar-h:52px}
+body.light{--bg-deep:#f5f6fa;--bg-mid:#ffffff;--bg-panel:#f0f1f5;--bg-card:#ffffff;--bg-hover:#e8eaf0;--bg-active:#dde0ea;--border:#dde0ea;--border-light:#c8ccd8;--accent:#4a72cc;--accent-dim:#3a5aa0;--accent-glow:rgba(74,114,204,0.1);--gold:#d4940a;--green:#16a34a;--green-dim:rgba(22,163,74,0.1);--red:#dc2626;--purple:#7c3aed;--text-primary:#1a1d28;--text-secondary:#555f7a;--text-muted:#8b93aa;--text-hint:#a8afc2;--shadow:0 4px 24px rgba(0,0,0,0.08);--shadow-lg:0 8px 48px rgba(0,0,0,0.12)}
+body.light .focus-overlay{background:rgba(255,255,255,0.92)}
+body.light .focus-editor{color:#1a1d28}
+body.light .focus-info{color:rgba(0,0,0,0.35)}
+body.light .focus-exit{border-color:rgba(0,0,0,0.2);color:rgba(0,0,0,0.5)}
+body.light .focus-exit:hover{background:rgba(0,0,0,0.05);color:rgba(0,0,0,0.8)}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 body{font-family:var(--font-sans);background:var(--bg-deep);color:var(--text-primary);min-height:100vh;overflow:hidden;font-size:14px}
 #lockScreen{position:fixed;inset:0;background:var(--bg-deep);display:flex;align-items:center;justify-content:center;z-index:999;background-image:radial-gradient(ellipse 60% 60% at 50% 40%,rgba(108,155,255,0.06) 0%,transparent 70%)}
+body.light #lockScreen{background-image:radial-gradient(ellipse 60% 60% at 50% 40%,rgba(74,114,204,0.08) 0%,transparent 70%)}
 .lock-box{width:360px;background:var(--bg-panel);border:1px solid var(--border);border-radius:18px;padding:40px 36px;box-shadow:var(--shadow-lg);text-align:center}
 .lock-icon{width:56px;height:56px;background:var(--bg-card);border:1px solid var(--border-light);border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 20px}
 .lock-title{font-family:var(--font-serif);font-size:22px;font-weight:600;margin-bottom:6px}
@@ -207,6 +214,7 @@ body{font-family:var(--font-sans);background:var(--bg-deep);color:var(--text-pri
       <button class="icon-btn" onclick="openModal('apiModal')" title="API">⚙</button>
       <button class="icon-btn" onclick="exportProject()" title="导出">↓</button>
       <button class="icon-btn" id="saveBtn" onclick="saveDoc()" title="保存">💾<span class="save-badge"></span></button>
+      <button class="icon-btn" id="themeBtn" onclick="toggleTheme()" title="切换主题">🌙</button>
       <button class="icon-btn" onclick="lockApp()" title="锁屏">🔒</button>
     </div>
   </div>
@@ -459,6 +467,10 @@ function openModal(id){document.getElementById(id).classList.add('show');if(id==
 function closeModal(id){document.getElementById(id).classList.remove('show');}
 function toggleGenre(el){el.parentElement.querySelectorAll('.genre-chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');}
 document.querySelectorAll('.modal-overlay').forEach(o=>{o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('show');});});
+
+// ═══ Theme ═══
+function toggleTheme(){document.body.classList.toggle('light');const isLight=document.body.classList.contains('light');localStorage.setItem('ww_theme',isLight?'light':'dark');document.getElementById('themeBtn').textContent=isLight?'☀️':'🌙';}
+(function loadTheme(){if(localStorage.getItem('ww_theme')==='light'){document.body.classList.add('light');setTimeout(()=>{const b=document.getElementById('themeBtn');if(b)b.textContent='☀️';},0);}})();
 
 // ═══ Toast ═══
 let toastTimer;function showToast(i,m){document.getElementById('toastIcon').textContent=i;document.getElementById('toastMsg').textContent=m;const t=document.getElementById('toast');t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),2200);}
