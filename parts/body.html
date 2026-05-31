@@ -1,0 +1,271 @@
+<body>
+
+<!-- LOGIN -->
+<div id="loginScreen" class="login-wrap" style="display:none">
+<div class="login-card fade-in">
+<div style="text-align:center;margin-bottom:16px">
+<div style="font-size:40px">🔐</div>
+<h2 style="font-size:20px;font-weight:700;margin-top:8px">AI 写作工坊</h2>
+<p id="loginSub" style="color:var(--t3);font-size:13px;margin-top:6px">首次使用请设置密码</p>
+</div>
+<div id="loginSet" style="display:none">
+<input id="setPwd1" class="minp" type="password" placeholder="设置密码">
+<input id="setPwd2" class="minp" type="password" placeholder="再次输入密码">
+<button onclick="registerPwd()" class="cta" style="width:100%;margin-top:8px">进入工坊</button>
+</div>
+<div id="loginCheck" style="display:none">
+<input id="chkPwd" class="minp" type="password" placeholder="输入密码" onkeydown="if(event.key==='Enter')loginPwd()">
+<button onclick="loginPwd()" class="cta" style="width:100%;margin-top:8px">解锁</button>
+</div>
+<p id="loginErr" style="color:var(--err);font-size:13px;text-align:center;margin-top:8px;display:none"></p>
+</div>
+</div>
+
+<!-- MAIN APP -->
+<div id="appRoot" style="display:none">
+
+<header class="hdr">
+<div style="display:flex;align-items:center;gap:8px;flex:1">
+<i class="fas fa-feather-alt" style="color:var(--p);font-size:18px"></i>
+<span style="font-weight:700;font-size:15px">AI 写作工坊</span>
+</div>
+<div style="display:flex;align-items:center;gap:6px">
+<select id="projSel" onchange="onProjChange(this.value)" class="minp" style="width:auto;max-width:110px;margin:0;padding:6px 8px;font-size:13px"><option value="">选择项目...</option></select>
+<button class="hbtn hbtn-p" onclick="showM('npModal')" title="新建"><i class="fas fa-plus"></i></button>
+<button class="hbtn hbtn-d" onclick="showM('settingsModal')" title="设置"><i class="fas fa-cog"></i></button>
+<button id="dmBtn" class="hbtn hbtn-g" onclick="toggleDM()" title="深色"><i class="fas fa-moon"></i></button>
+<button class="hbtn hbtn-g" onclick="logoutPwd()" title="退出"><i class="fas fa-right-from-bracket"></i></button>
+</div>
+</header>
+
+<div class="abody">
+
+<!-- EDITOR -->
+<div id="pn-editor" class="tpn on">
+<div id="wcard" class="wcard">
+<div style="font-size:48px;margin-bottom:12px">✍️</div>
+<h2 style="font-size:20px;font-weight:700;margin-bottom:8px">欢迎使用 AI 写作工坊</h2>
+<p style="font-size:14px;color:var(--t2);margin-bottom:24px">纯前端 · 登录保护 · 多AI对比 · 自动保存</p>
+<div style="text-align:left;font-size:13px;color:var(--t2);margin-bottom:24px;line-height:2">
+<div><b style="color:var(--p)">1.</b> 点右上角 <b>「+」</b> 创建项目</div>
+<div><b style="color:var(--p)">2.</b> 点 <b>「⚙️」</b> 配置 API</div>
+<div><b style="color:var(--p)">3.</b> 开始写作，AI 助手随时待命</div>
+</div>
+<button class="cta" onclick="showM('npModal')"><i class="fas fa-plus" style="margin-right:6px"></i>创建项目</button>
+</div>
+
+<div id="earea" style="display:none;height:100%;flex-direction:column">
+<div class="stats-bar">
+<div class="stat-item"><i class="fas fa-font"></i> <span id="statTotal" class="stat-val">0</span> 字</div>
+<div class="stat-item"><i class="fas fa-calendar-day"></i> 今日 <span id="statToday" class="stat-val">0</span> 字</div>
+<div class="stat-item"><i class="fas fa-bullseye"></i> 目标 <span id="statGoal">0</span>/<span id="statGoalTarget">2000</span>
+<div class="goal-bar" style="width:60px"><div id="goalFill" class="goal-fill" style="width:0%"></div></div>
+</div>
+<div style="flex:1"></div>
+<span id="saveStatus" style="font-size:11px;color:var(--ok)"></span>
+</div>
+<div class="etool">
+<input id="eTitle" style="flex:1;border:none;background:transparent;font-weight:600;font-size:15px;color:var(--t1);outline:none" placeholder="标题">
+<span id="wc" style="font-size:12px;color:var(--t3)">0字</span>
+<button onclick="toggleFocus()" class="hbtn" style="background:rgba(79,70,229,.1);color:var(--p);font-size:13px" title="专注模式"><i class="fas fa-expand"></i></button>
+<button onclick="togglePreview()" class="hbtn" style="background:rgba(5,150,105,.1);color:#059669;font-size:13px" title="预览"><i class="fas fa-eye"></i></button>
+<button onclick="saveContent()" class="hbtn hbtn-ok" style="font-size:13px"><i class="fas fa-save"></i> 保存</button>
+</div>
+<textarea id="editor" class="ebox" placeholder="开始写作..." oninput="onEditorInput()"></textarea>
+<div id="previewPane" class="md-preview" style="display:none;flex:1;overflow-y:auto"></div>
+
+<div class="assist-bar">
+<button class="quick-btn" onclick="assist('polish')"><i class="fas fa-wand-magic-sparkles"></i> 润色</button>
+<button class="quick-btn" onclick="assist('continue')"><i class="fas fa-forward"></i> 续写</button>
+<button class="quick-btn" onclick="assist('condense')"><i class="fas fa-compress"></i> 缩写</button>
+<button class="quick-btn" onclick="assist('expand')"><i class="fas fa-expand"></i> 扩写</button>
+<button class="quick-btn" onclick="assist('translate')"><i class="fas fa-language"></i> 翻译</button>
+<button class="quick-btn" onclick="assist('rewrite')"><i class="fas fa-rotate"></i> 改写</button>
+</div>
+<div id="assistPanel" class="assist-resp" style="display:none">
+<div id="assistStatus" style="font-size:12px;color:var(--p);margin-bottom:6px;display:none"><i class="fas fa-spinner fa-spin"></i> AI 助手中...</div>
+<div id="assistResp" class="airesp" style="margin-bottom:8px"></div>
+<div style="display:flex;gap:8px">
+<button onclick="assistApplyReplace()" class="hbtn hbtn-p" style="flex:1;font-size:12px"><i class="fas fa-check"></i> 替换</button>
+<button onclick="assistApplyAppend()" class="hbtn hbtn-ok" style="flex:1;font-size:12px"><i class="fas fa-plus"></i> 追加</button>
+<button onclick="assistCopy()" class="hbtn" style="flex:1;background:var(--bd);color:var(--t2);font-size:12px"><i class="fas fa-copy"></i> 复制</button>
+<button onclick="toggleAssistPanel(false)" class="hbtn" style="background:transparent;color:var(--t3);font-size:12px"><i class="fas fa-xmark"></i></button>
+</div>
+</div>
+</div>
+</div>
+
+<!-- FOCUS EXIT -->
+<button id="focusExit" onclick="toggleFocus()" class="hbtn hbtn-d" style="font-size:12px"><i class="fas fa-compress"></i> 退出专注</button>
+
+<!-- OUTLINE -->
+<div id="pn-outline" class="tpn">
+<div style="display:flex;align-items:center;padding:12px 16px 8px;gap:8px">
+<span style="font-size:12px;font-weight:700;color:var(--t3);text-transform:uppercase;flex:1">故事大纲</span>
+<button onclick="aiAuto('outline_gen')" class="hbtn" style="background:rgba(79,70,229,.1);color:var(--p);font-size:12px"><i class="fas fa-magic"></i> AI生成</button>
+<button onclick="addOutline()" class="hbtn hbtn-ok" style="font-size:12px"><i class="fas fa-plus"></i> 添加</button>
+</div>
+<div id="oList"></div>
+</div>
+
+<!-- CHAPTERS -->
+<div id="pn-chapters" class="tpn">
+<div style="display:flex;align-items:center;padding:12px 16px 8px;gap:8px">
+<span style="font-size:12px;font-weight:700;color:var(--t3);text-transform:uppercase;flex:1">章节</span>
+<button onclick="aiAuto('chapter_write')" class="hbtn" style="background:rgba(79,70,229,.1);color:var(--p);font-size:12px"><i class="fas fa-magic"></i> AI写</button>
+<button onclick="addChap()" class="hbtn hbtn-ok" style="font-size:12px"><i class="fas fa-plus"></i> 添加</button>
+</div>
+<div id="cList"></div>
+</div>
+
+<!-- CHARACTERS -->
+<div id="pn-chars" class="tpn">
+<div style="display:flex;align-items:center;padding:12px 16px 8px;gap:8px">
+<span style="font-size:12px;font-weight:700;color:var(--t3);text-transform:uppercase;flex:1">人物</span>
+<button onclick="aiAuto('character_gen')" class="hbtn" style="background:rgba(79,70,229,.1);color:var(--p);font-size:12px"><i class="fas fa-magic"></i> AI生成</button>
+<button onclick="editCharId=null;showM('charModal')" class="hbtn hbtn-ok" style="font-size:12px"><i class="fas fa-plus"></i> 添加</button>
+</div>
+<div id="chList"></div>
+</div>
+
+<!-- AI -->
+<div id="pn-ai" class="tpn">
+<div id="ctxBar" style="display:none;padding:8px 16px;background:rgba(79,70,229,.08);color:var(--p);font-size:12px;font-weight:500"></div>
+<div style="padding:12px 16px;border-bottom:1px solid var(--bd)">
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+<span style="font-weight:600;font-size:15px">🤖 AI 助手</span>
+<span id="mLabel" style="font-size:12px;color:var(--t3)"></span>
+</div>
+<div style="display:flex;gap:8px;margin-bottom:10px">
+<button id="aiTabSingle" onclick="setAiView('single')" class="ambtn on" style="flex:1">单AI</button>
+<button id="aiTabMulti" onclick="setAiView('multi')" class="ambtn" style="flex:1">多AI对比</button>
+<button id="aiTabHist" onclick="setAiView('hist')" class="ambtn" style="flex:1">历史</button>
+</div>
+<div id="modeGrid"></div>
+</div>
+
+<div id="aiSingleView">
+<div style="padding:12px 16px;border-bottom:1px solid var(--bd)">
+<textarea id="aiInp" class="minp" rows="3" style="margin-bottom:8px" placeholder="输入具体要求..."></textarea>
+<div style="display:flex;align-items:center;justify-content:space-between">
+<div style="display:flex;gap:8px">
+<select id="aiTemp" class="minp" style="width:auto;margin:0;padding:6px;font-size:12px"><option value="0.3">严谨</option><option value="0.8" selected>平衡</option><option value="1.2">创意</option></select>
+<select id="aiTok" class="minp" style="width:auto;margin:0;padding:6px;font-size:12px"><option value="500">短</option><option value="1500">中</option><option value="2000" selected>长</option><option value="4000">超长</option></select>
+</div>
+<button onclick="aiGen()" id="aiBtn" class="hbtn hbtn-p" style="font-size:13px"><i class="fas fa-paper-plane"></i> 生成</button>
+</div>
+</div>
+<div style="padding:12px 16px">
+<div id="aiResp" class="airesp">欢迎！配置 API 后即可使用。</div>
+<div style="display:flex;gap:8px;margin-top:12px">
+<button onclick="insEditor()" class="hbtn" style="flex:1;background:rgba(79,70,229,.1);color:var(--p);font-size:12px"><i class="fas fa-arrow-left"></i> 插入</button>
+<button onclick="repEditor()" class="hbtn" style="flex:1;background:rgba(124,58,237,.1);color:#7c3aed;font-size:12px"><i class="fas fa-exchange-alt"></i> 替换</button>
+<button onclick="copyResp()" class="hbtn" style="flex:1;background:var(--bd);color:var(--t2);font-size:12px"><i class="fas fa-copy"></i> 复制</button>
+</div>
+</div>
+</div>
+
+<div id="aiMultiView" style="display:none">
+<div style="padding:12px 16px;border-bottom:1px solid var(--bd)">
+<textarea id="cmpInp" class="minp" rows="3" style="margin-bottom:8px" placeholder="并行发送给多个 AI..."></textarea>
+<div style="display:flex;gap:8px;justify-content:flex-end">
+<button onclick="runCompare()" id="cmpBtn" class="hbtn hbtn-p" style="font-size:13px"><i class="fas fa-paper-plane"></i> 并行生成</button>
+</div>
+</div>
+<div id="slotCfg">
+<div class="slot-card"><div class="slot-header"><b>槽位 1</b><button id="slot1Toggle" class="slot-toggle on" onclick="toggleSlot(1)"></button></div><div id="slot1Body"><select id="slot1Preset" onchange="applySlotPreset(1)" class="minp" style="margin-bottom:6px"><option value="">自定义</option><option value="xiaomi">小米MiMo</option><option value="claude">Claude</option><option value="openrouter">OpenRouter</option><option value="openai">OpenAI</option><option value="deepseek">DeepSeek</option><option value="qwen">通义</option></select><input id="slot1Base" class="minp" placeholder="Base URL"><input id="slot1Key" class="minp" type="password" placeholder="API Key"><input id="slot1Model" class="minp" placeholder="Model"></div></div>
+<div class="slot-card"><div class="slot-header"><b>槽位 2</b><button id="slot2Toggle" class="slot-toggle" onclick="toggleSlot(2)"></button></div><div id="slot2Body" style="display:none"><select id="slot2Preset" onchange="applySlotPreset(2)" class="minp" style="margin-bottom:6px"><option value="">自定义</option><option value="xiaomi">小米MiMo</option><option value="claude">Claude</option><option value="openrouter">OpenRouter</option><option value="openai">OpenAI</option><option value="deepseek">DeepSeek</option><option value="qwen">通义</option></select><input id="slot2Base" class="minp" placeholder="Base URL"><input id="slot2Key" class="minp" type="password" placeholder="API Key"><input id="slot2Model" class="minp" placeholder="Model"></div></div>
+<div class="slot-card"><div class="slot-header"><b>槽位 3</b><button id="slot3Toggle" class="slot-toggle" onclick="toggleSlot(3)"></button></div><div id="slot3Body" style="display:none"><select id="slot3Preset" onchange="applySlotPreset(3)" class="minp" style="margin-bottom:6px"><option value="">自定义</option><option value="xiaomi">小米MiMo</option><option value="claude">Claude</option><option value="openrouter">OpenRouter</option><option value="openai">OpenAI</option><option value="deepseek">DeepSeek</option><option value="qwen">通义</option></select><input id="slot3Base" class="minp" placeholder="Base URL"><input id="slot3Key" class="minp" type="password" placeholder="API Key"><input id="slot3Model" class="minp" placeholder="Model"></div></div>
+</div>
+<div id="cmpResults" class="compare-grid" style="display:none"></div>
+</div>
+
+<div id="aiHistView" style="display:none;padding:12px 16px">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+<span style="font-weight:600;font-size:14px">AI 历史记录</span>
+<button onclick="clearAiHistory()" class="hbtn" style="font-size:12px;color:var(--err);background:none"><i class="fas fa-trash"></i> 清空</button>
+</div>
+<div id="histList" style="color:var(--t3);font-size:13px;text-align:center;padding:20px">暂无记录</div>
+</div>
+</div>
+</div>
+
+<nav class="btabs">
+<button class="btab on" onclick="swTab('editor',this)"><i class="fas fa-pen-fancy"></i><span>编辑</span></button>
+<button class="btab" onclick="swTab('outline',this)"><i class="fas fa-list-ul"></i><span>大纲</span></button>
+<button class="btab" onclick="swTab('chapters',this)"><i class="fas fa-book"></i><span>章节</span></button>
+<button class="btab" onclick="swTab('chars',this)"><i class="fas fa-users"></i><span>人物</span></button>
+<button class="btab" onclick="swTab('ai',this)"><i class="fas fa-robot"></i><span>AI</span></button>
+</nav>
+</div>
+
+<!-- MODALS -->
+<div id="npModal" class="mbg" style="display:none" onclick="hideM('npModal')"><div class="mcard" onclick="event.stopPropagation()"><button class="mcls" onclick="hideM('npModal')"><i class="fas fa-times"></i></button><h3 style="font-size:18px;font-weight:700;margin-bottom:12px">新建项目</h3><input id="npTitle" class="minp" placeholder="作品名称 *"><select id="npGenre" class="minp"><option value="">类型...</option><option>玄幻</option><option>都市</option><option>言情</option><option>科幻</option><option>悬疑</option><option>历史</option><option>武侠</option><option>奇幻</option></select><textarea id="npDesc" class="minp" rows="2" placeholder="简介"></textarea><textarea id="npWorld" class="minp" rows="2" placeholder="世界观"></textarea><div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px"><button onclick="hideM('npModal')" class="hbtn hbtn-g">取消</button><button onclick="createProj()" class="hbtn hbtn-p">创建</button></div></div></div>
+
+<div id="settingsModal" class="mbg" style="display:none" onclick="hideM('settingsModal')"><div class="mcard" onclick="event.stopPropagation()" style="max-width:560px"><button class="mcls" onclick="hideM('settingsModal')"><i class="fas fa-times"></i></button>
+<h3 style="font-size:18px;font-weight:700;margin-bottom:16px">⚙️ 设置</h3>
+
+<div style="margin-bottom:20px">
+<h4 style="font-size:14px;font-weight:600;margin-bottom:8px"><i class="fas fa-plug" style="color:var(--p)"></i> API 配置</h4>
+<label style="font-size:13px;font-weight:500;display:block;margin-bottom:4px">供应商</label>
+<select id="apiPreset" onchange="applyPreset()" class="minp"><option value="">自定义</option><option value="xiaomi">小米MiMo</option><option value="claude">Claude (Anthropic)</option><option value="openrouter">OpenRouter</option><option value="openai">OpenAI</option><option value="deepseek">DeepSeek</option><option value="zhipu">智谱</option><option value="qwen">通义</option><option value="moonshot">Moonshot</option><option value="siliconflow">SiliconFlow</option></select>
+<label style="font-size:13px;font-weight:500;display:block;margin-bottom:4px">Base URL</label>
+<input id="apiBase" class="minp" placeholder="https://api.example.com/v1">
+<label style="font-size:13px;font-weight:500;display:block;margin-bottom:4px">API Key</label>
+<div style="position:relative"><input id="apiKey" type="password" class="minp" placeholder="sk-..." style="padding-right:36px"><button onclick="togKey()" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--t3);cursor:pointer"><i id="keyEye" class="fas fa-eye"></i></button></div>
+<label style="font-size:13px;font-weight:500;display:block;margin-bottom:4px">模型</label>
+<input id="apiModel" class="minp" placeholder="gpt-4o">
+<div style="display:flex;align-items:center;gap:8px"><button onclick="testConn()" id="testBtn" style="font-size:13px;color:var(--p);background:none;border:none;cursor:pointer"><i class="fas fa-plug"></i> 测试</button><div id="testR" style="display:none;font-size:13px"></div></div>
+</div>
+
+<div style="margin-bottom:20px">
+<h4 style="font-size:14px;font-weight:600;margin-bottom:8px"><i class="fas fa-font" style="color:var(--p)"></i> 编辑器</h4>
+<div style="display:flex;gap:12px;align-items:center">
+<label style="font-size:13px">字号</label>
+<select id="fontSizeSel" onchange="applyFontSize()" class="minp" style="width:auto;margin:0;padding:6px;font-size:12px"><option value="14">14px</option><option value="15" selected>15px</option><option value="16">16px</option><option value="18">18px</option><option value="20">20px</option></select>
+<label style="font-size:13px">行高</label>
+<select id="lineHeightSel" onchange="applyLineHeight()" class="minp" style="width:auto;margin:0;padding:6px;font-size:12px"><option value="1.6">1.6</option><option value="1.8" selected>1.8</option><option value="2.0">2.0</option><option value="2.2">2.2</option></select>
+</div>
+</div>
+
+<div style="margin-bottom:20px">
+<h4 style="font-size:14px;font-weight:600;margin-bottom:8px"><i class="fas fa-bullseye" style="color:var(--p)"></i> 写作目标</h4>
+<div style="display:flex;gap:12px;align-items:center">
+<label style="font-size:13px">每日目标</label>
+<input id="goalInput" class="minp" type="number" style="width:100px;margin:0" placeholder="2000" value="2000">
+<span style="font-size:13px;color:var(--t3)">字</span>
+</div>
+</div>
+
+<div style="margin-bottom:20px">
+<h4 style="font-size:14px;font-weight:600;margin-bottom:8px"><i class="fas fa-clock" style="color:var(--p)"></i> 自动锁屏</h4>
+<div style="display:flex;gap:12px;align-items:center">
+<label style="font-size:13px">离开</label>
+<select id="lockTimeout" class="minp" style="width:auto;margin:0;padding:6px;font-size:12px"><option value="0">关闭</option><option value="5">5分钟</option><option value="15" selected>15分钟</option><option value="30">30分钟</option><option value="60">1小时</option></select>
+<span style="font-size:13px;color:var(--t3)">后锁定</span>
+</div>
+</div>
+
+<div style="margin-bottom:20px">
+<h4 style="font-size:14px;font-weight:600;margin-bottom:8px"><i class="fas fa-download" style="color:var(--p)"></i> 数据管理</h4>
+<div style="display:flex;flex-wrap:wrap;gap:8px">
+<button onclick="exportProject()" class="hbtn" style="background:rgba(79,70,229,.1);color:var(--p);font-size:12px"><i class="fas fa-file-export"></i> 导出项目</button>
+<button onclick="document.getElementById('importFile').click()" class="hbtn" style="background:rgba(5,150,105,.1);color:#059669;font-size:12px"><i class="fas fa-file-import"></i> 导入项目</button>
+<input type="file" id="importFile" accept=".json" style="display:none" onchange="importProject(event)">
+<button onclick="exportAs('txt')" class="hbtn" style="background:var(--bd);color:var(--t2);font-size:12px"><i class="fas fa-file-alt"></i> 导出TXT</button>
+<button onclick="exportAs('md')" class="hbtn" style="background:var(--bd);color:var(--t2);font-size:12px"><i class="fab fa-markdown"></i> 导出MD</button>
+<button onclick="showM('recycleModal')" class="hbtn" style="background:rgba(239,68,68,.1);color:var(--err);font-size:12px"><i class="fas fa-trash-restore"></i> 回收站</button>
+</div>
+</div>
+
+<div style="display:flex;justify-content:flex-end;gap:8px;padding-top:12px;border-top:1px solid var(--bd)">
+<button onclick="hideM('settingsModal')" class="hbtn hbtn-g">取消</button>
+<button onclick="saveSettings()" class="hbtn hbtn-p">保存全部</button>
+</div>
+</div></div>
+
+<div id="charModal" class="mbg" style="display:none" onclick="hideM('charModal')"><div class="mcard" onclick="event.stopPropagation()"><button class="mcls" onclick="hideM('charModal')"><i class="fas fa-times"></i></button><h3 id="chTitle" style="font-size:18px;font-weight:700;margin-bottom:12px">添加人物</h3><input id="chName" class="minp" placeholder="姓名 *"><select id="chRole" class="minp"><option>主角</option><option>女主</option><option>配角</option><option>反派</option><option>导师</option><option>盟友</option></select><textarea id="chPers" class="minp" rows="2" placeholder="性格"></textarea><textarea id="chBack" class="minp" rows="2" placeholder="背景"></textarea><textarea id="chLook" class="minp" rows="2" placeholder="外貌"></textarea><textarea id="chSkill" class="minp" rows="2" placeholder="技能"></textarea><div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px"><button onclick="hideM('charModal')" class="hbtn hbtn-g">取消</button><button onclick="saveChar()" class="hbtn hbtn-p">保存</button></div></div></div>
+
+<div id="recycleModal" class="mbg" style="display:none" onclick="hideM('recycleModal')"><div class="mcard" onclick="event.stopPropagation()" style="max-height:70vh"><button class="mcls" onclick="hideM('recycleModal')"><i class="fas fa-times"></i></button><h3 style="font-size:18px;font-weight:700;margin-bottom:12px">🗑️ 回收站</h3><div id="recycleList" style="color:var(--t3);font-size:13px;text-align:center;padding:20px">回收站为空</div></div></div>
+
+<div id="toast" style="display:none"></div>

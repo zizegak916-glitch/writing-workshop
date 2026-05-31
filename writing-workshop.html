@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>AI 写作工坊</title>
+<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+:root{--p:#4f46e5;--bg:#f9fafb;--sf:#fff;--bd:#e5e7eb;--t1:#1f2937;--t2:#6b7280;--t3:#9ca3af;--ok:#22c55e;--err:#ef4444;--accent:#7c3aed}
+body.dark{--bg:#0f172a;--sf:#1e293b;--bd:#334155;--t1:#e2e8f0;--t2:#94a3b8;--t3:#64748b}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{background:var(--bg);color:var(--t1);margin:0;font-family:-apple-system,system-ui,sans-serif}
+
+/* Layout */
+.hdr{background:var(--sf);border-bottom:1px solid var(--bd);height:48px;display:flex;align-items:center;padding:0 12px;position:fixed;top:0;left:0;right:0;z-index:50}
+.btabs{position:fixed;bottom:0;left:0;right:0;background:var(--sf);border-top:1px solid var(--bd);display:flex;z-index:50;height:52px}
+.abody{position:fixed;top:48px;bottom:52px;left:0;right:0;overflow:hidden}
+.tpn{position:absolute;inset:0;overflow-y:auto;background:var(--bg);display:none}.tpn.on{display:block}
+
+/* Buttons */
+.hbtn{height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;border:none;cursor:pointer;padding:0 12px;gap:4px}
+.hbtn-p{background:var(--p);color:#fff}.hbtn-d{background:#374151;color:#fff}.hbtn-g{background:transparent;color:var(--t2)}
+body.dark .hbtn-d{background:#4b5563}
+.btab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:10px;color:var(--t3);cursor:pointer;border:none;background:none;padding:4px 0}
+.btab.on{color:var(--p)}.btab i{font-size:18px;margin-bottom:2px}
+
+/* Editor & panels */
+.etool{background:var(--sf);border-bottom:1px solid var(--bd);padding:8px 12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ebox{flex:1;border:none;padding:16px;font-size:15px;line-height:1.8;resize:none;background:var(--bg);color:var(--t1);outline:none;font-family:serif}
+.litem{padding:12px 16px;border-bottom:1px solid var(--bd);background:var(--sf);cursor:pointer;display:flex;align-items:center}
+.litem:active{background:rgba(79,70,229,.08)}.litem.sel{border-left:3px solid var(--p);background:rgba(79,70,229,.05)}
+.card{background:var(--sf);border:1px solid var(--bd);border-radius:12px;margin:8px 16px;padding:12px}
+.ambtn{padding:6px 8px;border-radius:6px;font-size:12px;color:var(--t2);background:var(--sf);border:1px solid var(--bd);cursor:pointer;text-align:center}
+.ambtn.on{background:var(--p);color:#fff;border-color:var(--p)}.ambtn:active{transform:scale(.95)}
+.minp{width:100%;border:1px solid var(--bd);border-radius:8px;padding:10px 12px;font-size:14px;background:var(--sf);color:var(--t1);margin-bottom:8px}
+.minp:focus{outline:none;border-color:var(--p)}
+.airesp{font-size:14px;color:var(--t2);line-height:1.7;white-space:pre-wrap}.airesp strong{color:var(--t1)}.airesp code{background:#f3f4f6;padding:1px 4px;border-radius:3px;font-size:13px}
+body.dark .airesp code{background:#334155}
+body.dark input,body.dark select,body.dark textarea{background:#1e293b;color:#e2e8f0;border-color:#334155}
+body.dark .litem{border-color:#334155}
+.mbg{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;display:flex;align-items:center;justify-content:center}
+.mcard{background:var(--sf);border-radius:16px;padding:20px;padding-top:48px;width:94vw;max-width:520px;max-height:85vh;overflow-y:auto;position:relative}
+.mcls{position:absolute;top:12px;right:12px;width:32px;height:32px;border-radius:50%;background:var(--bd);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--t2);font-size:16px}
+.wcard{background:linear-gradient(135deg,#eef2ff,#faf5ff);border:1px solid #e0e7ff;border-radius:16px;padding:32px 24px;margin:24px 16px;text-align:center}
+body.dark .wcard{background:linear-gradient(135deg,#1e1b4b,#1e293b);border-color:#312e81}
+.cta{background:linear-gradient(135deg,#4f46e5,#7c3aed);color:#fff;padding:10px 24px;border-radius:10px;font-weight:600;font-size:14px;border:none;cursor:pointer}
+
+/* Login */
+.login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#eef2ff,#faf5ff);padding:24px}
+body.dark .login-wrap{background:linear-gradient(135deg,#0b1120,#111827)}
+.login-card{background:var(--sf);border:1px solid var(--bd);border-radius:20px;padding:28px;width:100%;max-width:420px;box-shadow:0 10px 30px rgba(0,0,0,.08)}
+
+/* Assistant */
+.assist-bar{display:flex;flex-wrap:wrap;gap:6px;padding:10px 12px;border-top:1px solid var(--bd);background:var(--sf)}
+.assist-resp{border-top:1px solid var(--bd);background:var(--bg);padding:10px 12px;max-height:40vh;overflow-y:auto}
+.quick-btn{padding:6px 10px;border-radius:8px;font-size:12px;border:1px solid var(--bd);background:var(--sf);color:var(--t1);cursor:pointer}
+.quick-btn:active{transform:scale(.97)}
+.quick-btn.on{background:var(--p);color:#fff;border-color:var(--p)}
+
+/* Multi-AI compare */
+.compare-grid{display:grid;grid-template-columns:1fr;gap:10px;padding:12px}
+@media (min-width:900px){.compare-grid{grid-template-columns:1fr 1fr 1fr}}
+.compare-card{background:var(--sf);border:1px solid var(--bd);border-radius:12px;padding:12px;min-height:120px}
+.slot-card{background:var(--sf);border:1px solid var(--bd);border-radius:12px;padding:12px;margin:8px 16px}
+.slot-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.slot-toggle{position:relative;width:44px;height:24px;border-radius:12px;background:#cbd5e1;border:none;cursor:pointer}
+.slot-toggle.on{background:var(--p)}
+.slot-toggle::after{content:'';position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform .2s}
+.slot-toggle.on::after{transform:translateX(20px)}
+
+/* Toast */
+#toast{position:fixed;top:60px;right:16px;padding:10px 16px;border-radius:8px;z-index:200;font-size:14px}
+
+/* Focus mode */
+body.focus-mode .hdr,body.focus-mode .btabs,body.focus-mode #ctxBar,body.focus-mode .etool,body.focus-mode .assist-bar,body.focus-mode .assist-resp{display:none!important}
+body.focus-mode .abody{top:0;bottom:0}
+body.focus-mode #earea{height:100%!important}
+body.focus-mode #editor{padding:40px 20vw;font-size:17px;line-height:2}
+body.focus-mode #previewPane{padding:40px 20vw}
+body.focus-mode #statsBar{display:none!important}
+#focusExit{position:fixed;top:16px;right:16px;z-index:60;display:none}
+body.focus-mode #focusExit{display:block}
+/* Stats */
+.stats-row{display:flex;gap:12px;padding:6px 16px;background:var(--sf);border-bottom:1px solid var(--bd);font-size:12px;color:var(--t2);align-items:center;flex-wrap:wrap}
+.stat-v{font-weight:700;color:var(--p)}
+.goal-bar{height:4px;border-radius:2px;background:var(--bd);overflow:hidden;width:60px;display:inline-block;vertical-align:middle;margin-left:4px}
+.goal-fill{height:100%;background:linear-gradient(90deg,var(--p),var(--accent));transition:width .5s}
+/* History */
+.hist-item{padding:8px 12px;border-bottom:1px solid var(--bd);font-size:12px;cursor:pointer}.hist-item:active{background:rgba(79,70,229,.05)}
+.hist-mode{font-size:11px;color:var(--p);font-weight:600}.hist-time{font-size:11px;color:var(--t3);float:right}
+.hist-preview{color:var(--t2);margin-top:2px;max-height:32px;overflow:hidden}
+/* MD preview */
+.mdprev{padding:16px;font-size:15px;line-height:1.8;font-family:serif}
+.mdprev h1,.mdprev h2,.mdprev h3{font-weight:700;margin:12px 0 6px}.mdprev h1{font-size:22px}.mdprev h2{font-size:19px}
+.mdprev p{margin:6px 0}.mdprev blockquote{border-left:3px solid var(--p);padding-left:12px;color:var(--t2)}
+.mdprev code{background:#f3f4f6;padding:1px 4px;border-radius:3px;font-size:13px}
+body.dark .mdprev code{background:#334155}
+/* Lock screen */
+.lock-wrap{position:fixed;inset:0;background:var(--bg);z-index:999;display:flex;align-items:center;justify-content:center}
+.lock-card{background:var(--sf);border:1px solid var(--bd);border-radius:20px;padding:28px;width:90vw;max-width:360px;text-align:center}
+/* Recycle */
+.ritem{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:1px solid var(--bd);font-size:13px}
+/* Toast */
+@keyframes fadeIn{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
+#toast{animation:fadeIn .2s}
+@keyframes spin{to{transform:rotate(360deg)}}.fa-spin{animation:spin 1s linear infinite}
+</style>
+</head>
+<body>
+
+<!-- LOGIN SCREEN -->
+<div id="loginScreen" class="login-wrap" style="display:none">
+<div class="login-card">
+<div style="text-align:center;margin-bottom:16px">
+<div style="font-size:40px">🔐</div>
+<h2 style="font-size:20px;font-weight:700;margin-top:8px">AI 写作工坊</h2>
+<p id="loginSub" style="color:var(--t3);font-size:13px;margin-top:6px">首次使用请设置密码</p>
+</div>
+<div id="loginSet" style="display:none">
+<input id="setPwd1" class="minp" type="password" placeholder="设置密码">
+<input id="setPwd2" class="minp" type="password" placeholder="再次输入密码">
+<button onclick="registerPwd()" class="cta" style="width:100%;margin-top:8px">进入工坊</button>
+</div>
+<div id="loginCheck" style="display:none">
+<input id="chkPwd" class="minp" type="password" placeholder="输入密码" onkeydown="if(event.key==='Enter')loginPwd()">
+<button onclick="loginPwd()" class="cta" style="width:100%;margin-top:8px">解锁</button>
+</div>
+<p id="loginErr" style="color:var(--err);font-size:13px;text-align:center;margin-top:8px;display:none"></p>
+</div>
+</div>
+
+<!-- MAIN APP -->
+<div id="appRoot" style="display:none">
+
+<header class="hdr">
+<div style="display:flex;align-items:center;gap:8px;flex:1">
+<i class="fas fa-feather-alt" style="color:var(--p);font-size:18px"></i>
+<span style="font-weight:700;font-size:15px">AI 写作工坊</span>
+</div>
+<div style="display:flex;align-items:center;gap:6px">
+<select id="projSel" onchange="onProjChange(this.value)" class="minp" style="width:auto;max-width:110px;margin:0;padding:6px 8px;font-size:13px">
+<option value="">选择项目...</option>
+</select>
+<button class="hbtn hbtn-p" onclick="showM('npModal')" title="新建"><i class="fas fa-plus"></i></button>
+<button class="hbtn hbtn-d" onclick="showM('apiModal')" title="API"><i class="fas fa-cog"></i></button>
+<button id="dmBtn" class="hbtn hbtn-g" onclick="toggleDM()" title="深色"><i class="fas fa-moon"></i></button>
+<button class="hbtn hbtn-g" onclick="logoutPwd()" title="退出登录"><i class="fas fa-right-from-bracket"></i></button>
+</div>
+</header>
+
+<div class="abody">
+
+<!-- EDITOR -->
+<div id="pn-editor" class="tpn on">
+<div id="wcard" class="wcard">
+<div style="font-size:48px;margin-bottom:12px">✍️</div>
+<h2 style="font-size:20px;font-weight:700;margin-bottom:8px">欢迎使用 AI 写作工坊</h2>
+<p style="font-size:14px;color:var(--t2);margin-bottom:24px">纯前端 · 数据存在浏览器 · 登录保护 · 多AI对比</p>
+<div style="text-align:left;font-size:13px;color:var(--t2);margin-bottom:24px;line-height:2">
+<div><b style="color:var(--p)">1.</b> 点右上角 <b>「+」</b> 创建项目</div>
+<div><b style="color:var(--p)">2.</b> 点 <b>「⚙️」</b> 配置 API</div>
+<div><b style="color:var(--p)">3.</b> 在编辑器使用写作助手</div>
+</div>
+<button class="cta" onclick="showM('npModal')"><i class="fas fa-plus" style="margin-right:6px"></i>创建项目</button>
+</div>
+
+<div id="earea" style="display:none;height:100%;flex-direction:column">
+<div id="statsBar" class="stats-row">
+<span>📝 总 <span id="stTotal" class="stat-v">0</span>字</span>
+<span>📅 今日 <span id="stToday" class="stat-v">0</span>字</span>
+<span>🎯 目标 <span id="stGoal">0</span>/<span id="stGoalT">2000</span>
+<span class="goal-bar"><span id="goalFill" class="goal-fill" style="width:0%"></span></span></span>
+<span style="flex:1"></span><span id="saveStatus" style="font-size:11px;color:var(--ok)"></span>
+</div>
+<div class="etool">
+<button onclick="toggleFocus()" class="hbtn" style="background:rgba(79,70,229,.1);color:var(--p);font-size:12px" title="专注模式"><i class="fas fa-expand"></i></button>
+<button onclick="togglePreview()" class="hbtn" style="background:rgba(5,150,105,.1);color:#059669;font-size:12px" title="Markdown预览"><i class="fas fa-eye"></i></button>
+<input id="eTitle"  style="flex:1;border:none;background:transparent;font-weight:600;font-size:15px;color:var(--t1);outline:none" placeholder="标题">
+<span id="wc" style="font-size:12px;color:var(--t3)">0字</span>
+<span id="sstat" style="font-size:12px;color:#059669"></span>
+<button onclick="saveContent()" class="hbtn" style="background:#059669;color:#fff;font-size:13px"><i class="fas fa-save"></i> 保存</button>
+</div>
+<textarea id="editor" class="ebox" placeholder="开始写作..."></textarea>
+<div id="previewPane" class="mdprev" style="display:none;flex:1;overflow-y:auto"></div>
+
+<div class="assist-bar">
+<button class="quick-btn" onclick="assist('polish')"><i class="fas fa-wand-magic-sparkles"></i> 润色</button>
+<button class="quick-btn" onclick="assist('continue')"><i class="fas fa-forward"></i> 续写</button>
+<button class="quick-btn" onclick="assist('condense')"><i class="fas fa-compress"></i> 缩写</button>
+<button class="quick-btn" onclick="assist('expand')"><i class="fas fa-expand"></i> 扩写</button>
+<button class="quick-btn" onclick="assist('translate')"><i class="fas fa-language"></i> 翻译</button>
+<button class="quick-btn" onclick="assist('rewrite')"><i class="fas fa-rotate"></i> 改写</button>
+</div>
+<div id="assistPanel" class="assist-resp" style="display:none">
+<div id="assistStatus" style="font-size:12px;color:var(--p);margin-bottom:6px;display:none"><i class="fas fa-spinner fa-spin"></i> AI 助手中...</div>
+<div id="assistResp" class="airesp" style="margin-bottom:8px"></div>
+<div style="display:flex;gap:8px">
+<button onclick="assistApplyReplace()" class="hbtn" style="flex:1;background:var(--p);color:#fff;font-size:12px"><i class="fas fa-check"></i> 应用替换</button>
+<button onclick="assistApplyAppend()" class="hbtn" style="flex:1;background:#059669;color:#fff;font-size:12px"><i class="fas fa-plus"></i> 追加</button>
+<button onclick="assistCopy()" class="hbtn" style="flex:1;background:var(--bd);color:var(--t2);font-size:12px"><i class="fas fa-copy"></i> 复制</button>
+<button onclick="toggleAssistPanel(false)" class="hbtn" style="background:transparent;color:var(--t3);font-size:12px"><i class="fas fa-xmark"></i></button>
+</div>
+</div>
+</div>
+</div>
+
+<!-- OUTLINE -->
+<button id="focusExit" onclick="toggleFocus()" class="hbtn" style="position:fixed;top:12px;right:12px;z-index:60;display:none;background:#374151;color:#fff;font-size:12px"><i class="fas fa-compress"></i> 退出专注</button>
+<div id="pn-outline"  class="tpn">
+<div style="display:flex;align-items:center;padding:12px 16px 8px;gap:8px">
+<span style="font-size:12px;font-weight:700;color:var(--t3);text-transform:uppercase;flex:1">故事大纲</span>
+<button onclick="aiAuto('outline_gen')" class="hbtn" style="background:rgba(79,70,229,.1);color:var(--p);font-size:12px"><i class="fas fa-magic"></i> AI生成</button>
+<button onclick="addOutline()" class="hbtn" style="background:rgba(5,150,105,.1);color:#059669;font-size:12px"><i class="fas fa-plus"></i> 添加</button>
+</div>
+<div id="oList"></div>
+</div>
+
+<!-- CHAPTERS -->
+<div id="pn-chapters" class="tpn">
+<div style="display:flex;align-items:center;padding:12px 16px 8px;gap:8px">
+<span style="font-size:12px;font-weight:700;color:var(--t3);text-transform:uppercase;flex:1">章节</span>
+<button onclick="aiAuto('chapter_write')" class="hbtn" style="background:rgba(79,70,229,.1);color:var(--p);font-size:12px"><i class="fas fa-magic"></i> AI写</button>
+<button onclick="addChap()" class="hbtn" style="background:rgba(5,150,105,.1);color:#059669;font-size:12px"><i class="fas fa-plus"></i> 添加</button>
+</div>
+<div id="cList"></div>
+</div>
+
+<!-- CHARACTERS -->
+<div id="pn-chars" class="tpn">
+<div style="display:flex;align-items:center;padding:12px 16px 8px;gap:8px">
+<span style="font-size:12px;font-weight:700;color:var(--t3);text-transform:uppercase;flex:1">人物</span>
+<button onclick="aiAuto('character_gen')" class="hbtn" style="background:rgba(79,70,229,.1);color:var(--p);font-size:12px"><i class="fas fa-magic"></i> AI生成</button>
+<button onclick="editCharId=null;showM('charModal')" class="hbtn" style="background:rgba(5,150,105,.1);color:#059669;font-size:12px"><i class="fas fa-plus"></i> 添加</button>
+</div>
+<div id="chList"></div>
+</div>
+
+<!-- AI -->
+<div id="pn-ai" class="tpn">
+<div id="ctxBar" style="display:none;padding:8px 16px;background:rgba(79,70,229,.08);color:var(--p);font-size:12px;font-weight:500"></div>
+<div style="padding:12px 16px;border-bottom:1px solid var(--bd)">
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+<span style="font-weight:600;font-size:15px">🤖 AI 助手</span>
+<span id="mLabel" style="font-size:12px;color:var(--t3)"></span>
+</div>
+<div style="display:flex;gap:8px;margin-bottom:10px">
+<button id="aiTabSingle" onclick="setAiView('single')" class="ambtn on" style="flex:1">单AI</button>
+<button id="aiTabMulti" onclick="setAiView('multi')" class="ambtn" style="flex:1">多AI对比</button>
+<button id="aiTabHist" onclick="setAiView('hist')" class="ambtn" style="flex:1">历史</button>
+</div>
+<div id="modeGrid"></div>
+</div>
+
+<div id="aiSingleView">
+<div style="padding:12px 16px;border-bottom:1px solid var(--bd)">
+<textarea id="aiInp" class="minp" rows="3" style="margin-bottom:8px" placeholder="输入具体要求..."></textarea>
+<div style="display:flex;align-items:center;justify-content:space-between">
+<div style="display:flex;gap:8px">
+<select id="aiTemp" class="minp" style="width:auto;margin:0;padding:6px;font-size:12px"><option value="0.3">严谨</option><option value="0.8" selected>平衡</option><option value="1.2">创意</option></select>
+<select id="aiTok" class="minp" style="width:auto;margin:0;padding:6px;font-size:12px"><option value="500">短</option><option value="1500">中</option><option value="2000" selected>长</option><option value="4000">超长</option></select>
+</div>
+<button onclick="aiGen()" id="aiBtn" class="hbtn hbtn-p" style="font-size:13px"><i class="fas fa-paper-plane"></i> 生成</button>
+</div>
+</div>
+<div style="padding:12px 16px">
+<div id="aiResp" class="airesp">欢迎使用 AI 写作工坊！
+
+📝 18 种 AI 模式 · 登录保护 · 多AI对比
+⚙️ 首次使用请点右上角 ⚙️ 配置 API。</div>
+<div style="display:flex;gap:8px;margin-top:12px">
+<button onclick="insEditor()" class="hbtn" style="flex:1;background:rgba(79,70,229,.1);color:var(--p);font-size:12px"><i class="fas fa-arrow-left"></i> 插入</button>
+<button onclick="repEditor()" class="hbtn" style="flex:1;background:rgba(124,58,237,.1);color:#7c3aed;font-size:12px"><i class="fas fa-exchange-alt"></i> 替换</button>
+<button onclick="copyResp()" class="hbtn" style="flex:1;background:var(--bd);color:var(--t2);font-size:12px"><i class="fas fa-copy"></i> 复制</button>
+</div>
+</div>
+</div>
+
+<div id="aiHistView" style="display:none;padding:12px 16px">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+<span style="font-weight:600">📜 AI 历史</span>
+<button onclick="clearAiHistory()" class="hbtn" style="font-size:12px;color:var(--err)"><i class="fas fa-trash"></i></button>
+</div>
+<div id="histList"><div style="text-align:center;color:var(--t3);padding:20px">暂无记录</div></div>
+</div>
+<div id="aiMultiView" style="display:none">
+<div style="padding:12px 16px;border-bottom:1px solid var(--bd)">
+<textarea id="cmpInp" class="minp" rows="3" style="margin-bottom:8px" placeholder="输入要求，并行发送给多个 AI..."></textarea>
+<div style="display:flex;gap:8px;justify-content:flex-end">
+<button onclick="runCompare()" id="cmpBtn" class="hbtn hbtn-p" style="font-size:13px"><i class="fas fa-paper-plane"></i> 并行生成</button>
+</div>
+</div>
+<div id="slotCfg">
+<div class="slot-card"><div class="slot-header"><b>槽位 1</b><button id="slot1Toggle" class="slot-toggle on" onclick="toggleSlot(1)"></button></div><div id="slot1Body"><select id="slot1Preset" onchange="applySlotPreset(1)" class="minp" style="margin-bottom:6px"><option value="">自定义</option><option value="xiaomi">小米MiMo</option><option value="claude">Claude</option><option value="openrouter">OpenRouter</option><option value="openai">OpenAI</option><option value="deepseek">DeepSeek</option><option value="qwen">通义</option></select><input id="slot1Base" class="minp" placeholder="Base URL"><input id="slot1Key" class="minp" type="password" placeholder="API Key"><input id="slot1Model" class="minp" placeholder="Model"></div></div>
+<div class="slot-card"><div class="slot-header"><b>槽位 2</b><button id="slot2Toggle" class="slot-toggle" onclick="toggleSlot(2)"></button></div><div id="slot2Body" style="display:none"><select id="slot2Preset" onchange="applySlotPreset(2)" class="minp" style="margin-bottom:6px"><option value="">自定义</option><option value="xiaomi">小米MiMo</option><option value="claude">Claude</option><option value="openrouter">OpenRouter</option><option value="openai">OpenAI</option><option value="deepseek">DeepSeek</option><option value="qwen">通义</option></select><input id="slot2Base" class="minp" placeholder="Base URL"><input id="slot2Key" class="minp" type="password" placeholder="API Key"><input id="slot2Model" class="minp" placeholder="Model"></div></div>
+<div class="slot-card"><div class="slot-header"><b>槽位 3</b><button id="slot3Toggle" class="slot-toggle" onclick="toggleSlot(3)"></button></div><div id="slot3Body" style="display:none"><select id="slot3Preset" onchange="applySlotPreset(3)" class="minp" style="margin-bottom:6px"><option value="">自定义</option><option value="xiaomi">小米MiMo</option><option value="claude">Claude</option><option value="openrouter">OpenRouter</option><option value="openai">OpenAI</option><option value="deepseek">DeepSeek</option><option value="qwen">通义</option></select><input id="slot3Base" class="minp" placeholder="Base URL"><input id="slot3Key" class="minp" type="password" placeholder="API Key"><input id="slot3Model" class="minp" placeholder="Model"></div></div>
+</div>
+<div id="cmpResults" class="compare-grid" style="display:none"></div>
+</div>
+
+</div>
+</div>
+
+<nav class="btabs">
+<button class="btab on" onclick="swTab('editor',this)"><i class="fas fa-pen-fancy"></i><span>编辑</span></button>
+<button class="btab" onclick="swTab('outline',this)"><i class="fas fa-list-ul"></i><span>大纲</span></button>
+<button class="btab" onclick="swTab('chapters',this)"><i class="fas fa-book"></i><span>章节</span></button>
+<button class="btab" onclick="swTab('chars',this)"><i class="fas fa-users"></i><span>人物</span></button>
+<button class="btab" onclick="swTab('ai',this)"><i class="fas fa-robot"></i><span>AI</span></button>
+</nav>
+</div>
+
+<!-- MODALS -->
+<div id="npModal" class="mbg" style="display:none" onclick="hideM('npModal')">
+<div class="mcard" onclick="event.stopPropagation()">
+<button class="mcls" onclick="hideM('npModal')"><i class="fas fa-times"></i></button>
+<h3 style="font-size:18px;font-weight:700;margin-bottom:12px">新建项目</h3>
+<input id="npTitle" class="minp" placeholder="作品名称 *">
+<select id="npGenre" class="minp"><option value="">类型...</option><option>玄幻</option><option>都市</option><option>言情</option><option>科幻</option><option>悬疑</option><option>历史</option><option>武侠</option><option>奇幻</option></select>
+<textarea id="npDesc" class="minp" rows="2" placeholder="简介"></textarea>
+<textarea id="npWorld" class="minp" rows="2" placeholder="世界观"></textarea>
+<div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px">
+<button onclick="hideM('npModal')" class="hbtn hbtn-g" style="font-size:14px">取消</button>
+<button onclick="createProj()" class="hbtn hbtn-p" style="font-size:14px">创建</button>
+</div>
+</div>
+</div>
+
+<div id="apiModal" class="mbg" style="display:none" onclick="hideM('apiModal')">
+<div class="mcard" onclick="event.stopPropagation()">
+<button class="mcls" onclick="hideM('apiModal')"><i class="fas fa-times"></i></button>
+<h3 style="font-size:18px;font-weight:700;margin-bottom:4px">API 设置</h3>
+<p style="font-size:12px;color:var(--t3);margin-bottom:16px">配置主 AI 供应商（用于单AI和助手）</p>
+<label style="font-size:13px;font-weight:500;display:block;margin-bottom:4px">供应商</label>
+<select id="apiPreset" onchange="applyPreset()" class="minp"><option value="">自定义</option><option value="xiaomi">小米MiMo</option><option value="claude">Claude (Anthropic)</option><option value="openrouter">OpenRouter</option><option value="openai">OpenAI</option><option value="deepseek">DeepSeek</option><option value="zhipu">智谱</option><option value="qwen">通义</option><option value="moonshot">Moonshot</option><option value="siliconflow">SiliconFlow</option></select>
+<label style="font-size:13px;font-weight:500;display:block;margin-bottom:4px">Base URL</label>
+<input id="apiBase" class="minp" placeholder="https://api.example.com/v1">
+<label style="font-size:13px;font-weight:500;display:block;margin-bottom:4px">API Key</label>
+<div style="position:relative"><input id="apiKey" type="password" class="minp" placeholder="sk-..." style="padding-right:36px"><button onclick="togKey()" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--t3);cursor:pointer"><i id="keyEye" class="fas fa-eye"></i></button></div>
+<label style="font-size:13px;font-weight:500;display:block;margin-bottom:4px">模型</label>
+<input id="apiModel" class="minp" placeholder="gpt-4o">
+<div style="display:flex;align-items:center;justify-content:space-between;margin-top:16px;padding-top:12px;border-top:1px solid var(--bd)">
+<button onclick="testConn()" id="testBtn" style="font-size:13px;color:var(--p);background:none;border:none;cursor:pointer"><i class="fas fa-plug"></i> 测试</button>
+<div style="display:flex;gap:8px">
+<button onclick="hideM('apiModal')" class="hbtn hbtn-g" style="font-size:14px">取消</button>
+<button onclick="saveApi()" class="hbtn hbtn-p" style="font-size:14px">保存</button>
+</div>
+</div>
+<div id="testR" style="display:none;margin-top:8px;font-size:13px"></div>
+</div>
+</div>
+
+<div id="charModal" class="mbg" style="display:none" onclick="hideM('charModal')">
+<div class="mcard" onclick="event.stopPropagation()">
+<button class="mcls" onclick="hideM('charModal')"><i class="fas fa-times"></i></button>
+<h3 id="chTitle" style="font-size:18px;font-weight:700;margin-bottom:12px">添加人物</h3>
+<input id="chName" class="minp" placeholder="姓名 *">
+<select id="chRole" class="minp"><option>主角</option><option>女主</option><option>配角</option><option>反派</option><option>导师</option><option>盟友</option></select>
+<textarea id="chPers" class="minp" rows="2" placeholder="性格"></textarea>
+<textarea id="chBack" class="minp" rows="2" placeholder="背景"></textarea>
+<textarea id="chLook" class="minp" rows="2" placeholder="外貌"></textarea>
+<textarea id="chSkill" class="minp" rows="2" placeholder="技能"></textarea>
+<div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px">
+<button onclick="hideM('charModal')" class="hbtn hbtn-g" style="font-size:14px">取消</button>
+<button onclick="saveChar()" class="hbtn hbtn-p" style="font-size:14px">保存</button>
+</div>
+</div>
+</div>
+
+<div id="lockScreen" class="lock-wrap" style="display:none">
+<div class="lock-card">
+<div style="font-size:36px;margin-bottom:8px">🔒</div>
+<h3 style="font-weight:700;margin-bottom:12px">已锁定</h3>
+<input id="lockPwdInput" class="minp" type="password" placeholder="输入密码" onkeydown="if(event.key==='Enter')unlockScreen()">
+<button onclick="unlockScreen()" class="cta" style="width:100%;margin-top:8px">解锁</button>
+<p id="lockErr" style="color:var(--err);font-size:12px;margin-top:8px;display:none"></p>
+</div>
+</div>
+
+<div id="npModal" style="display:none"  style="display:none"></div>
+<script>
+/* ===== IndexedDB ===== */
+const DB_NAME='WritingWS',DB_VER=1;let db;
+function openDB(){return new Promise((res,rej)=>{const r=indexedDB.open(DB_NAME,DB_VER);r.onupgradeneeded=e=>{const d=e.target.result;if(!d.objectStoreNames.contains('projects'))d.createObjectStore('projects',{keyPath:'id',autoIncrement:true});if(!d.objectStoreNames.contains('outlines'))d.createObjectStore('outlines',{keyPath:'id',autoIncrement:true});if(!d.objectStoreNames.contains('characters'))d.createObjectStore('characters',{keyPath:'id',autoIncrement:true});if(!d.objectStoreNames.contains('chapters'))d.createObjectStore('chapters',{keyPath:'id',autoIncrement:true});if(!d.objectStoreNames.contains('aiHistory'))d.createObjectStore('aiHistory',{keyPath:'id',autoIncrement:true});};r.onsuccess=e=>{db=e.target.result;res(db);};r.onerror=e=>rej(e.target.error);});}
+function dbPut(store,val){return new Promise((res,rej)=>{const tx=db.transaction(store,'readwrite');const s=tx.objectStore(store);const r=s.put(val);r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});}
+function dbGet(store,id){return new Promise((res,rej)=>{const tx=db.transaction(store,'readonly');const r=tx.objectStore(store).get(id);r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});}
+function dbDel(store,id){return new Promise((res,rej)=>{const tx=db.transaction(store,'readwrite');const r=tx.objectStore(store).delete(id);r.onsuccess=()=>res();r.onerror=()=>rej(r.error);});}
+function dbAll(store){return new Promise((res,rej)=>{const tx=db.transaction(store,'readonly');const r=tx.objectStore(store).getAll();r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});}
+function dbByIndex(store,field,val){return new Promise((res,rej)=>{const tx=db.transaction(store,'readonly');const s=tx.objectStore(store);const all=[];const r=s.openCursor();r.onsuccess=e=>{const c=e.target.result;if(c){if(c.value[field]===val)all.push(c.value);c.continue();}else res(all);};r.onerror=()=>rej(r.error);});}
+
+/* ===== State ===== */
+let proj=null,active=null,editCharId=null,modes={},lastResp='',selMode='write',assistLast='',aiView='single';
+
+/* ===== Login ===== */
+async function sha256(text){const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(text));return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');}
+function initLogin(){
+  const h=localStorage.getItem('pwd_hash');
+  document.getElementById('loginScreen').style.display='flex';
+  document.getElementById('appRoot').style.display='none';
+  if(h){document.getElementById('loginSet').style.display='none';document.getElementById('loginCheck').style.display='block';document.getElementById('loginSub').textContent='输入密码解锁';}
+  else{document.getElementById('loginSet').style.display='block';document.getElementById('loginCheck').style.display='none';document.getElementById('loginSub').textContent='首次使用请设置密码';}
+}
+async function registerPwd(){
+  const p1=document.getElementById('setPwd1').value,p2=document.getElementById('setPwd2').value;
+  const err=document.getElementById('loginErr');
+  if(p1.length<4){err.textContent='密码至少4位';err.style.display='block';return;}
+  if(p1!==p2){err.textContent='两次密码不一致';err.style.display='block';return;}
+  const h=await sha256(p1);localStorage.setItem('pwd_hash',h);unlockApp();
+}
+async function loginPwd(){
+  const p=document.getElementById('chkPwd').value;const err=document.getElementById('loginErr');
+  const h=await sha256(p);
+  if(h===localStorage.getItem('pwd_hash')){unlockApp();}
+  else{err.textContent='密码错误';err.style.display='block';}
+}
+function unlockApp(){document.getElementById('loginScreen').style.display='none';document.getElementById('appRoot').style.display='block';bootApp();}
+function logoutPwd(){localStorage.removeItem('pwd_hash');location.reload();}
+
+/* ===== Unified API ===== */
+var PRESETS={xiaomi:{b:'https://api.xiaomimimo.com/v1',m:'mimo-v2.5-pro',t:'openai'},claude:{b:'https://api.anthropic.com/v1',m:'claude-sonnet-4-20250514',t:'claude'},openrouter:{b:'https://openrouter.ai/api/v1',m:'anthropic/claude-sonnet-4',t:'openai'},openai:{b:'https://api.openai.com/v1',m:'gpt-4o',t:'openai'},deepseek:{b:'https://api.deepseek.com/v1',m:'deepseek-chat',t:'openai'},zhipu:{b:'https://open.bigmodel.cn/api/paas/v4',m:'glm-4-flash',t:'openai'},qwen:{b:'https://dashscope.aliyuncs.com/compatible-mode/v1',m:'qwen-plus',t:'openai'},moonshot:{b:'https://api.moonshot.cn/v1',m:'moonshot-v1-8k',t:'openai'},siliconflow:{b:'https://api.siliconflow.cn/v1',m:'deepseek-ai/DeepSeek-V3',t:'openai'}};
+
+function getApi(){return{base_url:localStorage.getItem('api_base')||'',api_key:localStorage.getItem('api_key')||'',model:localStorage.getItem('api_model')||'',type:localStorage.getItem('api_type')||'openai'};}
+
+async function callAPIWith(cfg,messages,opts={}){
+  if(cfg.type==='claude'){
+    const system=messages.find(m=>m.role==='system')?.content||'';
+    const msgs=messages.filter(m=>m.role!=='system');
+    const body={model:cfg.model,max_tokens:opts.max_tokens||4096,messages:msgs,...(system?{system}:{})};
+    if(opts.temperature!=null)body.temperature=opts.temperature;
+    const resp=await fetch(cfg.base_url+'/messages',{method:'POST',headers:{'x-api-key':cfg.api_key,'anthropic-version':'2023-06-01','content-type':'application/json'},body:JSON.stringify(body)});
+    const d=await resp.json();if(d.error)throw new Error(d.error.message||JSON.stringify(d.error));return d.content[0].text;
+  }else{
+    const body={model:cfg.model,messages:messages,max_tokens:opts.max_tokens||4096};
+    if(opts.temperature!=null)body.temperature=opts.temperature;
+    const resp=await fetch(cfg.base_url+'/chat/completions',{method:'POST',headers:{'Authorization':'Bearer '+cfg.api_key,'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const d=await resp.json();if(d.error)throw new Error(d.error.message||JSON.stringify(d.error));return d.choices[0].message.content;
+  }
+}
+async function callAPI(messages,opts={}){return callAPIWith(getApi(),messages,opts);}
+
+/* ===== Toast / Modals ===== */
+function toast(m,t){const e=document.getElementById('toast');e.textContent=m;e.style.background=t==='error'?'#ef4444':'#22c55e';e.style.color='#fff';e.style.display='block';setTimeout(()=>e.style.display='none',3000);}
+function showM(id){document.querySelectorAll('.mbg').forEach(el=>el.style.display='none');const el=document.getElementById(id);if(el)el.style.display='flex';}
+function hideM(id){const el=document.getElementById(id);if(el)el.style.display='none';}
+
+/* ===== Init ===== */
+document.addEventListener('DOMContentLoaded',async()=>{loadDM();await openDB();if(localStorage.getItem('pwd_hash')){initLogin();}else{initLogin();}});
+
+async function bootApp(){await loadModes();await loadProjs();loadApiUI();loadSlots();loadFontSettings();loadGoalSettings();startAutoSave();resetLockTimer();document.addEventListener('mousemove',resetLockTimer);document.addEventListener('keydown',resetLockTimer);renderAiHistory();renderRecycle();loadGoalSettings();}
+
+/* ===== Dark Mode ===== */
+function toggleDM(){document.body.classList.toggle('dark');localStorage.setItem('dm',document.body.classList.contains('dark')?'1':'0');const i=document.querySelector('#dmBtn i');if(i)i.className=document.body.classList.contains('dark')?'fas fa-sun':'fas fa-moon';}
+function loadDM(){if(localStorage.getItem('dm')==='1'){document.body.classList.add('dark');const i=document.querySelector('#dmBtn i');if(i)i.className='fas fa-sun';}}
+
+/* ===== Tabs ===== */
+function swTab(name,btn){document.querySelectorAll('.tpn').forEach(p=>p.classList.remove('on'));document.querySelectorAll('.btab').forEach(b=>b.classList.remove('on'));const p=document.getElementById('pn-'+name);if(p)p.classList.add('on');if(btn)btn.classList.add('on');}
+
+/* ===== Modes ===== */
+async function loadModes(){
+  modes={continue:{name:'续写',sys:'请续写以下内容，保持风格一致，自然衔接。'},polish:{name:'润色',sys:'请润色以下文字，保持原意，提升文学性。返回润色后的全文。'},expand:{name:'扩写',sys:'请扩写以下内容，增加环境、心理、感官细节描写。'},condense:{name:'缩写',sys:'请精简压缩以下内容，保留核心情节和关键对话。'},dialogue:{name:'生成对话',sys:'请为以下场景生成生动自然的人物对话，符合人物性格。'},describe_scene:{name:'场景描写',sys:'请生成沉浸式场景描写，运用多感官描写营造氛围。'},describe_character:{name:'人物描写',sys:'请生成生动的人物外貌和性格描写，通过细节展现特质。'},plot_twist:{name:'情节转折',sys:'请设计出人意料又合理的情节转折，包含铺垫建议。'},conflict:{name:'冲突设计',sys:'请设计有张力、悬念和情感冲击力的冲突场景。'},worldbuild:{name:'世界观设定',sys:'请生成详细的世界观设定，包括地理、历史、魔法/科技体系、社会制度。'},analyze_plot:{name:'情节分析',sys:'请分析以下故事的情节结构，指出主线支线、节奏、伏笔、改进建议。'},feedback:{name:'写作反馈',sys:'请以专业编辑角度给出建设性反馈，从结构、文笔、人物、情节等方面点评。'},style_mimic:{name:'风格模仿',sys:'请模仿用户指定的写作风格来改写或续写内容。'},translate_style:{name:'文风转换',sys:'请将以下内容转换为用户指定的文学风格（古风/现代/文艺/口语化等）。'},brainstorm:{name:'头脑风暴',sys:'请围绕用户的创意方向提供多个不同角度的创意方案。'},outline_gen:{name:'大纲生成',sys:'请根据作品信息生成详细故事大纲。用JSON数组格式返回，每项含title和content。'},character_gen:{name:'人物生成',sys:'请根据作品信息设计人物角色，含姓名、角色、性格、背景、外貌、技能。用JSON数组返回。'},chapter_write:{name:'自动写章节',sys:'请根据大纲和人物设定创作完整章节，1500-3000字，含对话和描写。'}};
+  renderModes();
+}
+function renderModes(){const g=document.getElementById('modeGrid');if(!g)return;const groups={'基础':['continue','polish','expand','condense','dialogue'],'进阶':['describe_scene','describe_character','plot_twist','conflict','worldbuild'],'分析':['analyze_plot','feedback','style_mimic','translate_style','brainstorm']};let h='';for(const[label,keys]of Object.entries(groups)){h+='<div style="margin-bottom:8px"><div style="font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;padding:4px 0">'+label+'</div><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:4px">';for(const k of keys){const m=modes[k];if(m)h+='<button onclick="selMode_(\''+k+'\')" data-mode="'+k+'" class="ambtn">'+m.name+'</button>';}h+='</div></div>';}g.innerHTML=h;}
+function selMode_(m){document.querySelectorAll('.ambtn').forEach(b=>b.classList.remove('on'));const b=document.querySelector('[data-mode="'+m+'"]');if(b)b.classList.add('on');selMode=m;if(modes[m]){const p=document.getElementById('aiInp');if(p)p.placeholder=modes[m].name+'模式 — 输入要求...';}}
+
+/* ===== Projects ===== */
+async function loadProjs(){const ps=await dbAll('projects');ps.sort((a,b)=>(b.updated_at||0)-(a.updated_at||0));const sel=document.getElementById('projSel');sel.innerHTML='<option value="">选择项目...</option>'+ps.map(p=>'<option value="'+p.id+'">'+p.title+'</option>').join('');if(ps.length&&!proj){sel.value=ps[0].id;await loadProj(ps[0].id);}}
+function onProjChange(pid){if(pid)loadProj(pid);else{proj=null;active=null;renderAll();showWelcome();}}
+async function loadProj(id){const p=await dbGet('projects',id);if(!p)return;const os=await dbByIndex('outlines','project_id',id);const cs=await dbByIndex('characters','project_id',id);const chs=await dbByIndex('chapters','project_id',id);os.sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));chs.sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));proj={project:p,outlines:os,characters:cs,chapters:chs};active=null;renderAll();toast('已加载: '+p.title);hideWelcome();}
+async function createProj(){const t=document.getElementById('npTitle').value.trim();if(!t)return toast('请输入名称','error');const now=Date.now();const id=await dbPut('projects',{title:t,genre:document.getElementById('npGenre').value,description:document.getElementById('npDesc').value,world_setting:document.getElementById('npWorld').value,writing_style:'',created_at:now,updated_at:now});await dbPut('outlines',{project_id:id,parent_id:0,title:'第一章',content:'',sort_order:0,created_at:now});hideM('npModal');await loadProjs();document.getElementById('projSel').value=id;await loadProj(id);}
+function showWelcome(){const w=document.getElementById('wcard'),e=document.getElementById('earea');if(w)w.style.display='block';if(e)e.style.display='none';}
+function hideWelcome(){const w=document.getElementById('wcard'),e=document.getElementById('earea');if(w)w.style.display='none';if(e){e.style.display='flex';e.style.flexDirection='column';e.style.height='100%';}}
+
+/* ===== Render ===== */
+function renderAll(){renderOut();renderChars();renderChaps();if(!active){document.getElementById('editor').value='';document.getElementById('eTitle').value='';updateWC();}updateCtx();}
+function updateCtx(){const bar=document.getElementById('ctxBar');if(!bar)return;if(!active||!proj){bar.style.display='none';return;}const m={outline:'大纲',character:'人物',chapter:'章节'};bar.textContent='编辑中: '+(m[active.type]||'')+' > '+(active.data?.title||active.data?.name||'');bar.style.display='block';}
+function renderOut(){if(!proj)return;const l=document.getElementById('oList');if(!l)return;if(!proj.outlines.length){l.innerHTML='<div style="text-align:center;padding:40px 24px"><p style="font-size:13px;color:var(--t3);margin-bottom:16px">暂无大纲</p><button onclick="aiAuto(\'outline_gen\')" class="cta" style="font-size:13px"><i class="fas fa-magic" style="margin-right:6px"></i>一键生成大纲</button></div>';return;}l.innerHTML=proj.outlines.map(o=>'<div class="litem'+(active?.type==='outline'&&active?.id===o.id?' sel':'')+'" onclick="selOut('+o.id+')"><span style="flex:1;font-size:14px">'+o.title+'</span><button onclick="event.stopPropagation();delItem(\'outlines\',\'outline\','+o.id+')" style="background:none;border:none;color:var(--t3);cursor:pointer"><i class="fas fa-trash" style="font-size:12px"></i></button></div>').join('');}
+function renderChars(){if(!proj)return;const l=document.getElementById('chList');if(!l)return;const colors=['#4f46e5','#059669','#d97706','#dc2626','#7c3aed','#0891b2','#be185d'];if(!proj.characters.length){l.innerHTML='<div style="text-align:center;padding:40px 24px"><p style="font-size:13px;color:var(--t3);margin-bottom:16px">暂无人物</p><button onclick="aiAuto(\'character_gen\')" class="cta" style="font-size:13px"><i class="fas fa-magic" style="margin-right:6px"></i>一键生成人物</button></div>';return;}l.innerHTML=proj.characters.map((c,i)=>'<div class="card" onclick="selChar('+c.id+')" style="cursor:pointer"><div style="display:flex;align-items:center"><div style="width:32px;height:32px;border-radius:50%;background:'+(c.avatar_color||colors[i%7])+';color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700">'+c.name[0]+'</div><div style="margin-left:8px;flex:1"><div style="font-size:14px;font-weight:500">'+c.name+'</div><div style="font-size:12px;color:var(--t3)">'+c.role+'</div></div><div style="display:flex;gap:4px"><button onclick="event.stopPropagation();editChar('+c.id+')" style="background:none;border:none;color:#3b82f6;cursor:pointer"><i class="fas fa-edit" style="font-size:12px"></i></button><button onclick="event.stopPropagation();delItem(\'characters\',\'character\','+c.id+')" style="background:none;border:none;color:var(--t3);cursor:pointer"><i class="fas fa-trash" style="font-size:12px"></i></button></div></div><p style="font-size:12px;color:var(--t3);margin-top:4px">'+(c.personality||c.background||'...')+'</p></div>').join('');}
+function renderChaps(){if(!proj)return;const l=document.getElementById('cList');if(!l)return;if(!proj.chapters.length){l.innerHTML='<div style="text-align:center;padding:40px 24px"><p style="font-size:13px;color:var(--t3);margin-bottom:16px">暂无章节</p><button onclick="aiAuto(\'chapter_write\')" class="cta" style="font-size:13px"><i class="fas fa-magic" style="margin-right:6px"></i>一键生成章节</button></div>';return;}l.innerHTML=proj.chapters.map(c=>'<div class="litem'+(active?.type==='chapter'&&active?.id===c.id?' sel':'')+'" onclick="selChap('+c.id+')"><div style="flex:1"><div style="font-size:14px">'+c.title+'</div><div style="font-size:12px;color:var(--t3)">'+(c.word_count||0)+'字</div></div><button onclick="event.stopPropagation();delItem(\'chapters\',\'chapter\','+c.id+')" style="background:none;border:none;color:var(--t3);cursor:pointer"><i class="fas fa-trash" style="font-size:12px"></i></button></div>').join('');}
+
+/* ===== Select ===== */
+function selOut(id){const o=proj.outlines.find(x=>x.id===id);active={type:'outline',id,data:o};document.getElementById('eTitle').value=o.title;document.getElementById('editor').value=o.content;updateWC();renderOut();updateCtx();hideWelcome();swTab('editor',document.querySelector('.btab'));}
+function selChar(id){const c=proj.characters.find(x=>x.id===id);active={type:'character',id,data:c};document.getElementById('eTitle').value=c.name;document.getElementById('editor').value='【'+c.role+'】'+c.name+'\n\n性格：'+(c.personality||'')+'\n\n背景：'+(c.background||'')+'\n\n外貌：'+(c.appearance||c.description||'')+(c.skills?'\n\n技能：'+c.skills:'');updateWC();renderChars();updateCtx();hideWelcome();swTab('editor',document.querySelector('.btab'));}
+function selChap(id){const c=proj.chapters.find(x=>x.id===id);active={type:'chapter',id,data:c};document.getElementById('eTitle').value=c.title;document.getElementById('editor').value=c.content;updateWC();renderChaps();updateCtx();hideWelcome();swTab('editor',document.querySelector('.btab'));}
+
+/* ===== CRUD ===== */
+async function addOutline(){if(!proj)return toast('请先选择项目','error');const now=Date.now();const id=await dbPut('outlines',{project_id:proj.project.id,parent_id:0,title:'新大纲',content:'',sort_order:proj.outlines.length,created_at:now});proj.outlines.push({id,project_id:proj.project.id,title:'新大纲',content:'',sort_order:proj.outlines.length});renderOut();toast('已添加');}
+async function addChap(){if(!proj)return toast('请先选择项目','error');const now=Date.now();const id=await dbPut('chapters',{project_id:proj.project.id,outline_id:0,title:'新章节',content:'',word_count:0,sort_order:proj.chapters.length,status:'draft',created_at:now,updated_at:now});proj.chapters.push({id,project_id:proj.project.id,title:'新章节',content:'',word_count:0});renderChaps();toast('已添加');}
+function editChar(id){const c=proj.characters.find(x=>x.id===id);editCharId=id;document.getElementById('chTitle').textContent='编辑人物';document.getElementById('chName').value=c.name;document.getElementById('chRole').value=c.role;document.getElementById('chPers').value=c.personality||'';document.getElementById('chBack').value=c.background||'';document.getElementById('chLook').value=c.appearance||c.description||'';document.getElementById('chSkill').value=c.skills||'';showM('charModal');}
+async function saveChar(){const d={project_id:proj.project.id,name:document.getElementById('chName').value.trim(),role:document.getElementById('chRole').value,personality:document.getElementById('chPers').value,background:document.getElementById('chBack').value,appearance:document.getElementById('chLook').value,skills:document.getElementById('chSkill').value,description:document.getElementById('chLook').value,avatar_color:'#4f46e5'};if(!d.name)return toast('请输入姓名','error');if(editCharId){d.id=editCharId;await dbPut('characters',d);}else{const id=await dbPut('characters',d);d.id=id;}editCharId=null;hideM('charModal');await loadProj(proj.project.id);toast('已保存');}
+async function delItem(store,type,id){if(!confirm('确定删除？'))return;const item=proj[type+'s']?.find(x=>x.id===id)||proj.characters?.find(x=>x.id===id);if(item)addToRecycle(type==='character'?'character':type,item);await dbDel(store,id);if(active?.id===id)active=null;await loadProj(proj.project.id);toast('已移入回收站');}
+async function saveContent(){if(!active)return toast('请先选择内容','error');const title=document.getElementById('eTitle').value,content=document.getElementById('editor').value;const ss=document.getElementById('sstat');if(ss)ss.textContent='保存中...';if(active.type==='outline'){const o=proj.outlines.find(x=>x.id===active.id);o.title=title;o.content=content;await dbPut('outlines',{...o,title,content});renderOut();}else if(active.type==='chapter'){const c=proj.chapters.find(x=>x.id===active.id);c.title=title;c.content=content;c.word_count=content.length;c.updated_at=Date.now();await dbPut('chapters',{...c,title,content,word_count:content.length,updated_at:Date.now()});renderChaps();}addTodayWords(0);updateStats();if(ss){ss.textContent='已保存 ✓';setTimeout(()=>ss.textContent='',2000);}}
+function updateWC(){const e=document.getElementById('editor'),w=document.getElementById('wc');if(e&&w)w.textContent=e.value.length+'字';}
+
+/* ===== API Settings ===== */
+function loadApiUI(){document.getElementById('apiBase').value=localStorage.getItem('api_base')||'';document.getElementById('apiKey').value=localStorage.getItem('api_key')||'';document.getElementById('apiModel').value=localStorage.getItem('api_model')||'';updML();}
+function applyPreset(){const k=document.getElementById('apiPreset').value;if(k&&PRESETS[k]){document.getElementById('apiBase').value=PRESETS[k].b;document.getElementById('apiModel').value=PRESETS[k].m;}}
+function togKey(){const i=document.getElementById('apiKey'),e=document.getElementById('keyEye');if(i.type==='password'){i.type='text';e.className='fas fa-eye-slash';}else{i.type='password';e.className='fas fa-eye';}}
+function saveApi(){const k=document.getElementById('apiPreset').value;localStorage.setItem('api_type',PRESETS[k]?.t||'openai');localStorage.setItem('api_base',document.getElementById('apiBase').value.trim());localStorage.setItem('api_key',document.getElementById('apiKey').value.trim());localStorage.setItem('api_model',document.getElementById('apiModel').value.trim());updML();hideM('apiModal');toast('API已保存');}
+function updML(){const c=getApi(),l=document.getElementById('mLabel');if(l){l.textContent=c.model||'未配置';l.title=c.base_url;}}
+async function testConn(){const btn=document.getElementById('testBtn'),r=document.getElementById('testR');btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> 测试中...';r.style.display='block';r.style.color='var(--t3)';r.textContent='连接中...';try{const cfg=getApi();const text=await callAPI([{role:'user',content:'hi'}],{max_tokens:10});r.style.color='#22c55e';r.textContent='✓ 连接成功: '+cfg.model+' ('+cfg.type+')';}catch(e){r.style.color='#ef4444';r.textContent='✗ '+e.message;}btn.innerHTML='<i class="fas fa-plug"></i> 测试';}
+
+/* ===== AI Core ===== */
+function buildCtx(){if(!proj)return'';const p=proj.project,parts=[];parts.push('作品：《'+p.title+'》');if(p.genre)parts.push('类型：'+p.genre);if(p.description)parts.push('简介：'+p.description);if(p.world_setting)parts.push('世界观：'+p.world_setting);if(proj.characters.length)parts.push('人物：'+proj.characters.map(c=>c.name+'('+c.role+':'+(c.personality||'')+')').join('、'));if(proj.outlines.length)parts.push('大纲：'+proj.outlines.map(o=>o.title+(o.content?' - '+o.content:'')).filter(x=>x.length>3).join('；'));return parts.join('\n');}
+async function aiGen(){const prompt=document.getElementById('aiInp').value.trim();if(!prompt)return toast('请输入要求','error');if(!proj)return toast('请先选择项目','error');const cfg=getApi();if(!cfg.api_key){toast('请先配置API','error');showM('apiModal');return;}const r=document.getElementById('aiResp'),btn=document.getElementById('aiBtn');r.innerHTML='<div style="color:var(--p)"><i class="fas fa-spinner fa-spin"></i> AI生成中...</div>';btn.disabled=true;try{const m=modes[selMode]||modes.write;const sys=m.sys+'\n\n项目信息：\n'+buildCtx();const extra=document.getElementById('editor').value;if(extra)sys+='\n\n参考内容：\n'+extra;const temp=parseFloat(document.getElementById('aiTemp').value);const tokens=parseInt(document.getElementById('aiTok').value);lastResp=await callAPI([{role:'system',content:sys},{role:'user',content:prompt}],{temperature:temp,max_tokens:tokens});r.innerHTML=fmtResp(lastResp);toast(m.name+'完成');}catch(e){r.textContent='错误: '+e.message;toast('失败','error');}btn.disabled=false;}
+async function aiAuto(mode){if(!proj)return toast('请先选择项目','error');const cfg=getApi();if(!cfg.api_key){toast('请先配置API','error');showM('apiModal');return;}const r=document.getElementById('aiResp');r.innerHTML='<div style="color:var(--p)"><i class="fas fa-spinner fa-spin"></i> '+(modes[mode]?.name||'AI')+'生成中...</div>';selMode=mode;try{const m=modes[mode];const sys=m.sys+'\n\n项目信息：\n'+buildCtx();lastResp=await callAPI([{role:'system',content:sys},{role:'user',content:'请自动生成'}],{temperature:0.8,max_tokens:2000});r.innerHTML=fmtResp(lastResp);toast(m.name+'完成');if(mode==='outline_gen'||mode==='character_gen'){try{const arr=JSON.parse(lastResp);if(Array.isArray(arr)){if(mode==='outline_gen'){for(const item of arr){const id=await dbPut('outlines',{project_id:proj.project.id,parent_id:0,title:item.title||'新大纲',content:item.content||'',sort_order:proj.outlines.length,created_at:Date.now()});proj.outlines.push({id,...item,project_id:proj.project.id});}renderOut();}else{const colors=['#4f46e5','#059669','#d97706','#dc2626','#7c3aed'];for(let i=0;i<arr.length;i++){const item=arr[i];const id=await dbPut('characters',{project_id:proj.project.id,name:item.name||'未命名',role:item.role||'配角',personality:item.personality||'',background:item.background||'',appearance:item.description||'',skills:item.skills||'',avatar_color:colors[i%5],created_at:Date.now()});proj.characters.push({id,...item,project_id:proj.project.id});}renderChars();}await loadProj(proj.project.id);}}catch(e){/* not JSON */}}}catch(e){r.textContent='错误: '+e.message;toast('失败','error');}}
+function fmtResp(t){return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>').replace(/`(.+?)`/g,'<code>$1</code>').replace(/\n/g,'<br>');}
+function insEditor(){if(!lastResp)return toast('没有内容','error');const e=document.getElementById('editor'),p=e.selectionStart;e.value=e.value.slice(0,p)+lastResp+e.value.slice(p);updateWC();toast('已插入');}
+function repEditor(){if(!lastResp)return toast('没有内容','error');document.getElementById('editor').value=lastResp;updateWC();toast('已替换');}
+function saveSettings(){
+  const k=document.getElementById('apiPreset').value;
+  localStorage.setItem('api_type',PRESETS[k]?.t||'openai');
+  localStorage.setItem('api_base',document.getElementById('apiBase').value.trim());
+  localStorage.setItem('api_key',document.getElementById('apiKey').value.trim());
+  localStorage.setItem('api_model',document.getElementById('apiModel').value.trim());
+  const goal=document.getElementById('goalInput')?.value||'2000';
+  localStorage.setItem('daily_goal',goal);
+  const lock=document.getElementById('lockTimeout')?.value||'15';
+  localStorage.setItem('lock_timeout',lock);
+  localStorage.setItem('font_size',document.getElementById('fontSizeSel')?.value||'15');
+  localStorage.setItem('line_height',document.getElementById('lineHeightSel')?.value||'1.8');
+  applyFontSize();applyLineHeight();loadGoalSettings();resetLockTimer();
+  updML();hideM('settingsModal');toast('设置已保存');
+}
+function copyResp(){if(!lastResp)return toast('没有内容','error');navigator.clipboard.writeText(lastResp).then(()=>toast('已复制')).catch(()=>toast('失败','error'));}
+/* ===== Auto-Save ===== */
+let autoSaveTimer=null;
+function startAutoSave(){clearInterval(autoSaveTimer);autoSaveTimer=setInterval(()=>{if(active&&proj)saveContentSilent();},30000);}
+function saveContentSilent(){if(!active)return;const title=document.getElementById('eTitle').value,content=document.getElementById('editor').value;const ss=document.getElementById('saveStatus');if(ss)ss.textContent='自动保存中...';if(active.type==='outline'){const o=proj.outlines.find(x=>x.id===active.id);if(o){o.title=title;o.content=content;dbPut('outlines',{...o,title,content});}}else if(active.type==='chapter'){const c=proj.chapters.find(x=>x.id===active.id);if(c){c.title=title;c.content=content;c.word_count=content.length;c.updated_at=Date.now();dbPut('chapters',{...c,title,content,word_count:content.length,updated_at:Date.now()});renderChaps();}}else if(active.type==='character'){const c=proj.characters.find(x=>x.id===active.id);if(c){dbPut('characters',{...c,personality:content});}}if(ss){ss.textContent='已自动保存 ✓';setTimeout(()=>{if(ss)ss.textContent='';},2000);}updateStats();}
+
+/* ===== Focus Mode ===== */
+function toggleFocus(){document.body.classList.toggle('focus-mode');document.getElementById('focusExit').style.display=document.body.classList.contains('focus-mode')?'block':'none';if(document.body.classList.contains('focus-mode'))toast('专注模式 - 按 Esc 退出');}
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&document.body.classList.contains('focus-mode'))toggleFocus();});
+
+/* ===== Markdown Preview ===== */
+let previewMode=false;
+function togglePreview(){previewMode=!previewMode;const ed=document.getElementById('editor'),pv=document.getElementById('previewPane');if(previewMode){pv.innerHTML=renderMD(ed.value);pv.style.display='block';ed.style.display='none';}else{pv.style.display='none';ed.style.display='block';}}
+function renderMD(t){return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/^### (.+)$/gm,'<h3>$1</h3>').replace(/^## (.+)$/gm,'<h2>$1</h2>').replace(/^# (.+)$/gm,'<h1>$1</h1>').replace(/^> (.+)$/gm,'<blockquote>$1</blockquote>').replace(/^---$/gm,'<hr>').replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>').replace(/`(.+?)`/g,'<code>$1</code>').replace(/\n/g,'<br>');}
+
+/* ===== Stats & Goals ===== */
+function updateStats(){if(!proj)return;const total=proj.chapters.reduce((s,c)=>s+(c.word_count||0),0);const el=document.getElementById('stTotal');if(el)el.textContent=total;const today=getTodayWords();const el2=document.getElementById('stToday');if(el2)el2.textContent=today;const goal=parseInt(document.getElementById('stGoalT')?.textContent||'2000');const pct=Math.min(100,Math.round(today/goal*100));const fill=document.getElementById('goalFill');if(fill)fill.style.width=pct+'%';const el3=document.getElementById('stGoal');if(el3)el3.textContent=today;}
+function getTodayWords(){const k='words_'+new Date().toISOString().slice(0,10);return parseInt(localStorage.getItem(k)||'0');}
+function addTodayWords(n){const k='words_'+new Date().toISOString().slice(0,10);const cur=parseInt(localStorage.getItem(k)||'0');localStorage.setItem(k,cur+n);}
+function onEditorInput(){updateWC();if(previewMode){document.getElementById('previewPane').innerHTML=renderMD(document.getElementById('editor').value);}}
+
+/* ===== AI History ===== */
+function saveAiHistory(mode,prompt,response){const h=JSON.parse(localStorage.getItem('ai_history')||'[]');h.unshift({mode,prompt,response:response.slice(0,500),time:Date.now()});if(h.length>50)h.length=50;localStorage.setItem('ai_history',JSON.stringify(h));}
+function renderAiHistory(){const h=JSON.parse(localStorage.getItem('ai_history')||'[]');const el=document.getElementById('histList');if(!h.length){el.innerHTML='<div style="text-align:center;color:var(--t3);padding:20px">暂无记录</div>';return;}el.innerHTML=h.map((r,i)=>'<div class="hist-item" onclick="showHistItem('+i+')"><span class="hist-mode">'+(r.mode||'AI')+'</span><span class="hist-time">'+new Date(r.time).toLocaleString('zh-CN')+'</span><div style="font-size:12px;color:var(--t2);margin-top:2px">'+(r.prompt||'').slice(0,60)+'</div><div class="hist-preview">'+(r.response||'').slice(0,100)+'</div></div>').join('');}
+function showHistItem(i){const h=JSON.parse(localStorage.getItem('ai_history')||'[]');if(h[i]){lastResp=h[i].response;document.getElementById('aiResp').innerHTML=fmtResp(lastResp);setAiView('single');}}
+function clearAiHistory(){if(!confirm('清空所有AI历史？'))return;localStorage.removeItem('ai_history');renderAiHistory();toast('已清空');}
+
+/* ===== Font Settings ===== */
+function applyFontSize(){const v=document.getElementById('fontSizeSel').value;localStorage.setItem('font_size',v);document.getElementById('editor').style.fontSize=v+'px';}
+function applyLineHeight(){const v=document.getElementById('lineHeightSel').value;localStorage.setItem('line_height',v);document.getElementById('editor').style.lineHeight=v;}
+function loadFontSettings(){const fs=localStorage.getItem('font_size');const lh=localStorage.getItem('line_height');if(fs){document.getElementById('editor').style.fontSize=fs+'px';const sel=document.getElementById('fontSizeSel');if(sel)sel.value=fs;}if(lh){document.getElementById('editor').style.lineHeight=lh;const sel=document.getElementById('lineHeightSel');if(sel)sel.value=lh;}}
+function loadGoalSettings(){const g=localStorage.getItem('daily_goal')||'2000';const el=document.getElementById('stGoalT');if(el)el.textContent=g;const inp=document.getElementById('goalInput');if(inp)inp.value=g;updateStats();}
+
+/* ===== Auto Lock ===== */
+let lockTimer=null;
+function resetLockTimer(){clearTimeout(lockTimer);const mins=parseInt(document.getElementById('lockTimeout')?.value||localStorage.getItem('lock_timeout')||'15');if(mins>0){lockTimer=setTimeout(()=>lockScreen(),mins*60*1000);}}
+function lockScreen(){document.getElementById('lockScreen').style.display='flex';}
+function unlockScreen(){const p=document.getElementById('lockPwdInput').value;sha256(p).then(h=>{if(h===localStorage.getItem('pwd_hash')){document.getElementById('lockScreen').style.display='none';document.getElementById('lockPwdInput').value='';resetLockTimer();}else{document.getElementById('lockErr').style.display='block';document.getElementById('lockErr').textContent='密码错误';}});}
+
+/* ===== Export/Import ===== */
+function exportProject(){if(!proj)return toast('请先选择项目','error');const data={version:1,project:proj.project,outlines:proj.outlines,characters:proj.characters,chapters:proj.chapters,exported_at:Date.now()};const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(proj.project.title||'项目')+'.json';a.click();toast('已导出');}
+async function importProject(e){const f=e.target.files[0];if(!f)return;try{const text=await f.text();const data=JSON.parse(text);if(!data.project)return toast('无效文件','error');const now=Date.now();const id=await dbPut('projects',{...data.project,created_at:data.project.created_at||now,updated_at:now});if(data.outlines)for(const o of data.outlines){await dbPut('outlines',{...o,project_id:id});}if(data.characters)for(const c of data.characters){await dbPut('characters',{...c,project_id:id});}if(data.chapters)for(const c of data.chapters){await dbPut('chapters',{...c,project_id:id});}await loadProjs();document.getElementById('projSel').value=id;await loadProj(id);toast('导入成功: '+data.project.title);}catch(e){toast('导入失败: '+e.message,'error');}e.target.value='';}
+function exportAs(format){if(!proj)return toast('请先选择项目','error');let content='';if(format==='txt'){content=proj.chapters.map(c=>'# '+c.title+'\n\n'+c.content).join('\n\n---\n\n');}else{content=proj.chapters.map(c=>'# '+c.title+'\n\n'+c.content).join('\n\n---\n\n');}const blob=new Blob([content],{type:format==='txt'?'text/plain':'text/markdown'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(proj.project.title||'项目')+'.'+(format==='txt'?'txt':'md');a.click();toast('已导出 '+format.toUpperCase());}
+
+/* ===== Recycle Bin ===== */
+let recycleBin=JSON.parse(localStorage.getItem('recycle_bin')||'[]');
+function addToRecycle(type,data){recycleBin.unshift({type,data,deleted_at:Date.now()});if(recycleBin.length>100)recycleBin.length=100;localStorage.setItem('recycle_bin',JSON.stringify(recycleBin));}
+function renderRecycle(){const el=document.getElementById('recycleList');if(!recycleBin.length){el.innerHTML='<div style="text-align:center;color:var(--t3);padding:20px">回收站为空</div>';return;}el.innerHTML=recycleBin.map((r,i)=>'<div class="ritem"><span>'+(r.data.title||r.data.name||'未命名')+' <span style="color:var(--t3);font-size:11px">('+r.type+')</span></span><div style="display:flex;gap:6px"><button onclick="restoreItem('+i+')" class="hbtn" style="font-size:11px;background:rgba(34,197,94,.1);color:#22c55e">恢复</button><button onclick="deleteItem('+i+')" class="hbtn" style="font-size:11px;color:var(--err)">彻底删</button></div></div>').join('');}
+async function restoreItem(i){const r=recycleBin[i];if(!r)return;const store=r.type==='outline'?'outlines':r.type==='character'?'characters':'chapters';const id=await dbPut(store,{...r.data,project_id:proj?.project.id||r.data.project_id});recycleBin.splice(i,1);localStorage.setItem('recycle_bin',JSON.stringify(recycleBin));if(proj)await loadProj(proj.project.id);renderRecycle();toast('已恢复');}
+function deleteItem(i){if(!confirm('彻底删除不可恢复？'))return;recycleBin.splice(i,1);localStorage.setItem('recycle_bin',JSON.stringify(recycleBin));renderRecycle();toast('已彻底删除');}
+
+
+/* ===== Writing Assistant ===== */
+function toggleAssistPanel(show){document.getElementById('assistPanel').style.display=show?'block':'none';}
+async function assist(mode){
+  const ed=document.getElementById('editor');const text=ed.value.trim();if(!text)return toast('请先写点内容','error');
+  const cfg=getApi();if(!cfg.api_key){toast('请先配置API','error');showM('apiModal');return;}
+  toggleAssistPanel(true);
+  document.getElementById('assistStatus').style.display='block';
+  document.getElementById('assistResp').innerHTML='';
+  const labelMap={polish:'润色',continue:'续写',condense:'缩写',expand:'扩写',translate:'翻译（中英互译）',rewrite:'改写'};
+  const sysMap={polish:'请润色以下文字，保持原意，提升文学性。只返回润色后的内容。',continue:'请续写以下内容，保持风格一致，自然衔接。只返回续写部分。',condense:'请精简压缩以下内容，保留核心情节。只返回精简版。',expand:'请扩写以下内容，增加细节描写。只返回扩写后的内容。',translate:'请翻译以下内容。如果是中文翻译成英文，如果是英文翻译成中文。只返回翻译结果。',rewrite:'请改写以下内容，换一种表达方式但保持原意。只返回改写后的内容。'};
+  try{
+    const sys=(sysMap[mode]||'请处理以下内容')+'\n\n项目信息：\n'+buildCtx();
+    assistLast=await callAPI([{role:'system',content:sys},{role:'user',content:text}],{temperature:0.7,max_tokens:2000});
+    document.getElementById('assistResp').innerHTML=fmtResp(assistLast);
+    saveAiHistory(labelMap[mode]||'助手',text.slice(0,100),assistLast);
+    toast(labelMap[mode]+'完成');
+  }catch(e){document.getElementById('assistResp').textContent='错误: '+e.message;toast('失败','error');}
+  document.getElementById('assistStatus').style.display='none';
+}
+function assistApplyReplace(){if(!assistLast)return;document.getElementById('editor').value=assistLast;updateWC();toggleAssistPanel(false);toast('已替换');}
+function assistApplyAppend(){if(!assistLast)return;const ed=document.getElementById('editor');ed.value+=assistLast;updateWC();toggleAssistPanel(false);toast('已追加');}
+function assistCopy(){if(!assistLast)return;navigator.clipboard.writeText(assistLast).then(()=>toast('已复制')).catch(()=>toast('失败','error'));}
+
+/* ===== Multi-AI Compare ===== */
+function setAiView(v){aiView=v;if(v==='hist')renderAiHistory();document.getElementById('aiSingleView').style.display=v==='single'?'block':'none';document.getElementById('aiMultiView').style.display=v==='multi'?'block':'none';document.getElementById('aiTabSingle').classList.toggle('on',v==='single');document.getElementById('aiTabMulti').classList.toggle('on',v==='multi');}
+
+function loadSlots(){for(let i=1;i<=3;i++){const s=JSON.parse(localStorage.getItem('slot'+i)||'{}');document.getElementById('slot'+i+'Base').value=s.base_url||'';document.getElementById('slot'+i+'Key').value=s.api_key||'';document.getElementById('slot'+i+'Model').value=s.model||'';document.getElementById('slot'+i+'Toggle').classList.toggle('on',!!s.enabled);document.getElementById('slot'+i+'Body').style.display=s.enabled?'block':'none';}}
+function toggleSlot(i){const btn=document.getElementById('slot'+i+'Toggle');btn.classList.toggle('on');const body=document.getElementById('slot'+i+'Body');body.style.display=btn.classList.contains('on')?'block':'none';saveSlot(i);}
+function saveSlot(i){const s={enabled:document.getElementById('slot'+i+'Toggle').classList.contains('on'),base_url:document.getElementById('slot'+i+'Base').value.trim(),api_key:document.getElementById('slot'+i+'Key').value.trim(),model:document.getElementById('slot'+i+'Model').value.trim(),type:'openai'};const pk=document.getElementById('slot'+i+'Preset').value;if(pk&&PRESETS[pk])s.type=PRESETS[pk].t;localStorage.setItem('slot'+i,JSON.stringify(s));}
+function applySlotPreset(i){const pk=document.getElementById('slot'+i+'Preset').value;if(pk&&PRESETS[pk]){document.getElementById('slot'+i+'Base').value=PRESETS[pk].b;document.getElementById('slot'+i+'Model').value=PRESETS[pk].m;}saveSlot(i);}
+
+async function runCompare(){
+  const prompt=document.getElementById('cmpInp').value.trim();if(!prompt)return toast('请输入要求','error');
+  const slots=[];for(let i=1;i<=3;i++){const s=JSON.parse(localStorage.getItem('slot'+i)||'{}');if(s.enabled&&s.api_key&&s.model)slots.push({idx:i,...s});}
+  if(!slots.length)return toast('请至少启用一个槽位','error');
+  const btn=document.getElementById('cmpBtn');btn.disabled=true;btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> 并行生成中...';
+  const grid=document.getElementById('cmpResults');grid.style.display='grid';grid.innerHTML='';
+  for(const s of slots){grid.innerHTML+='<div class="compare-card"><div style="font-size:12px;color:var(--p);font-weight:600;margin-bottom:6px">'+s.model+'</div><div id="cmpSlot'+s.idx+'" style="font-size:13px;color:var(--t3)"><i class="fas fa-spinner fa-spin"></i> 生成中...</div></div>';}
+  const sys='你是一个写作助手。'+(proj?'\n\n项目信息：\n'+buildCtx():'');
+  const promises=slots.map(async s=>{
+    try{
+      const text=await callAPIWith(s,[{role:'system',content:sys},{role:'user',content:prompt}],{temperature:0.8,max_tokens:2000});
+      const el=document.getElementById('cmpSlot'+s.idx);if(el)el.innerHTML=fmtResp(text);
+    }catch(e){const el=document.getElementById('cmpSlot'+s.idx);if(el){el.style.color='var(--err)';el.textContent='错误: '+e.message;}}
+  });
+  await Promise.all(promises);
+  btn.disabled=false;btn.innerHTML='<i class="fas fa-paper-plane"></i> 并行生成';toast('对比完成');
+}
+</script>
+</body>
+</html>
