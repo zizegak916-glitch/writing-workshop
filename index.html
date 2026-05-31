@@ -16,6 +16,10 @@ body.light .focus-editor{color:#1a1d28}
 body.light .focus-info{color:rgba(0,0,0,0.35)}
 body.light .focus-exit{border-color:rgba(0,0,0,0.2);color:rgba(0,0,0,0.5)}
 body.light .focus-exit:hover{background:rgba(0,0,0,0.05);color:rgba(0,0,0,0.8)}
+.ic{display:inline-block;width:18px;height:18px;vertical-align:middle;fill:none}
+.ic-sm{width:14px;height:14px}
+.nav-tab .ic,.btab .ic{width:18px;height:18px;margin-bottom:2px}
+.mode-btn .ic{width:16px;height:16px}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 body{font-family:var(--font-sans);background:var(--bg-deep);color:var(--text-primary);min-height:100vh;overflow:hidden;font-size:14px}
 #lockScreen{position:fixed;inset:0;background:var(--bg-deep);display:none;align-items:center;justify-content:center;z-index:999;background-image:radial-gradient(ellipse 60% 60% at 50% 40%,rgba(108,155,255,0.06) 0%,transparent 70%)}
@@ -190,6 +194,32 @@ body.light #lockScreen{background-image:radial-gradient(ellipse 60% 60% at 50% 4
 </style>
 </head>
 <body>
+<!-- SVG Icon Sprites -->
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+  <symbol id="ic-outline" viewBox="0 0 20 20"><rect x="3" y="3" width="14" height="2" rx="1" fill="currentColor"/><rect x="3" y="9" width="10" height="2" rx="1" fill="currentColor"/><rect x="3" y="15" width="14" height="2" rx="1" fill="currentColor"/></symbol>
+  <symbol id="ic-chapter" viewBox="0 0 20 20"><rect x="3" y="2" width="14" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"/><line x1="7" y1="6" x2="13" y2="6" stroke="currentColor" stroke-width="1.2"/><line x1="7" y1="10" x2="13" y2="10" stroke="currentColor" stroke-width="1.2"/><line x1="7" y1="14" x2="11" y2="14" stroke="currentColor" stroke-width="1.2"/></symbol>
+  <symbol id="ic-person" viewBox="0 0 20 20"><circle cx="10" cy="7" r="3.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M3 17.5c0-3.5 3.1-6 7-6s7 2.5 7 6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></symbol>
+  <symbol id="ic-note" viewBox="0 0 20 20"><rect x="4" y="2" width="12" height="16" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.5"/><line x1="7" y1="6" x2="13" y2="6" stroke="currentColor" stroke-width="1.2"/><line x1="7" y1="10" x2="13" y2="10" stroke="currentColor" stroke-width="1.2"/><circle cx="8" cy="14" r="0.8" fill="currentColor"/></symbol>
+  <symbol id="ic-pencil" viewBox="0 0 20 20"><path d="M14.5 3.5l2 2-9 9-3 1 1-3 9-9z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><line x1="12" y1="6" x2="14" y2="8" stroke="currentColor" stroke-width="1.2"/></symbol>
+  <symbol id="ic-brain" viewBox="0 0 20 20"><path d="M10 3c-2.5 0-4.5 2-4.5 4.5 0 1 .4 2 1 2.7C5.5 11 5 12 5 13.2 5 15.3 7.2 17 10 17s5-1.7 5-3.8c0-1.2-.5-2.2-1.5-3 .6-.7 1-1.7 1-2.7C13.5 5 11.5 3 10 3z" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M10 3v14" stroke="currentColor" stroke-width="1" opacity="0.4"/><path d="M7 8c1.5 0 2 1 3 1s1.5-1 3-1" stroke="currentColor" stroke-width="1" opacity="0.4"/></symbol>
+  <symbol id="ic-focus" viewBox="0 0 20 20"><rect x="3" y="3" width="14" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="6" y="6" width="8" height="8" rx="1" fill="currentColor" opacity="0.3"/><rect x="8" y="8" width="4" height="4" rx="0.5" fill="currentColor"/></symbol>
+  <symbol id="ic-eye" viewBox="0 0 20 20"><ellipse cx="10" cy="10" rx="7" ry="4.5" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="10" cy="10" r="2" fill="currentColor"/></symbol>
+  <symbol id="ic-save" viewBox="0 0 20 20"><path d="M4 3h9l3 3v11a1 1 0 01-1 1H5a1 1 0 01-1-1V4a1 1 0 011-1z" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="7" y="3" width="6" height="4" rx="0.5" fill="currentColor" opacity="0.3"/><rect x="7" y="12" width="6" height="5" rx="0.5" fill="none" stroke="currentColor" stroke-width="1"/></symbol>
+  <symbol id="ic-zap" viewBox="0 0 20 20"><polygon points="11,2 5,11 10,11 9,18 15,9 10,9" fill="currentColor"/></symbol>
+  <symbol id="ic-check" viewBox="0 0 20 20"><circle cx="10" cy="10" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/><polyline points="6.5,10 9,12.5 13.5,7.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="ic-tag" viewBox="0 0 20 20"><path d="M3 4a1 1 0 011-1h5.6a1 1 0 01.7.3l5 5a1 1 0 01.3.7V15a1 1 0 01-1 1H9.3a1 1 0 01-.7-.3l-5-5a1 1 0 01-.3-.7V4z" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="7" cy="6" r="1" fill="currentColor"/></symbol>
+  <symbol id="ic-bulb" viewBox="0 0 20 20"><path d="M10 3a5 5 0 00-2 9.6V15a1 1 0 001 1h2a1 1 0 001-1v-2.4A5 5 0 0010 3z" fill="none" stroke="currentColor" stroke-width="1.5"/><line x1="8" y1="18" x2="12" y2="18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="9" y1="16.5" x2="11" y2="16.5" stroke="currentColor" stroke-width="1" opacity="0.5"/></symbol>
+  <symbol id="ic-search" viewBox="0 0 20 20"><circle cx="9" cy="9" r="5" fill="none" stroke="currentColor" stroke-width="1.5"/><line x1="12.5" y1="12.5" x2="17" y2="17" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="ic-shield" viewBox="0 0 20 20"><path d="M10 2L3 6v4c0 4.4 3 8.5 7 10 4-1.5 7-5.6 7-10V6L10 2z" fill="none" stroke="currentColor" stroke-width="1.5"/><polyline points="7,10 9,12 13,8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="ic-user" viewBox="0 0 20 20"><circle cx="10" cy="6" r="3" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M4 18c0-3 2.7-5.5 6-5.5s6 2.5 6 5.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></symbol>
+  <symbol id="ic-lock" viewBox="0 0 20 20"><rect x="5" y="9" width="10" height="9" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M7 9V6a3 3 0 016 0v3" fill="none" stroke="currentColor" stroke-width="1.5"/></symbol>
+  <symbol id="ic-moon" viewBox="0 0 20 20"><path d="M15 11a5 5 0 01-7-5 6 6 0 107 5z" fill="none" stroke="currentColor" stroke-width="1.5"/></symbol>
+  <symbol id="ic-sun" viewBox="0 0 20 20"><circle cx="10" cy="10" r="3" fill="none" stroke="currentColor" stroke-width="1.5"/><g stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><line x1="10" y1="2" x2="10" y2="4"/><line x1="10" y1="16" x2="10" y2="18"/><line x1="2" y1="10" x2="4" y2="10"/><line x1="16" y1="10" x2="18" y2="10"/><line x1="4.3" y1="4.3" x2="5.7" y2="5.7"/><line x1="14.3" y1="14.3" x2="15.7" y2="15.7"/><line x1="4.3" y1="15.7" x2="5.7" y2="14.3"/><line x1="14.3" y1="5.7" x2="15.7" y2="4.3"/></g></symbol>
+  <symbol id="ic-folder" viewBox="0 0 20 20"><path d="M2 5a1 1 0 011-1h4.6a1 1 0 01.8.4L10 6h7a1 1 0 011 1v9a1 1 0 01-1 1H3a1 1 0 01-1-1V5z" fill="none" stroke="currentColor" stroke-width="1.5"/></symbol>
+  <symbol id="ic-plus" viewBox="0 0 20 20"><line x1="10" y1="4" x2="10" y2="16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="4" y1="10" x2="16" y2="10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="ic-download" viewBox="0 0 20 20"><line x1="10" y1="3" x2="10" y2="13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><polyline points="6,9 10,13 14,9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 15v2a1 1 0 001 1h10a1 1 0 001-1v-2" fill="none" stroke="currentColor" stroke-width="1.5"/></symbol>
+  <symbol id="ic-settings" viewBox="0 0 20 20"><circle cx="10" cy="10" r="2.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M10 2v2M10 16v2M2 10h2M16 10h2M4.2 4.2l1.4 1.4M14.4 14.4l1.4 1.4M4.2 15.8l1.4-1.4M14.4 5.6l1.4-1.4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></symbol>
+</svg>
 <!-- LOCK SCREEN -->
 <div id="lockScreen">
   <div class="lock-box">
@@ -214,20 +244,20 @@ body.light #lockScreen{background-image:radial-gradient(ellipse 60% 60% at 50% 4
     </div>
     <div class="topbar-actions">
       <button class="icon-btn" onclick="openModal('newProjectModal')" title="新建">＋</button>
-      <button class="icon-btn" onclick="openModal('apiModal')" title="API">⚙</button>
-      <button class="icon-btn" onclick="exportProject()" title="导出">↓</button>
-      <button class="icon-btn" id="saveBtn" onclick="saveDoc()" title="保存">⬇<span class="save-badge"></span></button>
-      <button class="icon-btn" id="themeBtn" onclick="toggleTheme()" title="切换主题">🌙</button>
-      <button class="icon-btn" onclick="openModal('profileModal')" title="个人中心">👤</button>
+      <button class="icon-btn" onclick="openModal('apiModal')" title="API 设置"><svg class="ic ic-sm"><use href="#ic-settings"/></svg></button>
+      <button class="icon-btn" onclick="exportProject()" title="导出"><svg class="ic ic-sm"><use href="#ic-download"/></svg></button>
+      <button class="icon-btn" id="saveBtn" onclick="saveDoc()" title="保存"><svg class="ic ic-sm"><use href="#ic-save"/></svg><span class="save-badge"></span></button>
+      <button class="icon-btn" id="themeBtn" onclick="toggleTheme()" title="切换主题"><svg class="ic ic-sm"><use href="#ic-moon"/></svg></button>
+      <button class="icon-btn" onclick="openModal('profileModal')" title="个人中心"><svg class="ic ic-sm"><use href="#ic-user"/></svg></button>
     </div>
   </div>
   <div class="main-body">
     <div class="sidebar">
       <div class="sidebar-nav">
-        <button class="nav-tab active" onclick="switchSidebar('outline',this)"><span>☰</span>大纲</button>
-        <button class="nav-tab" onclick="switchSidebar('chapters',this)"><span>▤</span>章节</button>
-        <button class="nav-tab" onclick="switchSidebar('chars',this)"><span>◉</span>人物</button>
-        <button class="nav-tab" onclick="switchSidebar('notes',this)"><span>◆</span>笔记</button>
+        <button class="nav-tab active" onclick="switchSidebar('outline',this)"><svg class="ic"><use href="#ic-outline"/></svg> 大纲</button>
+        <button class="nav-tab" onclick="switchSidebar('chapters',this)"><svg class="ic"><use href="#ic-chapter"/></svg> 章节</button>
+        <button class="nav-tab" onclick="switchSidebar('chars',this)"><svg class="ic"><use href="#ic-person"/></svg> 人物</button>
+        <button class="nav-tab" onclick="switchSidebar('notes',this)"><svg class="ic"><use href="#ic-note"/></svg> 笔记</button>
       </div>
       <div class="sidebar-content">
         <div id="tab-outline"><div class="section-label">故事大纲</div><div id="outlineList"></div><button class="add-item-btn" onclick="addOutline()">＋ 添加大纲</button></div>
@@ -238,31 +268,31 @@ body.light #lockScreen{background-image:radial-gradient(ellipse 60% 60% at 50% 4
     </div>
     <div class="editor-area">
       <div class="editor-toolbar">
-        <div class="toolbar-group"><button class="tool-btn" onclick="openFocus()">◎ 专注</button><button class="tool-btn" onclick="togglePreview()" id="previewBtn">◉ 预览</button></div>
+        <div class="toolbar-group"><button class="tool-btn" onclick="openFocus()"><svg class="ic ic-sm"><use href="#ic-focus"/></svg> 专注</button><button class="tool-btn" onclick="togglePreview()" id="previewBtn"><svg class="ic ic-sm"><use href="#ic-eye"/></svg> 预览</button></div>
         <div class="toolbar-sep"></div>
         <div class="toolbar-group"><button class="tool-btn" onclick="formatText('bold')"><b>B</b></button><button class="tool-btn" onclick="formatText('italic')"><i>I</i></button><button class="tool-btn" onclick="insertDivider()">──</button><button class="tool-btn" onclick="insertQuote()">「」</button></div>
         <div class="toolbar-sep"></div>
         <div class="toolbar-group"><button class="tool-btn" onclick="changeFontSize(-1)">A-</button><span style="font-size:11px;color:var(--text-muted);min-width:32px;text-align:center" id="fontSizeDisplay">16px</span><button class="tool-btn" onclick="changeFontSize(1)">A+</button></div>
         <div class="toolbar-sep"></div>
-        <div class="toolbar-group"><button class="tool-btn" onclick="exportText()">↓ 导出</button><button class="tool-btn active" id="autoSaveToggle" onclick="toggleAutoSave()">↯ 自动保存</button></div>
+        <div class="toolbar-group"><button class="tool-btn" onclick="exportText()"><svg class="ic ic-sm"><use href="#ic-download"/></svg> 导出</button><button class="tool-btn active" id="autoSaveToggle" onclick="toggleAutoSave()"><svg class="ic ic-sm"><use href="#ic-zap"/></svg> 自动保存</button></div>
       </div>
       <div class="chapter-title-bar"><input class="chapter-title-input" id="chapterTitle" placeholder="章节标题..." oninput="S.unsaved=true"></div>
-      <div class="chapter-meta"><span>📊 <span id="paraCount">1</span> 段</span><span>📝 <span id="sentCount">0</span> 句</span><span>⏱ <span id="readTime">约0分钟</span></span><span id="editorWords">0</span> 字</div>
+      <div class="chapter-meta"><span><span id="paraCount">1</span> 段</span><span><span id="sentCount">0</span> 句</span><span><span id="readTime">约0分钟</span></span><span id="editorWords">0</span> 字</div>
       <!-- AI Quick Tools Bar -->
       <div id="aiQuickBar" style="display:flex;gap:6px;padding:6px 24px;border-bottom:1px solid var(--border);background:var(--bg-mid);flex-wrap:wrap">
-        <button class="tool-btn" onclick="aiProofread()" id="aiBtnProof" title="检查错别字、语病">✓ 纠错</button>
-        <button class="tool-btn" onclick="aiAutoTitle()" id="aiBtnTitle" title="根据内容生成标题">¶ 自动标题</button>
-        <button class="tool-btn" onclick="aiInspiration()" id="aiBtnInspire" title="根据上下文提供灵感">◇ 实时灵感</button>
-        <button class="tool-btn" onclick="aiResearch()" id="aiBtnResearch" title="搜索相关资料和知识">⊕ 资料搜索</button>
-        <button class="tool-btn" onclick="aiHumanize()" id="aiBtnHumanize" title="降低AI检测率，让文字更像人写的">▷ 降AI率</button>
+        <button class="tool-btn" onclick="aiProofread()" id="aiBtnProof" title="检查错别字、语病"><svg class="ic ic-sm"><use href="#ic-check"/></svg> 纠错</button>
+        <button class="tool-btn" onclick="aiAutoTitle()" id="aiBtnTitle" title="根据内容生成标题"><svg class="ic ic-sm"><use href="#ic-tag"/></svg> 自动标题</button>
+        <button class="tool-btn" onclick="aiInspiration()" id="aiBtnInspire" title="根据上下文提供灵感"><svg class="ic ic-sm"><use href="#ic-bulb"/></svg> 实时灵感</button>
+        <button class="tool-btn" onclick="aiResearch()" id="aiBtnResearch" title="搜索相关资料和知识"><svg class="ic ic-sm"><use href="#ic-search"/></svg> 资料搜索</button>
+        <button class="tool-btn" onclick="aiHumanize()" id="aiBtnHumanize" title="降低AI检测率，让文字更像人写的"><svg class="ic ic-sm"><use href="#ic-shield"/></svg> 降AI率</button>
       </div>
       <!-- AI Result Inline Panel (for quick tools) -->
       <div id="aiQuickResult" style="display:none;border-bottom:1px solid var(--border);background:var(--bg-panel);padding:12px 24px;max-height:280px;overflow-y:auto">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
           <span id="aiQuickResultTitle" style="font-size:12px;font-weight:600;color:var(--accent)">AI 结果</span>
           <div style="display:flex;gap:6px">
-            <button class="tool-btn" onclick="aiQuickApply()" style="font-size:11px;padding:3px 8px">✅ 应用</button>
-            <button class="tool-btn" onclick="aiQuickCopy()" style="font-size:11px;padding:3px 8px">📋 复制</button>
+            <button class="tool-btn" onclick="aiQuickApply()" style="font-size:11px;padding:3px 8px">✓ 应用</button>
+            <button class="tool-btn" onclick="aiQuickCopy()" style="font-size:11px;padding:3px 8px">⊡ 复制</button>
             <button class="tool-btn" onclick="closeAiQuickResult()" style="font-size:11px;padding:3px 8px">✕</button>
           </div>
         </div>
@@ -297,11 +327,11 @@ body.light #lockScreen{background-image:radial-gradient(ellipse 60% 60% at 50% 4
   <!-- Mobile Bottom Nav -->
   <nav class="bottom-nav" id="bottomNav">
     <div class="bottom-nav-items">
-      <button class="btab on" onclick="swMobileTab('editor',this)"><span>✎</span>编辑</button>
-      <button class="btab" onclick="swMobileTab('outline',this)"><span>☰</span>大纲</button>
-      <button class="btab" onclick="swMobileTab('chapters',this)"><span>▤</span>章节</button>
-      <button class="btab" onclick="swMobileTab('chars',this)"><span>◉</span>人物</button>
-      <button class="btab" onclick="swMobileTab('ai',this)"><span>⚡</span>AI</button>
+      <button class="btab on" onclick="swMobileTab('editor',this)"><svg class="ic"><use href="#ic-pencil"/></svg> 编辑</button>
+      <button class="btab" onclick="swMobileTab('outline',this)"><svg class="ic"><use href="#ic-outline"/></svg> 大纲</button>
+      <button class="btab" onclick="swMobileTab('chapters',this)"><svg class="ic"><use href="#ic-chapter"/></svg> 章节</button>
+      <button class="btab" onclick="swMobileTab('chars',this)"><svg class="ic"><use href="#ic-person"/></svg> 人物</button>
+      <button class="btab" onclick="swMobileTab('ai',this)"><svg class="ic"><use href="#ic-brain"/></svg> AI</button>
     </div>
   </nav>
 </div>
@@ -450,13 +480,13 @@ function exportProject(){if(!S.proj)return showToast('❌','请先选择项目')
 async function importProject(e){const f=e.target.files[0];if(!f)return;try{const t=await f.text(),d=JSON.parse(t);if(!d.project)return showToast('❌','无效文件');const now=Date.now(),id=await dbPut('projects',{...d.project,created_at:d.project.created_at||now,updated_at:now});if(d.outlines)for(const o of d.outlines)await dbPut('outlines',{...o,project_id:id});if(d.characters)for(const c of d.characters)await dbPut('characters',{...c,project_id:id});if(d.chapters)for(const c of d.chapters)await dbPut('chapters',{...c,project_id:id});await loadProjects();await loadProject(id);showToast('📥','导入成功');}catch(err){showToast('❌',err.message);}e.target.value='';}
 
 // ═══ Outlines ═══
-function renderOutlineList(){if(!S.proj)return;const el=document.getElementById('outlineList');if(!S.proj.outlines.length){el.innerHTML='<div style="text-align:center;padding:20px;color:var(--text-hint);font-size:12px">暂无大纲</div>';return;}el.innerHTML=S.proj.outlines.map(o=>'<div class="outline-item'+(S.active&&S.active.type==='outline'&&S.active.id===o.id?' active':'')+'" onclick="loadOutlineContent('+o.id+')"><span class="oi-icon">☰</span><span class="oi-text">'+o.title+'</span><span class="oi-count">'+(o.content?countWords(o.content):0)+'字</span><button class="oi-del" onclick="event.stopPropagation();delOutline('+o.id+')">✕</button></div>').join('');}
+function renderOutlineList(){if(!S.proj)return;const el=document.getElementById('outlineList');if(!S.proj.outlines.length){el.innerHTML='<div style="text-align:center;padding:20px;color:var(--text-hint);font-size:12px">暂无大纲</div>';return;}el.innerHTML=S.proj.outlines.map(o=>'<div class="outline-item'+(S.active&&S.active.type==='outline'&&S.active.id===o.id?' active':'')+'" onclick="loadOutlineContent('+o.id+')"><span class="oi-icon"><svg class="ic ic-sm"><use href="#ic-outline"/></svg></span><span class="oi-text">'+o.title+'</span><span class="oi-count">'+(o.content?countWords(o.content):0)+'字</span><button class="oi-del" onclick="event.stopPropagation();delOutline('+o.id+')">✕</button></div>').join('');}
 async function addOutline(){if(!S.proj)return showToast('❌','请先选择项目');const now=Date.now(),id=await dbPut('outlines',{project_id:S.proj.project.id,title:'新大纲',content:'',sort_order:S.proj.outlines.length,created_at:now});S.proj.outlines.push({id,project_id:S.proj.project.id,title:'新大纲',content:'',sort_order:S.proj.outlines.length});renderOutlineList();showToast('✓','已添加');}
 function loadOutlineContent(id){const o=S.proj.outlines.find(x=>x.id===id);if(!o)return;S.active={type:'outline',id,data:o};document.getElementById('chapterTitle').value=o.title;document.getElementById('mainEditor').value=o.content||'';onEditorInput();renderOutlineList();}
 async function delOutline(id){if(!confirm('确定删除？'))return;await dbDel('outlines',id);S.proj.outlines=S.proj.outlines.filter(x=>x.id!==id);if(S.active&&S.active.id===id)S.active=null;renderOutlineList();showToast('🗑️','已删除');}
 
 // ═══ Chapters ═══
-function renderChapterList(){if(!S.proj)return;const el=document.getElementById('chapterList');if(!S.proj.chapters.length){el.innerHTML='<div style="text-align:center;padding:20px;color:var(--text-hint);font-size:12px">暂无章节</div>';return;}el.innerHTML=S.proj.chapters.map(c=>'<div class="outline-item'+(S.active&&S.active.type==='chapter'&&S.active.id===c.id?' active':'')+'" onclick="loadChapterContent('+c.id+')"><span class="oi-icon">▤</span><span class="oi-text">'+c.title+'</span><span class="oi-count">'+(c.word_count||0)+'字</span><button class="oi-del" onclick="event.stopPropagation();delChapter('+c.id+')">✕</button></div>').join('');}
+function renderChapterList(){if(!S.proj)return;const el=document.getElementById('chapterList');if(!S.proj.chapters.length){el.innerHTML='<div style="text-align:center;padding:20px;color:var(--text-hint);font-size:12px">暂无章节</div>';return;}el.innerHTML=S.proj.chapters.map(c=>'<div class="outline-item'+(S.active&&S.active.type==='chapter'&&S.active.id===c.id?' active':'')+'" onclick="loadChapterContent('+c.id+')"><span class="oi-icon"><svg class="ic ic-sm"><use href="#ic-chapter"/></svg></span><span class="oi-text">'+c.title+'</span><span class="oi-count">'+(c.word_count||0)+'字</span><button class="oi-del" onclick="event.stopPropagation();delChapter('+c.id+')">✕</button></div>').join('');}
 async function addChapter(){if(!S.proj)return showToast('❌','请先选择项目');const now=Date.now(),id=await dbPut('chapters',{project_id:S.proj.project.id,title:'新章节',content:'',word_count:0,sort_order:S.proj.chapters.length,created_at:now,updated_at:now});S.proj.chapters.push({id,project_id:S.proj.project.id,title:'新章节',content:'',word_count:0});renderChapterList();showToast('✓','已添加');}
 function loadChapterContent(id){const c=S.proj.chapters.find(x=>x.id===id);if(!c)return;S.active={type:'chapter',id,data:c};document.getElementById('chapterTitle').value=c.title;document.getElementById('mainEditor').value=c.content||'';onEditorInput();renderChapterList();}
 async function delChapter(id){if(!confirm('确定删除？'))return;await dbDel('chapters',id);S.proj.chapters=S.proj.chapters.filter(x=>x.id!==id);if(S.active&&S.active.id===id)S.active=null;renderChapterList();showToast('🗑️','已删除');}
@@ -516,8 +546,8 @@ function toggleGenre(el){el.parentElement.querySelectorAll('.genre-chip').forEac
 document.querySelectorAll('.modal-overlay').forEach(o=>{o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('show');});});
 
 // ═══ Theme ═══
-function toggleTheme(){document.body.classList.toggle('light');const isLight=document.body.classList.contains('light');localStorage.setItem('ww_theme',isLight?'light':'dark');document.getElementById('themeBtn').textContent=isLight?'☀️':'🌙';}
-(function loadTheme(){if(localStorage.getItem('ww_theme')==='light'){document.body.classList.add('light');setTimeout(()=>{const b=document.getElementById('themeBtn');if(b)b.textContent='☀️';},0);}})();
+function toggleTheme(){document.body.classList.toggle('light');const isLight=document.body.classList.contains('light');localStorage.setItem('ww_theme',isLight?'light':'dark');document.getElementById('themeBtn').innerHTML='<svg class="ic ic-sm"><use href="#ic-'+(isLight?'sun':'moon')+'"/></svg>';}
+(function loadTheme(){if(localStorage.getItem('ww_theme')==='light'){document.body.classList.add('light');setTimeout(()=>{const b=document.getElementById('themeBtn');if(b)b.innerHTML='<svg class="ic ic-sm"><use href="#ic-sun"/></svg>';},0);}})();
 
 // ═══ Profile Center ═══
 async function renderProfileStats(){
@@ -663,8 +693,8 @@ function swMobileTab(tab,btn){
     if(tab==='outline')renderMpOutline();if(tab==='chapters')renderMpChapter();if(tab==='chars')renderMpChar();if(tab==='ai')renderMpAi();}
 }
 function backToEditor(){const btn=document.querySelector('#bottomNav .btab');if(btn)swMobileTab('editor',btn);}
-function renderMpOutline(){if(!S.proj)return;const el=document.getElementById('mpOutlineList');if(!S.proj.outlines.length){el.innerHTML='<div style="text-align:center;padding:40px;color:var(--text-hint)">暂无大纲</div>';return;}el.innerHTML=S.proj.outlines.map(o=>'<div class="outline-item'+(S.active&&S.active.type==='outline'&&S.active.id===o.id?' active':'')+'" onclick="loadOutlineContent('+o.id+');backToEditor()"><span class="oi-icon">☰</span><span class="oi-text">'+o.title+'</span><span class="oi-count">'+(o.content?countWords(o.content):0)+'字</span></div>').join('');}
-function renderMpChapter(){if(!S.proj)return;const el=document.getElementById('mpChapterList');if(!S.proj.chapters.length){el.innerHTML='<div style="text-align:center;padding:40px;color:var(--text-hint)">暂无章节</div>';return;}el.innerHTML=S.proj.chapters.map(c=>'<div class="outline-item'+(S.active&&S.active.type==='chapter'&&S.active.id===c.id?' active':'')+'" onclick="loadChapterContent('+c.id+');backToEditor()"><span class="oi-icon">▤</span><span class="oi-text">'+c.title+'</span><span class="oi-count">'+(c.word_count||0)+'字</span></div>').join('');}
+function renderMpOutline(){if(!S.proj)return;const el=document.getElementById('mpOutlineList');if(!S.proj.outlines.length){el.innerHTML='<div style="text-align:center;padding:40px;color:var(--text-hint)">暂无大纲</div>';return;}el.innerHTML=S.proj.outlines.map(o=>'<div class="outline-item'+(S.active&&S.active.type==='outline'&&S.active.id===o.id?' active':'')+'" onclick="loadOutlineContent('+o.id+');backToEditor()"><span class="oi-icon"><svg class="ic ic-sm"><use href="#ic-outline"/></svg></span><span class="oi-text">'+o.title+'</span><span class="oi-count">'+(o.content?countWords(o.content):0)+'字</span></div>').join('');}
+function renderMpChapter(){if(!S.proj)return;const el=document.getElementById('mpChapterList');if(!S.proj.chapters.length){el.innerHTML='<div style="text-align:center;padding:40px;color:var(--text-hint)">暂无章节</div>';return;}el.innerHTML=S.proj.chapters.map(c=>'<div class="outline-item'+(S.active&&S.active.type==='chapter'&&S.active.id===c.id?' active':'')+'" onclick="loadChapterContent('+c.id+');backToEditor()"><span class="oi-icon"><svg class="ic ic-sm"><use href="#ic-chapter"/></svg></span><span class="oi-text">'+c.title+'</span><span class="oi-count">'+(c.word_count||0)+'字</span></div>').join('');}
 function renderMpChar(){if(!S.proj)return;const el=document.getElementById('mpCharList');if(!S.proj.characters.length){el.innerHTML='<div style="text-align:center;padding:40px;color:var(--text-hint)">暂无人物</div>';return;}el.innerHTML=S.proj.characters.map(c=>'<div class="char-card" onclick="loadCharContent('+c.id+');backToEditor()"><div class="char-name">'+c.name+'</div><span class="char-role">'+c.role+'</span><div class="char-desc">'+(c.personality||'暂无简介')+'</div></div>').join('');}
 function renderMpAi(){const el=document.getElementById('mpAiModeGrid');if(!el||el.children.length>0)return;const g={};for(const[k,v]of Object.entries(AI_MODES)){if(!g[v.group])g[v.group]=[];g[v.group].push(k);}let h='';for(const[label,keys]of Object.entries(g)){h+='<div class="mode-group"><div class="mode-group-title">'+label+'</div><div class="mode-grid">';for(const k of keys)h+='<button class="mode-btn'+(S.aiMode===k?' selected':'')+'" onclick="selectMode(this,\''+k+'\')"><span class="micon">'+AI_MODES[k].icon+'</span>'+k+'</button>';h+='</div></div>';}el.innerHTML=h;}
 async function doGenerateMobile(){const ac=S.apiConfig;if(!ac.key){showToast('⚙️','请先配置 API');openModal('apiModal');return;}const ed=document.getElementById('mainEditor'),content=ed.value.slice(-1000)||'';const extra=document.getElementById('mpAiPrompt')?.value.trim()||'';if(!content&&!extra){showToast('✍️','请先输入内容');return;}const lm={short:'100字以内',mid:'200-300字',long:'400-600字',xl:'800字以上'},tm={low:'保持严谨',mid:'适度创意',high:'大胆想象'};const md=AI_MODES[S.aiMode]||{p:'请处理以下内容：'};let prompt=md.p+'\n\n'+content+'\n\n【输出要求】'+lm[S.aiLen]+'。'+tm[S.aiTemp]+'。';if(S.proj)prompt+='\n\n【项目信息】\n'+buildCtx();if(extra)prompt+='\n\n【额外指令】'+extra;const btn=document.getElementById('mpGenerateBtn');btn.classList.add('loading');btn.textContent='生成中...';try{const r=await callAI(prompt,ac);S.lastArpResult=r;document.getElementById('arpText').textContent=r;document.getElementById('arpMode').textContent=S.aiMode;document.getElementById('aiResultPopup').classList.add('show');addHistory(S.aiMode,r);}catch(e){showToast('❌',e.message||'失败');}finally{btn.classList.remove('loading');btn.innerHTML='<span>✨</span> 开始生成';}}
