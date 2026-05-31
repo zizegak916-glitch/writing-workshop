@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>AI 写作工坊</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -15,7 +18,7 @@ body.light .focus-exit{border-color:rgba(0,0,0,0.2);color:rgba(0,0,0,0.5)}
 body.light .focus-exit:hover{background:rgba(0,0,0,0.05);color:rgba(0,0,0,0.8)}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 body{font-family:var(--font-sans);background:var(--bg-deep);color:var(--text-primary);min-height:100vh;overflow:hidden;font-size:14px}
-#lockScreen{position:fixed;inset:0;background:var(--bg-deep);display:flex;align-items:center;justify-content:center;z-index:999;background-image:radial-gradient(ellipse 60% 60% at 50% 40%,rgba(108,155,255,0.06) 0%,transparent 70%)}
+#lockScreen{position:fixed;inset:0;background:var(--bg-deep);display:none;align-items:center;justify-content:center;z-index:999;background-image:radial-gradient(ellipse 60% 60% at 50% 40%,rgba(108,155,255,0.06) 0%,transparent 70%)}
 body.light #lockScreen{background-image:radial-gradient(ellipse 60% 60% at 50% 40%,rgba(74,114,204,0.08) 0%,transparent 70%)}
 .lock-box{width:360px;background:var(--bg-panel);border:1px solid var(--border);border-radius:18px;padding:40px 36px;box-shadow:var(--shadow-lg);text-align:center}
 .lock-icon{width:56px;height:56px;background:var(--bg-card);border:1px solid var(--border-light);border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 20px}
@@ -215,7 +218,7 @@ body.light #lockScreen{background-image:radial-gradient(ellipse 60% 60% at 50% 4
       <button class="icon-btn" onclick="exportProject()" title="导出">↓</button>
       <button class="icon-btn" id="saveBtn" onclick="saveDoc()" title="保存">💾<span class="save-badge"></span></button>
       <button class="icon-btn" id="themeBtn" onclick="toggleTheme()" title="切换主题">🌙</button>
-      <button class="icon-btn" onclick="lockApp()" title="锁屏">🔒</button>
+      <button class="icon-btn" onclick="openModal('profileModal')" title="个人中心">👤</button>
     </div>
   </div>
   <div class="main-body">
@@ -346,6 +349,28 @@ body.light #lockScreen{background-image:radial-gradient(ellipse 60% 60% at 50% 4
   <div class="form-row"><div class="form-label">技能</div><textarea class="form-textarea" id="charSkill" placeholder="技能/能力..."></textarea></div>
   <div class="modal-footer"><button class="btn-cancel" onclick="closeModal('charModal')">取消</button><button class="btn-confirm" onclick="saveChar()">保存 ✓</button></div>
 </div></div>
+<!-- MODAL: PROFILE CENTER -->
+<div class="modal-overlay" id="profileModal">
+  <div class="modal">
+    <div class="modal-title">👤 个人中心</div>
+    <div class="modal-sub">管理密码、查看项目统计</div>
+    <div id="profileStats" style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:16px">
+      <div style="font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:10px">📊 当前项目统计</div>
+      <div id="profileStatsContent" style="font-size:12px;color:var(--text-secondary);line-height:2">加载中...</div>
+    </div>
+    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:16px">
+      <div style="font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:10px">🔒 修改密码</div>
+      <input class="form-input" id="oldPwd" type="password" placeholder="当前密码" style="margin-bottom:8px">
+      <input class="form-input" id="newPwd" type="password" placeholder="新密码（至少4位）" style="margin-bottom:8px">
+      <input class="form-input" id="newPwd2" type="password" placeholder="确认新密码">
+    </div>
+    <div class="modal-footer" style="flex-wrap:wrap;gap:8px">
+      <button class="btn-cancel" onclick="lockApp();closeModal('profileModal')" style="flex:0 0 auto;padding:10px 16px">🔒 锁屏</button>
+      <button class="btn-cancel" onclick="closeModal('profileModal')" style="flex:1">关闭</button>
+      <button class="btn-confirm" onclick="changePassword()" style="flex:1">修改密码</button>
+    </div>
+  </div>
+</div>
 <div class="toast" id="toast"><span id="toastIcon">✓</span><span id="toastMsg">已保存</span></div>
 <script>
 // ═══ IndexedDB ═══
@@ -362,15 +387,13 @@ const S={proj:null,active:null,editCharId:null,aiMode:'润色',aiTemp:'mid',aiLe
 async function sha256(t){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(t));return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join('');}
 
 // ═══ Lock ═══
-(function(){const h=localStorage.getItem('ww_pwd_hash');if(!h){document.getElementById('lockSub').textContent='首次使用请设置密码';document.getElementById('lockBtn').textContent='设置密码';document.getElementById('lockHint').innerHTML='';}else{document.getElementById('lockSub').textContent='请输入密码解锁工坊';document.getElementById('lockHint').innerHTML='忘记密码？<span onclick="clearPwd()">重置</span>';document.getElementById('lockBtn').textContent='解锁';}document.getElementById('lockInput').addEventListener('keydown',e=>{if(e.key==='Enter')handleLock();});
-// Skip lock on refresh if password already set — only lock on explicit button
-const h2=localStorage.getItem('ww_pwd_hash');
-if(h2){document.getElementById('lockScreen').style.display='none';document.getElementById('app').classList.add('visible');initApp();}else{document.getElementById('lockScreen').style.display='flex';}
-})();
-async function handleLock(){const v=document.getElementById('lockInput').value.trim();if(!v||v.length<4){showToast('❌','密码至少4位');return;}const h=localStorage.getItem('ww_pwd_hash');if(!h){localStorage.setItem('ww_pwd_hash',await sha256(v));showToast('✓','密码设置成功');unlockApp();}else{if(await sha256(v)===h){unlockApp();}else{showToast('❌','密码错误');document.getElementById('lockInput').value='';}}}
-function unlockApp(){document.getElementById('lockScreen').style.display='none';document.getElementById('app').classList.add('visible');initApp();}
+async function handleLock(){const v=document.getElementById('lockInput').value.trim();if(!v||v.length<4){showToast('❌','密码至少4位');return;}const h=localStorage.getItem('ww_pwd_hash');if(!h){localStorage.setItem('ww_pwd_hash',await sha256(v));showToast('✓','密码设置成功');showApp();}else{if(await sha256(v)===h){showApp();}else{showToast('❌','密码错误');document.getElementById('lockInput').value='';}}}
+function showApp(){document.getElementById('lockScreen').style.display='none';document.getElementById('app').classList.add('visible');if(!db)initApp();}
 function clearPwd(){if(confirm('确定重置？将清除所有数据。')){localStorage.clear();indexedDB.deleteDatabase(DB_NAME);location.reload();}}
-function lockApp(){document.getElementById('lockScreen').style.display='flex';document.getElementById('app').classList.remove('visible');document.getElementById('lockInput').value='';document.getElementById('lockSub').textContent='请输入密码解锁工坊';}
+function lockApp(){document.getElementById('lockScreen').style.display='flex';document.getElementById('app').classList.remove('visible');document.getElementById('lockInput').value='';}
+
+// Boot: show lock only if no password set yet
+(function(){document.getElementById('lockInput').addEventListener('keydown',e=>{if(e.key==='Enter')handleLock();});if(!localStorage.getItem('ww_pwd_hash')){document.getElementById('lockScreen').style.display='flex';document.getElementById('lockSub').textContent='首次使用请设置密码';document.getElementById('lockBtn').textContent='设置密码';document.getElementById('lockHint').innerHTML='';}else{showApp();}})();
 
 // ═══ Init ═══
 async function initApp(){await openDB();renderAiModeGrid();renderMultiSlots();await loadProjects();renderHistory();setInterval(()=>{if(S.autoSave&&S.unsaved)saveDoc();},30000);const ed=document.getElementById('mainEditor');ed.addEventListener('input',onEditorInput);ed.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='s'){e.preventDefault();saveDoc();}});document.getElementById('focusEditor').addEventListener('input',()=>{document.getElementById('focusInfo').textContent=countWords(document.getElementById('focusEditor').value)+' 字 · Esc 退出';});document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeFocus();closeAiResult();}});if(S.projects.length>0)await loadProject(S.projects[0].id);updateAllStats();}
@@ -475,6 +498,32 @@ document.querySelectorAll('.modal-overlay').forEach(o=>{o.addEventListener('clic
 // ═══ Theme ═══
 function toggleTheme(){document.body.classList.toggle('light');const isLight=document.body.classList.contains('light');localStorage.setItem('ww_theme',isLight?'light':'dark');document.getElementById('themeBtn').textContent=isLight?'☀️':'🌙';}
 (function loadTheme(){if(localStorage.getItem('ww_theme')==='light'){document.body.classList.add('light');setTimeout(()=>{const b=document.getElementById('themeBtn');if(b)b.textContent='☀️';},0);}})();
+
+// ═══ Profile Center ═══
+async function renderProfileStats(){
+  const el=document.getElementById('profileStatsContent');
+  if(!S.proj){el.innerHTML='<div style="color:var(--text-hint)">暂无项目</div>';return;}
+  const p=S.proj.project;
+  const totalWords=S.proj.chapters.reduce((s,c)=>s+(c.word_count||0),0);
+  const totalChars=S.proj.characters.length;
+  const totalOutlines=S.proj.outlines.length;
+  const totalChapters=S.proj.chapters.length;
+  const created=new Date(p.created_at).toLocaleDateString('zh-CN');
+  const updated=p.updated_at?new Date(p.updated_at).toLocaleDateString('zh-CN'):'-';
+  el.innerHTML='<div>📁 项目：<b>'+p.name+'</b></div><div>📖 类型：'+(p.genre||'-')+'</div><div>📝 总字数：<b>'+totalWords+'</b> 字</div><div>📋 大纲：'+totalOutlines+' 个 · 章节：'+totalChapters+' 个</div><div>👤 人物：'+totalChars+' 个</div><div>🎯 每日目标：'+S.wordGoal+' 字</div><div>📅 创建：'+created+' · 更新：'+updated+'</div>';
+}
+async function changePassword(){
+  const old=document.getElementById('oldPwd').value,new1=document.getElementById('newPwd').value,new2=document.getElementById('newPwd2').value;
+  const stored=localStorage.getItem('ww_pwd_hash');
+  if(stored){if(!old){showToast('❌','请输入当前密码');return;}if(await sha256(old)!==stored){showToast('❌','当前密码错误');return;}}
+  if(!new1||new1.length<4){showToast('❌','新密码至少4位');return;}
+  if(new1!==new2){showToast('❌','两次密码不一致');return;}
+  localStorage.setItem('ww_pwd_hash',await sha256(new1));
+  document.getElementById('oldPwd').value='';document.getElementById('newPwd').value='';document.getElementById('newPwd2').value='';
+  showToast('✓','密码已修改');
+}
+// Hook: render stats when profile modal opens
+(function(){const orig=openModal;openModal=function(id){orig(id);if(id==='profileModal')renderProfileStats();};})();
 
 // ═══ Toast ═══
 let toastTimer;function showToast(i,m){document.getElementById('toastIcon').textContent=i;document.getElementById('toastMsg').textContent=m;const t=document.getElementById('toast');t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),2200);}
