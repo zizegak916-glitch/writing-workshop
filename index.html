@@ -152,8 +152,31 @@ body{font-family:var(--font-sans);background:var(--bg-deep);color:var(--text-pri
 .project-list-item .pli-name{font-weight:600;color:var(--text-primary);margin-bottom:3px}.project-list-item .pli-meta{font-size:11px;color:var(--text-muted)}
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(60px);background:var(--bg-card);border:1px solid var(--border-light);border-radius:30px;padding:10px 20px;font-size:13px;color:var(--text-primary);box-shadow:var(--shadow);z-index:9999;transition:transform 0.3s;pointer-events:none;display:flex;align-items:center;gap:8px}.toast.show{transform:translateX(-50%) translateY(0)}
 ::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+/* Mobile bottom nav */
+.bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--bg-mid);border-top:1px solid var(--border);z-index:50;height:52px}
+.bottom-nav-items{display:flex;height:100%}
+.btab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:10px;color:var(--text-muted);cursor:pointer;border:none;background:none;padding:4px 0;font-family:var(--font-sans);gap:2px}
+.btab.on{color:var(--accent)}.btab span{font-size:18px}
+/* Mobile panels */
+.mobile-panel{display:none;position:fixed;top:var(--topbar-h);bottom:52px;left:0;right:0;background:var(--bg-mid);z-index:20;overflow-y:auto;padding:12px}
+.mobile-panel.on{display:block}
+/* Mobile AI panel full width */
 @media(max-width:768px){.sidebar{display:none}.ai-panel{width:260px}:root{--ai-panel-w:260px}}
-@media(max-width:560px){.ai-panel{display:none}.topbar-stats{display:none}}
+@media(max-width:560px){
+  .sidebar{display:none}
+  .ai-panel{display:none}
+  .topbar-stats{display:none}
+  .topbar-logo{font-size:15px}
+  .topbar-sep{display:none}
+  .project-selector{max-width:140px;font-size:12px;padding:6px 8px}
+  .bottom-nav{display:block}
+  .main-body{padding-bottom:52px}
+  .editor-area{position:fixed;top:var(--topbar-h);bottom:52px;left:0;right:0;z-index:15}
+  .chapter-title-bar{padding:12px 16px 0}
+  .chapter-meta{padding:6px 16px}
+  .editor-wrap{padding:8px 16px 30px}
+  .bottom-bar{padding:6px 16px}
+}
 </style>
 </head>
 <body>
@@ -240,6 +263,27 @@ body{font-family:var(--font-sans);background:var(--bg-deep);color:var(--text-pri
       </div>
     </div>
   </div>
+  <!-- Mobile Bottom Nav -->
+  <nav class="bottom-nav" id="bottomNav">
+    <div class="bottom-nav-items">
+      <button class="btab on" onclick="swMobileTab('editor',this)"><span>✏️</span>编辑</button>
+      <button class="btab" onclick="swMobileTab('outline',this)"><span>📋</span>大纲</button>
+      <button class="btab" onclick="swMobileTab('chapters',this)"><span>📖</span>章节</button>
+      <button class="btab" onclick="swMobileTab('chars',this)"><span>👤</span>人物</button>
+      <button class="btab" onclick="swMobileTab('ai',this)"><span>🤖</span>AI</button>
+    </div>
+  </nav>
+</div>
+<!-- Mobile Panels (sidebar content on mobile) -->
+<div class="mobile-panel" id="mp-outline"><div id="mpOutlineList"></div><button class="add-item-btn" onclick="addOutline()">＋ 添加大纲</button></div>
+<div class="mobile-panel" id="mp-chapters"><div id="mpChapterList"></div><button class="add-item-btn" onclick="addChapter()">＋ 添加章节</button></div>
+<div class="mobile-panel" id="mp-chars"><div id="mpCharList"></div><button class="add-item-btn" onclick="openModal('charModal')">＋ 添加人物</button></div>
+<div class="mobile-panel" id="mp-ai" style="padding:0">
+  <div style="padding:12px"><div id="mpAiModeGrid"></div>
+  <div class="param-row"><div class="param-label">创意度</div><div class="seg-ctrl"><button class="seg-btn" onclick="setTemp('low',this)">严谨</button><button class="seg-btn on" onclick="setTemp('mid',this)">平衡</button><button class="seg-btn" onclick="setTemp('high',this)">创意</button></div></div>
+  <div class="param-row"><div class="param-label">输出长度</div><div class="seg-ctrl"><button class="seg-btn" onclick="setLen('short',this)">短</button><button class="seg-btn" onclick="setLen('mid',this)">中</button><button class="seg-btn on" onclick="setLen('long',this)">长</button><button class="seg-btn" onclick="setLen('xl',this)">超长</button></div></div>
+  <div class="ai-prompt-area"><label>补充指令</label><textarea id="mpAiPrompt" placeholder="可选：输入额外要求..."></textarea></div>
+  <button class="generate-btn" id="mpGenerateBtn" onclick="doGenerateMobile()"><span>✨</span> 开始生成</button></div>
 </div>
 <!-- AI RESULT POPUP -->
 <div class="ai-result-popup" id="aiResultPopup">
@@ -421,3 +465,28 @@ let toastTimer;function showToast(i,m){document.getElementById('toastIcon').text
 </script>
 </body>
 </html>
+<script>
+// ═══ Mobile Navigation ═══
+function swMobileTab(tab,btn){
+  document.querySelectorAll('#bottomNav .btab').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  // Hide all mobile panels
+  document.querySelectorAll('.mobile-panel').forEach(p=>p.classList.remove('on'));
+  if(tab==='editor'){
+    document.querySelector('.editor-area').style.display='flex';
+  }else{
+    document.querySelector('.editor-area').style.display='none';
+    const panel=document.getElementById('mp-'+tab);
+    if(panel){panel.classList.add('on');}
+    if(tab==='outline')renderMpOutline();
+    if(tab==='chapters')renderMpChapter();
+    if(tab==='chars')renderMpChar();
+    if(tab==='ai')renderMpAi();
+  }
+}
+function renderMpOutline(){if(!S.proj)return;const el=document.getElementById('mpOutlineList');if(!S.proj.outlines.length){el.innerHTML='<div style="text-align:center;padding:40px;color:var(--text-hint)">暂无大纲</div>';return;}el.innerHTML=S.proj.outlines.map(o=>'<div class="outline-item'+(S.active&&S.active.type==='outline'&&S.active.id===o.id?' active':'')+'" onclick="loadOutlineContent('+o.id+');swMobileTab(\'editor',document.querySelector(\'.btab\'))"><span class="oi-icon">📋</span><span class="oi-text">'+o.title+'</span><span class="oi-count">'+(o.content?countWords(o.content):0)+'字</span></div>').join('');}
+function renderMpChapter(){if(!S.proj)return;const el=document.getElementById('mpChapterList');if(!S.proj.chapters.length){el.innerHTML='<div style="text-align:center;padding:40px;color:var(--text-hint)">暂无章节</div>';return;}el.innerHTML=S.proj.chapters.map(c=>'<div class="outline-item'+(S.active&&S.active.type==='chapter'&&S.active.id===c.id?' active':'')+'" onclick="loadChapterContent('+c.id+');swMobileTab(\'editor',document.querySelector(\'.btab\'))"><span class="oi-icon">📖</span><span class="oi-text">'+c.title+'</span><span class="oi-count">'+(c.word_count||0)+'字</span></div>').join('');}
+function renderMpChar(){if(!S.proj)return;const el=document.getElementById('mpCharList');if(!S.proj.characters.length){el.innerHTML='<div style="text-align:center;padding:40px;color:var(--text-hint)">暂无人物</div>';return;}el.innerHTML=S.proj.characters.map(c=>'<div class="char-card" onclick="loadCharContent('+c.id+');swMobileTab(\'editor',document.querySelector(\'.btab\'))"><div class="char-name">'+c.name+'</div><span class="char-role">'+c.role+'</span><div class="char-desc">'+(c.personality||'')+'</div></div>').join('');}
+function renderMpAi(){const el=document.getElementById('mpAiModeGrid');if(!el||el.children.length>0)return;const g={};for(const[k,v]of Object.entries(AI_MODES)){if(!g[v.group])g[v.group]=[];g[v.group].push(k);}let h='';for(const[label,keys]of Object.entries(g)){h+='<div class="mode-group"><div class="mode-group-title">'+label+'</div><div class="mode-grid">';for(const k of keys)h+='<button class="mode-btn'+(S.aiMode===k?' selected':'')+'" onclick="selectMode(this,\''+k+'\')"><span class="micon">'+AI_MODES[k].icon+'</span>'+k+'</button>';h+='</div></div>';}el.innerHTML=h;}
+async function doGenerateMobile(){const ac=S.apiConfig;if(!ac.key){showToast('⚙️','请先配置 API');openModal('apiModal');return;}const ed=document.getElementById('mainEditor'),content=ed.value.slice(-1000)||'';const extra=document.getElementById('mpAiPrompt')?.value.trim()||'';if(!content&&!extra){showToast('✍️','请先输入内容');return;}const lm={short:'100字以内',mid:'200-300字',long:'400-600字',xl:'800字以上'},tm={low:'保持严谨',mid:'适度创意',high:'大胆想象'};const md=AI_MODES[S.aiMode]||{p:'请处理以下内容：'};let prompt=md.p+'\n\n'+content+'\n\n【输出要求】'+lm[S.aiLen]+'。'+tm[S.aiTemp]+'。';if(S.proj)prompt+='\n\n【项目信息】\n'+buildCtx();if(extra)prompt+='\n\n【额外指令】'+extra;const btn=document.getElementById('mpGenerateBtn');btn.classList.add('loading');btn.textContent='生成中...';try{const r=await callAI(prompt,ac);S.lastArpResult=r;document.getElementById('arpText').textContent=r;document.getElementById('arpMode').textContent=S.aiMode;document.getElementById('aiResultPopup').classList.add('show');addHistory(S.aiMode,r);}catch(e){showToast('❌',e.message||'失败');}finally{btn.classList.remove('loading');btn.innerHTML='<span>✨</span> 开始生成';}}
+</script>
