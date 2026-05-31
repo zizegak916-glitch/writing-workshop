@@ -9,7 +9,7 @@
 <title>AI 写作工坊</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-:root{--bg-deep:#0d0f14;--bg-mid:#13161e;--bg-panel:#181c26;--bg-card:#1e2330;--bg-hover:#252a38;--bg-active:#2a3045;--border:#2a2f3f;--border-light:#323849;--accent:#6c9bff;--accent-dim:#4a72cc;--accent-glow:rgba(108,155,255,0.15);--gold:#f0b429;--green:#4ade80;--green-dim:rgba(74,222,128,0.12);--red:#f87171;--purple:#a78bfa;--text-primary:#e8eaf2;--text-secondary:#8b93aa;--text-muted:#555f7a;--text-hint:#3d4560;--radius:10px;--radius-sm:6px;--shadow:0 4px 24px rgba(0,0,0,0.4);--shadow-lg:0 8px 48px rgba(0,0,0,0.6);--font-serif:'Noto Serif SC',serif;--font-sans:'Noto Sans SC',sans-serif;--font-mono:'JetBrains Mono',monospace;--sidebar-w:220px;--ai-panel-w:300px;--topbar-h:52px}
+:root{--bg-deep:#0d0f14;--bg-mid:#13161e;--bg-panel:#181c26;--bg-card:#1e2330;--bg-hover:#252a38;--bg-active:#2a3045;--border:#2a2f3f;--border-light:#323849;--accent:#6c9bff;--accent-dim:#4a72cc;--accent-glow:rgba(108,155,255,0.15);--gold:#f0b429;--green:#4ade80;--green-dim:rgba(74,222,128,0.12);--red:#f87171;--purple:#a78bfa;--text-primary:#eef0f6;--text-secondary:#a8afc2;--text-muted:#7a8299;--text-hint:#5a6380;--radius:10px;--radius-sm:6px;--shadow:0 4px 24px rgba(0,0,0,0.4);--shadow-lg:0 8px 48px rgba(0,0,0,0.6);--font-serif:'Noto Serif SC',serif;--font-sans:'Noto Sans SC',sans-serif;--font-mono:'JetBrains Mono',monospace;--sidebar-w:220px;--ai-panel-w:300px;--topbar-h:52px}
 body.light{--bg-deep:#f5f6fa;--bg-mid:#ffffff;--bg-panel:#f0f1f5;--bg-card:#ffffff;--bg-hover:#e8eaf0;--bg-active:#dde0ea;--border:#dde0ea;--border-light:#c8ccd8;--accent:#4a72cc;--accent-dim:#3a5aa0;--accent-glow:rgba(74,114,204,0.1);--gold:#d4940a;--green:#16a34a;--green-dim:rgba(22,163,74,0.1);--red:#dc2626;--purple:#7c3aed;--text-primary:#1a1d28;--text-secondary:#555f7a;--text-muted:#8b93aa;--text-hint:#a8afc2;--shadow:0 4px 24px rgba(0,0,0,0.08);--shadow-lg:0 8px 48px rgba(0,0,0,0.12)}
 body.light .focus-overlay{background:rgba(255,255,255,0.92)}
 body.light .focus-editor{color:#1a1d28}
@@ -216,7 +216,7 @@ body.light #lockScreen{background-image:radial-gradient(ellipse 60% 60% at 50% 4
       <button class="icon-btn" onclick="openModal('newProjectModal')" title="新建">＋</button>
       <button class="icon-btn" onclick="openModal('apiModal')" title="API">⚙</button>
       <button class="icon-btn" onclick="exportProject()" title="导出">↓</button>
-      <button class="icon-btn" id="saveBtn" onclick="saveDoc()" title="保存">💾<span class="save-badge"></span></button>
+      <button class="icon-btn" id="saveBtn" onclick="saveDoc()" title="保存">⬇<span class="save-badge"></span></button>
       <button class="icon-btn" id="themeBtn" onclick="toggleTheme()" title="切换主题">🌙</button>
       <button class="icon-btn" onclick="openModal('profileModal')" title="个人中心">👤</button>
     </div>
@@ -224,10 +224,10 @@ body.light #lockScreen{background-image:radial-gradient(ellipse 60% 60% at 50% 4
   <div class="main-body">
     <div class="sidebar">
       <div class="sidebar-nav">
-        <button class="nav-tab active" onclick="switchSidebar('outline',this)"><span>📋</span>大纲</button>
-        <button class="nav-tab" onclick="switchSidebar('chapters',this)"><span>📖</span>章节</button>
-        <button class="nav-tab" onclick="switchSidebar('chars',this)"><span>👤</span>人物</button>
-        <button class="nav-tab" onclick="switchSidebar('notes',this)"><span>📌</span>笔记</button>
+        <button class="nav-tab active" onclick="switchSidebar('outline',this)"><span>☰</span>大纲</button>
+        <button class="nav-tab" onclick="switchSidebar('chapters',this)"><span>▤</span>章节</button>
+        <button class="nav-tab" onclick="switchSidebar('chars',this)"><span>◉</span>人物</button>
+        <button class="nav-tab" onclick="switchSidebar('notes',this)"><span>◆</span>笔记</button>
       </div>
       <div class="sidebar-content">
         <div id="tab-outline"><div class="section-label">故事大纲</div><div id="outlineList"></div><button class="add-item-btn" onclick="addOutline()">＋ 添加大纲</button></div>
@@ -238,22 +238,23 @@ body.light #lockScreen{background-image:radial-gradient(ellipse 60% 60% at 50% 4
     </div>
     <div class="editor-area">
       <div class="editor-toolbar">
-        <div class="toolbar-group"><button class="tool-btn" onclick="openFocus()">🎯 专注</button><button class="tool-btn" onclick="togglePreview()" id="previewBtn">👁 预览</button></div>
+        <div class="toolbar-group"><button class="tool-btn" onclick="openFocus()">◎ 专注</button><button class="tool-btn" onclick="togglePreview()" id="previewBtn">◉ 预览</button></div>
         <div class="toolbar-sep"></div>
         <div class="toolbar-group"><button class="tool-btn" onclick="formatText('bold')"><b>B</b></button><button class="tool-btn" onclick="formatText('italic')"><i>I</i></button><button class="tool-btn" onclick="insertDivider()">──</button><button class="tool-btn" onclick="insertQuote()">「」</button></div>
         <div class="toolbar-sep"></div>
         <div class="toolbar-group"><button class="tool-btn" onclick="changeFontSize(-1)">A-</button><span style="font-size:11px;color:var(--text-muted);min-width:32px;text-align:center" id="fontSizeDisplay">16px</span><button class="tool-btn" onclick="changeFontSize(1)">A+</button></div>
         <div class="toolbar-sep"></div>
-        <div class="toolbar-group"><button class="tool-btn" onclick="exportText()">↓ 导出</button><button class="tool-btn active" id="autoSaveToggle" onclick="toggleAutoSave()">⚡ 自动保存</button></div>
+        <div class="toolbar-group"><button class="tool-btn" onclick="exportText()">↓ 导出</button><button class="tool-btn active" id="autoSaveToggle" onclick="toggleAutoSave()">↯ 自动保存</button></div>
       </div>
       <div class="chapter-title-bar"><input class="chapter-title-input" id="chapterTitle" placeholder="章节标题..." oninput="S.unsaved=true"></div>
       <div class="chapter-meta"><span>📊 <span id="paraCount">1</span> 段</span><span>📝 <span id="sentCount">0</span> 句</span><span>⏱ <span id="readTime">约0分钟</span></span><span id="editorWords">0</span> 字</div>
       <!-- AI Quick Tools Bar -->
       <div id="aiQuickBar" style="display:flex;gap:6px;padding:6px 24px;border-bottom:1px solid var(--border);background:var(--bg-mid);flex-wrap:wrap">
-        <button class="tool-btn" onclick="aiProofread()" id="aiBtnProof" title="检查错别字、语病">✅ 纠错</button>
-        <button class="tool-btn" onclick="aiAutoTitle()" id="aiBtnTitle" title="根据内容生成标题">🏷️ 自动标题</button>
-        <button class="tool-btn" onclick="aiInspiration()" id="aiBtnInspire" title="根据上下文提供灵感">💡 实时灵感</button>
-        <button class="tool-btn" onclick="aiResearch()" id="aiBtnResearch" title="搜索相关资料和知识">🔍 资料搜索</button>
+        <button class="tool-btn" onclick="aiProofread()" id="aiBtnProof" title="检查错别字、语病">✓ 纠错</button>
+        <button class="tool-btn" onclick="aiAutoTitle()" id="aiBtnTitle" title="根据内容生成标题">¶ 自动标题</button>
+        <button class="tool-btn" onclick="aiInspiration()" id="aiBtnInspire" title="根据上下文提供灵感">◇ 实时灵感</button>
+        <button class="tool-btn" onclick="aiResearch()" id="aiBtnResearch" title="搜索相关资料和知识">⊕ 资料搜索</button>
+        <button class="tool-btn" onclick="aiHumanize()" id="aiBtnHumanize" title="降低AI检测率，让文字更像人写的">▷ 降AI率</button>
       </div>
       <!-- AI Result Inline Panel (for quick tools) -->
       <div id="aiQuickResult" style="display:none;border-bottom:1px solid var(--border);background:var(--bg-panel);padding:12px 24px;max-height:280px;overflow-y:auto">
@@ -296,11 +297,11 @@ body.light #lockScreen{background-image:radial-gradient(ellipse 60% 60% at 50% 4
   <!-- Mobile Bottom Nav -->
   <nav class="bottom-nav" id="bottomNav">
     <div class="bottom-nav-items">
-      <button class="btab on" onclick="swMobileTab('editor',this)"><span>✏️</span>编辑</button>
-      <button class="btab" onclick="swMobileTab('outline',this)"><span>📋</span>大纲</button>
-      <button class="btab" onclick="swMobileTab('chapters',this)"><span>📖</span>章节</button>
-      <button class="btab" onclick="swMobileTab('chars',this)"><span>👤</span>人物</button>
-      <button class="btab" onclick="swMobileTab('ai',this)"><span>🤖</span>AI</button>
+      <button class="btab on" onclick="swMobileTab('editor',this)"><span>✎</span>编辑</button>
+      <button class="btab" onclick="swMobileTab('outline',this)"><span>☰</span>大纲</button>
+      <button class="btab" onclick="swMobileTab('chapters',this)"><span>▤</span>章节</button>
+      <button class="btab" onclick="swMobileTab('chars',this)"><span>◉</span>人物</button>
+      <button class="btab" onclick="swMobileTab('ai',this)"><span>⚡</span>AI</button>
     </div>
   </nav>
 </div>
@@ -449,13 +450,13 @@ function exportProject(){if(!S.proj)return showToast('❌','请先选择项目')
 async function importProject(e){const f=e.target.files[0];if(!f)return;try{const t=await f.text(),d=JSON.parse(t);if(!d.project)return showToast('❌','无效文件');const now=Date.now(),id=await dbPut('projects',{...d.project,created_at:d.project.created_at||now,updated_at:now});if(d.outlines)for(const o of d.outlines)await dbPut('outlines',{...o,project_id:id});if(d.characters)for(const c of d.characters)await dbPut('characters',{...c,project_id:id});if(d.chapters)for(const c of d.chapters)await dbPut('chapters',{...c,project_id:id});await loadProjects();await loadProject(id);showToast('📥','导入成功');}catch(err){showToast('❌',err.message);}e.target.value='';}
 
 // ═══ Outlines ═══
-function renderOutlineList(){if(!S.proj)return;const el=document.getElementById('outlineList');if(!S.proj.outlines.length){el.innerHTML='<div style="text-align:center;padding:20px;color:var(--text-hint);font-size:12px">暂无大纲</div>';return;}el.innerHTML=S.proj.outlines.map(o=>'<div class="outline-item'+(S.active&&S.active.type==='outline'&&S.active.id===o.id?' active':'')+'" onclick="loadOutlineContent('+o.id+')"><span class="oi-icon">📋</span><span class="oi-text">'+o.title+'</span><span class="oi-count">'+(o.content?countWords(o.content):0)+'字</span><button class="oi-del" onclick="event.stopPropagation();delOutline('+o.id+')">✕</button></div>').join('');}
+function renderOutlineList(){if(!S.proj)return;const el=document.getElementById('outlineList');if(!S.proj.outlines.length){el.innerHTML='<div style="text-align:center;padding:20px;color:var(--text-hint);font-size:12px">暂无大纲</div>';return;}el.innerHTML=S.proj.outlines.map(o=>'<div class="outline-item'+(S.active&&S.active.type==='outline'&&S.active.id===o.id?' active':'')+'" onclick="loadOutlineContent('+o.id+')"><span class="oi-icon">☰</span><span class="oi-text">'+o.title+'</span><span class="oi-count">'+(o.content?countWords(o.content):0)+'字</span><button class="oi-del" onclick="event.stopPropagation();delOutline('+o.id+')">✕</button></div>').join('');}
 async function addOutline(){if(!S.proj)return showToast('❌','请先选择项目');const now=Date.now(),id=await dbPut('outlines',{project_id:S.proj.project.id,title:'新大纲',content:'',sort_order:S.proj.outlines.length,created_at:now});S.proj.outlines.push({id,project_id:S.proj.project.id,title:'新大纲',content:'',sort_order:S.proj.outlines.length});renderOutlineList();showToast('✓','已添加');}
 function loadOutlineContent(id){const o=S.proj.outlines.find(x=>x.id===id);if(!o)return;S.active={type:'outline',id,data:o};document.getElementById('chapterTitle').value=o.title;document.getElementById('mainEditor').value=o.content||'';onEditorInput();renderOutlineList();}
 async function delOutline(id){if(!confirm('确定删除？'))return;await dbDel('outlines',id);S.proj.outlines=S.proj.outlines.filter(x=>x.id!==id);if(S.active&&S.active.id===id)S.active=null;renderOutlineList();showToast('🗑️','已删除');}
 
 // ═══ Chapters ═══
-function renderChapterList(){if(!S.proj)return;const el=document.getElementById('chapterList');if(!S.proj.chapters.length){el.innerHTML='<div style="text-align:center;padding:20px;color:var(--text-hint);font-size:12px">暂无章节</div>';return;}el.innerHTML=S.proj.chapters.map(c=>'<div class="outline-item'+(S.active&&S.active.type==='chapter'&&S.active.id===c.id?' active':'')+'" onclick="loadChapterContent('+c.id+')"><span class="oi-icon">📖</span><span class="oi-text">'+c.title+'</span><span class="oi-count">'+(c.word_count||0)+'字</span><button class="oi-del" onclick="event.stopPropagation();delChapter('+c.id+')">✕</button></div>').join('');}
+function renderChapterList(){if(!S.proj)return;const el=document.getElementById('chapterList');if(!S.proj.chapters.length){el.innerHTML='<div style="text-align:center;padding:20px;color:var(--text-hint);font-size:12px">暂无章节</div>';return;}el.innerHTML=S.proj.chapters.map(c=>'<div class="outline-item'+(S.active&&S.active.type==='chapter'&&S.active.id===c.id?' active':'')+'" onclick="loadChapterContent('+c.id+')"><span class="oi-icon">▤</span><span class="oi-text">'+c.title+'</span><span class="oi-count">'+(c.word_count||0)+'字</span><button class="oi-del" onclick="event.stopPropagation();delChapter('+c.id+')">✕</button></div>').join('');}
 async function addChapter(){if(!S.proj)return showToast('❌','请先选择项目');const now=Date.now(),id=await dbPut('chapters',{project_id:S.proj.project.id,title:'新章节',content:'',word_count:0,sort_order:S.proj.chapters.length,created_at:now,updated_at:now});S.proj.chapters.push({id,project_id:S.proj.project.id,title:'新章节',content:'',word_count:0});renderChapterList();showToast('✓','已添加');}
 function loadChapterContent(id){const c=S.proj.chapters.find(x=>x.id===id);if(!c)return;S.active={type:'chapter',id,data:c};document.getElementById('chapterTitle').value=c.title;document.getElementById('mainEditor').value=c.content||'';onEditorInput();renderChapterList();}
 async function delChapter(id){if(!confirm('确定删除？'))return;await dbDel('chapters',id);S.proj.chapters=S.proj.chapters.filter(x=>x.id!==id);if(S.active&&S.active.id===id)S.active=null;renderChapterList();showToast('🗑️','已删除');}
@@ -471,7 +472,7 @@ async function delChar(id){if(!confirm('确定删除？'))return;await dbDel('ch
 async function saveDoc(){if(!S.active||!S.proj)return;const text=document.getElementById('mainEditor').value,title=document.getElementById('chapterTitle').value;if(S.active.type==='outline'){const o=S.proj.outlines.find(x=>x.id===S.active.id);if(o){o.title=title;o.content=text;await dbPut('outlines',{...o,title,content:text});renderOutlineList();}}else if(S.active.type==='chapter'){const c=S.proj.chapters.find(x=>x.id===S.active.id);if(c){c.title=title;c.content=text;c.word_count=countWords(text);c.updated_at=Date.now();await dbPut('chapters',{...c,title,content:text,word_count:countWords(text),updated_at:Date.now()});renderChapterList();}}S.proj.project.updated_at=Date.now();await dbPut('projects',S.proj.project);S.unsaved=false;document.getElementById('saveBtn').classList.remove('unsaved');showToast('💾','已保存');}
 
 // ═══ AI Modes ═══
-const AI_MODES={'润色':{icon:'✨',group:'基础',p:'请对以下文字进行润色，提升语言的流畅度、文学性和表达力，保持原意和风格：'},'扩写':{icon:'📈',group:'基础',p:'请对以下文字进行扩写，增加细节描写、画面感和情感层次：'},'缩写':{icon:'📉',group:'基础',p:'请对以下文字进行精炼缩写，保留核心内容，简洁有力：'},'改写':{icon:'🔄',group:'基础',p:'请用不同的表达方式改写以下文字，保持核心意思：'},'续写':{icon:'➡️',group:'基础',p:'请根据以下内容自然地续写下文，保持风格和情节逻辑：'},'补写':{icon:'🧩',group:'基础',p:'请为以下内容填补缺失的过渡或细节部分：'},'对话':{icon:'💬',group:'描写',p:'请为以下场景创作自然生动的对话，符合人物性格：'},'心理':{icon:'🧠',group:'描写',p:'请为以下内容增加细腻的人物心理描写：'},'环境':{icon:'🌿',group:'描写',p:'请为以下内容增加生动的环境和氛围描写：'},'战斗':{icon:'⚔️',group:'描写',p:'请将以下内容改写为紧张刺激的战斗场景描写：'},'古风':{icon:'🏮',group:'风格',p:'请将以下内容改写为古典文学风格：'},'现代':{icon:'🏙️',group:'风格',p:'请将以下内容改写为现代白话文风格：'},'幽默':{icon:'😂',group:'风格',p:'请将以下内容改写得轻松幽默：'},'悬疑':{icon:'🔍',group:'风格',p:'请将以下内容改写为悬疑神秘风格：'},'唯美':{icon:'🌸',group:'风格',p:'请将以下内容改写为唯美诗意风格：'},'霸气':{icon:'👑',group:'风格',p:'请将以下内容改写为霸气豪迈风格：'},'分析':{icon:'📊',group:'分析',p:'请分析以下文字的结构、节奏和表达问题：'},'校对':{icon:'✅',group:'分析',p:'请检查以下文字的错别字、语病和标点错误：'},'节奏':{icon:'🎵',group:'分析',p:'请分析以下文字的叙事节奏：'},'情感':{icon:'❤️',group:'分析',p:'请分析以下文字的情感层次和情绪弧度：'},'大纲':{icon:'📋',group:'创作',p:'请根据以下信息生成详细的故事大纲：'},'人物':{icon:'👤',group:'创作',p:'请根据以下信息生成详细的人物档案：'},'伏笔':{icon:'🪡',group:'创作',p:'请为以下故事设计3-5个巧妙的伏笔：'},'转折':{icon:'🔀',group:'创作',p:'请为以下故事情节设计2-3个出乎意料的转折：'},'结局':{icon:'🏁',group:'创作',p:'请为以下故事提供3种不同风格的结局：'},'翻译':{icon:'🌐',group:'工具',p:'请将以下中文内容翻译为英文：'},'总结':{icon:'📝',group:'工具',p:'请为以下内容生成简洁摘要：'},'标题':{icon:'🏷️',group:'工具',p:'请为以下内容生成5个吸引人的标题：'}};
+const AI_MODES={'润色':{icon:'✨',group:'基础',p:'请对以下文字进行润色，提升语言的流畅度、文学性和表达力，保持原意和风格：'},'扩写':{icon:'📈',group:'基础',p:'请对以下文字进行扩写，增加细节描写、画面感和情感层次：'},'缩写':{icon:'📉',group:'基础',p:'请对以下文字进行精炼缩写，保留核心内容，简洁有力：'},'改写':{icon:'🔄',group:'基础',p:'请用不同的表达方式改写以下文字，保持核心意思：'},'续写':{icon:'➡️',group:'基础',p:'请根据以下内容自然地续写下文，保持风格和情节逻辑：'},'补写':{icon:'🧩',group:'基础',p:'请为以下内容填补缺失的过渡或细节部分：'},'对话':{icon:'💬',group:'描写',p:'请为以下场景创作自然生动的对话，符合人物性格：'},'心理':{icon:'🧠',group:'描写',p:'请为以下内容增加细腻的人物心理描写：'},'环境':{icon:'🌿',group:'描写',p:'请为以下内容增加生动的环境和氛围描写：'},'战斗':{icon:'⚔️',group:'描写',p:'请将以下内容改写为紧张刺激的战斗场景描写：'},'古风':{icon:'🏮',group:'风格',p:'请将以下内容改写为古典文学风格：'},'现代':{icon:'🏙️',group:'风格',p:'请将以下内容改写为现代白话文风格：'},'幽默':{icon:'😂',group:'风格',p:'请将以下内容改写得轻松幽默：'},'悬疑':{icon:'🔍',group:'风格',p:'请将以下内容改写为悬疑神秘风格：'},'唯美':{icon:'🌸',group:'风格',p:'请将以下内容改写为唯美诗意风格：'},'霸气':{icon:'👑',group:'风格',p:'请将以下内容改写为霸气豪迈风格：'},'分析':{icon:'📊',group:'分析',p:'请分析以下文字的结构、节奏和表达问题：'},'校对':{icon:'✅',group:'分析',p:'请检查以下文字的错别字、语病和标点错误：'},'节奏':{icon:'🎵',group:'分析',p:'请分析以下文字的叙事节奏：'},'情感':{icon:'❤️',group:'分析',p:'请分析以下文字的情感层次和情绪弧度：'},'大纲':{icon:'📋',group:'创作',p:'请根据以下信息生成详细的故事大纲：'},'人物':{icon:'👤',group:'创作',p:'请根据以下信息生成详细的人物档案：'},'伏笔':{icon:'🪡',group:'创作',p:'请为以下故事设计3-5个巧妙的伏笔：'},'转折':{icon:'🔀',group:'创作',p:'请为以下故事情节设计2-3个出乎意料的转折：'},'结局':{icon:'🏁',group:'创作',p:'请为以下故事提供3种不同风格的结局：'},'翻译':{icon:'🌐',group:'工具',p:'请将以下中文内容翻译为英文：'},'总结':{icon:'📝',group:'工具',p:'请为以下内容生成简洁摘要：'},'标题':{icon:'🏷️',group:'工具',p:'请为以下内容生成5个吸引人的标题：'},'降AI':{icon:'🛡️',group:'工具',p:'请将以下AI生成的文字重写为自然的人类写作风格。要求：1.使用口语化、不规则的句式 2.加入个人化的表达和语气词 3.偶尔使用短句或碎片化表达 4.避免完美排比和过度修饰 5.添加一些即兴感和不完美感 6.保持核心意思不变 7.让文字读起来像真人随手写的，而不是AI精心构造的。输出重写后的全文：'}};
 function renderAiModeGrid(){const el=document.getElementById('aiModeGrid'),g={};for(const[k,v]of Object.entries(AI_MODES)){if(!g[v.group])g[v.group]=[];g[v.group].push(k);}let h='';for(const[label,keys]of Object.entries(g)){h+='<div class="mode-group"><div class="mode-group-title">'+label+'</div><div class="mode-grid">';for(const k of keys)h+='<button class="mode-btn'+(S.aiMode===k?' selected':'')+'" onclick="selectMode(this,\''+k+'\')"><span class="micon">'+AI_MODES[k].icon+'</span>'+k+'</button>';h+='</div></div>';}el.innerHTML=h;}
 function selectMode(btn,m){document.querySelectorAll('.mode-btn').forEach(b=>b.classList.remove('selected'));btn.classList.add('selected');S.aiMode=m;}
 function setTemp(v,btn){btn.parentElement.querySelectorAll('.seg-btn').forEach(b=>b.classList.remove('on'));btn.classList.add('on');S.aiTemp=v;}
@@ -549,7 +550,7 @@ let aiQuickLastResult='',aiQuickMode='';
 function aiCheckApi(){const ac=S.apiConfig;if(!ac.key){showToast('⚙️','请先配置 API');openModal('apiModal');return false;}return true;}
 function showAiQuickResult(title,text,mode){aiQuickLastResult=text;aiQuickMode=mode;document.getElementById('aiQuickResultTitle').textContent=title;document.getElementById('aiQuickResultText').textContent=text;document.getElementById('aiQuickResult').style.display='block';}
 function closeAiQuickResult(){document.getElementById('aiQuickResult').style.display='none';aiQuickLastResult='';aiQuickMode='';}
-function aiQuickApply(){if(!aiQuickLastResult)return;if(aiQuickMode==='title'){document.getElementById('chapterTitle').value=aiQuickLastResult;S.unsaved=true;showToast('✓','标题已应用');closeAiQuickResult();return;}const ed=document.getElementById('mainEditor');if(aiQuickMode==='proofread'){ed.value=aiQuickLastResult;onEditorInput();showToast('✓','纠错已应用');}else if(aiQuickMode==='inspire'){const pos=ed.selectionStart;ed.value=ed.value.slice(0,pos)+'\n\n'+aiQuickLastResult+'\n'+ed.value.slice(pos);onEditorInput();showToast('✓','灵感已插入');}closeAiQuickResult();}
+function aiQuickApply(){if(!aiQuickLastResult)return;if(aiQuickMode==='title'){document.getElementById('chapterTitle').value=aiQuickLastResult;S.unsaved=true;showToast('✓','标题已应用');closeAiQuickResult();return;}const ed=document.getElementById('mainEditor');if(aiQuickMode==='proofread'||aiQuickMode==='humanize'){ed.value=aiQuickLastResult;onEditorInput();showToast('✓',aiQuickMode==='humanize'?'降AI已应用':'纠错已应用');}else if(aiQuickMode==='inspire'){const pos=ed.selectionStart;ed.value=ed.value.slice(0,pos)+'\n\n'+aiQuickLastResult+'\n'+ed.value.slice(pos);onEditorInput();showToast('✓','灵感已插入');}closeAiQuickResult();}
 function aiQuickCopy(){if(!aiQuickLastResult)return;navigator.clipboard.writeText(aiQuickLastResult).then(()=>showToast('✓','已复制')).catch(()=>showToast('❌','复制失败'));}
 function setLoading(btnId,loading){const b=document.getElementById(btnId);if(b){if(loading){b.disabled=true;b.dataset.origText=b.textContent;b.textContent='⏳ ...';}else{b.disabled=false;b.textContent=b.dataset.origText||b.textContent;}}}
 
@@ -628,6 +629,23 @@ async function aiResearch(){
   setLoading('aiBtnResearch',false);
 }
 
+async function aiHumanize(){
+  if(!aiCheckApi())return;
+  const ed=document.getElementById('mainEditor');
+  const selected=ed.value.slice(ed.selectionStart,ed.selectionEnd).trim();
+  const text=selected||ed.value.trim();
+  if(!text){showToast('✍️','请先输入内容');return;}
+  setLoading('aiBtnHumanize',true);
+  try{
+    const ctx=S.proj?buildCtx()+'\n\n':'';
+    const prompt='你是一位资深的中文作家。请将以下文字重写为自然的人类写作风格，降低AI检测率。具体要求：\n\n1. 使用口语化、不规则的句式，加入个人语气\n2. 偶尔用短句或碎片化表达打破完美节奏\n3. 避免过度排比、对仗和华丽辞藻堆砌\n4. 添加一些即兴感、犹豫感、口语化表达\n5. 可以适当加入"其实""说实话""怎么说呢"这类口语词\n6. 句子长短不一，有快有慢\n7. 保持核心内容和情节不变\n8. 输出的必须是完整的重写后全文，不要输出分析和说明\n\n'+ctx+'原文：\n'+text;
+    const result=await callAI(prompt,S.apiConfig);
+    showAiQuickResult('🛡️ 降AI率结果 — 点击"应用"替换原文',result,'humanize');
+    aiQuickLastResult=result;aiQuickMode='humanize';
+  }catch(e){showToast('❌',e.message||'处理失败');}
+  setLoading('aiBtnHumanize',false);
+}
+
 // ═══ Toast ═══
 let toastTimer;function showToast(i,m){document.getElementById('toastIcon').textContent=i;document.getElementById('toastMsg').textContent=m;const t=document.getElementById('toast');t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),2200);}
 </script>
@@ -645,8 +663,8 @@ function swMobileTab(tab,btn){
     if(tab==='outline')renderMpOutline();if(tab==='chapters')renderMpChapter();if(tab==='chars')renderMpChar();if(tab==='ai')renderMpAi();}
 }
 function backToEditor(){const btn=document.querySelector('#bottomNav .btab');if(btn)swMobileTab('editor',btn);}
-function renderMpOutline(){if(!S.proj)return;const el=document.getElementById('mpOutlineList');if(!S.proj.outlines.length){el.innerHTML='<div style="text-align:center;padding:40px;color:var(--text-hint)">暂无大纲</div>';return;}el.innerHTML=S.proj.outlines.map(o=>'<div class="outline-item'+(S.active&&S.active.type==='outline'&&S.active.id===o.id?' active':'')+'" onclick="loadOutlineContent('+o.id+');backToEditor()"><span class="oi-icon">📋</span><span class="oi-text">'+o.title+'</span><span class="oi-count">'+(o.content?countWords(o.content):0)+'字</span></div>').join('');}
-function renderMpChapter(){if(!S.proj)return;const el=document.getElementById('mpChapterList');if(!S.proj.chapters.length){el.innerHTML='<div style="text-align:center;padding:40px;color:var(--text-hint)">暂无章节</div>';return;}el.innerHTML=S.proj.chapters.map(c=>'<div class="outline-item'+(S.active&&S.active.type==='chapter'&&S.active.id===c.id?' active':'')+'" onclick="loadChapterContent('+c.id+');backToEditor()"><span class="oi-icon">📖</span><span class="oi-text">'+c.title+'</span><span class="oi-count">'+(c.word_count||0)+'字</span></div>').join('');}
+function renderMpOutline(){if(!S.proj)return;const el=document.getElementById('mpOutlineList');if(!S.proj.outlines.length){el.innerHTML='<div style="text-align:center;padding:40px;color:var(--text-hint)">暂无大纲</div>';return;}el.innerHTML=S.proj.outlines.map(o=>'<div class="outline-item'+(S.active&&S.active.type==='outline'&&S.active.id===o.id?' active':'')+'" onclick="loadOutlineContent('+o.id+');backToEditor()"><span class="oi-icon">☰</span><span class="oi-text">'+o.title+'</span><span class="oi-count">'+(o.content?countWords(o.content):0)+'字</span></div>').join('');}
+function renderMpChapter(){if(!S.proj)return;const el=document.getElementById('mpChapterList');if(!S.proj.chapters.length){el.innerHTML='<div style="text-align:center;padding:40px;color:var(--text-hint)">暂无章节</div>';return;}el.innerHTML=S.proj.chapters.map(c=>'<div class="outline-item'+(S.active&&S.active.type==='chapter'&&S.active.id===c.id?' active':'')+'" onclick="loadChapterContent('+c.id+');backToEditor()"><span class="oi-icon">▤</span><span class="oi-text">'+c.title+'</span><span class="oi-count">'+(c.word_count||0)+'字</span></div>').join('');}
 function renderMpChar(){if(!S.proj)return;const el=document.getElementById('mpCharList');if(!S.proj.characters.length){el.innerHTML='<div style="text-align:center;padding:40px;color:var(--text-hint)">暂无人物</div>';return;}el.innerHTML=S.proj.characters.map(c=>'<div class="char-card" onclick="loadCharContent('+c.id+');backToEditor()"><div class="char-name">'+c.name+'</div><span class="char-role">'+c.role+'</span><div class="char-desc">'+(c.personality||'暂无简介')+'</div></div>').join('');}
 function renderMpAi(){const el=document.getElementById('mpAiModeGrid');if(!el||el.children.length>0)return;const g={};for(const[k,v]of Object.entries(AI_MODES)){if(!g[v.group])g[v.group]=[];g[v.group].push(k);}let h='';for(const[label,keys]of Object.entries(g)){h+='<div class="mode-group"><div class="mode-group-title">'+label+'</div><div class="mode-grid">';for(const k of keys)h+='<button class="mode-btn'+(S.aiMode===k?' selected':'')+'" onclick="selectMode(this,\''+k+'\')"><span class="micon">'+AI_MODES[k].icon+'</span>'+k+'</button>';h+='</div></div>';}el.innerHTML=h;}
 async function doGenerateMobile(){const ac=S.apiConfig;if(!ac.key){showToast('⚙️','请先配置 API');openModal('apiModal');return;}const ed=document.getElementById('mainEditor'),content=ed.value.slice(-1000)||'';const extra=document.getElementById('mpAiPrompt')?.value.trim()||'';if(!content&&!extra){showToast('✍️','请先输入内容');return;}const lm={short:'100字以内',mid:'200-300字',long:'400-600字',xl:'800字以上'},tm={low:'保持严谨',mid:'适度创意',high:'大胆想象'};const md=AI_MODES[S.aiMode]||{p:'请处理以下内容：'};let prompt=md.p+'\n\n'+content+'\n\n【输出要求】'+lm[S.aiLen]+'。'+tm[S.aiTemp]+'。';if(S.proj)prompt+='\n\n【项目信息】\n'+buildCtx();if(extra)prompt+='\n\n【额外指令】'+extra;const btn=document.getElementById('mpGenerateBtn');btn.classList.add('loading');btn.textContent='生成中...';try{const r=await callAI(prompt,ac);S.lastArpResult=r;document.getElementById('arpText').textContent=r;document.getElementById('arpMode').textContent=S.aiMode;document.getElementById('aiResultPopup').classList.add('show');addHistory(S.aiMode,r);}catch(e){showToast('❌',e.message||'失败');}finally{btn.classList.remove('loading');btn.innerHTML='<span>✨</span> 开始生成';}}
