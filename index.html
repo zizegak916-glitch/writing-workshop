@@ -241,10 +241,10 @@ body.light #lockScreen{background-image:radial-gradient(ellipse 60% 60% at 50% 4
   <div class="lock-box">
     <div class="lock-icon">🔐</div>
     <div class="lock-title">AI 写作工坊</div>
-    <div class="lock-sub" id="lockSub">首次使用请设置密码</div>
-    <input class="lock-input" id="lockInput" type="password" placeholder="输入密码...">
+    <div class="lock-sub" id="lockSub" data-i18n="lock-set">首次使用请设置密码</div>
+    <input class="lock-input" id="lockInput" type="password" data-i18n-ph="lock-placeholder" placeholder="输入密码...">
     <div class="lock-hint" id="lockHint"></div>
-    <button class="btn-primary" id="lockBtn" onclick="handleLock()">设置密码</button>
+    <button class="btn-primary" id="lockBtn" onclick="handleLock()" data-i18n="lock-btn-set">设置密码</button>
   </div>
 </div>
 <!-- MAIN APP -->
@@ -260,7 +260,7 @@ body.light #lockScreen{background-image:radial-gradient(ellipse 60% 60% at 50% 4
     </div>
     <div class="topbar-actions">
       <button class="icon-btn" onclick="openModal('newProjectModal')" title="新建">＋</button>
-      <button class="icon-btn" onclick="openModal('settingsModal')" title="设置"><svg class="ic ic-sm"><use href="#ic-settings"/></svg></button>
+      <button class="icon-btn" onclick="openModal('settingsModal')" data-i18n-title="tb-settings" title="设置"><svg class="ic ic-sm"><use href="#ic-settings"/></svg></button>
       <button class="icon-btn" onclick="exportProject()" title="导出"><svg class="ic ic-sm"><use href="#ic-download"/></svg></button>
       <button class="icon-btn" id="saveBtn" onclick="saveDoc()" title="保存"><svg class="ic ic-sm"><use href="#ic-save"/></svg><span class="save-badge"></span></button>
       <button class="icon-btn" onclick="openModal('profileModal')" title="个人中心"><svg class="ic ic-sm"><use href="#ic-user"/></svg></button>
@@ -291,8 +291,8 @@ body.light #lockScreen{background-image:radial-gradient(ellipse 60% 60% at 50% 4
         <div class="toolbar-sep"></div>
         <div class="toolbar-group"><button class="tool-btn" onclick="exportText()"><svg class="ic ic-sm"><use href="#ic-download"/></svg> 导出</button><button class="tool-btn active" id="autoSaveToggle" onclick="toggleAutoSave()"><svg class="ic ic-sm"><use href="#ic-zap"/></svg> 自动保存</button></div>
       </div>
-      <div class="chapter-title-bar"><input class="chapter-title-input" id="chapterTitle" placeholder="章节标题..." oninput="S.unsaved=true"></div>
-      <div class="chapter-meta"><span><span id="paraCount">1</span> 段</span><span><span id="sentCount">0</span> 句</span><span><span id="readTime">约0分钟</span></span><span id="editorWords">0</span> 字</div>
+      <div class="chapter-title-bar"><input class="chapter-title-input" id="chapterTitle" data-i18n-ph="ed-chapter" placeholder="章节标题..." oninput="S.unsaved=true"></div>
+      <div class="chapter-meta"><span><span id="paraCount">1</span> <span data-i18n="ed-para">段</span></span><span><span id="sentCount">0</span> <span data-i18n="ed-sent">句</span></span><span id="readTimeWrap"><span id="readTime">0</span> <span data-i18n="ed-min">分钟</span></span><span id="editorWords">0</span> <span data-i18n="ed-words">字</span></div>
       <!-- AI Quick Tools Bar -->
       <div id="aiQuickBar" style="display:flex;gap:6px;padding:6px 24px;border-bottom:1px solid var(--border);background:var(--bg-mid);flex-wrap:wrap">
         <button class="tool-btn" onclick="aiProofread()" id="aiBtnProof" title="检查错别字、语病"><svg class="ic ic-sm"><use href="#ic-check"/></svg> 纠错</button>
@@ -316,7 +316,7 @@ body.light #lockScreen{background-image:radial-gradient(ellipse 60% 60% at 50% 4
       </div>
       <div class="editor-wrap" id="editorWrap"><textarea id="mainEditor" placeholder="开始写作..."></textarea></div>
       <div id="previewPane" style="display:none;flex:1;overflow-y:auto;padding:16px 24px;font-family:var(--font-serif);font-size:16px;line-height:1.9;color:var(--text-primary)"></div>
-      <div class="bottom-bar"><div class="wc-info"><div class="wc-item">总字数: <strong id="totalWordsBar">0</strong></div><div class="wc-item">段落: <strong id="paraCountBar">1</strong></div></div><div class="goal-bar-wrap"><div class="goal-track"><div class="goal-fill" id="goalFill"></div></div><div class="wc-item" id="goalTextBar">0/2000</div></div></div>
+      <div class="bottom-bar"><div class="wc-info"><div class="wc-item"><span data-i18n="bb-total">总字数:</span> <strong id="totalWordsBar">0</strong></div><div class="wc-item"><span data-i18n="bb-para">段落:</span> <strong id="paraCountBar">1</strong></div></div><div class="goal-bar-wrap"><div class="goal-track"><div class="goal-fill" id="goalFill"></div></div><div class="wc-item" id="goalTextBar">0/2000</div></div></div>
     </div>
     <div class="ai-panel">
       <div class="ai-panel-header">
@@ -387,7 +387,7 @@ body.light #lockScreen{background-image:radial-gradient(ellipse 60% 60% at 50% 4
   <div class="modal-footer"><button class="btn-cancel" onclick="closeModal('projectModal')">关闭</button><button class="btn-confirm" onclick="closeModal('projectModal');openModal('newProjectModal')">＋ 新建</button></div>
 </div></div>
 <div class="modal-overlay" id="apiModal"><div class="modal">
-  <div class="modal-title">⚙️ API 设置</div><div class="modal-sub">配置 AI 服务商，API Key 仅存本地</div>
+  <div class="modal-title" data-i18n="mod-api">⚙️ API 设置</div><div class="modal-sub" data-i18n="mod-api-sub">配置 AI 服务商，API Key 仅存本地</div>
   <div class="form-row"><div class="form-label">选择服务商</div><div class="provider-grid" id="providerGrid">
     <div class="provider-chip on" onclick="selectProvider(this,'claude')">🤖 Claude</div>
     <div class="provider-chip" onclick="selectProvider(this,'openai')">⚡ OpenAI</div>
@@ -406,7 +406,7 @@ body.light #lockScreen{background-image:radial-gradient(ellipse 60% 60% at 50% 4
   <div class="modal-footer"><button class="btn-cancel" onclick="closeModal('apiModal')">取消</button><button class="btn-confirm" onclick="saveApi()">保存 ✓</button></div>
 </div></div>
 <div class="modal-overlay" id="settingsModal"><div class="modal" style="width:min(520px,94vw)">
-  <div class="modal-title">⚙️ 设置</div><div class="modal-sub">语言、API 和主题设置</div>
+  <div class="modal-title" data-i18n="mod-settings">⚙️ 设置</div><div class="modal-sub" data-i18n="mod-settings-sub">语言、API 和主题设置</div>
   <div class="settings-tabs">
     <button class="settings-tab active" onclick="openSettingsTab('lang',this)">语言/Language</button>
     <button class="settings-tab" onclick="openSettingsTab('api',this)">API</button>
@@ -455,7 +455,7 @@ body.light #lockScreen{background-image:radial-gradient(ellipse 60% 60% at 50% 4
       </div>
     </div>
   </div>
-  <div class="modal-footer"><button class="btn-cancel" onclick="closeModal('settingsModal')">关闭</button><button class="btn-confirm" onclick="saveSettings()">保存 ✓</button></div>
+  <div class="modal-footer"><button class="btn-cancel" onclick="closeModal('settingsModal')" data-i18n="mod-close">关闭</button><button class="btn-confirm" onclick="saveSettings()" data-i18n="mod-save">保存 ✓</button></div>
 </div></div>
 <div class="modal-overlay" id="charModal"><div class="modal">
   <div class="modal-title" id="charModalTitle">👤 添加人物</div><div class="modal-sub">建立人物档案</div>
@@ -505,13 +505,13 @@ const S={proj:null,active:null,editCharId:null,aiMode:'润色',aiTemp:'mid',aiLe
 async function sha256(t){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(t));return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join('');}
 
 // ═══ Lock ═══
-async function handleLock(){const v=document.getElementById('lockInput').value.trim();if(!v||v.length<4){showToast('❌','密码至少4位');return;}const h=localStorage.getItem('ww_pwd_hash');if(!h){localStorage.setItem('ww_pwd_hash',await sha256(v));showToast('✓','密码设置成功');showApp();}else{if(await sha256(v)===h){showApp();}else{showToast('❌','密码错误');document.getElementById('lockInput').value='';}}}
+async function handleLock(){const v=document.getElementById('lockInput').value.trim();if(!v||v.length<4){showToast('❌',t('toast-pwd-short'));return;}const h=localStorage.getItem('ww_pwd_hash');if(!h){localStorage.setItem('ww_pwd_hash',await sha256(v));showToast('✓',t('toast-locked'));showApp();}else{if(await sha256(v)===h){showApp();}else{showToast('❌',t('toast-pwd-err'));document.getElementById('lockInput').value='';}}}
 function showApp(){document.getElementById('lockScreen').style.display='none';document.getElementById('app').classList.add('visible');if(!db)initApp();}
 function clearPwd(){if(confirm('确定重置？将清除所有数据。')){localStorage.clear();indexedDB.deleteDatabase(DB_NAME);location.reload();}}
 function lockApp(){document.getElementById('lockScreen').style.display='flex';document.getElementById('app').classList.remove('visible');document.getElementById('lockInput').value='';}
 
 // Boot: show lock only if no password set yet
-(function(){document.getElementById('lockInput').addEventListener('keydown',e=>{if(e.key==='Enter')handleLock();});if(!localStorage.getItem('ww_pwd_hash')){document.getElementById('lockScreen').style.display='flex';document.getElementById('lockSub').textContent='首次使用请设置密码';document.getElementById('lockBtn').textContent='设置密码';document.getElementById('lockHint').innerHTML='';}else{showApp();}})();
+(function(){document.getElementById('lockInput').addEventListener('keydown',e=>{if(e.key==='Enter')handleLock();});if(!localStorage.getItem('ww_pwd_hash')){document.getElementById('lockScreen').style.display='flex';document.getElementById('lockSub').textContent=t('lock-set');document.getElementById('lockBtn').textContent=t('lock-btn-set');document.getElementById('lockHint').innerHTML='';}else{showApp();}})();
 
 // ═══ Init ═══
 async function initApp(){await openDB();renderAiModeGrid();renderMultiSlots();await loadProjects();renderHistory();setInterval(()=>{if(S.autoSave&&S.unsaved)saveDoc();},30000);const ed=document.getElementById('mainEditor');ed.addEventListener('input',onEditorInput);ed.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='s'){e.preventDefault();saveDoc();}});document.getElementById('focusEditor').addEventListener('input',()=>{document.getElementById('focusInfo').textContent=countWords(document.getElementById('focusEditor').value)+' 字 · Esc 退出';});document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeFocus();closeAiResult();}});if(S.projects.length>0)await loadProject(S.projects[0].id);updateAllStats();}
@@ -519,7 +519,7 @@ document.addEventListener('DOMContentLoaded',()=>{/* lock handled in IIFE above 
 
 // ═══ Editor ═══
 let editorTimer;
-function onEditorInput(){const t=document.getElementById('mainEditor').value,w=countWords(t);document.getElementById('editorWords').textContent=w;document.getElementById('totalWordsBar').textContent=w;const ps=t.split(/\n\n+/).filter(p=>p.trim()).length||1;document.getElementById('paraCount').textContent=ps;document.getElementById('paraCountBar').textContent=ps;document.getElementById('sentCount').textContent=(t.match(/[。！？.!?]/g)||[]).length;document.getElementById('readTime').textContent='约'+Math.max(1,Math.ceil(w/300))+'分钟';updateGoal();S.unsaved=true;document.getElementById('saveBtn').classList.add('unsaved');clearTimeout(editorTimer);editorTimer=setTimeout(()=>{if(S.autoSave)saveDoc();},3000);if(S.previewMode)document.getElementById('previewPane').innerHTML=renderMD(t);}
+function onEditorInput(){const txt=document.getElementById('mainEditor').value,w=countWords(txt);document.getElementById('editorWords').textContent=w;document.getElementById('totalWordsBar').textContent=w;const ps=txt.split(/\n\n+/).filter(p=>p.trim()).length||1;document.getElementById('paraCount').textContent=ps;document.getElementById('paraCountBar').textContent=ps;document.getElementById('sentCount').textContent=(txt.match(/[。！？.!?]/g)||[]).length;document.getElementById('readTime').textContent=Math.max(1,Math.ceil(w/300));updateGoal();S.unsaved=true;document.getElementById('saveBtn').classList.add('unsaved');clearTimeout(editorTimer);editorTimer=setTimeout(()=>{if(S.autoSave)saveDoc();},3000);if(S.previewMode)document.getElementById('previewPane').innerHTML=renderMD(txt);}
 function countWords(t){return t.replace(/\s/g,'').length;}
 function updateGoal(){const w=countWords(document.getElementById('mainEditor').value),p=Math.min(100,Math.round(w/S.wordGoal*100));document.getElementById('goalFill').style.width=p+'%';document.getElementById('goalText').textContent=w+'/'+S.wordGoal;document.getElementById('goalTextBar').textContent=w+'/'+S.wordGoal;document.getElementById('todayWords').textContent=w;}
 function updateAllStats(){document.getElementById('totalWords').textContent=countWords(document.getElementById('mainEditor').value);updateGoal();}
@@ -749,7 +749,7 @@ zh:{
   'grp-风格':'风格',
   'grp-分析':'分析',
   'grp-创作':'创作',
-  'grp-工具':'工具',
+  'grp-工具':'工具','mod-settings':'⚙️ 设置','mod-settings-sub':'语言、API 和主题设置','mod-close':'关闭','mod-save':'保存 ✓','tb-settings':'设置',
 'ps-units-2':'字',
 },
 en:{
@@ -866,7 +866,7 @@ en:{
   'grp-风格':'Style',
   'grp-分析':'Analyze',
   'grp-创作':'Create',
-  'grp-工具':'Tools',
+  'grp-工具':'Tools','mod-settings':'⚙️ Settings','mod-settings-sub':'Language, API & Theme','mod-close':'Close','mod-save':'Save ✓','tb-settings':'Settings',
 'ps-units-2':'words',
 },
 ja:{
@@ -983,7 +983,7 @@ ja:{
   'grp-风格':'スタイル',
   'grp-分析':'分析',
   'grp-创作':'創作',
-  'grp-工具':'ツール',
+  'grp-工具':'ツール','mod-settings':'⚙️ 設定','mod-settings-sub':'言語、API、テーマ','mod-close':'閉じる','mod-save':'保存 ✓','tb-settings':'設定',
 'ps-units-2':'文字',
 },
 ko:{
@@ -1105,6 +1105,12 @@ function saveSettings(){
 }
 
 function applyLang(){
+  // Universal data-i18n translator
+  document.querySelectorAll('[data-i18n]').forEach(el=>{const k=el.getAttribute('data-i18n');if(LANG[currentLang]?.[k])el.textContent=LANG[currentLang][k];});
+  document.querySelectorAll('[data-i18n-ph]').forEach(el=>{const k=el.getAttribute('data-i18n-ph');if(LANG[currentLang]?.[k])el.placeholder=LANG[currentLang][k];});
+  document.querySelectorAll('[data-i18n-title]').forEach(el=>{const k=el.getAttribute('data-i18n-title');if(LANG[currentLang]?.[k])el.title=LANG[currentLang][k];});
+  document.title=t('logo');
+
   // Sidebar nav tabs
   const navTabs=document.querySelectorAll('.nav-tab');
   const navKeys=['nav-outline','nav-chapters','nav-chars','nav-notes'];
@@ -1554,7 +1560,7 @@ async function doGenerateMobile(){const ac=S.apiConfig;if(!ac.key){showToast('�
   'grp-风格':'스타일',
   'grp-分析':'분석',
   'grp-创作':'창작',
-  'grp-工具':'도구',
+  'grp-工具':'도구','mod-settings':'⚙️ 설정','mod-settings-sub':'언어, API, 테마','mod-close':'닫기','mod-save':'저장 ✓','tb-settings':'설정',
 'ps-units-2':'자',
 },
 fr:{
@@ -1671,7 +1677,7 @@ fr:{
   'grp-风格':'Style',
   'grp-分析':'Analyser',
   'grp-创作':'Créer',
-  'grp-工具':'Outils',
+  'grp-工具':'Outils','mod-settings':'⚙️ Paramètres','mod-settings-sub':'Langue, API & Thème','mod-close':'Fermer','mod-save':'Sauver ✓','tb-settings':'Paramètres',
 'ps-units-2':'mots',
 },
 es:{
@@ -1788,7 +1794,7 @@ es:{
   'grp-风格':'Estilo',
   'grp-分析':'Analizar',
   'grp-创作':'Crear',
-  'grp-工具':'Herramientas',
+  'grp-工具':'Herramientas','mod-settings':'⚙️ Ajustes','mod-settings-sub':'Idioma, API y Tema','mod-close':'Cerrar','mod-save':'Guardar ✓','tb-settings':'Ajustes',
 'ps-units-2':'palabras',
 },
 de:{
@@ -1905,7 +1911,7 @@ de:{
   'grp-风格':'Stil',
   'grp-分析':'Analysieren',
   'grp-创作':'Erstellen',
-  'grp-工具':'Werkzeuge',
+  'grp-工具':'Werkzeuge','mod-settings':'⚙️ Einstellungen','mod-settings-sub':'Sprache, API & Thema','mod-close':'Schließen','mod-save':'Speichern ✓','tb-settings':'Einstellungen',
 'ps-units-2':'Wörter',
 },
 ru:{
@@ -1994,5 +2000,5 @@ ru:{
   'mode-分析':'Анализ','mode-校对':'Корректура','mode-节奏':'Ритм','mode-情感':'Эмоция',
   'mode-大纲':'План','mode-人物':'Персонаж','mode-伏笔':'Предзнаменование','mode-转折':'Поворот','mode-结局':'Финал',
   'mode-翻译':'Перевод','mode-总结':'Резюме','mode-标题':'Заголовки','mode-降AI':'Оживить','mode-查AI':'ИИ-детект',
-  'grp-基础':'Базовые','grp-描写':'Описание','grp-风格':'Стиль','grp-分析':'Анализ','grp-创作':'Создание','grp-工具':'Инструменты',
+  'grp-基础':'Базовые','grp-描写':'Описание','grp-风格':'Стиль','grp-分析':'Анализ','grp-创作':'Создание','grp-工具':'Инструменты','mod-settings':'⚙️ Настройки','mod-settings-sub':'Язык, API и Тема','mod-close':'Закрыть','mod-save':'Сохранить ✓','tb-settings':'Настройки',
 }};
