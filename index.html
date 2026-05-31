@@ -20,6 +20,7 @@ body.light .focus-exit:hover{background:rgba(0,0,0,0.05);color:rgba(0,0,0,0.8)}
 .ic-sm{width:14px;height:14px}
 .nav-tab .ic,.btab .ic{width:18px;height:18px;margin-bottom:2px}
 .mode-btn .ic{width:16px;height:16px}
+.lang-option:hover{background:var(--accent-glow);color:var(--accent)!important}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 body{font-family:var(--font-sans);background:var(--bg-deep);color:var(--text-primary);min-height:100vh;overflow:hidden;font-size:14px}
 #lockScreen{position:fixed;inset:0;background:var(--bg-deep);display:none;align-items:center;justify-content:center;z-index:999;background-image:radial-gradient(ellipse 60% 60% at 50% 40%,rgba(108,155,255,0.06) 0%,transparent 70%)}
@@ -172,7 +173,7 @@ body.light #lockScreen{background-image:radial-gradient(ellipse 60% 60% at 50% 4
 .btab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:10px;color:var(--text-muted);cursor:pointer;border:none;background:none;padding:4px 0;font-family:var(--font-sans);gap:2px}
 .btab.on{color:var(--accent)}.btab span{font-size:18px}
 /* Mobile panels */
-.mobile-panel{display:none;position:absolute;top:0;bottom:0;left:0;right:0;background:var(--bg-mid);z-index:5;overflow-y:auto;padding:12px}
+.mobile-panel{display:none;position:fixed;top:var(--topbar-h);bottom:52px;left:0;right:0;background:var(--bg-mid);z-index:25;overflow-y:auto;padding:12px}
 .mobile-panel.on{display:block}
 /* Mobile AI panel full width */
 @media(max-width:768px){.sidebar{display:none}.ai-panel{width:260px}:root{--ai-panel-w:260px}}
@@ -249,7 +250,19 @@ body.light #lockScreen{background-image:radial-gradient(ellipse 60% 60% at 50% 4
       <button class="icon-btn" onclick="exportProject()" title="导出"><svg class="ic ic-sm"><use href="#ic-download"/></svg></button>
       <button class="icon-btn" id="saveBtn" onclick="saveDoc()" title="保存"><svg class="ic ic-sm"><use href="#ic-save"/></svg><span class="save-badge"></span></button>
       <button class="icon-btn" id="themeBtn" onclick="toggleTheme()" title="切换主题"><svg class="ic ic-sm"><use href="#ic-moon"/></svg></button>
-      <button class="icon-btn" id="langBtn" onclick="toggleLang()" title="Switch Language" style="font-size:11px;font-weight:700;color:var(--accent)">中</button>
+      <div style="position:relative;display:inline-block">
+        <button class="icon-btn" id="langBtn" onclick="toggleLangMenu()" title="Language" style="font-size:11px;font-weight:700;color:var(--accent);min-width:28px">中</button>
+        <div id="langMenu" style="display:none;position:absolute;top:100%;right:0;background:var(--bg-panel);border:1px solid var(--border-light);border-radius:var(--radius);padding:4px 0;z-index:100;min-width:120px;box-shadow:var(--shadow-lg)">
+          <div class="lang-option" onclick="setLang('zh')" style="padding:8px 14px;font-size:13px;cursor:pointer;color:var(--text-secondary);display:flex;align-items:center;gap:8px"><span>🇨🇳</span> 中文</div>
+          <div class="lang-option" onclick="setLang('en')" style="padding:8px 14px;font-size:13px;cursor:pointer;color:var(--text-secondary);display:flex;align-items:center;gap:8px"><span>🇺🇸</span> English</div>
+          <div class="lang-option" onclick="setLang('ja')" style="padding:8px 14px;font-size:13px;cursor:pointer;color:var(--text-secondary);display:flex;align-items:center;gap:8px"><span>🇯🇵</span> 日本語</div>
+          <div class="lang-option" onclick="setLang('ko')" style="padding:8px 14px;font-size:13px;cursor:pointer;color:var(--text-secondary);display:flex;align-items:center;gap:8px"><span>🇰🇷</span> 한국어</div>
+          <div class="lang-option" onclick="setLang('fr')" style="padding:8px 14px;font-size:13px;cursor:pointer;color:var(--text-secondary);display:flex;align-items:center;gap:8px"><span>🇫🇷</span> Français</div>
+          <div class="lang-option" onclick="setLang('es')" style="padding:8px 14px;font-size:13px;cursor:pointer;color:var(--text-secondary);display:flex;align-items:center;gap:8px"><span>🇪🇸</span> Español</div>
+          <div class="lang-option" onclick="setLang('de')" style="padding:8px 14px;font-size:13px;cursor:pointer;color:var(--text-secondary);display:flex;align-items:center;gap:8px"><span>🇩🇪</span> Deutsch</div>
+          <div class="lang-option" onclick="setLang('ru')" style="padding:8px 14px;font-size:13px;cursor:pointer;color:var(--text-secondary);display:flex;align-items:center;gap:8px"><span>🇷🇺</span> Русский</div>
+        </div>
+      </div>
       <button class="icon-btn" onclick="openModal('profileModal')" title="个人中心"><svg class="ic ic-sm"><use href="#ic-user"/></svg></button>
     </div>
   </div>
@@ -770,14 +783,20 @@ ko:{
 let currentLang=localStorage.getItem('ww_lang')||'zh';
 function t(k){return LANG[currentLang]?.[k]||LANG['zh']?.[k]||k;}
 
-const LANGS=['zh','en','ja','ko'];
-const LANG_LABELS={zh:'中',en:'EN',ja:'日',ko:'한'};
-function toggleLang(){
-  const idx=LANGS.indexOf(currentLang);
-  currentLang=LANGS[(idx+1)%LANGS.length];
-  localStorage.setItem('ww_lang',currentLang);
-  document.getElementById('langBtn').textContent=LANG_LABELS[currentLang];
+const LANGS=['zh','en','ja','ko','fr','es','de','ru'];
+const LANG_LABELS={zh:'中',en:'EN',ja:'日',ko:'한',fr:'FR',es:'ES',de:'DE',ru:'RU'};
+
+function toggleLangMenu(){const m=document.getElementById('langMenu');m.style.display=m.style.display==='none'?'block':'none';}
+document.addEventListener('click',e=>{const m=document.getElementById('langMenu');if(m&&!m.contains(e.target)&&e.target.id!=='langBtn')m.style.display='none';});
+
+function setLang(lang){
+  currentLang=lang;
+  localStorage.setItem('ww_lang',lang);
+  document.getElementById('langBtn').textContent=LANG_LABELS[lang];
+  document.getElementById('langMenu').style.display='none';
   applyLang();
+  // Highlight selected
+  document.querySelectorAll('.lang-option').forEach(o=>{o.style.background=o.textContent.includes(LANG_LABELS[lang])?'var(--accent-glow)':'';o.style.color=o.textContent.includes(LANG_LABELS[lang])?'var(--accent)':'';});
 }
 
 function applyLang(){
@@ -1049,4 +1068,201 @@ function renderMpChapter(){if(!S.proj)return;const el=document.getElementById('m
 function renderMpChar(){if(!S.proj)return;const el=document.getElementById('mpCharList');if(!S.proj.characters.length){el.innerHTML='<div style="text-align:center;padding:40px;color:var(--text-hint)">暂无人物</div>';return;}el.innerHTML=S.proj.characters.map(c=>'<div class="char-card" onclick="loadCharContent('+c.id+');backToEditor()"><div class="char-name">'+c.name+'</div><span class="char-role">'+c.role+'</span><div class="char-desc">'+(c.personality||'暂无简介')+'</div></div>').join('');}
 function renderMpAi(){const el=document.getElementById('mpAiModeGrid');if(!el||el.children.length>0)return;const g={};for(const[k,v]of Object.entries(AI_MODES)){if(!g[v.group])g[v.group]=[];g[v.group].push(k);}let h='';for(const[label,keys]of Object.entries(g)){h+='<div class="mode-group"><div class="mode-group-title">'+label+'</div><div class="mode-grid">';for(const k of keys)h+='<button class="mode-btn'+(S.aiMode===k?' selected':'')+'" onclick="selectMode(this,\''+k+'\')"><span class="micon">'+AI_MODES[k].icon+'</span>'+k+'</button>';h+='</div></div>';}el.innerHTML=h;}
 async function doGenerateMobile(){const ac=S.apiConfig;if(!ac.key){showToast('⚙️','请先配置 API');openModal('apiModal');return;}const ed=document.getElementById('mainEditor'),content=ed.value.slice(-1000)||'';const extra=document.getElementById('mpAiPrompt')?.value.trim()||'';if(!content&&!extra){showToast('✍️','请先输入内容');return;}const lm={short:'100字以内',mid:'200-300字',long:'400-600字',xl:'800字以上'},tm={low:'保持严谨',mid:'适度创意',high:'大胆想象'};const md=AI_MODES[S.aiMode]||{p:'请处理以下内容：'};let prompt=md.p+'\n\n'+content+'\n\n【输出要求】'+lm[S.aiLen]+'。'+tm[S.aiTemp]+'。';if(S.proj)prompt+='\n\n【项目信息】\n'+buildCtx();if(extra)prompt+='\n\n【额外指令】'+extra;const btn=document.getElementById('mpGenerateBtn');btn.classList.add('loading');btn.textContent='生成中...';try{const r=await callAI(prompt,ac);S.lastArpResult=r;document.getElementById('arpText').textContent=r;document.getElementById('arpMode').textContent=S.aiMode;document.getElementById('aiResultPopup').classList.add('show');addHistory(S.aiMode,r);}catch(e){showToast('❌',e.message||'失败');}finally{btn.classList.remove('loading');btn.innerHTML='<span>✨</span> 开始生成';}}
-</script>
+</script>  'ps-none':'프로젝트 없음','ps-units-1':'','ps-units-2':'자',
+},
+fr:{
+  'nav-outline':'Plan','nav-chapters':'Chapitres','nav-chars':'Personnages','nav-notes':'Notes',
+  'bnav-editor':'Éditeur','bnav-outline':'Plan','bnav-chapters':'Chapitres','bnav-chars':'Persos','bnav-ai':'IA',
+  'tb-focus':'◎ Focus','tb-preview':'◉ Aperçu','tb-save':'Sauver','tb-autosave':'↯ Auto','tb-export':'↓ Export',
+  'aq-proof':'✓ Corriger','aq-title':'¶ Titre','aq-inspire':'◇ Inspi','aq-research':'⊕ Recherche','aq-humanize':'▷ Humain','aq-detect':'⊕ Détec IA',
+  'ed-placeholder':'Commencer à écrire...','ed-chapter':'Titre du chapitre...','ed-para':'¶','ed-sent':'phrases','ed-read':'~','ed-min':'min de lecture','ed-words':'car.',
+  'bb-total':'Total:','bb-para':'¶:',
+  'ap-title':'Assistant IA','ap-tab-modes':'Modes','ap-tab-multi':'Comparer','ap-tab-hist':'Historique',
+  'ap-temp':'Créativité','ap-len':'Longueur','ap-prompt':'Extra','ap-prompt-ph':'Instructions optionnelles...',
+  'ap-gen':'Générer','ap-gen-ing':'Génération...',
+  'multi-slot':'Slot','multi-gen':'⚡ Générer tous les slots',
+  'hist-title':'Historique IA','hist-clear':'Vider','hist-empty':'Aucun historique',
+  'mod-newproj':'📁 Nouveau projet','mod-newproj-sub':'Créer un projet d\'écriture',
+  'mod-projname':'Nom du projet','mod-projname-ph':'ex: Les étoiles','mod-required':'Requis',
+  'mod-genre':'Genre','mod-goal':'Objectif quotidien','mod-goal-hint':'mots','mod-desc':'Description','mod-desc-ph':'Brève description...',
+  'mod-world':'Univers','mod-world-ph':'Notes sur l\'univers...',
+  'mod-cancel':'Annuler','mod-create':'Créer ✓',
+  'mod-projlist':'📚 Mes projets','mod-projlist-sub':'Cliquer pour ouvrir',
+  'mod-import':'📥 Importer','mod-close':'Fermer','mod-newproj-btn':'＋ Nouveau',
+  'mod-api':'⚙️ Config API','mod-api-sub':'Configurer le fournisseur IA.',
+  'mod-api-provider':'Fournisseur','mod-api-url':'Base URL','mod-api-url-hint':'Personnalisé',
+  'mod-api-key':'Clé API','mod-api-key-hint':'Stockée localement','mod-api-test':'Tester',
+  'mod-api-model':'Modèle','mod-api-model-hint':'Vide = défaut','mod-api-save':'Sauver ✓',
+  'mod-char':'👤 Ajouter personnage','mod-char-sub':'L\'IA référencera la personnalité',
+  'mod-char-name':'Nom','mod-char-name-ph':'ex: Pierre','mod-char-role':'Rôle',
+  'mod-char-pers':'Personnalité','mod-char-pers-ph':'Traits de caractère...',
+  'mod-char-back':'Passé','mod-char-back-ph':'Histoire...',
+  'mod-char-look':'Apparence','mod-char-look-ph':'Description physique...',
+  'mod-char-skill':'Compétences','mod-char-skill-ph':'Capacités spéciales...',
+  'mod-char-save':'Sauver ✓',
+  'mod-profile':'👤 Profil','mod-profile-sub':'Mot de passe et statistiques',
+  'mod-profile-stats':'📊 Stats du projet','mod-profile-chpwd':'🔒 Changer mot de passe',
+  'mod-oldpwd':'Mot de passe actuel','mod-newpwd':'Nouveau (4+ car.)','mod-newpwd2':'Confirmer',
+  'mod-lock':'🔒 Verrouiller','mod-chpwd-btn':'Changer',
+  'sb-outline':'Plan de l\'histoire','sb-chapters':'Chapitres','sb-chars':'Personnages','sb-notes':'Notes',
+  'sb-add-outline':'＋ Ajouter plan','sb-add-chapter':'＋ Ajouter chapitre','sb-add-char':'＋ Ajouter personnage',
+  'sb-empty-outline':'Aucun plan','sb-empty-chapter':'Aucun chapitre','sb-empty-char':'Aucun personnage','sb-empty-notes':'Bientôt...',
+  'lock-set':'Définir un mot de passe','lock-unlock':'Entrer le mot de passe','lock-btn-set':'Définir','lock-btn-unlock':'Déverrouiller',
+  'lock-hint':'Oublié ?','lock-reset':'Réinitialiser','lock-placeholder':'Mot de passe...',
+  'toast-saved':'Sauvegardé','toast-deleted':'Supprimé','toast-added':'Ajouté','toast-copied':'Copié',
+  'toast-exported':'Exporté','toast-created':'Créé','toast-locked':'Mot de passe défini',
+  'toast-pwd-err':'Mot de passe incorrect','toast-pwd-short':'4 car. minimum','toast-pwd-changed':'Mot de passe changé',
+  'toast-no-proj':'Sélectionner un projet','toast-no-api':'Configurer l\'API','toast-no-content':'Écrire du contenu',
+  'arp-title':'Résultat IA','arp-replace':'Remplacer','arp-append':'Ajouter','arp-insert':'Insérer','arp-copy':'Copier',
+  'aqr-apply':'✓ Appliquer','aqr-copy':'⊡ Copier',
+  'ps-project':'Projet:','ps-genre':'Genre:','ps-words':'Mots:','ps-outlines':'Plan:','ps-chapters':' · Chapitres:',
+  'ps-chars':'Persos:','ps-goal':'Objectif:','ps-created':'Créé:','ps-updated':'Mis à jour:',
+  'ps-none':'Aucun projet','ps-units-1':'','ps-units-2':'mots',
+},
+es:{
+  'nav-outline':'Esquema','nav-chapters':'Capítulos','nav-chars':'Personajes','nav-notes':'Notas',
+  'bnav-editor':'Editor','bnav-outline':'Esquema','bnav-chapters':'Capítulos','bnav-chars':'Pers.','bnav-ai':'IA',
+  'tb-focus':'◎ Enfoque','tb-preview':'◉ Vista previa','tb-save':'Guardar','tb-autosave':'↯ Auto','tb-export':'↓ Exportar',
+  'aq-proof':'✓ Corregir','aq-title':'¶ Título','aq-inspire':'◇ Inspirar','aq-research':'⊕ Buscar','aq-humanize':'▷ Humanizar','aq-detect':'⊕ Detectar IA',
+  'ed-placeholder':'Empieza a escribir...','ed-chapter':'Título del capítulo...','ed-para':'¶','ed-sent':'oraciones','ed-read':'~','ed-min':'min de lectura','ed-words':'car.',
+  'bb-total':'Total:','bb-para':'¶:',
+  'ap-title':'Asistente IA','ap-tab-modes':'Modos','ap-tab-multi':'Comparar','ap-tab-hist':'Historial',
+  'ap-temp':'Creatividad','ap-len':'Longitud','ap-prompt':'Extra','ap-prompt-ph':'Instrucciones opcionales...',
+  'ap-gen':'Generar','ap-gen-ing':'Generando...',
+  'multi-slot':'Ranura','multi-gen':'⚡ Generar todas las ranuras',
+  'hist-title':'Historial IA','hist-clear':'Limpiar','hist-empty':'Sin historial',
+  'mod-newproj':'📁 Nuevo proyecto','mod-newproj-sub':'Crear proyecto de escritura',
+  'mod-projname':'Nombre','mod-projname-ph':'ej: Estrellas','mod-required':'Requerido',
+  'mod-genre':'Género','mod-goal':'Meta diaria','mod-goal-hint':'palabras','mod-desc':'Descripción','mod-desc-ph':'Breve descripción...',
+  'mod-world':'Mundo','mod-world-ph':'Notas del mundo...',
+  'mod-cancel':'Cancelar','mod-create':'Crear ✓',
+  'mod-projlist':'📚 Mis proyectos','mod-projlist-sub':'Clic para abrir',
+  'mod-import':'📥 Importar','mod-close':'Cerrar','mod-newproj-btn':'＋ Nuevo',
+  'mod-api':'⚙️ Config API','mod-api-sub':'Configurar proveedor IA.',
+  'mod-api-provider':'Proveedor','mod-api-url':'Base URL','mod-api-url-hint':'Personalizado',
+  'mod-api-key':'Clave API','mod-api-key-hint':'Guardada localmente','mod-api-test':'Probar',
+  'mod-api-model':'Modelo','mod-api-model-hint':'Vacío = predeterminado','mod-api-save':'Guardar ✓',
+  'mod-char':'👤 Agregar personaje','mod-char-sub':'La IA referenciará la personalidad',
+  'mod-char-name':'Nombre','mod-char-name-ph':'ej: Carlos','mod-char-role':'Rol',
+  'mod-char-pers':'Personalidad','mod-char-pers-ph':'Rasgos...',
+  'mod-char-back':'Pasado','mod-char-back-ph':'Historia...',
+  'mod-char-look':'Apariencia','mod-char-look-ph':'Descripción física...',
+  'mod-char-skill':'Habilidades','mod-char-skill-ph':'Capacidades especiales...',
+  'mod-char-save':'Guardar ✓',
+  'mod-profile':'👤 Perfil','mod-profile-sub':'Contraseña y estadísticas',
+  'mod-profile-stats':'📊 Estadísticas','mod-profile-chpwd':'🔒 Cambiar contraseña',
+  'mod-oldpwd':'Contraseña actual','mod-newpwd':'Nueva (4+ car.)','mod-newpwd2':'Confirmar',
+  'mod-lock':'🔒 Bloquear','mod-chpwd-btn':'Cambiar',
+  'sb-outline':'Esquema de la historia','sb-chapters':'Capítulos','sb-chars':'Personajes','sb-notes':'Notas',
+  'sb-add-outline':'＋ Agregar esquema','sb-add-chapter':'＋ Agregar capítulo','sb-add-char':'＋ Agregar personaje',
+  'sb-empty-outline':'Sin esquema','sb-empty-chapter':'Sin capítulos','sb-empty-char':'Sin personajes','sb-empty-notes':'Próximamente...',
+  'lock-set':'Establecer contraseña','lock-unlock':'Ingresar contraseña','lock-btn-set':'Establecer','lock-btn-unlock':'Desbloquear',
+  'lock-hint':'¿Olvidaste?','lock-reset':'Restablecer','lock-placeholder':'Contraseña...',
+  'toast-saved':'Guardado','toast-deleted':'Eliminado','toast-added':'Agregado','toast-copied':'Copiado',
+  'toast-exported':'Exportado','toast-created':'Creado','toast-locked':'Contraseña establecida',
+  'toast-pwd-err':'Contraseña incorrecta','toast-pwd-short':'Mínimo 4 car.','toast-pwd-changed':'Contraseña cambiada',
+  'toast-no-proj':'Seleccionar proyecto','toast-no-api':'Configurar API','toast-no-content':'Escribir contenido',
+  'arp-title':'Resultado IA','arp-replace':'Reemplazar','arp-append':'Agregar','arp-insert':'Insertar','arp-copy':'Copiar',
+  'aqr-apply':'✓ Aplicar','aqr-copy':'⊡ Copiar',
+  'ps-project':'Proyecto:','ps-genre':'Género:','ps-words':'Palabras:','ps-outlines':'Esquema:','ps-chapters':' · Capítulos:',
+  'ps-chars':'Personajes:','ps-goal':'Meta diaria:','ps-created':'Creado:','ps-updated':'Actualizado:',
+  'ps-none':'Sin proyecto','ps-units-1':'','ps-units-2':'palabras',
+},
+de:{
+  'nav-outline':'Gliederung','nav-chapters':'Kapitel','nav-chars':'Charaktere','nav-notes':'Notizen',
+  'bnav-editor':'Editor','bnav-outline':'Gliederung','bnav-chapters':'Kapitel','bnav-chars':'Char.','bnav-ai':'KI',
+  'tb-focus':'◎ Fokus','tb-preview':'◉ Vorschau','tb-save':'Speichern','tb-autosave':'↯ Auto','tb-export':'↓ Export',
+  'aq-proof':'✓ Korrektur','aq-title':'¶ Titel','aq-inspire':'◇ Inspi','aq-research':'⊕ Recherche','aq-humanize':'▷ Menschlich','aq-detect':'⊕ KI-Erk.',
+  'ed-placeholder':'Schreiben beginnen...','ed-chapter':'Kapiteltitel...','ed-para':'¶','ed-sent':'Sätze','ed-read':'~','ed-min':'Min. Lesezeit','ed-words':'Zeichen',
+  'bb-total':'Gesamt:','bb-para':'¶:',
+  'ap-title':'KI-Assistent','ap-tab-modes':'Modi','ap-tab-multi':'Vergleich','ap-tab-hist':'Verlauf',
+  'ap-temp':'Kreativität','ap-len':'Länge','ap-prompt':'Extra','ap-prompt-ph':'Optionale Anweisungen...',
+  'ap-gen':'Generieren','ap-gen-ing':'Generiert...',
+  'multi-slot':'Slot','multi-gen':'⚡ Alle Slots generieren',
+  'hist-title':'KI-Verlauf','hist-clear':'Löschen','hist-empty':'Kein Verlauf',
+  'mod-newproj':'📁 Neues Projekt','mod-newproj-sub':'Schreibprojekt erstellen',
+  'mod-projname':'Projektname','mod-projname-ph':'z.B. Sterne','mod-required':'Pflicht',
+  'mod-genre':'Genre','mod-goal':'Tagesziel','mod-goal-hint':'Wörter','mod-desc':'Beschreibung','mod-desc-ph':'Kurze Beschreibung...',
+  'mod-world':'Welt','mod-world-ph':'Weltnotizen...',
+  'mod-cancel':'Abbrechen','mod-create':'Erstellen ✓',
+  'mod-projlist':'📚 Meine Projekte','mod-projlist-sub':'Klicken zum Öffnen',
+  'mod-import':'📥 Importieren','mod-close':'Schließen','mod-newproj-btn':'＋ Neu',
+  'mod-api':'⚙️ API-Einstellungen','mod-api-sub':'KI-Anbieter konfigurieren.',
+  'mod-api-provider':'Anbieter','mod-api-url':'Base URL','mod-api-url-hint':'Benutzerdefiniert',
+  'mod-api-key':'API-Schlüssel','mod-api-key-hint':'Lokal gespeichert','mod-api-test':'Testen',
+  'mod-api-model':'Modell','mod-api-model-hint':'Leer = Standard','mod-api-save':'Speichern ✓',
+  'mod-char':'👤 Charakter hinzufügen','mod-char-sub':'KI referenziert die Persönlichkeit',
+  'mod-char-name':'Name','mod-char-name-ph':'z.B. Hans','mod-char-role':'Rolle',
+  'mod-char-pers':'Persönlichkeit','mod-char-pers-ph':'Charaktereigenschaften...',
+  'mod-char-back':'Hintergrund','mod-char-back-ph':'Geschichte...',
+  'mod-char-look':'Aussehen','mod-char-look-ph':'Physische Beschreibung...',
+  'mod-char-skill':'Fähigkeiten','mod-char-skill-ph':'Besondere Fähigkeiten...',
+  'mod-char-save':'Speichern ✓',
+  'mod-profile':'👤 Profil','mod-profile-sub':'Passwort & Statistiken',
+  'mod-profile-stats':'📊 Projektstatistiken','mod-profile-chpwd':'🔒 Passwort ändern',
+  'mod-oldpwd':'Aktuelles Passwort','mod-newpwd':'Neues Passwort (4+ Z.)','mod-newpwd2':'Bestätigen',
+  'mod-lock':'🔒 Sperren','mod-chpwd-btn':'Ändern',
+  'sb-outline':'Handlungsgliederung','sb-chapters':'Kapitel','sb-chars':'Charaktere','sb-notes':'Notizen',
+  'sb-add-outline':'＋ Gliederung','sb-add-chapter':'＋ Kapitel','sb-add-char':'＋ Charakter',
+  'sb-empty-outline':'Keine Gliederung','sb-empty-chapter':'Keine Kapitel','sb-empty-char':'Keine Charaktere','sb-empty-notes':'Bald...',
+  'lock-set':'Passwort festlegen','lock-unlock':'Passwort eingeben','lock-btn-set':'Festlegen','lock-btn-unlock':'Entsperren',
+  'lock-hint':'Vergessen?','lock-reset':'Zurücksetzen','lock-placeholder':'Passwort...',
+  'toast-saved':'Gespeichert','toast-deleted':'Gelöscht','toast-added':'Hinzugefügt','toast-copied':'Kopiert',
+  'toast-exported':'Exportiert','toast-created':'Erstellt','toast-locked':'Passwort gesetzt',
+  'toast-pwd-err':'Falsches Passwort','toast-pwd-short':'Min. 4 Zeichen','toast-pwd-changed':'Passwort geändert',
+  'toast-no-proj':'Projekt wählen','toast-no-api':'API konfigurieren','toast-no-content':'Inhalt eingeben',
+  'arp-title':'KI-Ergebnis','arp-replace':'Ersetzen','arp-append':'Anhängen','arp-insert':'Einfügen','arp-copy':'Kopieren',
+  'aqr-apply':'✓ Anwenden','aqr-copy':'⊡ Kopieren',
+  'ps-project':'Projekt:','ps-genre':'Genre:','ps-words':'Wörter:','ps-outlines':'Gliederung:','ps-chapters':' · Kapitel:',
+  'ps-chars':'Charaktere:','ps-goal':'Tagesziel:','ps-created':'Erstellt:','ps-updated':'Aktualisiert:',
+  'ps-none':'Kein Projekt','ps-units-1':'','ps-units-2':'Wörter',
+},
+ru:{
+  'nav-outline':'План','nav-chapters':'Главы','nav-chars':'Персонажи','nav-notes':'Заметки',
+  'bnav-editor':'Редактор','bnav-outline':'План','bnav-chapters':'Главы','bnav-chars':'Перс.','bnav-ai':'ИИ',
+  'tb-focus':'◎ Фокус','tb-preview':'◉ Просмотр','tb-save':'Сохранить','tb-autosave':'↯ Авто','tb-export':'↓ Экспорт',
+  'aq-proof':'✓ Проверка','aq-title':'¶ Заголовок','aq-inspire':'◇ Идеи','aq-research':'⊕ Поиск','aq-humanize':'▷ Оживить','aq-detect':'⊕ ИИ-детект',
+  'ed-placeholder':'Начните писать...','ed-chapter':'Название главы...','ed-para':'¶','ed-sent':'предл.','ed-read':'~','ed-min':'мин чтения','ed-words':'симв.',
+  'bb-total':'Итого:','bb-para':'¶:',
+  'ap-title':'ИИ-ассистент','ap-tab-modes':'Режимы','ap-tab-multi':'Сравнение','ap-tab-hist':'История',
+  'ap-temp':'Креативность','ap-len':'Длина','ap-prompt':'Доп.','ap-prompt-ph':'Доп. инструкции...',
+  'ap-gen':'Создать','ap-gen-ing':'Создание...',
+  'multi-slot':'Слот','multi-gen':'⚡ Создать все слоты',
+  'hist-title':'История ИИ','hist-clear':'Очистить','hist-empty':'Нет истории',
+  'mod-newproj':'📁 Новый проект','mod-newproj-sub':'Создать проект для письма',
+  'mod-projname':'Название','mod-projname-ph':'напр: Звёзды','mod-required':'Обязательно',
+  'mod-genre':'Жанр','mod-goal':'Дневная цель','mod-goal-hint':'слов','mod-desc':'Описание','mod-desc-ph':'Краткое описание...',
+  'mod-world':'Мир','mod-world-ph':'Заметки о мире...',
+  'mod-cancel':'Отмена','mod-create':'Создать ✓',
+  'mod-projlist':'📚 Мои проекты','mod-projlist-sub':'Нажмите для открытия',
+  'mod-import':'📥 Импорт','mod-close':'Закрыть','mod-newproj-btn':'＋ Новый',
+  'mod-api':'⚙️ Настройки API','mod-api-sub':'Настройка ИИ-провайдера.',
+  'mod-api-provider':'Провайдер','mod-api-url':'Base URL','mod-api-url-hint':'Пользовательский',
+  'mod-api-key':'API-ключ','mod-api-key-hint':'Хранится локально','mod-api-test':'Тест',
+  'mod-api-model':'Модель','mod-api-model-hint':'Пусто = по умолчанию','mod-api-save':'Сохранить ✓',
+  'mod-char':'👤 Добавить персонажа','mod-char-sub':'ИИ будет учитывать характер',
+  'mod-char-name':'Имя','mod-char-name-ph':'напр: Иван','mod-char-role':'Роль',
+  'mod-char-pers':'Характер','mod-char-pers-ph':'Черты характера...',
+  'mod-char-back':'Предыстория','mod-char-back-ph':'История...',
+  'mod-char-look':'Внешность','mod-char-look-ph':'Описание внешности...',
+  'mod-char-skill':'Навыки','mod-char-skill-ph':'Особые способности...',
+  'mod-char-save':'Сохранить ✓',
+  'mod-profile':'👤 Профиль','mod-profile-sub':'Пароль и статистика',
+  'mod-profile-stats':'📊 Статистика','mod-profile-chpwd':'🔒 Сменить пароль',
+  'mod-oldpwd':'Текущий пароль','mod-newpwd':'Новый пароль (4+ симв.)','mod-newpwd2':'Подтвердить',
+  'mod-lock':'🔒 Заблокировать','mod-chpwd-btn':'Сменить',
+  'sb-outline':'Сюжетный план','sb-chapters':'Главы','sb-chars':'Персонажи','sb-notes':'Заметки',
+  'sb-add-outline':'＋ Добавить план','sb-add-chapter':'＋ Добавить главу','sb-add-char':'＋ Добавить персонажа',
+  'sb-empty-outline':'Нет плана','sb-empty-chapter':'Нет глав','sb-empty-char':'Нет персонажей','sb-empty-notes':'Скоро...',
+  'lock-set':'Установите пароль','lock-unlock':'Введите пароль','lock-btn-set':'Установить','lock-btn-unlock':'Разблокировать',
+  'lock-hint':'Забыли?','lock-reset':'Сбросить','lock-placeholder':'Пароль...',
+  'toast-saved':'Сохранено','toast-deleted':'Удалено','toast-added':'Добавлено','toast-copied':'Скопировано',
+  'toast-exported':'Экспортировано','toast-created':'Создано','toast-locked':'Пароль установлен',
+  'toast-pwd-err':'Неверный пароль','toast-pwd-short':'Мин. 4 символа','toast-pwd-changed':'Пароль изменён',
+  'toast-no-proj':'Выберите проект','toast-no-api':'Настройте API','toast-no-content':'Введите текст',
+  'arp-title':'Результат ИИ','arp-replace':'Заменить','arp-append':'Добавить','arp-insert':'Вставить','arp-copy':'Копировать',
+  'aqr-apply':'✓ Применить','aqr-copy':'⊡ Копировать',
+  'ps-project':'Проект:','ps-genre':'Жанр:','ps-words':'Слов:','ps-outlines':'План:','ps-chapters':' · Главы:',
+  'ps-chars':'Персонажи:','ps-goal':'Дневная цель:','ps-created':'Создан:','ps-updated':'Обновлён:',
+  'ps-none':'Нет проекта','ps-units-1':'','ps-units-2':'слов',
+}};
