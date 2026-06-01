@@ -158,7 +158,7 @@ body.light #lockScreen{background-image:radial-gradient(ellipse 60% 60% at 50% 4
 .btn-cancel{flex:1;padding:10px;border-radius:var(--radius-sm);background:var(--bg-card);border:1px solid var(--border);color:var(--text-secondary);font-size:14px;cursor:pointer;font-family:var(--font-sans)}.btn-cancel:hover{background:var(--bg-hover)}
 .btn-confirm{flex:2;padding:10px;border-radius:var(--radius-sm);background:var(--accent);border:none;color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font-sans)}.btn-confirm:hover{background:#5a89f0}
 .provider-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px}
-.provider-chip{padding:8px 6px;border-radius:var(--radius-sm);background:var(--bg-card);border:1px solid var(--border);color:var(--text-muted);font-size:11px;cursor:pointer;text-align:center;transition:all 0.15s;font-family:var(--font-sans);display:flex;flex-direction:column;align-items:center;gap:3px}
+.provider-chip{padding:8px 6px;border-radius:var(--radius-sm);background:var(--bg-card);border:1px solid var(--border);color:var(--text-muted);font-size:11px;cursor:pointer;text-align:center;transition:all 0.15s;font-family:var(--font-sans);display:flex;flex-direction:column;align-items:center;gap:4px}
 .provider-chip:hover{border-color:var(--border-light);color:var(--text-secondary)}.provider-chip.on{background:var(--accent-glow);border-color:var(--accent-dim);color:var(--accent)}
 .test-row{display:flex;gap:8px}.test-row .form-input{flex:1}
 .btn-test{padding:10px 16px;border-radius:var(--radius-sm);background:var(--green-dim);border:1px solid rgba(74,222,128,0.2);color:var(--green);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font-sans);white-space:nowrap}.btn-test:hover{background:rgba(74,222,128,0.2)}
@@ -420,16 +420,16 @@ body.light #lockScreen{background-image:radial-gradient(ellipse 60% 60% at 50% 4
 <div class="modal-overlay" id="apiModal"><div class="modal">
   <div class="modal-title" data-i18n="mod-api"><svg class="ic" style="width:20px;height:20px"><use href="#ic-logo"/></svg> API 设置</div><div class="modal-sub" data-i18n="mod-api-sub">配置 AI 服务商，API Key 仅存本地</div>
   <div class="form-row"><div class="form-label">选择服务商</div><div class="provider-grid" id="providerGrid">
-    <div class="provider-chip on" onclick="selectProvider(this,'claude')">🤖 Claude</div>
-    <div class="provider-chip" onclick="selectProvider(this,'openai')">⚡ OpenAI</div>
-    <div class="provider-chip" onclick="selectProvider(this,'deepseek')">🌊 DeepSeek</div>
-    <div class="provider-chip" onclick="selectProvider(this,'xiaomi')">📱 MiMo</div>
-    <div class="provider-chip" data-i18n-prov="prov-tongyi" onclick="selectProvider(this,'qwen')">☁️ 通义</div>
-    <div class="provider-chip" data-i18n-prov="prov-zhipu" onclick="selectProvider(this,'zhipu')">🧠 智谱</div>
-    <div class="provider-chip" onclick="selectProvider(this,'moonshot')">🌙 Kimi</div>
-    <div class="provider-chip" onclick="selectProvider(this,'siliconflow')">🔬 SiliconFlow</div>
-    <div class="provider-chip" onclick="selectProvider(this,'openrouter')">🔀 OpenRouter</div>
-    <div class="provider-chip" onclick="selectProvider(this,'custom')">🔧 自定义</div>
+    <div class="provider-chip on" onclick="selectProvider(this,'claude')"><svg class="ic" style="width:22px;height:22px"><use href="#ic-logo"/></svg> Claude</div>
+    <div class="provider-chip" onclick="selectProvider(this,'openai')"><svg class="ic" style="width:22px;height:22px"><use href="#ic-logo"/></svg> OpenAI</div>
+    <div class="provider-chip" onclick="selectProvider(this,'deepseek')"><svg class="ic" style="width:22px;height:22px"><use href="#ic-logo"/></svg> DeepSeek</div>
+    <div class="provider-chip" onclick="selectProvider(this,'xiaomi')"><svg class="ic" style="width:22px;height:22px"><use href="#ic-logo"/></svg> MiMo</div>
+    <div class="provider-chip" data-i18n-prov="prov-tongyi" onclick="selectProvider(this,'qwen')"><svg class="ic" style="width:22px;height:22px"><use href="#ic-logo"/></svg> 通义</div>
+    <div class="provider-chip" data-i18n-prov="prov-zhipu" onclick="selectProvider(this,'zhipu')"><svg class="ic" style="width:22px;height:22px"><use href="#ic-logo"/></svg> 智谱</div>
+    <div class="provider-chip" onclick="selectProvider(this,'moonshot')"><svg class="ic" style="width:22px;height:22px"><use href="#ic-logo"/></svg> Kimi</div>
+    <div class="provider-chip" onclick="selectProvider(this,'siliconflow')"><svg class="ic" style="width:22px;height:22px"><use href="#ic-logo"/></svg> SiliconFlow</div>
+    <div class="provider-chip" onclick="selectProvider(this,'openrouter')"><svg class="ic" style="width:22px;height:22px"><use href="#ic-logo"/></svg> OpenRouter</div>
+    <div class="provider-chip" onclick="selectProvider(this,'custom')"><svg class="ic" style="width:22px;height:22px"><use href="#ic-logo"/></svg> 自定义</div>
   </div></div>
   <div class="form-row" id="customUrlRow" style="display:none"><div class="form-label">Base URL</div><input class="form-input" id="apiBaseUrl" placeholder="https://api.example.com/v1"></div>
   <div class="form-row"><div class="form-label">API Key</div><div class="test-row"><input class="form-input" id="apiKey" type="password" placeholder="sk-..."><button class="btn-test" onclick="testApi()">测试</button></div><div class="test-result" id="testResult"></div></div>
@@ -457,16 +457,16 @@ body.light #lockScreen{background-image:radial-gradient(ellipse 60% 60% at 50% 4
   </div>
   <div id="settingsTab-api" style="display:none">
     <div class="form-row"><div class="form-label">选择服务商</div><div class="provider-grid" id="sProviderGrid">
-      <div class="provider-chip on" onclick="selectProvider(this,'claude')">🤖 Claude</div>
-      <div class="provider-chip" onclick="selectProvider(this,'openai')">⚡ OpenAI</div>
-      <div class="provider-chip" onclick="selectProvider(this,'deepseek')">🌊 DeepSeek</div>
-      <div class="provider-chip" onclick="selectProvider(this,'xiaomi')">📱 MiMo</div>
-      <div class="provider-chip" onclick="selectProvider(this,'qwen')">☁️ 通义</div>
-      <div class="provider-chip" onclick="selectProvider(this,'zhipu')">🧠 智谱</div>
-      <div class="provider-chip" onclick="selectProvider(this,'moonshot')">🌙 Kimi</div>
-      <div class="provider-chip" onclick="selectProvider(this,'siliconflow')">🔬 SiliconFlow</div>
-      <div class="provider-chip" onclick="selectProvider(this,'openrouter')">🔀 OpenRouter</div>
-      <div class="provider-chip" onclick="selectProvider(this,'custom')">🔧 自定义</div>
+      <div class="provider-chip on" onclick="selectProvider(this,'claude')"><svg class="ic" style="width:22px;height:22px"><use href="#ic-logo"/></svg> Claude</div>
+      <div class="provider-chip" onclick="selectProvider(this,'openai')"><svg class="ic" style="width:22px;height:22px"><use href="#ic-logo"/></svg> OpenAI</div>
+      <div class="provider-chip" onclick="selectProvider(this,'deepseek')"><svg class="ic" style="width:22px;height:22px"><use href="#ic-logo"/></svg> DeepSeek</div>
+      <div class="provider-chip" onclick="selectProvider(this,'xiaomi')"><svg class="ic" style="width:22px;height:22px"><use href="#ic-logo"/></svg> MiMo</div>
+      <div class="provider-chip" onclick="selectProvider(this,'qwen')"><svg class="ic" style="width:22px;height:22px"><use href="#ic-logo"/></svg> 通义</div>
+      <div class="provider-chip" onclick="selectProvider(this,'zhipu')"><svg class="ic" style="width:22px;height:22px"><use href="#ic-logo"/></svg> 智谱</div>
+      <div class="provider-chip" onclick="selectProvider(this,'moonshot')"><svg class="ic" style="width:22px;height:22px"><use href="#ic-logo"/></svg> Kimi</div>
+      <div class="provider-chip" onclick="selectProvider(this,'siliconflow')"><svg class="ic" style="width:22px;height:22px"><use href="#ic-logo"/></svg> SiliconFlow</div>
+      <div class="provider-chip" onclick="selectProvider(this,'openrouter')"><svg class="ic" style="width:22px;height:22px"><use href="#ic-logo"/></svg> OpenRouter</div>
+      <div class="provider-chip" onclick="selectProvider(this,'custom')"><svg class="ic" style="width:22px;height:22px"><use href="#ic-logo"/></svg> 自定义</div>
     </div></div>
     <div class="form-row" id="sCustomUrlRow" style="display:none"><div class="form-label">Base URL</div><input class="form-input" id="sApiBaseUrl" placeholder="https://api.example.com/v1"></div>
     <div class="form-row"><div class="form-label">API Key</div><div class="test-row"><input class="form-input" id="sApiKey" type="password" placeholder="sk-..."><button class="btn-test" onclick="settingsTestApi()">测试</button></div><div class="test-result" id="sTestResult"></div></div>
