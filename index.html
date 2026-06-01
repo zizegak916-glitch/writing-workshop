@@ -508,22 +508,22 @@ body.light #lockScreen{background-image:radial-gradient(ellipse 60% 60% at 50% 4
 <!-- MODAL: PROFILE CENTER -->
 <div class="modal-overlay" id="profileModal">
   <div class="modal">
-    <div class="modal-title">👤 个人中心</div>
-    <div class="modal-sub">管理密码、查看项目统计</div>
+    <div class="modal-title" data-i18n="mod-profile">👤 个人中心</div>
+    <div class="modal-sub" data-i18n="mod-profile-sub">管理密码、查看项目统计</div>
     <div id="profileStats" style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:16px">
-      <div style="font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:10px">📊 当前项目统计</div>
-      <div id="profileStatsContent" style="font-size:12px;color:var(--text-secondary);line-height:2">加载中...</div>
+      <div style="font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:10px" data-i18n="mod-profile-stats">📊 当前项目统计</div>
+      <div id="profileStatsContent" style="font-size:12px;color:var(--text-secondary);line-height:2">...</div>
     </div>
     <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:16px">
-      <div style="font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:10px">🔒 修改密码</div>
-      <input class="form-input" id="oldPwd" type="password" placeholder="当前密码" style="margin-bottom:8px">
-      <input class="form-input" id="newPwd" type="password" placeholder="新密码（至少4位）" style="margin-bottom:8px">
-      <input class="form-input" id="newPwd2" type="password" placeholder="确认新密码">
+      <div style="font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:10px" data-i18n="mod-profile-chpwd">🔒 修改密码</div>
+      <input class="form-input" id="oldPwd" type="password" data-i18n-ph="mod-oldpwd" placeholder="当前密码" style="margin-bottom:8px">
+      <input class="form-input" id="newPwd" type="password" data-i18n-ph="mod-newpwd" placeholder="新密码（至少4位）" style="margin-bottom:8px">
+      <input class="form-input" id="newPwd2" type="password" data-i18n-ph="mod-newpwd2" placeholder="确认新密码">
     </div>
     <div class="modal-footer" style="flex-wrap:wrap;gap:8px">
-      <button class="btn-cancel" onclick="lockApp();closeModal('profileModal')" style="flex:0 0 auto;padding:10px 16px">🔒 锁屏</button>
-      <button class="btn-cancel" onclick="closeModal('profileModal')" style="flex:1">关闭</button>
-      <button class="btn-confirm" onclick="changePassword()" style="flex:1">修改密码</button>
+      <button class="btn-cancel" data-i18n="mod-lock" onclick="lockApp();closeModal('profileModal')" style="flex:0 0 auto;padding:10px 16px">🔒 锁屏</button>
+      <button class="btn-cancel" data-i18n="mod-close" onclick="closeModal('profileModal')" style="flex:1">关闭</button>
+      <button class="btn-confirm" data-i18n="mod-chpwd-btn" onclick="changePassword()" style="flex:1">修改密码</button>
     </div>
   </div>
 </div>
@@ -3162,7 +3162,7 @@ async function renderProfileStats(){
   const totalChapters=S.proj.chapters.length;
   const created=new Date(p.created_at).toLocaleDateString(currentLang);
   const updated=p.updated_at?new Date(p.updated_at).toLocaleDateString(currentLang):'-';
-  el.innerHTML='<div>📁 项目：<b>'+p.name+'</b></div><div>📖 类型：'+(p.genre||'-')+'</div><div>📝 总字数：<b>'+totalWords+'</b> 字</div><div>📋 大纲：'+totalOutlines+' 个 · 章节：'+totalChapters+' 个</div><div>👤 人物：'+totalChars+' 个</div><div>🎯 每日目标：'+S.wordGoal+' 字</div><div>📅 创建：'+created+' · 更新：'+updated+'</div>';
+  el.innerHTML='<div>📁 '+t('ps-project')+' <b>'+p.name+'</b></div><div>📖 '+t('ps-genre')+' '+(p.genre||'-')+'</div><div>📝 '+t('ps-words')+' <b>'+totalWords+'</b> '+t('ps-units-2')+'</div><div>📋 '+t('ps-outlines')+' '+totalOutlines+' '+t('ps-units-1')+t('ps-chapters')+' '+totalChapters+' '+t('ps-units-1')+'</div><div>👤 '+t('ps-chars')+' '+totalChars+' '+t('ps-units-1')+'</div><div>🎯 '+t('ps-goal')+' '+S.wordGoal+' '+t('ps-units-2')+'</div><div>📅 '+t('ps-created')+' '+created+' · '+t('ps-updated')+' '+updated+'</div>';
 }
 async function changePassword(){
   const old=document.getElementById('oldPwd').value,new1=document.getElementById('newPwd').value,new2=document.getElementById('newPwd2').value;
