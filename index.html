@@ -247,6 +247,7 @@ body.light #lockScreen{background-image:radial-gradient(ellipse 60% 60% at 50% 4
   <symbol id="ic-folder" viewBox="0 0 20 20"><path d="M2 5a1 1 0 011-1h4.6a1 1 0 01.8.4L10 6h7a1 1 0 011 1v9a1 1 0 01-1 1H3a1 1 0 01-1-1V5z" fill="none" stroke="currentColor" stroke-width="1.5"/></symbol>
   <symbol id="ic-plus" viewBox="0 0 20 20"><line x1="10" y1="4" x2="10" y2="16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="4" y1="10" x2="16" y2="10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
   <symbol id="ic-download" viewBox="0 0 20 20"><line x1="10" y1="3" x2="10" y2="13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><polyline points="6,9 10,13 14,9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 15v2a1 1 0 001 1h10a1 1 0 001-1v-2" fill="none" stroke="currentColor" stroke-width="1.5"/></symbol>
+  <symbol id="ic-logo" viewBox="0 0 20 20"><circle cx="10" cy="10" r="7" fill="#6c9bff" opacity="0.2"/><circle cx="10" cy="10" r="4" fill="#6c9bff"/><text x="10" y="13" text-anchor="middle" font-size="6" font-weight="bold" fill="white" font-family="sans-serif">AI</text></symbol>
   <symbol id="ic-settings" viewBox="0 0 20 20"><path d="M8.5 1h3l.5 2.5 2 .8 2-1.5 2.1 2.1-1.5 2 .8 2L19.5 9.5v3l-2.5.5-.8 2 1.5 2-2.1 2.1-2-1.5-2 .8L11 19.5h-3l-.5-2.5-2-.8-2 1.5L1.4 15.6l1.5-2-.8-2L.5 11v-3l2.5-.5.8-2-1.5-2L4.4 1.4l2 1.5 2-.8z" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><circle cx="10" cy="10" r="3.2" fill="none" stroke="currentColor" stroke-width="1.4"/></symbol>
 </svg>
 <!-- LOCK SCREEN -->
@@ -417,7 +418,7 @@ body.light #lockScreen{background-image:radial-gradient(ellipse 60% 60% at 50% 4
   <div class="modal-footer"><button class="btn-cancel" onclick="closeModal('projectModal')">关闭</button><button class="btn-confirm" onclick="closeModal('projectModal');openModal('newProjectModal')">＋ 新建</button></div>
 </div></div>
 <div class="modal-overlay" id="apiModal"><div class="modal">
-  <div class="modal-title" data-i18n="mod-api">⚙️ API 设置</div><div class="modal-sub" data-i18n="mod-api-sub">配置 AI 服务商，API Key 仅存本地</div>
+  <div class="modal-title" data-i18n="mod-api"><svg class="ic" style="width:20px;height:20px"><use href="#ic-logo"/></svg> API 设置</div><div class="modal-sub" data-i18n="mod-api-sub">配置 AI 服务商，API Key 仅存本地</div>
   <div class="form-row"><div class="form-label">选择服务商</div><div class="provider-grid" id="providerGrid">
     <div class="provider-chip on" onclick="selectProvider(this,'claude')">🤖 Claude</div>
     <div class="provider-chip" onclick="selectProvider(this,'openai')">⚡ OpenAI</div>
@@ -436,7 +437,7 @@ body.light #lockScreen{background-image:radial-gradient(ellipse 60% 60% at 50% 4
   <div class="modal-footer"><button class="btn-cancel" onclick="closeModal('apiModal')">取消</button><button class="btn-confirm" onclick="saveApi()">保存 ✓</button></div>
 </div></div>
 <div class="modal-overlay" id="settingsModal"><div class="modal" style="width:min(520px,94vw)">
-  <div class="modal-title" data-i18n="mod-settings">⚙️ 设置</div><div class="modal-sub" data-i18n="mod-settings-sub">语言、API 和主题设置</div>
+  <div class="modal-title" data-i18n="mod-settings"><svg class="ic" style="width:20px;height:20px"><use href="#ic-logo"/></svg> 设置</div><div class="modal-sub" data-i18n="mod-settings-sub">语言、API 和主题设置</div>
   <div class="settings-tabs">
     <button class="settings-tab active" onclick="openSettingsTab('lang',this)">语言/Language</button>
     <button class="settings-tab" onclick="openSettingsTab('api',this)">API</button>
