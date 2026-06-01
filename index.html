@@ -324,6 +324,7 @@ body.light #lockScreen{background-image:radial-gradient(ellipse 60% 60% at 50% 4
         <div class="ai-tabs">
           <button class="ai-tab active" onclick="switchAiTab('modes',this)">助手</button>
           <button class="ai-tab" onclick="switchAiTab('multi',this)">对比</button>
+          <button class="ai-tab" onclick="switchAiTab('memory',this)">🧠 记忆</button>
           <button class="ai-tab" onclick="switchAiTab('history',this)">历史</button>
         </div>
       </div>
@@ -332,11 +333,27 @@ body.light #lockScreen{background-image:radial-gradient(ellipse 60% 60% at 50% 4
           <div id="aiModeGrid"></div>
           <div class="param-row"><div class="param-label">创意度</div><div class="seg-ctrl"><button class="seg-btn" onclick="setTemp('low',this)">严谨</button><button class="seg-btn on" onclick="setTemp('mid',this)">平衡</button><button class="seg-btn" onclick="setTemp('high',this)">创意</button></div></div>
           <div class="param-row"><div class="param-label">输出长度</div><div class="seg-ctrl"><button class="seg-btn" onclick="setLen('short',this)">短</button><button class="seg-btn" onclick="setLen('mid',this)">中</button><button class="seg-btn on" onclick="setLen('long',this)">长</button><button class="seg-btn" onclick="setLen('xl',this)">超长</button></div></div>
-          <div class="ai-prompt-area"><label>补充指令</label><textarea id="aiPrompt" placeholder="可选：输入额外要求..."></textarea></div>
+          <div class="ai-prompt-area"><label>补充指令</label><textarea id="aiPrompt" placeholder="可选：输入额外要求..." oninput="updateContextBar()"></textarea></div>
+          <div style="margin-bottom:10px;padding:0 2px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+              <span style="font-size:10px;color:var(--text-hint);letter-spacing:0.5px">上下文用量</span>
+              <span id="ctxText" style="font-size:10px;color:var(--text-muted)">-</span>
+            </div>
+            <div style="width:100%;height:3px;background:var(--bg-card);border-radius:2px;overflow:hidden"><div id="ctxBar" style="height:100%;width:0%;background:var(--accent);border-radius:2px;transition:width 0.3s,background 0.3s"></div></div>
+            <div id="ctxUsedText" style="font-size:10px;color:var(--text-hint);margin-top:3px;display:none"></div>
+          </div>
           <button class="generate-btn" id="generateBtn" onclick="doGenerate()"><span id="generateBtnIcon">✨</span><span id="generateBtnText">开始生成</span></button>
         </div>
         <div id="aiTab-multi" style="display:none"><div id="multiSlots"></div><button class="generate-btn" style="margin-top:14px" onclick="doMultiGenerate()">⚡ 并行生成所有槽位</button></div>
         <div id="aiTab-history" style="display:none"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><span style="font-size:12px;color:var(--text-secondary)">AI 操作记录</span><button onclick="clearHistory()" style="background:none;border:none;color:var(--text-hint);font-size:11px;cursor:pointer">清空</button></div><div id="historyList"></div></div>
+        <div id="aiTab-memory" style="display:none">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+            <span style="font-size:12px;color:var(--text-secondary)">🧠 AI 记忆</span>
+            <button onclick="openModal('memoryModal')" style="background:var(--accent-glow);border:1px solid var(--accent-dim);color:var(--accent);padding:4px 10px;border-radius:var(--radius-sm);font-size:11px;cursor:pointer;font-family:var(--font-sans)">＋ 添加</button>
+          </div>
+          <div style="font-size:10px;color:var(--text-hint);margin-bottom:8px;line-height:1.5">记忆内容会在每次AI生成时自动注入提示词，让AI了解你的剧情设定、写作风格偏好等。</div>
+          <div id="memoryList"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -489,11 +506,27 @@ body.light #lockScreen{background-image:radial-gradient(ellipse 60% 60% at 50% 4
     </div>
   </div>
 </div>
+<!-- Memory Modal -->
+<div class="modal-overlay" id="memoryModal"><div class="modal">
+  <div class="modal-title">🧠 添加记忆</div><div class="modal-sub">让AI记住你的设定、风格偏好等信息，每次生成时自动参考</div>
+  <div class="form-row"><div class="form-label">分类</div>
+    <div class="genre-grid" id="memCatGrid" style="grid-template-columns:repeat(3,1fr)">
+      <div class="genre-chip on" onclick="toggleMemCat(this)">📋 剧情</div>
+      <div class="genre-chip" onclick="toggleMemCat(this)">✍️ 风格</div>
+      <div class="genre-chip" onclick="toggleMemCat(this)">🌍 世界观</div>
+      <div class="genre-chip" onclick="toggleMemCat(this)">👤 人物</div>
+      <div class="genre-chip" onclick="toggleMemCat(this)">📝 备注</div>
+      <div class="genre-chip" onclick="toggleMemCat(this)">📏 规则</div>
+    </div>
+  </div>
+  <div class="form-row"><div class="form-label">记忆内容</div><textarea class="form-textarea" id="memContent" placeholder="例如：主角林远性格内向但关键时刻果断，口头禅是'再想想'..." style="min-height:100px"></textarea></div>
+  <div class="modal-footer"><button class="btn-cancel" onclick="closeModal('memoryModal')">取消</button><button class="btn-confirm" onclick="saveMemory()">保存记忆 ✓</button></div>
+</div></div>
 <div class="toast" id="toast"><span id="toastIcon">✓</span><span id="toastMsg">已保存</span></div>
 <script>
 // ═══ IndexedDB ═══
-const DB_NAME='WritingWorkshop',DB_VER=1;let db;
-function openDB(){return new Promise((res,rej)=>{const r=indexedDB.open(DB_NAME,DB_VER);r.onupgradeneeded=e=>{const d=e.target.result;if(!d.objectStoreNames.contains('projects'))d.createObjectStore('projects',{keyPath:'id',autoIncrement:true});if(!d.objectStoreNames.contains('outlines'))d.createObjectStore('outlines',{keyPath:'id',autoIncrement:true});if(!d.objectStoreNames.contains('characters'))d.createObjectStore('characters',{keyPath:'id',autoIncrement:true});if(!d.objectStoreNames.contains('chapters'))d.createObjectStore('chapters',{keyPath:'id',autoIncrement:true});if(!d.objectStoreNames.contains('aiHistory'))d.createObjectStore('aiHistory',{keyPath:'id',autoIncrement:true});};r.onsuccess=e=>{db=e.target.result;res(db);};r.onerror=e=>rej(e.target.error);});}
+const DB_NAME='WritingWorkshop',DB_VER=2;let db;
+function openDB(){return new Promise((res,rej)=>{const r=indexedDB.open(DB_NAME,DB_VER);r.onupgradeneeded=e=>{const d=e.target.result;if(!d.objectStoreNames.contains('projects'))d.createObjectStore('projects',{keyPath:'id',autoIncrement:true});if(!d.objectStoreNames.contains('outlines'))d.createObjectStore('outlines',{keyPath:'id',autoIncrement:true});if(!d.objectStoreNames.contains('characters'))d.createObjectStore('characters',{keyPath:'id',autoIncrement:true});if(!d.objectStoreNames.contains('chapters'))d.createObjectStore('chapters',{keyPath:'id',autoIncrement:true});if(!d.objectStoreNames.contains('aiHistory'))d.createObjectStore('aiHistory',{keyPath:'id',autoIncrement:true});if(!d.objectStoreNames.contains('aiMemories')){const ms=d.createObjectStore('aiMemories',{keyPath:'id',autoIncrement:true});ms.createIndex('project_id','project_id',{unique:false});}};r.onsuccess=e=>{db=e.target.result;res(db);};r.onerror=e=>rej(e.target.error);});}
 function dbPut(s,v){return new Promise((r,j)=>{const t=db.transaction(s,'readwrite');const st=t.objectStore(s);const q=st.put(v);q.onsuccess=()=>r(q.result);q.onerror=()=>j(q.error);});}
 function dbGet(s,id){return new Promise((r,j)=>{const t=db.transaction(s,'readonly');const q=t.objectStore(s).get(id);q.onsuccess=()=>r(q.result);q.onerror=()=>j(q.error);});}
 function dbDel(s,id){return new Promise((r,j)=>{const t=db.transaction(s,'readwrite');const q=t.objectStore(s).delete(id);q.onsuccess=()=>r();q.onerror=()=>j(q.error);});}
@@ -501,7 +534,71 @@ function dbAll(s){return new Promise((r,j)=>{const t=db.transaction(s,'readonly'
 function dbByIndex(s,f,v){return new Promise((r,j)=>{const t=db.transaction(s,'readonly');const st=t.objectStore(s);const a=[];const q=st.openCursor();q.onsuccess=e=>{const c=e.target.result;if(c){if(c.value[f]===v)a.push(c.value);c.continue();}else r(a);};q.onerror=()=>j(q.error);});}
 
 // ═══ State ═══
-const S={proj:null,active:null,editCharId:null,aiMode:'润色',aiTemp:'mid',aiLen:'long',apiConfig:JSON.parse(localStorage.getItem('ww_api')||'{}'),autoSave:true,unsaved:false,wordGoal:2000,curFontSize:16,lastArpResult:'',selectedProvider:'claude',previewMode:false,projects:[]};
+const S={proj:null,active:null,editCharId:null,aiMode:'润色',aiTemp:'mid',aiLen:'long',apiConfig:JSON.parse(localStorage.getItem('ww_api')||'{}'),autoSave:true,unsaved:false,wordGoal:2000,curFontSize:16,lastArpResult:'',selectedProvider:'claude',previewMode:false,projects:[],aiMemories:[]};
+
+// ═══ Token Estimation & Context Limits ═══
+const MODEL_CONTEXT_LIMITS={
+  'claude-sonnet-4-20250514':200000,'claude-sonnet-4':200000,'claude-3-5-sonnet':200000,'claude-3-haiku':200000,
+  'gpt-4o':128000,'gpt-4o-mini':128000,'gpt-4-turbo':128000,'gpt-4':8192,'gpt-3.5-turbo':16385,
+  'deepseek-chat':65536,'deepseek-reasoner':65536,
+  'mimo-v2.5-pro':131072,'mimo-v2.5':131072,
+  'qwen-plus':131072,'qwen-turbo':131072,'qwen-max':32768,
+  'glm-4-flash':128000,'glm-4':128000,
+  'moonshot-v1-8k':8192,'moonshot-v1-32k':32768,'moonshot-v1-128k':131072,
+  'deepseek-ai/DeepSeek-V3':65536,
+  'anthropic/claude-sonnet-4':200000
+};
+function estimateTokens(text){
+  if(!text)return 0;
+  let count=0;
+  for(let i=0;i<text.length;i++){
+    const c=text.charCodeAt(i);
+    if(c>=0x4E00&&c<=0x9FFF||c>=0x3400&&c<=0x4DBF||c>=0x20000&&c<=0x2A6DF)count+=2;
+    else if(c>=0x00&&c<=0x7F)count+=0.25;
+    else count+=1.5;
+  }
+  return Math.ceil(count);
+}
+function getContextLimit(model){
+  if(!model)return 200000;
+  for(const[k,v]of Object.entries(MODEL_CONTEXT_LIMITS)){
+    if(model.includes(k)||k.includes(model))return v;
+  }
+  return 200000;
+}
+function updateContextBar(){
+  const ac=S.apiConfig;
+  if(!ac.key)return;
+  const ed=document.getElementById('mainEditor');
+  const sel=ed.value.slice(ed.selectionStart,ed.selectionEnd).trim();
+  const content=sel||ed.value.trim().slice(-1000);
+  const extra=document.getElementById('aiPrompt')?.value.trim()||'';
+  const md=AI_MODES[S.aiMode]||{p:''};
+  let fullPrompt=md.p+'\n\n'+content;
+  if(S.proj)fullPrompt+='\n\n'+buildCtx();
+  if(extra)fullPrompt+='\n\n'+extra;
+  const memCtx=buildMemoryContext();
+  if(memCtx)fullPrompt+='\n\n'+memCtx;
+  const promptTokens=estimateTokens(fullPrompt);
+  const limit=getContextLimit(ac.model||'');
+  const pct=Math.min(100,Math.round(promptTokens/limit*100));
+  const bar=document.getElementById('ctxBar');
+  const txt=document.getElementById('ctxText');
+  if(bar){
+    bar.style.width=pct+'%';
+    if(pct>80){bar.style.background='var(--red)';}
+    else if(pct>50){bar.style.background='var(--gold)';}
+    else{bar.style.background='var(--accent)';}
+  }
+  if(txt){
+    const kStr=promptTokens>1000?(promptTokens/1000).toFixed(1)+'k':promptTokens;
+    const lStr=limit>1000?(limit/1000).toFixed(0)+'k':limit;
+    txt.textContent=kStr+'/'+lStr+' tokens';
+    if(pct>80)txt.style.color='var(--red)';
+    else if(pct>50)txt.style.color='var(--gold)';
+    else txt.style.color='var(--text-muted)';
+  }
+}
 async function sha256(t){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(t));return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join('');}
 
 // ═══ Lock ═══
@@ -514,12 +611,12 @@ function lockApp(){document.getElementById('lockScreen').style.display='flex';do
 (function(){document.getElementById('lockInput').addEventListener('keydown',e=>{if(e.key==='Enter')handleLock();});if(!localStorage.getItem('ww_pwd_hash')){document.getElementById('lockScreen').style.display='flex';document.getElementById('lockSub').textContent=t('lock-set');document.getElementById('lockBtn').textContent=t('lock-btn-set');document.getElementById('lockHint').innerHTML='';}else{showApp();}})();
 
 // ═══ Init ═══
-async function initApp(){await openDB();renderAiModeGrid();renderMultiSlots();await loadProjects();renderHistory();setInterval(()=>{if(S.autoSave&&S.unsaved)saveDoc();},30000);const ed=document.getElementById('mainEditor');ed.addEventListener('input',onEditorInput);ed.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='s'){e.preventDefault();saveDoc();}});document.getElementById('focusEditor').addEventListener('input',()=>{document.getElementById('focusInfo').textContent=countWords(document.getElementById('focusEditor').value)+' 字 · Esc 退出';});document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeFocus();closeAiResult();}});if(S.projects.length>0)await loadProject(S.projects[0].id);updateAllStats();}
+async function initApp(){await openDB();renderAiModeGrid();renderMultiSlots();await loadProjects();await loadMemories();renderHistory();setInterval(()=>{if(S.autoSave&&S.unsaved)saveDoc();},30000);const ed=document.getElementById('mainEditor');ed.addEventListener('input',onEditorInput);ed.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='s'){e.preventDefault();saveDoc();}});document.getElementById('focusEditor').addEventListener('input',()=>{document.getElementById('focusInfo').textContent=countWords(document.getElementById('focusEditor').value)+' 字 · Esc 退出';});document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeFocus();closeAiResult();}});if(S.projects.length>0)await loadProject(S.projects[0].id);updateAllStats();}
 document.addEventListener('DOMContentLoaded',()=>{/* lock handled in IIFE above */});
 
 // ═══ Editor ═══
 let editorTimer;
-function onEditorInput(){const txt=document.getElementById('mainEditor').value,w=countWords(txt);document.getElementById('editorWords').textContent=w;document.getElementById('totalWordsBar').textContent=w;const ps=txt.split(/\n\n+/).filter(p=>p.trim()).length||1;document.getElementById('paraCount').textContent=ps;document.getElementById('paraCountBar').textContent=ps;document.getElementById('sentCount').textContent=(txt.match(/[。！？.!?]/g)||[]).length;document.getElementById('readTime').textContent=Math.max(1,Math.ceil(w/300));updateGoal();S.unsaved=true;document.getElementById('saveBtn').classList.add('unsaved');clearTimeout(editorTimer);editorTimer=setTimeout(()=>{if(S.autoSave)saveDoc();},3000);if(S.previewMode)document.getElementById('previewPane').innerHTML=renderMD(txt);}
+function onEditorInput(){const txt=document.getElementById('mainEditor').value,w=countWords(txt);document.getElementById('editorWords').textContent=w;document.getElementById('totalWordsBar').textContent=w;const ps=txt.split(/\n\n+/).filter(p=>p.trim()).length||1;document.getElementById('paraCount').textContent=ps;document.getElementById('paraCountBar').textContent=ps;document.getElementById('sentCount').textContent=(txt.match(/[。！？.!?]/g)||[]).length;document.getElementById('readTime').textContent=Math.max(1,Math.ceil(w/300));updateGoal();S.unsaved=true;document.getElementById('saveBtn').classList.add('unsaved');clearTimeout(editorTimer);editorTimer=setTimeout(()=>{if(S.autoSave)saveDoc();updateContextBar();},3000);if(S.previewMode)document.getElementById('previewPane').innerHTML=renderMD(txt);}
 function countWords(t){return t.replace(/\s/g,'').length;}
 function updateGoal(){const w=countWords(document.getElementById('mainEditor').value),p=Math.min(100,Math.round(w/S.wordGoal*100));document.getElementById('goalFill').style.width=p+'%';document.getElementById('goalText').textContent=w+'/'+S.wordGoal;document.getElementById('goalTextBar').textContent=w+'/'+S.wordGoal;document.getElementById('todayWords').textContent=w;}
 function updateAllStats(){document.getElementById('totalWords').textContent=countWords(document.getElementById('mainEditor').value);updateGoal();}
@@ -572,21 +669,118 @@ async function saveDoc(){if(!S.active||!S.proj)return;const text=document.getEle
 // ═══ AI Modes ═══
 const AI_MODES={'润色':{icon:'◇',group:'基础',p:'请对以下文字进行润色，提升语言的流畅度、文学性和表达力，保持原意和风格：'},'扩写':{icon:'↑',group:'基础',p:'请对以下文字进行扩写，增加细节描写、画面感和情感层次：'},'缩写':{icon:'↓',group:'基础',p:'请对以下文字进行精炼缩写，保留核心内容，简洁有力：'},'改写':{icon:'↻',group:'基础',p:'请用不同的表达方式改写以下文字，保持核心意思：'},'续写':{icon:'→',group:'基础',p:'请根据以下内容自然地续写下文，保持风格和情节逻辑：'},'补写':{icon:'⊞',group:'基础',p:'请为以下内容填补缺失的过渡或细节部分：'},'对话':{icon:'❝',group:'描写',p:'请为以下场景创作自然生动的对话，符合人物性格：'},'心理':{icon:'◉',group:'描写',p:'请为以下内容增加细腻的人物心理描写：'},'环境':{icon:'❋',group:'描写',p:'请为以下内容增加生动的环境和氛围描写：'},'战斗':{icon:'⚡',group:'描写',p:'请将以下内容改写为紧张刺激的战斗场景描写：'},'古风':{icon:'◎',group:'风格',p:'请将以下内容改写为古典文学风格：'},'现代':{icon:'▣',group:'风格',p:'请将以下内容改写为现代白话文风格：'},'幽默':{icon:'♪',group:'风格',p:'请将以下内容改写得轻松幽默：'},'悬疑':{icon:'⊕',group:'风格',p:'请将以下内容改写为悬疑神秘风格：'},'唯美':{icon:'✿',group:'风格',p:'请将以下内容改写为唯美诗意风格：'},'霸气':{icon:'△',group:'风格',p:'请将以下内容改写为霸气豪迈风格：'},'分析':{icon:'≡',group:'分析',p:'请分析以下文字的结构、节奏和表达问题：'},'校对':{icon:'✓',group:'分析',p:'请检查以下文字的错别字、语病和标点错误：'},'节奏':{icon:'♫',group:'分析',p:'请分析以下文字的叙事节奏：'},'情感':{icon:'♥',group:'分析',p:'请分析以下文字的情感层次和情绪弧度：'},'大纲':{icon:'☰',group:'创作',p:'请根据以下信息生成详细的故事大纲：'},'人物':{icon:'◉',group:'创作',p:'请根据以下信息生成详细的人物档案：'},'伏笔':{icon:'⊹',group:'创作',p:'请为以下故事设计3-5个巧妙的伏笔：'},'转折':{icon:'⇄',group:'创作',p:'请为以下故事情节设计2-3个出乎意料的转折：'},'结局':{icon:'■',group:'创作',p:'请为以下故事提供3种不同风格的结局：'},'翻译':{icon:'⊕',group:'工具',p:'请将以下中文内容翻译为英文：'},'总结':{icon:'✎',group:'工具',p:'请为以下内容生成简洁摘要：'},'标题':{icon:'¶',group:'工具',p:'请为以下内容生成5个吸引人的标题：'},'降AI':{icon:'▷',group:'工具',p:'请将以下AI生成的文字重写为自然的人类写作风格。要求：1.使用口语化、不规则的句式 2.加入个人化的表达和语气词 3.偶尔使用短句或碎片化表达 4.避免完美排比和过度修饰 5.添加一些即兴感和不完美感 6.保持核心意思不变 7.让文字读起来像真人随手写的，而不是AI精心构造的。输出重写后的全文：'},'查AI':{icon:'⊕',group:'工具',p:'请分析以下文字的AI生成特征。从句式规律性、词汇丰富度、情感自然度、结构完美度、口语化程度、重复冗余度六个维度各给0-100评分，给出综合AI概率评估和具体特征描述。⚠️ 仅供参考，不构成正式判定。文字：'}};
 function renderAiModeGrid(){const el=document.getElementById('aiModeGrid'),g={};for(const[k,v]of Object.entries(AI_MODES)){if(!g[v.group])g[v.group]=[];g[v.group].push(k);}let h='';for(const[label,keys]of Object.entries(g)){h+='<div class="mode-group"><div class="mode-group-title">'+t('grp-'+label)+'</div><div class="mode-grid">';for(const k of keys)h+='<button class="mode-btn'+(S.aiMode===k?' selected':'')+'" onclick="selectMode(this,\''+k+'\')"><span class="micon">'+AI_MODES[k].icon+'</span>'+t('mode-'+k)+'</button>';h+='</div></div>';}el.innerHTML=h;}
-function selectMode(btn,m){document.querySelectorAll('.mode-btn').forEach(b=>b.classList.remove('selected'));btn.classList.add('selected');S.aiMode=m;}
+function selectMode(btn,m){document.querySelectorAll('.mode-btn').forEach(b=>b.classList.remove('selected'));btn.classList.add('selected');S.aiMode=m;updateContextBar();}
 function setTemp(v,btn){btn.parentElement.querySelectorAll('.seg-btn').forEach(b=>b.classList.remove('on'));btn.classList.add('on');S.aiTemp=v;}
 function setLen(v,btn){btn.parentElement.querySelectorAll('.seg-btn').forEach(b=>b.classList.remove('on'));btn.classList.add('on');S.aiLen=v;}
 
 // ═══ API ═══
 const PROVIDERS={claude:{url:'https://api.anthropic.com/v1/messages',model:'claude-sonnet-4-20250514',type:'claude'},openai:{url:'https://api.openai.com/v1/chat/completions',model:'gpt-4o',type:'openai'},deepseek:{url:'https://api.deepseek.com/v1/chat/completions',model:'deepseek-chat',type:'openai'},xiaomi:{url:'https://api.xiaomimimo.com/v1/chat/completions',model:'mimo-v2.5-pro',type:'openai'},qwen:{url:'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',model:'qwen-plus',type:'openai'},zhipu:{url:'https://open.bigmodel.cn/api/paas/v4/chat/completions',model:'glm-4-flash',type:'openai'},moonshot:{url:'https://api.moonshot.cn/v1/chat/completions',model:'moonshot-v1-8k',type:'openai'},siliconflow:{url:'https://api.siliconflow.cn/v1/chat/completions',model:'deepseek-ai/DeepSeek-V3',type:'openai'},openrouter:{url:'https://openrouter.ai/api/v1/chat/completions',model:'anthropic/claude-sonnet-4',type:'openai'},custom:{url:'',model:'',type:'openai'}};
-async function callAI(prompt,conf){const pr=conf.provider||'claude',p=PROVIDERS[pr]||PROVIDERS.claude,url=conf.baseUrl||p.url,h={'Content-Type':'application/json'};let body;if(p.type==='claude'){h['x-api-key']=conf.key;h['anthropic-version']='2023-06-01';body=JSON.stringify({model:conf.model||p.model,max_tokens:2000,messages:[{role:'user',content:prompt}]});}else{h['Authorization']='Bearer '+conf.key;body=JSON.stringify({model:conf.model||p.model,max_tokens:2000,messages:[{role:'user',content:prompt}]});}const r=await fetch(url,{method:'POST',headers:h,body});if(!r.ok)throw new Error('HTTP '+r.status);const d=await r.json();if(p.type==='claude')return d.content?.[0]?.text||'（无返回）';return d.choices?.[0]?.message?.content||'（无返回）';}
+async function callAI(prompt,conf,systemPrompt){
+  const pr=conf.provider||'claude',p=PROVIDERS[pr]||PROVIDERS.claude,url=conf.baseUrl||p.url,h={'Content-Type':'application/json'};
+  let body,msgs=[];
+  if(systemPrompt)msgs.push({role:'system',content:systemPrompt});
+  msgs.push({role:'user',content:prompt});
+  if(p.type==='claude'){
+    h['x-api-key']=conf.key;h['anthropic-version']='2023-06-01';
+    const claudeBody={model:conf.model||p.model,max_tokens:2000,messages:msgs.filter(m=>m.role!=='system')};
+    if(systemPrompt)claudeBody.system=systemPrompt;
+    body=JSON.stringify(claudeBody);
+  }else{
+    h['Authorization']='Bearer '+conf.key;
+    body=JSON.stringify({model:conf.model||p.model,max_tokens:2000,messages:msgs});
+  }
+  const r=await fetch(url,{method:'POST',headers:h,body});
+  if(!r.ok)throw new Error('HTTP '+r.status);
+  const d=await r.json();
+  let result='',usage=null;
+  if(p.type==='claude'){result=d.content?.[0]?.text||'（无返回）';usage=d.usage?{input:d.usage.input_tokens,output:d.usage.output_tokens}:null;}
+  else{result=d.choices?.[0]?.message?.content||'（无返回）';usage=d.usage?{input:d.usage.prompt_tokens,output:d.usage.completion_tokens}:null;}
+  if(usage)updateUsageDisplay(usage);
+  return result;
+}
+function updateUsageDisplay(usage){
+  const el=document.getElementById('ctxUsedText');
+  if(!el)return;
+  const total=(usage.input||0)+(usage.output||0);
+  const totalStr=total>1000?(total/1000).toFixed(1)+'k':total;
+  const inStr=(usage.input||0)>1000?((usage.input||0)/1000).toFixed(1)+'k':usage.input||0;
+  const outStr=(usage.output||0)>1000?((usage.output||0)/1000).toFixed(1)+'k':usage.output||0;
+  el.textContent='上次: 入'+inStr+' 出'+outStr+' = '+totalStr+' tokens';
+  el.style.display='block';
+}
 function buildCtx(){if(!S.proj)return'';const p=S.proj.project,a=[];a.push('作品：《'+p.name+'》');if(p.genre)a.push('类型：'+p.genre);if(p.description)a.push('简介：'+p.description);if(p.world_setting)a.push('世界观：'+p.world_setting);if(S.proj.characters.length)a.push('人物：'+S.proj.characters.map(c=>c.name+'('+c.role+')').join('、'));return a.join('\n');}
+
+// ═══ AI Memory ═══
+function buildMemoryContext(){
+  if(!S.proj||!S.aiMemories.length)return'';
+  const projMem=S.aiMemories.filter(m=>m.project_id===S.proj.project.id);
+  if(!projMem.length)return'';
+  const lines=projMem.map(m=>'['+m.category+'] '+m.content);
+  return'【AI记忆 — 请参考以下已知信息】\n'+lines.join('\n');
+}
+async function loadMemories(){
+  if(!db)return;
+  S.aiMemories=await dbAll('aiMemories');
+  renderMemoryList();
+}
+function renderMemoryList(){
+  const el=document.getElementById('memoryList');
+  if(!el)return;
+  const projMem=S.proj?S.aiMemories.filter(m=>m.project_id===S.proj.project.id):[];
+  if(!projMem.length){
+    el.innerHTML='<div style="text-align:center;padding:20px;color:var(--text-hint);font-size:12px">暂无记忆条目<br><span style="font-size:11px;opacity:0.7">添加记忆后，AI会自动参考这些信息</span></div>';
+    return;
+  }
+  const cats={plot:'📋 剧情',style:'✍️ 风格',world:'🌍 世界观',char:'👤 人物',note:'📝 备注',rule:'📏 规则'};
+  el.innerHTML=projMem.map(m=>'<div class="char-card" style="position:relative"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px"><span style="font-size:10px;padding:1px 6px;border-radius:10px;background:var(--accent-glow);color:var(--accent)">'+(cats[m.category]||m.category)+'</span><div style="display:none;gap:4px" class="mem-actions"><button class="char-act-btn" onclick="event.stopPropagation();editMemory('+m.id+')">编辑</button><button class="char-act-btn" onclick="event.stopPropagation();delMemory('+m.id+')">删除</button></div></div><div style="font-size:12px;color:var(--text-secondary);line-height:1.6">'+m.content+'</div></div>').join('');
+  el.querySelectorAll('.char-card').forEach(c=>{
+    c.addEventListener('mouseenter',()=>{const a=c.querySelector('.mem-actions');if(a)a.style.display='flex';});
+    c.addEventListener('mouseleave',()=>{const a=c.querySelector('.mem-actions');if(a)a.style.display='none';});
+  });
+}
+async function saveMemory(){
+  const content=document.getElementById('memContent').value.trim();
+  if(!content){showToast('❌','请输入记忆内容');return;}
+  if(!S.proj){showToast('❌','请先选择项目');return;}
+  const catEl=document.querySelector('#memCatGrid .genre-chip.on');
+  const category=catEl?catEl.textContent.replace(/^[^\s]+\s/,''):'备注';
+  const catMap={'📋 剧情':'plot','✍️ 风格':'style','🌍 世界观':'world','👤 人物':'char','📝 备注':'note','📏 规则':'rule'};
+  const catKey=catMap[category]||'note';
+  const d={project_id:S.proj.project.id,category:catKey,content,created_at:Date.now()};
+  if(S.editMemoryId){d.id=S.editMemoryId;}
+  await dbPut('aiMemories',d);
+  S.editMemoryId=null;
+  document.getElementById('memContent').value='';
+  await loadMemories();
+  closeModal('memoryModal');
+  showToast('🧠','记忆已保存');
+  updateContextBar();
+}
+async function delMemory(id){
+  if(!confirm('删除此记忆？'))return;
+  await dbDel('aiMemories',id);
+  S.aiMemories=S.aiMemories.filter(m=>m.id!==id);
+  renderMemoryList();
+  showToast('🗑️','已删除');
+  updateContextBar();
+}
+function editMemory(id){
+  const m=S.aiMemories.find(x=>x.id===id);
+  if(!m)return;
+  S.editMemoryId=id;
+  document.getElementById('memContent').value=m.content;
+  const catMap2={plot:'📋 剧情',style:'✍️ 风格',world:'🌍 世界观',char:'👤 人物',note:'📝 备注',rule:'📏 规则'};
+  document.querySelectorAll('#memCatGrid .genre-chip').forEach(c=>c.classList.toggle('on',c.textContent===catMap2[m.category]));
+  openModal('memoryModal');
+}
+function toggleMemCat(el){el.parentElement.querySelectorAll('.genre-chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');}
 function selectProvider(el,p){el.parentElement.querySelectorAll('.provider-chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');S.selectedProvider=p;const cur=el.closest('.provider-grid').id;const urlRow=cur==='sProviderGrid'?'sCustomUrlRow':'customUrlRow';document.getElementById(urlRow).style.display=p==='custom'?'block':'none';const d={claude:'claude-sonnet-4-20250514',openai:'gpt-4o',deepseek:'deepseek-chat',xiaomi:'mimo-v2.5-pro',qwen:'qwen-plus',zhipu:'glm-4-flash',moonshot:'moonshot-v1-8k',siliconflow:'deepseek-ai/DeepSeek-V3',openrouter:'anthropic/claude-sonnet-4',custom:''};const modelEl=cur==='sProviderGrid'?document.getElementById('sApiModel'):document.getElementById('apiModel');if(modelEl)modelEl.placeholder=d[p]||'';}
 async function testApi(){const k=document.getElementById('apiKey').value.trim(),r=document.getElementById('testResult');if(!k){r.className='test-result fail';r.textContent='请输入 Key';return;}r.className='test-result ok';r.textContent='⏳ 测试中...';try{const conf={key:k,provider:S.selectedProvider,model:document.getElementById('apiModel').value.trim(),baseUrl:document.getElementById('apiBaseUrl').value.trim()};const t=await callAI('请回复"连接成功"',conf);r.className='test-result ok';r.textContent='✓ '+t.slice(0,30);}catch(e){r.className='test-result fail';r.textContent='✗ '+e.message;}}
 function saveApi(){const c={provider:S.selectedProvider,key:document.getElementById('apiKey').value.trim(),model:document.getElementById('apiModel').value.trim(),baseUrl:document.getElementById('apiBaseUrl').value.trim()};if(!c.key){showToast('❌','请输入 Key');return;}S.apiConfig=c;localStorage.setItem('ww_api',JSON.stringify(c));closeModal('apiModal');showToast('✓','已保存');}
 function loadApiUI(){const c=S.apiConfig;if(c.provider){const el=document.querySelector('.provider-chip[onclick*="'+c.provider+'"]');if(el)selectProvider(el,c.provider);}document.getElementById('apiKey').value=c.key||'';document.getElementById('apiModel').value=c.model||'';document.getElementById('apiBaseUrl').value=c.baseUrl||'';}
 
 // ═══ AI Generate ═══
-async function doGenerate(){const ac=S.apiConfig;if(!ac.key){showToast('⚙️','请先配置 API');openModal('apiModal');return;}const ed=document.getElementById('mainEditor'),sel=ed.value.slice(ed.selectionStart,ed.selectionEnd).trim(),full=ed.value.trim(),extra=document.getElementById('aiPrompt').value.trim(),content=sel||full.slice(-1000);if(!content&&!extra){showToast('✍️','请先输入内容');return;}const lm={short:'100字以内',mid:'200-300字',long:'400-600字',xl:'800字以上'},tm={low:'保持严谨',mid:'适度创意',high:'大胆想象'};const md=AI_MODES[S.aiMode]||{p:'请处理以下内容：'};let prompt=md.p+'\n\n'+content+'\n\n【输出要求】'+lm[S.aiLen]+'。'+tm[S.aiTemp]+'。';if(S.proj)prompt+='\n\n【项目信息】\n'+buildCtx();if(extra)prompt+='\n\n【额外指令】'+extra;const btn=document.getElementById('generateBtn');btn.classList.add('loading');document.getElementById('generateBtnIcon').innerHTML='<div class="spinner"></div>';document.getElementById('generateBtnText').textContent=t('ap-gen-ing');try{const r=await callAI(prompt,ac);S.lastArpResult=r;document.getElementById('arpText').textContent=r;document.getElementById('arpMode').textContent=S.aiMode;document.getElementById('aiResultPopup').classList.add('show');addHistory(S.aiMode,r);}catch(e){showToast('❌',e.message||'请求失败');}finally{btn.classList.remove('loading');document.getElementById('generateBtnIcon').textContent='✨';document.getElementById('generateBtnText').textContent=t('ap-gen');}}
+async function doGenerate(){const ac=S.apiConfig;if(!ac.key){showToast('⚙️','请先配置 API');openModal('apiModal');return;}const ed=document.getElementById('mainEditor'),sel=ed.value.slice(ed.selectionStart,ed.selectionEnd).trim(),full=ed.value.trim(),extra=document.getElementById('aiPrompt').value.trim(),content=sel||full.slice(-1000);if(!content&&!extra){showToast('✍️','请先输入内容');return;}const lm={short:'100字以内',mid:'200-300字',long:'400-600字',xl:'800字以上'},tm={low:'保持严谨',mid:'适度创意',high:'大胆想象'};const md=AI_MODES[S.aiMode]||{p:'请处理以下内容：'};let prompt=md.p+'\n\n'+content+'\n\n【输出要求】'+lm[S.aiLen]+'。'+tm[S.aiTemp]+'。';if(S.proj)prompt+='\n\n【项目信息】\n'+buildCtx();if(extra)prompt+='\n\n【额外指令】'+extra;let sysPrompt='你是一位专业的中文写作助手。';const memCtx=buildMemoryContext();if(memCtx)sysPrompt+='\n\n'+memCtx;const btn=document.getElementById('generateBtn');btn.classList.add('loading');document.getElementById('generateBtnIcon').innerHTML='<div class="spinner"></div>';document.getElementById('generateBtnText').textContent=t('ap-gen-ing');try{const r=await callAI(prompt,ac,sysPrompt);S.lastArpResult=r;document.getElementById('arpText').textContent=r;document.getElementById('arpMode').textContent=S.aiMode;document.getElementById('aiResultPopup').classList.add('show');addHistory(S.aiMode,r);}catch(e){showToast('❌',e.message||'请求失败');}finally{btn.classList.remove('loading');document.getElementById('generateBtnIcon').textContent='✨';document.getElementById('generateBtnText').textContent=t('ap-gen');}}
 function arpAction(t){const text=S.lastArpResult,ed=document.getElementById('mainEditor');if(t==='replace'){const s=ed.selectionStart,e=ed.selectionEnd;if(s!==e)ed.value=ed.value.slice(0,s)+text+ed.value.slice(e);else ed.value=text;showToast('✓','已替换');}else if(t==='append'){ed.value+='\n\n'+text;showToast('✓','已追加');}else if(t==='insert'){const p=ed.selectionStart;ed.value=ed.value.slice(0,p)+text+ed.value.slice(p);showToast('✓','已插入');}else if(t==='copy'){navigator.clipboard.writeText(text).then(()=>showToast('✓','已复制'));return;}onEditorInput();closeAiResult();}
 function closeAiResult(){document.getElementById('aiResultPopup').classList.remove('show');}
 
@@ -605,7 +799,7 @@ function restoreHistory(el){S.lastArpResult=el.dataset.text;document.getElementB
 async function clearHistory(){if(!confirm('清空历史？'))return;const items=await dbAll('aiHistory');for(const i of items)await dbDel('aiHistory',i.id);renderHistory();showToast('🗑️','已清空');}
 
 // ═══ AI Tabs ═══
-function switchAiTab(t,el){document.querySelectorAll('.ai-tab').forEach(x=>x.classList.remove('active'));el.classList.add('active');['modes','multi','history'].forEach(x=>{document.getElementById('aiTab-'+x).style.display=x===t?'block':'none';});}
+function switchAiTab(t,el){document.querySelectorAll('.ai-tab').forEach(x=>x.classList.remove('active'));el.classList.add('active');['modes','multi','memory','history'].forEach(x=>{document.getElementById('aiTab-'+x).style.display=x===t?'block':'none';});if(t==='memory')renderMemoryList();}
 
 // ═══ Modals ═══
 function openModal(id){document.getElementById(id).classList.add('show');if(id==='projectModal')renderProjectList();if(id==='apiModal')loadApiUI();if(id==='settingsModal')initSettingsModal();}
@@ -1469,10 +1663,7 @@ async function aiDetect(){
 
 // ═══ Toast ═══
 let toastTimer;function showToast(i,m){document.getElementById('toastIcon').textContent=i;document.getElementById('toastMsg').textContent=m;const t=document.getElementById('toast');t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),2200);}
-</script>
-</body>
-</html>
-<script>
+
 // ═══ Mobile Navigation ═══
 function swMobileTab(tab,btn){
   document.querySelectorAll('#bottomNav .btab').forEach(b=>b.classList.remove('on'));
@@ -1492,513 +1683,7 @@ function renderMpOutline(){if(!S.proj)return;const el=document.getElementById('m
 function renderMpChapter(){if(!S.proj)return;const el=document.getElementById('mpChapterList');if(!S.proj.chapters.length){el.innerHTML='<div style="text-align:center;padding:40px;color:var(--text-hint)">暂无章节</div>';return;}el.innerHTML=S.proj.chapters.map(c=>'<div class="outline-item'+(S.active&&S.active.type==='chapter'&&S.active.id===c.id?' active':'')+'" onclick="loadChapterContent('+c.id+');backToEditor()"><span class="oi-icon"><svg class="ic ic-sm"><use href="#ic-chapter"/></svg></span><span class="oi-text">'+c.title+'</span><span class="oi-count">'+(c.word_count||0)+'字</span></div>').join('');}
 function renderMpChar(){if(!S.proj)return;const el=document.getElementById('mpCharList');if(!S.proj.characters.length){el.innerHTML='<div style="text-align:center;padding:40px;color:var(--text-hint)">暂无人物</div>';return;}el.innerHTML=S.proj.characters.map(c=>'<div class="char-card" onclick="loadCharContent('+c.id+');backToEditor()"><div class="char-name">'+c.name+'</div><span class="char-role">'+c.role+'</span><div class="char-desc">'+(c.personality||'暂无简介')+'</div></div>').join('');}
 function renderMpAi(){const el=document.getElementById('mpAiModeGrid');if(!el||el.children.length>0)return;const g={};for(const[k,v]of Object.entries(AI_MODES)){if(!g[v.group])g[v.group]=[];g[v.group].push(k);}let h='';for(const[label,keys]of Object.entries(g)){h+='<div class="mode-group"><div class="mode-group-title">'+t('grp-'+label)+'</div><div class="mode-grid">';for(const k of keys)h+='<button class="mode-btn'+(S.aiMode===k?' selected':'')+'" onclick="selectMode(this,\''+k+'\')"><span class="micon">'+AI_MODES[k].icon+'</span>'+t('mode-'+k)+'</button>';h+='</div></div>';}el.innerHTML=h;}
-async function doGenerateMobile(){const ac=S.apiConfig;if(!ac.key){showToast('⚙️','请先配置 API');openModal('apiModal');return;}const ed=document.getElementById('mainEditor'),content=ed.value.slice(-1000)||'';const extra=document.getElementById('mpAiPrompt')?.value.trim()||'';if(!content&&!extra){showToast('✍️','请先输入内容');return;}const lm={short:'100字以内',mid:'200-300字',long:'400-600字',xl:'800字以上'},tm={low:'保持严谨',mid:'适度创意',high:'大胆想象'};const md=AI_MODES[S.aiMode]||{p:'请处理以下内容：'};let prompt=md.p+'\n\n'+content+'\n\n【输出要求】'+lm[S.aiLen]+'。'+tm[S.aiTemp]+'。';if(S.proj)prompt+='\n\n【项目信息】\n'+buildCtx();if(extra)prompt+='\n\n【额外指令】'+extra;const btn=document.getElementById('mpGenerateBtn');btn.classList.add('loading');btn.textContent=t('ap-gen-ing');try{const r=await callAI(prompt,ac);S.lastArpResult=r;document.getElementById('arpText').textContent=r;document.getElementById('arpMode').textContent=S.aiMode;document.getElementById('aiResultPopup').classList.add('show');addHistory(S.aiMode,r);}catch(e){showToast('❌',e.message||'失败');}finally{btn.classList.remove('loading');btn.innerHTML='<span>✨</span> '+t('ap-gen');}}
-</script>  'ps-none':'프로젝트 없음','ps-units-1':'',  'param-strict':'엄격','param-balance':'균형','param-creative':'창의적','param-short':'짧음','param-medium':'중간','param-long':'김','param-xlong':'매우 김','select-project':'프로젝트 선택...',  'logo':'AI 글쓰기 공방',
-  'genre-xf':'선협',
-  'genre-ds':'도시',
-  'genre-yq':'로맨스',
-  'genre-kh':'SF',
-  'genre-xy':'미스터리',
-  'genre-ls':'역사',
-  'genre-wx':'무협',
-  'genre-qh':'판타지',
-  'form-name':'프로젝트명',
-  'form-required':'필수',
-  'form-genre':'장르',
-  'form-goal':'일일 목표',
-  'form-goal-unit':'자',
-  'form-desc':'설명',
-  'form-desc-ph':'간단한 설명...',
-  'form-world':'세계관',
-  'form-world-ph':'세계관 설정...',
-  'form-cancel':'취소',
-  'form-create':'생성 ✓',
-  'form-save':'저장 ✓',
-  'form-api-provider':'공급자',
-  'form-api-key-label':'API 키',
-  'form-api-key-hint':'로컬 저장',
-  'form-api-test':'테스트',
-  'form-api-model-label':'모델',
-  'form-api-model-ph':'비우면 기본값',
-  'bb-total':'총:',
-  'bb-para':'단락:',
-  'prov-tongyi':'퉁이',
-  'prov-zhipu':'즈푸',
-  'prov-custom':'사용자 정의',
-'mode-润色':'윤색',
-  'mode-扩写':'확장',
-  'mode-缩写':'요약',
-  'mode-改写':'집필',
-  'mode-续写':'이어쓰기',
-  'mode-补写':'보완',
-  'mode-对话':'대화',
-  'mode-心理':'심리',
-  'mode-环境':'환경',
-  'mode-战斗':'전투',
-  'mode-古风':'고전',
-  'mode-现代':'현대',
-  'mode-幽默':'유머',
-  'mode-悬疑':'미스터리',
-  'mode-唯美':'미적',
-  'mode-霸气':'장엄',
-  'mode-分析':'분석',
-  'mode-校对':'교정',
-  'mode-节奏':'리듬',
-  'mode-情感':'감정',
-  'mode-大纲':'개요',
-  'mode-人物':'캐릭터',
-  'mode-伏笔':'복선',
-  'mode-转折':'전환',
-  'mode-结局':'결말',
-  'mode-翻译':'번역',
-  'mode-总结':'요약',
-  'mode-标题':'제목',
-  'mode-降AI':'인간화',
-  'mode-查AI':'AI검출',
-  'grp-基础':'기본',
-  'grp-描写':'묘사',
-  'grp-风格':'스타일',
-  'grp-分析':'분석',
-  'grp-创作':'창작',
-  'grp-工具':'도구','mod-settings':'⚙️ 설정','mod-settings-sub':'언어, API, 테마','mod-close':'닫기','mod-save':'저장 ✓','tb-settings':'설정',
-'ps-units-2':'자',
-},
-fr:{
-  'nav-outline':'Plan','nav-chapters':'Chapitres','nav-chars':'Personnages','nav-notes':'Notes',
-  'bnav-editor':'Éditeur','bnav-outline':'Plan','bnav-chapters':'Chapitres','bnav-chars':'Persos','bnav-ai':'IA',
-  'tb-focus':'◎ Focus','tb-preview':'◉ Aperçu','tb-save':'Sauver','tb-autosave':'↯ Auto','tb-export':'↓ Export',
-  'aq-proof':'✓ Corriger','aq-title':'¶ Titre','aq-inspire':'◇ Inspi','aq-research':'⊕ Recherche','aq-humanize':'▷ Humain','aq-detect':'⊕ Détec IA',
-  'ed-placeholder':'Commencer à écrire...','ed-chapter':'Titre du chapitre...','ed-para':'¶','ed-sent':'phrases','ed-read':'~','ed-min':'min de lecture','ed-words':'car.',
-  'bb-total':'Total:','bb-para':'¶:',
-  'ap-title':'Assistant IA','ap-tab-modes':'Modes','ap-tab-multi':'Comparer','ap-tab-hist':'Historique',
-  'ap-temp':'Créativité','ap-len':'Longueur','ap-prompt':'Extra','ap-prompt-ph':'Instructions optionnelles...',
-  'ap-gen':'Générer','ap-gen-ing':'Génération...',
-  'multi-slot':'Slot','multi-gen':'⚡ Générer tous les slots',
-  'hist-title':'Historique IA','hist-clear':'Vider','hist-empty':'Aucun historique',
-  'mod-newproj':'📁 Nouveau projet','mod-newproj-sub':'Créer un projet d\'écriture',
-  'mod-projname':'Nom du projet','mod-projname-ph':'ex: Les étoiles','mod-required':'Requis',
-  'mod-genre':'Genre','mod-goal':'Objectif quotidien','mod-goal-hint':'mots','mod-desc':'Description','mod-desc-ph':'Brève description...',
-  'mod-world':'Univers','mod-world-ph':'Notes sur l\'univers...',
-  'mod-cancel':'Annuler','mod-create':'Créer ✓',
-  'mod-projlist':'📚 Mes projets','mod-projlist-sub':'Cliquer pour ouvrir',
-  'mod-import':'📥 Importer','mod-close':'Fermer','mod-newproj-btn':'＋ Nouveau',
-  'mod-api':'⚙️ Config API','mod-api-sub':'Configurer le fournisseur IA.',
-  'mod-api-provider':'Fournisseur','mod-api-url':'Base URL','mod-api-url-hint':'Personnalisé',
-  'mod-api-key':'Clé API','mod-api-key-hint':'Stockée localement','mod-api-test':'Tester',
-  'mod-api-model':'Modèle','mod-api-model-hint':'Vide = défaut','mod-api-save':'Sauver ✓',
-  'mod-char':'👤 Ajouter personnage','mod-char-sub':'L\'IA référencera la personnalité',
-  'mod-char-name':'Nom','mod-char-name-ph':'ex: Pierre','mod-char-role':'Rôle',
-  'mod-char-pers':'Personnalité','mod-char-pers-ph':'Traits de caractère...',
-  'mod-char-back':'Passé','mod-char-back-ph':'Histoire...',
-  'mod-char-look':'Apparence','mod-char-look-ph':'Description physique...',
-  'mod-char-skill':'Compétences','mod-char-skill-ph':'Capacités spéciales...',
-  'mod-char-save':'Sauver ✓',
-  'mod-profile':'👤 Profil','mod-profile-sub':'Mot de passe et statistiques',
-  'mod-profile-stats':'📊 Stats du projet','mod-profile-chpwd':'🔒 Changer mot de passe',
-  'mod-oldpwd':'Mot de passe actuel','mod-newpwd':'Nouveau (4+ car.)','mod-newpwd2':'Confirmer',
-  'mod-lock':'🔒 Verrouiller','mod-chpwd-btn':'Changer',
-  'sb-outline':'Plan de l\'histoire','sb-chapters':'Chapitres','sb-chars':'Personnages','sb-notes':'Notes',
-  'sb-add-outline':'＋ Ajouter plan','sb-add-chapter':'＋ Ajouter chapitre','sb-add-char':'＋ Ajouter personnage',
-  'sb-empty-outline':'Aucun plan','sb-empty-chapter':'Aucun chapitre','sb-empty-char':'Aucun personnage','sb-empty-notes':'Bientôt...',
-  'lock-set':'Définir un mot de passe','lock-unlock':'Entrer le mot de passe','lock-btn-set':'Définir','lock-btn-unlock':'Déverrouiller',
-  'lock-hint':'Oublié ?','lock-reset':'Réinitialiser','lock-placeholder':'Mot de passe...',
-  'toast-saved':'Sauvegardé','toast-deleted':'Supprimé','toast-added':'Ajouté','toast-copied':'Copié',
-  'toast-exported':'Exporté','toast-created':'Créé','toast-locked':'Mot de passe défini',
-  'toast-pwd-err':'Mot de passe incorrect','toast-pwd-short':'4 car. minimum','toast-pwd-changed':'Mot de passe changé',
-  'toast-no-proj':'Sélectionner un projet','toast-no-api':'Configurer l\'API','toast-no-content':'Écrire du contenu',
-  'arp-title':'Résultat IA','arp-replace':'Remplacer','arp-append':'Ajouter','arp-insert':'Insérer','arp-copy':'Copier',
-  'aqr-apply':'✓ Appliquer','aqr-copy':'⊡ Copier',
-  'ps-project':'Projet:','ps-genre':'Genre:','ps-words':'Mots:','ps-outlines':'Plan:','ps-chapters':' · Chapitres:',
-  'ps-chars':'Persos:','ps-goal':'Objectif:','ps-created':'Créé:','ps-updated':'Mis à jour:',
-  'ps-none':'Aucun projet','ps-units-1':'',  'param-strict':'Précis','param-balance':'Équilibre','param-creative':'Créatif','param-short':'Court','param-medium':'Moyen','param-long':'Long','param-xlong':'Très long','select-project':'Choisir projet...',  'logo':'Atelier d\'Écriture IA',
-  'genre-xf':'Xianxia',
-  'genre-ds':'Urbain',
-  'genre-yq':'Romance',
-  'genre-kh':'Sci-Fi',
-  'genre-xy':'Mystère',
-  'genre-ls':'Historique',
-  'genre-wx':'Arts Martiaux',
-  'genre-qh':'Fantaisie',
-  'form-name':'Nom du projet',
-  'form-required':'Requis',
-  'form-genre':'Genre',
-  'form-goal':'Objectif quotidien',
-  'form-goal-unit':'mots',
-  'form-desc':'Description',
-  'form-desc-ph':'Brève description...',
-  'form-world':'Univers',
-  'form-world-ph':'Notes sur l\'univers...',
-  'form-cancel':'Annuler',
-  'form-create':'Créer ✓',
-  'form-save':'Sauver ✓',
-  'form-api-provider':'Fournisseur',
-  'form-api-key-label':'Clé API',
-  'form-api-key-hint':'Stockée localement',
-  'form-api-test':'Tester',
-  'form-api-model-label':'Modèle',
-  'form-api-model-ph':'Vide = défaut',
-  'bb-total':'Total:',
-  'bb-para':'¶:',
-  'prov-tongyi':'Tongyi',
-  'prov-zhipu':'Zhipu',
-  'prov-custom':'Personnalisé',
-'mode-润色':'Polir',
-  'mode-扩写':'Étendre',
-  'mode-缩写':'Résumer',
-  'mode-改写':'Réécrire',
-  'mode-续写':'Continuer',
-  'mode-补写':'Compléter',
-  'mode-对话':'Dialogue',
-  'mode-心理':'Psychologie',
-  'mode-环境':'Scène',
-  'mode-战斗':'Combat',
-  'mode-古风':'Classique',
-  'mode-现代':'Moderne',
-  'mode-幽默':'Humour',
-  'mode-悬疑':'Mystère',
-  'mode-唯美':'Poétique',
-  'mode-霸气':'Épique',
-  'mode-分析':'Analyser',
-  'mode-校对':'Corriger',
-  'mode-节奏':'Rythme',
-  'mode-情感':'Émotion',
-  'mode-大纲':'Plan',
-  'mode-人物':'Personnage',
-  'mode-伏笔':'Présage',
-  'mode-转折':'Rebondissement',
-  'mode-结局':'Fin',
-  'mode-翻译':'Traduire',
-  'mode-总结':'Résumé',
-  'mode-标题':'Titres',
-  'mode-降AI':'Humaniser',
-  'mode-查AI':'Détection IA',
-  'grp-基础':'Basique',
-  'grp-描写':'Décrire',
-  'grp-风格':'Style',
-  'grp-分析':'Analyser',
-  'grp-创作':'Créer',
-  'grp-工具':'Outils','mod-settings':'⚙️ Paramètres','mod-settings-sub':'Langue, API & Thème','mod-close':'Fermer','mod-save':'Sauver ✓','tb-settings':'Paramètres',
-'ps-units-2':'mots',
-},
-es:{
-  'nav-outline':'Esquema','nav-chapters':'Capítulos','nav-chars':'Personajes','nav-notes':'Notas',
-  'bnav-editor':'Editor','bnav-outline':'Esquema','bnav-chapters':'Capítulos','bnav-chars':'Pers.','bnav-ai':'IA',
-  'tb-focus':'◎ Enfoque','tb-preview':'◉ Vista previa','tb-save':'Guardar','tb-autosave':'↯ Auto','tb-export':'↓ Exportar',
-  'aq-proof':'✓ Corregir','aq-title':'¶ Título','aq-inspire':'◇ Inspirar','aq-research':'⊕ Buscar','aq-humanize':'▷ Humanizar','aq-detect':'⊕ Detectar IA',
-  'ed-placeholder':'Empieza a escribir...','ed-chapter':'Título del capítulo...','ed-para':'¶','ed-sent':'oraciones','ed-read':'~','ed-min':'min de lectura','ed-words':'car.',
-  'bb-total':'Total:','bb-para':'¶:',
-  'ap-title':'Asistente IA','ap-tab-modes':'Modos','ap-tab-multi':'Comparar','ap-tab-hist':'Historial',
-  'ap-temp':'Creatividad','ap-len':'Longitud','ap-prompt':'Extra','ap-prompt-ph':'Instrucciones opcionales...',
-  'ap-gen':'Generar','ap-gen-ing':'Generando...',
-  'multi-slot':'Ranura','multi-gen':'⚡ Generar todas las ranuras',
-  'hist-title':'Historial IA','hist-clear':'Limpiar','hist-empty':'Sin historial',
-  'mod-newproj':'📁 Nuevo proyecto','mod-newproj-sub':'Crear proyecto de escritura',
-  'mod-projname':'Nombre','mod-projname-ph':'ej: Estrellas','mod-required':'Requerido',
-  'mod-genre':'Género','mod-goal':'Meta diaria','mod-goal-hint':'palabras','mod-desc':'Descripción','mod-desc-ph':'Breve descripción...',
-  'mod-world':'Mundo','mod-world-ph':'Notas del mundo...',
-  'mod-cancel':'Cancelar','mod-create':'Crear ✓',
-  'mod-projlist':'📚 Mis proyectos','mod-projlist-sub':'Clic para abrir',
-  'mod-import':'📥 Importar','mod-close':'Cerrar','mod-newproj-btn':'＋ Nuevo',
-  'mod-api':'⚙️ Config API','mod-api-sub':'Configurar proveedor IA.',
-  'mod-api-provider':'Proveedor','mod-api-url':'Base URL','mod-api-url-hint':'Personalizado',
-  'mod-api-key':'Clave API','mod-api-key-hint':'Guardada localmente','mod-api-test':'Probar',
-  'mod-api-model':'Modelo','mod-api-model-hint':'Vacío = predeterminado','mod-api-save':'Guardar ✓',
-  'mod-char':'👤 Agregar personaje','mod-char-sub':'La IA referenciará la personalidad',
-  'mod-char-name':'Nombre','mod-char-name-ph':'ej: Carlos','mod-char-role':'Rol',
-  'mod-char-pers':'Personalidad','mod-char-pers-ph':'Rasgos...',
-  'mod-char-back':'Pasado','mod-char-back-ph':'Historia...',
-  'mod-char-look':'Apariencia','mod-char-look-ph':'Descripción física...',
-  'mod-char-skill':'Habilidades','mod-char-skill-ph':'Capacidades especiales...',
-  'mod-char-save':'Guardar ✓',
-  'mod-profile':'👤 Perfil','mod-profile-sub':'Contraseña y estadísticas',
-  'mod-profile-stats':'📊 Estadísticas','mod-profile-chpwd':'🔒 Cambiar contraseña',
-  'mod-oldpwd':'Contraseña actual','mod-newpwd':'Nueva (4+ car.)','mod-newpwd2':'Confirmar',
-  'mod-lock':'🔒 Bloquear','mod-chpwd-btn':'Cambiar',
-  'sb-outline':'Esquema de la historia','sb-chapters':'Capítulos','sb-chars':'Personajes','sb-notes':'Notas',
-  'sb-add-outline':'＋ Agregar esquema','sb-add-chapter':'＋ Agregar capítulo','sb-add-char':'＋ Agregar personaje',
-  'sb-empty-outline':'Sin esquema','sb-empty-chapter':'Sin capítulos','sb-empty-char':'Sin personajes','sb-empty-notes':'Próximamente...',
-  'lock-set':'Establecer contraseña','lock-unlock':'Ingresar contraseña','lock-btn-set':'Establecer','lock-btn-unlock':'Desbloquear',
-  'lock-hint':'¿Olvidaste?','lock-reset':'Restablecer','lock-placeholder':'Contraseña...',
-  'toast-saved':'Guardado','toast-deleted':'Eliminado','toast-added':'Agregado','toast-copied':'Copiado',
-  'toast-exported':'Exportado','toast-created':'Creado','toast-locked':'Contraseña establecida',
-  'toast-pwd-err':'Contraseña incorrecta','toast-pwd-short':'Mínimo 4 car.','toast-pwd-changed':'Contraseña cambiada',
-  'toast-no-proj':'Seleccionar proyecto','toast-no-api':'Configurar API','toast-no-content':'Escribir contenido',
-  'arp-title':'Resultado IA','arp-replace':'Reemplazar','arp-append':'Agregar','arp-insert':'Insertar','arp-copy':'Copiar',
-  'aqr-apply':'✓ Aplicar','aqr-copy':'⊡ Copiar',
-  'ps-project':'Proyecto:','ps-genre':'Género:','ps-words':'Palabras:','ps-outlines':'Esquema:','ps-chapters':' · Capítulos:',
-  'ps-chars':'Personajes:','ps-goal':'Meta diaria:','ps-created':'Creado:','ps-updated':'Actualizado:',
-  'ps-none':'Sin proyecto','ps-units-1':'',  'param-strict':'Estricto','param-balance':'Equilibrado','param-creative':'Creativo','param-short':'Corto','param-medium':'Medio','param-long':'Largo','param-xlong':'Extra largo','select-project':'Seleccionar proyecto...',  'logo':'Taller de Escritura IA',
-  'genre-xf':'Xianxia',
-  'genre-ds':'Urbano',
-  'genre-yq':'Romance',
-  'genre-kh':'Ci-Fi',
-  'genre-xy':'Misterio',
-  'genre-ls':'Histórico',
-  'genre-wx':'Artes Marciales',
-  'genre-qh':'Fantasía',
-  'form-name':'Nombre',
-  'form-required':'Requerido',
-  'form-genre':'Género',
-  'form-goal':'Meta diaria',
-  'form-goal-unit':'palabras',
-  'form-desc':'Descripción',
-  'form-desc-ph':'Breve descripción...',
-  'form-world':'Mundo',
-  'form-world-ph':'Notas del mundo...',
-  'form-cancel':'Cancelar',
-  'form-create':'Crear ✓',
-  'form-save':'Guardar ✓',
-  'form-api-provider':'Proveedor',
-  'form-api-key-label':'Clave API',
-  'form-api-key-hint':'Guardada localmente',
-  'form-api-test':'Probar',
-  'form-api-model-label':'Modelo',
-  'form-api-model-ph':'Vacío = predeterminado',
-  'bb-total':'Total:',
-  'bb-para':'¶:',
-  'prov-tongyi':'Tongyi',
-  'prov-zhipu':'Zhipu',
-  'prov-custom':'Personalizado',
-'mode-润色':'Pulir',
-  'mode-扩写':'Expandir',
-  'mode-缩写':'Resumir',
-  'mode-改写':'Reescribir',
-  'mode-续写':'Continuar',
-  'mode-补写':'Completar',
-  'mode-对话':'Diálogo',
-  'mode-心理':'Psicología',
-  'mode-环境':'Escena',
-  'mode-战斗':'Batalla',
-  'mode-古风':'Clásico',
-  'mode-现代':'Moderno',
-  'mode-幽默':'Humor',
-  'mode-悬疑':'Misterio',
-  'mode-唯美':'Poético',
-  'mode-霸气':'Épico',
-  'mode-分析':'Analizar',
-  'mode-校对':'Corregir',
-  'mode-节奏':'Ritmo',
-  'mode-情感':'Emoción',
-  'mode-大纲':'Esquema',
-  'mode-人物':'Personaje',
-  'mode-伏笔':'Presagio',
-  'mode-转折':'Giro',
-  'mode-结局':'Final',
-  'mode-翻译':'Traducir',
-  'mode-总结':'Resumen',
-  'mode-标题':'Títulos',
-  'mode-降AI':'Humanizar',
-  'mode-查AI':'Detectar IA',
-  'grp-基础':'Básico',
-  'grp-描写':'Describir',
-  'grp-风格':'Estilo',
-  'grp-分析':'Analizar',
-  'grp-创作':'Crear',
-  'grp-工具':'Herramientas','mod-settings':'⚙️ Ajustes','mod-settings-sub':'Idioma, API y Tema','mod-close':'Cerrar','mod-save':'Guardar ✓','tb-settings':'Ajustes',
-'ps-units-2':'palabras',
-},
-de:{
-  'nav-outline':'Gliederung','nav-chapters':'Kapitel','nav-chars':'Charaktere','nav-notes':'Notizen',
-  'bnav-editor':'Editor','bnav-outline':'Gliederung','bnav-chapters':'Kapitel','bnav-chars':'Char.','bnav-ai':'KI',
-  'tb-focus':'◎ Fokus','tb-preview':'◉ Vorschau','tb-save':'Speichern','tb-autosave':'↯ Auto','tb-export':'↓ Export',
-  'aq-proof':'✓ Korrektur','aq-title':'¶ Titel','aq-inspire':'◇ Inspi','aq-research':'⊕ Recherche','aq-humanize':'▷ Menschlich','aq-detect':'⊕ KI-Erk.',
-  'ed-placeholder':'Schreiben beginnen...','ed-chapter':'Kapiteltitel...','ed-para':'¶','ed-sent':'Sätze','ed-read':'~','ed-min':'Min. Lesezeit','ed-words':'Zeichen',
-  'bb-total':'Gesamt:','bb-para':'¶:',
-  'ap-title':'KI-Assistent','ap-tab-modes':'Modi','ap-tab-multi':'Vergleich','ap-tab-hist':'Verlauf',
-  'ap-temp':'Kreativität','ap-len':'Länge','ap-prompt':'Extra','ap-prompt-ph':'Optionale Anweisungen...',
-  'ap-gen':'Generieren','ap-gen-ing':'Generiert...',
-  'multi-slot':'Slot','multi-gen':'⚡ Alle Slots generieren',
-  'hist-title':'KI-Verlauf','hist-clear':'Löschen','hist-empty':'Kein Verlauf',
-  'mod-newproj':'📁 Neues Projekt','mod-newproj-sub':'Schreibprojekt erstellen',
-  'mod-projname':'Projektname','mod-projname-ph':'z.B. Sterne','mod-required':'Pflicht',
-  'mod-genre':'Genre','mod-goal':'Tagesziel','mod-goal-hint':'Wörter','mod-desc':'Beschreibung','mod-desc-ph':'Kurze Beschreibung...',
-  'mod-world':'Welt','mod-world-ph':'Weltnotizen...',
-  'mod-cancel':'Abbrechen','mod-create':'Erstellen ✓',
-  'mod-projlist':'📚 Meine Projekte','mod-projlist-sub':'Klicken zum Öffnen',
-  'mod-import':'📥 Importieren','mod-close':'Schließen','mod-newproj-btn':'＋ Neu',
-  'mod-api':'⚙️ API-Einstellungen','mod-api-sub':'KI-Anbieter konfigurieren.',
-  'mod-api-provider':'Anbieter','mod-api-url':'Base URL','mod-api-url-hint':'Benutzerdefiniert',
-  'mod-api-key':'API-Schlüssel','mod-api-key-hint':'Lokal gespeichert','mod-api-test':'Testen',
-  'mod-api-model':'Modell','mod-api-model-hint':'Leer = Standard','mod-api-save':'Speichern ✓',
-  'mod-char':'👤 Charakter hinzufügen','mod-char-sub':'KI referenziert die Persönlichkeit',
-  'mod-char-name':'Name','mod-char-name-ph':'z.B. Hans','mod-char-role':'Rolle',
-  'mod-char-pers':'Persönlichkeit','mod-char-pers-ph':'Charaktereigenschaften...',
-  'mod-char-back':'Hintergrund','mod-char-back-ph':'Geschichte...',
-  'mod-char-look':'Aussehen','mod-char-look-ph':'Physische Beschreibung...',
-  'mod-char-skill':'Fähigkeiten','mod-char-skill-ph':'Besondere Fähigkeiten...',
-  'mod-char-save':'Speichern ✓',
-  'mod-profile':'👤 Profil','mod-profile-sub':'Passwort & Statistiken',
-  'mod-profile-stats':'📊 Projektstatistiken','mod-profile-chpwd':'🔒 Passwort ändern',
-  'mod-oldpwd':'Aktuelles Passwort','mod-newpwd':'Neues Passwort (4+ Z.)','mod-newpwd2':'Bestätigen',
-  'mod-lock':'🔒 Sperren','mod-chpwd-btn':'Ändern',
-  'sb-outline':'Handlungsgliederung','sb-chapters':'Kapitel','sb-chars':'Charaktere','sb-notes':'Notizen',
-  'sb-add-outline':'＋ Gliederung','sb-add-chapter':'＋ Kapitel','sb-add-char':'＋ Charakter',
-  'sb-empty-outline':'Keine Gliederung','sb-empty-chapter':'Keine Kapitel','sb-empty-char':'Keine Charaktere','sb-empty-notes':'Bald...',
-  'lock-set':'Passwort festlegen','lock-unlock':'Passwort eingeben','lock-btn-set':'Festlegen','lock-btn-unlock':'Entsperren',
-  'lock-hint':'Vergessen?','lock-reset':'Zurücksetzen','lock-placeholder':'Passwort...',
-  'toast-saved':'Gespeichert','toast-deleted':'Gelöscht','toast-added':'Hinzugefügt','toast-copied':'Kopiert',
-  'toast-exported':'Exportiert','toast-created':'Erstellt','toast-locked':'Passwort gesetzt',
-  'toast-pwd-err':'Falsches Passwort','toast-pwd-short':'Min. 4 Zeichen','toast-pwd-changed':'Passwort geändert',
-  'toast-no-proj':'Projekt wählen','toast-no-api':'API konfigurieren','toast-no-content':'Inhalt eingeben',
-  'arp-title':'KI-Ergebnis','arp-replace':'Ersetzen','arp-append':'Anhängen','arp-insert':'Einfügen','arp-copy':'Kopieren',
-  'aqr-apply':'✓ Anwenden','aqr-copy':'⊡ Kopieren',
-  'ps-project':'Projekt:','ps-genre':'Genre:','ps-words':'Wörter:','ps-outlines':'Gliederung:','ps-chapters':' · Kapitel:',
-  'ps-chars':'Charaktere:','ps-goal':'Tagesziel:','ps-created':'Erstellt:','ps-updated':'Aktualisiert:',
-  'ps-none':'Kein Projekt','ps-units-1':'',  'param-strict':'Streng','param-balance':'Ausgewogen','param-creative':'Kreativ','param-short':'Kurz','param-medium':'Mittel','param-long':'Lang','param-xlong':'Sehr lang','select-project':'Projekt wählen...',  'logo':'KI-Schreibwerkstatt',
-  'genre-xf':'Xianxia',
-  'genre-ds':'Urban',
-  'genre-yq':'Romance',
-  'genre-kh':'Sci-Fi',
-  'genre-xy':'Mystery',
-  'genre-ls':'Historisch',
-  'genre-wx':'Kampfkunst',
-  'genre-qh':'Fantasy',
-  'form-name':'Projektname',
-  'form-required':'Pflicht',
-  'form-genre':'Genre',
-  'form-goal':'Tagesziel',
-  'form-goal-unit':'Wörter',
-  'form-desc':'Beschreibung',
-  'form-desc-ph':'Kurze Beschreibung...',
-  'form-world':'Welt',
-  'form-world-ph':'Weltnotizen...',
-  'form-cancel':'Abbrechen',
-  'form-create':'Erstellen ✓',
-  'form-save':'Speichern ✓',
-  'form-api-provider':'Anbieter',
-  'form-api-key-label':'API-Schlüssel',
-  'form-api-key-hint':'Lokal gespeichert',
-  'form-api-test':'Testen',
-  'form-api-model-label':'Modell',
-  'form-api-model-ph':'Leer = Standard',
-  'bb-total':'Gesamt:',
-  'bb-para':'¶:',
-  'prov-tongyi':'Tongyi',
-  'prov-zhipu':'Zhipu',
-  'prov-custom':'Benutzerdefiniert',
-'mode-润色':'Veredeln',
-  'mode-扩写':'Erweitern',
-  'mode-缩写':'Kürzen',
-  'mode-改写':'Umschreiben',
-  'mode-续写':'Weiterschreiben',
-  'mode-补写':'Ergänzen',
-  'mode-对话':'Dialog',
-  'mode-心理':'Psychologie',
-  'mode-环境':'Szene',
-  'mode-战斗':'Kampf',
-  'mode-古风':'Klassisch',
-  'mode-现代':'Modern',
-  'mode-幽默':'Humor',
-  'mode-悬疑':'Mystery',
-  'mode-唯美':'Poetisch',
-  'mode-霸气':'Episch',
-  'mode-分析':'Analysieren',
-  'mode-校对':'Korrigieren',
-  'mode-节奏':'Rhythmus',
-  'mode-情感':'Emotion',
-  'mode-大纲':'Gliederung',
-  'mode-人物':'Charakter',
-  'mode-伏笔':'Andeutung',
-  'mode-转折':'Wendung',
-  'mode-结局':'Ende',
-  'mode-翻译':'Übersetzen',
-  'mode-总结':'Zusammenfassung',
-  'mode-标题':'Titel',
-  'mode-降AI':'Menschlich',
-  'mode-查AI':'KI-Erkennung',
-  'grp-基础':'Basis',
-  'grp-描写':'Beschreiben',
-  'grp-风格':'Stil',
-  'grp-分析':'Analysieren',
-  'grp-创作':'Erstellen',
-  'grp-工具':'Werkzeuge','mod-settings':'⚙️ Einstellungen','mod-settings-sub':'Sprache, API & Thema','mod-close':'Schließen','mod-save':'Speichern ✓','tb-settings':'Einstellungen',
-'ps-units-2':'Wörter',
-},
-ru:{
-  'nav-outline':'План','nav-chapters':'Главы','nav-chars':'Персонажи','nav-notes':'Заметки',
-  'bnav-editor':'Редактор','bnav-outline':'План','bnav-chapters':'Главы','bnav-chars':'Перс.','bnav-ai':'ИИ',
-  'tb-focus':'◎ Фокус','tb-preview':'◉ Просмотр','tb-save':'Сохранить','tb-autosave':'↯ Авто','tb-export':'↓ Экспорт',
-  'aq-proof':'✓ Проверка','aq-title':'¶ Заголовок','aq-inspire':'◇ Идеи','aq-research':'⊕ Поиск','aq-humanize':'▷ Оживить','aq-detect':'⊕ ИИ-детект',
-  'ed-placeholder':'Начните писать...','ed-chapter':'Название главы...','ed-para':'¶','ed-sent':'предл.','ed-read':'~','ed-min':'мин чтения','ed-words':'симв.',
-  'bb-total':'Итого:','bb-para':'¶:',
-  'ap-title':'ИИ-ассистент','ap-tab-modes':'Режимы','ap-tab-multi':'Сравнение','ap-tab-hist':'История',
-  'ap-temp':'Креативность','ap-len':'Длина','ap-prompt':'Доп.','ap-prompt-ph':'Доп. инструкции...',
-  'ap-gen':'Создать','ap-gen-ing':'Создание...',
-  'multi-slot':'Слот','multi-gen':'⚡ Создать все слоты',
-  'hist-title':'История ИИ','hist-clear':'Очистить','hist-empty':'Нет истории',
-  'mod-newproj':'📁 Новый проект','mod-newproj-sub':'Создать проект для письма',
-  'mod-projname':'Название','mod-projname-ph':'напр: Звёзды','mod-required':'Обязательно',
-  'mod-genre':'Жанр','mod-goal':'Дневная цель','mod-goal-hint':'слов','mod-desc':'Описание','mod-desc-ph':'Краткое описание...',
-  'mod-world':'Мир','mod-world-ph':'Заметки о мире...',
-  'mod-cancel':'Отмена','mod-create':'Создать ✓',
-  'mod-projlist':'📚 Мои проекты','mod-projlist-sub':'Нажмите для открытия',
-  'mod-import':'📥 Импорт','mod-close':'Закрыть','mod-newproj-btn':'＋ Новый',
-  'mod-api':'⚙️ Настройки API','mod-api-sub':'Настройка ИИ-провайдера.',
-  'mod-api-provider':'Провайдер','mod-api-url':'Base URL','mod-api-url-hint':'Пользовательский',
-  'mod-api-key':'API-ключ','mod-api-key-hint':'Хранится локально','mod-api-test':'Тест',
-  'mod-api-model':'Модель','mod-api-model-hint':'Пусто = по умолчанию','mod-api-save':'Сохранить ✓',
-  'mod-char':'👤 Добавить персонажа','mod-char-sub':'ИИ будет учитывать характер',
-  'mod-char-name':'Имя','mod-char-name-ph':'напр: Иван','mod-char-role':'Роль',
-  'mod-char-pers':'Характер','mod-char-pers-ph':'Черты характера...',
-  'mod-char-back':'Предыстория','mod-char-back-ph':'История...',
-  'mod-char-look':'Внешность','mod-char-look-ph':'Описание внешности...',
-  'mod-char-skill':'Навыки','mod-char-skill-ph':'Особые способности...',
-  'mod-char-save':'Сохранить ✓',
-  'mod-profile':'👤 Профиль','mod-profile-sub':'Пароль и статистика',
-  'mod-profile-stats':'📊 Статистика','mod-profile-chpwd':'🔒 Сменить пароль',
-  'mod-oldpwd':'Текущий пароль','mod-newpwd':'Новый пароль (4+ симв.)','mod-newpwd2':'Подтвердить',
-  'mod-lock':'🔒 Заблокировать','mod-chpwd-btn':'Сменить',
-  'sb-outline':'Сюжетный план','sb-chapters':'Главы','sb-chars':'Персонажи','sb-notes':'Заметки',
-  'sb-add-outline':'＋ Добавить план','sb-add-chapter':'＋ Добавить главу','sb-add-char':'＋ Добавить персонажа',
-  'sb-empty-outline':'Нет плана','sb-empty-chapter':'Нет глав','sb-empty-char':'Нет персонажей','sb-empty-notes':'Скоро...',
-  'lock-set':'Установите пароль','lock-unlock':'Введите пароль','lock-btn-set':'Установить','lock-btn-unlock':'Разблокировать',
-  'lock-hint':'Забыли?','lock-reset':'Сбросить','lock-placeholder':'Пароль...',
-  'toast-saved':'Сохранено','toast-deleted':'Удалено','toast-added':'Добавлено','toast-copied':'Скопировано',
-  'toast-exported':'Экспортировано','toast-created':'Создано','toast-locked':'Пароль установлен',
-  'toast-pwd-err':'Неверный пароль','toast-pwd-short':'Мин. 4 символа','toast-pwd-changed':'Пароль изменён',
-  'toast-no-proj':'Выберите проект','toast-no-api':'Настройте API','toast-no-content':'Введите текст',
-  'arp-title':'Результат ИИ','arp-replace':'Заменить','arp-append':'Добавить','arp-insert':'Вставить','arp-copy':'Копировать',
-  'aqr-apply':'✓ Применить','aqr-copy':'⊡ Копировать',
-  'ps-project':'Проект:','ps-genre':'Жанр:','ps-words':'Слов:','ps-outlines':'План:','ps-chapters':' · Главы:',
-  'ps-chars':'Персонажи:','ps-goal':'Дневная цель:','ps-created':'Создан:','ps-updated':'Обновлён:',
-  'ps-none':'Нет проекта','ps-units-1':'','ps-units-2':'слов',
-  'param-strict':'Строгий','param-balance':'Баланс','param-creative':'Креативный','param-short':'Короткий','param-medium':'Средний','param-long':'Длинный','param-xlong':'Сверхдлинный','select-project':'Выбрать проект...',  'logo':'ИИ Мастерская Письма',
-  'genre-xf':'Сянься',
-  'genre-ds':'Городской',
-  'genre-yq':'Роман',
-  'genre-kh':'НФ',
-  'genre-xy':'Мистика',
-  'genre-ls':'Исторический',
-  'genre-wx':'Ушу',
-  'genre-qh':'Фэнтези',
-  'form-name':'Название',
-  'form-required':'Обязательно',
-  'form-genre':'Жанр',
-  'form-goal':'Дневная цель',
-  'form-goal-unit':'слов',
-  'form-desc':'Описание',
-  'form-desc-ph':'Краткое описание...',
-  'form-world':'Мир',
-  'form-world-ph':'Заметки о мире...',
-  'form-cancel':'Отмена',
-  'form-create':'Создать ✓',
-  'form-save':'Сохранить ✓',
-  'form-api-provider':'Провайдер',
-  'form-api-key-label':'API-ключ',
-  'form-api-key-hint':'Хранится локально',
-  'form-api-test':'Тест',
-  'form-api-model-label':'Модель',
-  'form-api-model-ph':'Пусто = по умолчанию',
-  'bb-total':'Итого:',
-  'bb-para':'¶:',
-  'prov-tongyi':'Tongyi',
-  'prov-zhipu':'Zhipu',
-  'prov-custom':'Пользовательский',
-'mode-润色':'Шлифовать','mode-扩写':'Расширить','mode-缩写':'Сократить','mode-改写':'Переписать','mode-续写':'Продолжить','mode-补写':'Дополнить',
-  'mode-对话':'Диалог','mode-心理':'Психология','mode-环境':'Сцена','mode-战斗':'Бой',
-  'mode-古风':'Классика','mode-现代':'Современный','mode-幽默':'Юмор','mode-悬疑':'Мистика','mode-唯美':'Поэзия','mode-霸气':'Эпос',
-  'mode-分析':'Анализ','mode-校对':'Корректура','mode-节奏':'Ритм','mode-情感':'Эмоция',
-  'mode-大纲':'План','mode-人物':'Персонаж','mode-伏笔':'Предзнаменование','mode-转折':'Поворот','mode-结局':'Финал',
-  'mode-翻译':'Перевод','mode-总结':'Резюме','mode-标题':'Заголовки','mode-降AI':'Оживить','mode-查AI':'ИИ-детект',
-  'grp-基础':'Базовые','grp-描写':'Описание','grp-风格':'Стиль','grp-分析':'Анализ','grp-创作':'Создание','grp-工具':'Инструменты','mod-settings':'⚙️ Настройки','mod-settings-sub':'Язык, API и Тема','mod-close':'Закрыть','mod-save':'Сохранить ✓','tb-settings':'Настройки',
-}};
+async function doGenerateMobile(){const ac=S.apiConfig;if(!ac.key){showToast('⚙️','请先配置 API');openModal('apiModal');return;}const ed=document.getElementById('mainEditor'),content=ed.value.slice(-1000)||'';const extra=document.getElementById('mpAiPrompt')?.value.trim()||'';if(!content&&!extra){showToast('✍️','请先输入内容');return;}const lm={short:'100字以内',mid:'200-300字',long:'400-600字',xl:'800字以上'},tm={low:'保持严谨',mid:'适度创意',high:'大胆想象'};const md=AI_MODES[S.aiMode]||{p:'请处理以下内容：'};let prompt=md.p+'\n\n'+content+'\n\n【输出要求】'+lm[S.aiLen]+'。'+tm[S.aiTemp]+'。';if(S.proj)prompt+='\n\n【项目信息】\n'+buildCtx();if(extra)prompt+='\n\n【额外指令】'+extra;let sysPrompt='你是一位专业的中文写作助手。';const memCtx=buildMemoryContext();if(memCtx)sysPrompt+='\n\n'+memCtx;const btn=document.getElementById('mpGenerateBtn');btn.classList.add('loading');btn.textContent=t('ap-gen-ing');try{const r=await callAI(prompt,ac,sysPrompt);S.lastArpResult=r;document.getElementById('arpText').textContent=r;document.getElementById('arpMode').textContent=S.aiMode;document.getElementById('aiResultPopup').classList.add('show');addHistory(S.aiMode,r);}catch(e){showToast('❌',e.message||'失败');}finally{btn.classList.remove('loading');btn.innerHTML='<span>✨</span> '+t('ap-gen');}}
+</script>
+</body>
+</html>
