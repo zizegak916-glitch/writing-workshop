@@ -415,10 +415,10 @@ body.light #lockScreen{background-image:radial-gradient(ellipse 60% 60% at 50% 4
   <div class="modal-footer"><button class="btn-cancel" onclick="closeModal('newProjectModal')">取消</button><button class="btn-confirm" onclick="createProject()">创建 ✓</button></div>
 </div></div>
 <div class="modal-overlay" id="projectModal"><div class="modal">
-  <div class="modal-title">📚 我的项目</div><div class="modal-sub">点击项目进入写作</div>
+  <div class="modal-title" data-i18n="mod-projlist">📚 我的项目</div><div class="modal-sub" data-i18n="mod-projlist-sub">点击项目进入写作</div>
   <div id="projectList" style="max-height:300px;overflow-y:auto"></div>
-  <div style="margin-top:12px"><label style="padding:8px;border:1px dashed var(--border);border-radius:var(--radius-sm);text-align:center;color:var(--text-hint);font-size:12px;cursor:pointer;display:block">📥 导入项目 <input type="file" accept=".json" onchange="importProject(event)" style="display:none"></label></div>
-  <div class="modal-footer"><button class="btn-cancel" onclick="closeModal('projectModal')">关闭</button><button class="btn-confirm" onclick="closeModal('projectModal');openModal('newProjectModal')">＋ 新建</button></div>
+  <div style="margin-top:12px"><label style="padding:8px;border:1px dashed var(--border);border-radius:var(--radius-sm);text-align:center;color:var(--text-hint);font-size:12px;cursor:pointer;display:block"><span data-i18n="mod-import">📥 导入项目</span> <input type="file" accept=".json" onchange="importProject(event)" style="display:none"></label></div>
+  <div class="modal-footer"><button class="btn-cancel" data-i18n="mod-close" onclick="closeModal('projectModal')">关闭</button><button class="btn-confirm" data-i18n="mod-newproj-btn" onclick="closeModal('projectModal');openModal('newProjectModal')">＋ 新建</button></div>
 </div></div>
 <div class="modal-overlay" id="apiModal"><div class="modal">
   <div class="modal-title" data-i18n="mod-api"><svg class="ic" style="width:20px;height:20px"><use href="#ic-logo"/></svg> API 设置</div><div class="modal-sub" data-i18n="mod-api-sub">配置 AI 服务商，API Key 仅存本地</div>
