@@ -288,32 +288,32 @@ body.light #lockScreen{background-image:radial-gradient(ellipse 60% 60% at 50% 4
         <button class="nav-tab" onclick="switchSidebar('notes',this)"><svg class="ic"><use href="#ic-note"/></svg> 笔记</button>
       </div>
       <div class="sidebar-content">
-        <div id="tab-outline"><div class="section-label">故事大纲</div><div id="outlineList"></div><button class="add-item-btn" onclick="addOutline()">＋ 添加大纲</button></div>
-        <div id="tab-chapters" style="display:none"><div class="section-label">章节列表</div><div id="chapterList"></div><button class="add-item-btn" onclick="addChapter()">＋ 添加章节</button></div>
-        <div id="tab-chars" style="display:none"><div class="section-label">人物档案</div><div id="charList"></div><button class="add-item-btn" onclick="openModal('charModal')">＋ 添加人物</button></div>
-        <div id="tab-notes" style="display:none"><div class="section-label">笔记</div><div style="text-align:center;padding:20px;color:var(--text-hint);font-size:12px">功能开发中...</div></div>
+        <div id="tab-outline"><div class="section-label" data-i18n-sb="sb-outline">故事大纲</div><div id="outlineList"></div><button class="add-item-btn" data-i18n-sb="sb-add-outline" onclick="addOutline()">＋ 添加大纲</button></div>
+        <div id="tab-chapters" style="display:none"><div class="section-label" data-i18n-sb="sb-chapters">章节列表</div><div id="chapterList"></div><button class="add-item-btn" data-i18n-sb="sb-add-chapter" onclick="addChapter()">＋ 添加章节</button></div>
+        <div id="tab-chars" style="display:none"><div class="section-label" data-i18n-sb="sb-chars">人物档案</div><div id="charList"></div><button class="add-item-btn" data-i18n-sb="sb-add-char" onclick="openModal('charModal')">＋ 添加人物</button></div>
+        <div id="tab-notes" style="display:none"><div class="section-label" data-i18n-sb="sb-notes">笔记</div><div style="text-align:center;padding:20px;color:var(--text-hint);font-size:12px">功能开发中...</div></div>
       </div>
     </div>
     <div class="editor-area">
       <div class="editor-toolbar">
-        <div class="toolbar-group"><button class="tool-btn" onclick="openFocus()"><svg class="ic ic-sm"><use href="#ic-focus"/></svg> 专注</button><button class="tool-btn" onclick="togglePreview()" id="previewBtn"><svg class="ic ic-sm"><use href="#ic-eye"/></svg> 预览</button></div>
+        <div class="toolbar-group"><button class="tool-btn" data-i18n="tb-focus" onclick="openFocus()"><svg class="ic ic-sm"><use href="#ic-focus"/></svg> 专注</button><button class="tool-btn" data-i18n="tb-preview" onclick="togglePreview()" id="previewBtn"><svg class="ic ic-sm"><use href="#ic-eye"/></svg> 预览</button></div>
         <div class="toolbar-sep"></div>
         <div class="toolbar-group"><button class="tool-btn" onclick="formatText('bold')"><b>B</b></button><button class="tool-btn" onclick="formatText('italic')"><i>I</i></button><button class="tool-btn" onclick="insertDivider()">──</button><button class="tool-btn" onclick="insertQuote()">「」</button></div>
         <div class="toolbar-sep"></div>
         <div class="toolbar-group"><button class="tool-btn" onclick="changeFontSize(-1)">A-</button><span style="font-size:11px;color:var(--text-muted);min-width:32px;text-align:center" id="fontSizeDisplay">16px</span><button class="tool-btn" onclick="changeFontSize(1)">A+</button></div>
         <div class="toolbar-sep"></div>
-        <div class="toolbar-group"><button class="tool-btn" onclick="exportText()"><svg class="ic ic-sm"><use href="#ic-download"/></svg> 导出</button><button class="tool-btn active" id="autoSaveToggle" onclick="toggleAutoSave()"><svg class="ic ic-sm"><use href="#ic-zap"/></svg> 自动保存</button></div>
+        <div class="toolbar-group"><button class="tool-btn" data-i18n="tb-export" onclick="exportText()"><svg class="ic ic-sm"><use href="#ic-download"/></svg> 导出</button><button class="tool-btn active" data-i18n="tb-autosave" id="autoSaveToggle" onclick="toggleAutoSave()"><svg class="ic ic-sm"><use href="#ic-zap"/></svg> 自动保存</button></div>
       </div>
       <div class="chapter-title-bar"><input class="chapter-title-input" id="chapterTitle" data-i18n-ph="ed-chapter" placeholder="章节标题..." oninput="S.unsaved=true"></div>
       <div class="chapter-meta"><span><span id="paraCount">1</span> <span data-i18n="ed-para">段</span></span><span><span id="sentCount">0</span> <span data-i18n="ed-sent">句</span></span><span id="readTimeWrap"><span id="readTime">0</span> <span data-i18n="ed-min">分钟</span></span><span id="editorWords">0</span> <span data-i18n="ed-words">字</span></div>
       <!-- AI Quick Tools Bar -->
       <div id="aiQuickBar" style="display:flex;gap:6px;padding:6px 24px;border-bottom:1px solid var(--border);background:var(--bg-mid);flex-wrap:wrap">
-        <button class="tool-btn" onclick="aiProofread()" id="aiBtnProof" title="检查错别字、语病"><svg class="ic ic-sm"><use href="#ic-check"/></svg> 纠错</button>
-        <button class="tool-btn" onclick="aiAutoTitle()" id="aiBtnTitle" title="根据内容生成标题"><svg class="ic ic-sm"><use href="#ic-tag"/></svg> 自动标题</button>
-        <button class="tool-btn" onclick="aiInspiration()" id="aiBtnInspire" title="根据上下文提供灵感"><svg class="ic ic-sm"><use href="#ic-bulb"/></svg> 实时灵感</button>
-        <button class="tool-btn" onclick="aiResearch()" id="aiBtnResearch" title="搜索相关资料和知识"><svg class="ic ic-sm"><use href="#ic-search"/></svg> 资料搜索</button>
-        <button class="tool-btn" onclick="aiHumanize()" id="aiBtnHumanize" title="降低AI检测率，让文字更像人写的"><svg class="ic ic-sm"><use href="#ic-shield"/></svg> 降AI率</button>
-        <button class="tool-btn" onclick="aiDetect()" id="aiBtnDetect" title="检测文字的AI特征"><svg class="ic ic-sm"><use href="#ic-search"/></svg> 查AI</button>
+        <button class="tool-btn" data-i18n="aq-proof" onclick="aiProofread()" id="aiBtnProof" title="检查错别字、语病"><svg class="ic ic-sm"><use href="#ic-check"/></svg> 纠错</button>
+        <button class="tool-btn" data-i18n="aq-title" onclick="aiAutoTitle()" id="aiBtnTitle" title="根据内容生成标题"><svg class="ic ic-sm"><use href="#ic-tag"/></svg> 自动标题</button>
+        <button class="tool-btn" data-i18n="aq-inspire" onclick="aiInspiration()" id="aiBtnInspire" title="根据上下文提供灵感"><svg class="ic ic-sm"><use href="#ic-bulb"/></svg> 实时灵感</button>
+        <button class="tool-btn" data-i18n="aq-research" onclick="aiResearch()" id="aiBtnResearch" title="搜索相关资料和知识"><svg class="ic ic-sm"><use href="#ic-search"/></svg> 资料搜索</button>
+        <button class="tool-btn" data-i18n="aq-humanize" onclick="aiHumanize()" id="aiBtnHumanize" title="降低AI检测率，让文字更像人写的"><svg class="ic ic-sm"><use href="#ic-shield"/></svg> 降AI率</button>
+        <button class="tool-btn" data-i18n="aq-detect" onclick="aiDetect()" id="aiBtnDetect" title="检测文字的AI特征"><svg class="ic ic-sm"><use href="#ic-search"/></svg> 查AI</button>
       </div>
       <!-- AI Result Inline Panel (for quick tools) -->
       <div id="aiQuickResult" style="display:none;border-bottom:1px solid var(--border);background:var(--bg-panel);padding:12px 24px;max-height:280px;overflow-y:auto">
@@ -329,7 +329,7 @@ body.light #lockScreen{background-image:radial-gradient(ellipse 60% 60% at 50% 4
       </div>
       <div class="editor-wrap" id="editorWrap"><textarea id="mainEditor" placeholder="开始写作..."></textarea></div>
       <div id="previewPane" style="display:none;flex:1;overflow-y:auto;padding:16px 24px;font-family:var(--font-serif);font-size:16px;line-height:1.9;color:var(--text-primary)"></div>
-      <div class="bottom-bar"><div class="wc-info"><div class="wc-item"><span data-i18n="bb-total">总字数:</span> <strong id="totalWordsBar">0</strong></div><div class="wc-item"><span data-i18n="bb-para">段落:</span> <strong id="paraCountBar">1</strong></div></div><div class="goal-bar-wrap"><div class="goal-track"><div class="goal-fill" id="goalFill"></div></div><div class="wc-item" id="goalTextBar">0/2000</div></div></div>
+      <div class="bottom-bar"><div class="wc-info"><div class="wc-item" data-i18n-bb="bb-total"><span data-i18n="bb-total">总字数:</span> <strong id="totalWordsBar">0</strong></div><div class="wc-item" data-i18n-bb="bb-para"><span data-i18n="bb-para">段落:</span> <strong id="paraCountBar">1</strong></div></div><div class="goal-bar-wrap"><div class="goal-track"><div class="goal-fill" id="goalFill"></div></div><div class="wc-item" id="goalTextBar">0/2000</div></div></div>
     </div>
     <div class="ai-panel">
       <div class="ai-panel-header">
@@ -344,9 +344,9 @@ body.light #lockScreen{background-image:radial-gradient(ellipse 60% 60% at 50% 4
       <div class="ai-panel-body">
         <div id="aiTab-modes">
           <div id="aiModeGrid"></div>
-          <div class="param-row"><div class="param-label">创意度</div><div class="seg-ctrl"><button class="seg-btn" onclick="setTemp('low',this)">严谨</button><button class="seg-btn on" onclick="setTemp('mid',this)">平衡</button><button class="seg-btn" onclick="setTemp('high',this)">创意</button></div></div>
-          <div class="param-row"><div class="param-label">输出长度</div><div class="seg-ctrl"><button class="seg-btn" onclick="setLen('short',this)">短</button><button class="seg-btn" onclick="setLen('mid',this)">中</button><button class="seg-btn on" onclick="setLen('long',this)">长</button><button class="seg-btn" onclick="setLen('xl',this)">超长</button></div></div>
-          <div class="ai-prompt-area"><label>补充指令</label><textarea id="aiPrompt" placeholder="可选：输入额外要求..." oninput="updateContextBar()"></textarea></div>
+          <div class="param-row"><div class="param-label" data-i18n="ap-temp">创意度</div><div class="seg-ctrl"><button class="seg-btn" data-i18n="param-strict" onclick="setTemp('low',this)">严谨</button><button class="seg-btn on" data-i18n="param-balance" onclick="setTemp('mid',this)">平衡</button><button class="seg-btn" data-i18n="param-creative" onclick="setTemp('high',this)">创意</button></div></div>
+          <div class="param-row"><div class="param-label" data-i18n="ap-len">输出长度</div><div class="seg-ctrl"><button class="seg-btn" data-i18n="param-short" onclick="setLen('short',this)">短</button><button class="seg-btn" data-i18n="param-medium" onclick="setLen('mid',this)">中</button><button class="seg-btn on" data-i18n="param-long" onclick="setLen('long',this)">长</button><button class="seg-btn" data-i18n="param-xlong" onclick="setLen('xl',this)">超长</button></div></div>
+          <div class="ai-prompt-area"><label data-i18n="ap-prompt">补充指令</label><textarea id="aiPrompt" data-i18n-ph="ap-prompt-ph" placeholder="可选：输入额外要求..." oninput="updateContextBar()"></textarea></div>
           <div style="margin-bottom:10px;padding:0 2px">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
               <span style="font-size:10px;color:var(--text-hint);letter-spacing:0.5px">上下文用量</span>
@@ -387,9 +387,9 @@ body.light #lockScreen{background-image:radial-gradient(ellipse 60% 60% at 50% 4
 <div class="mobile-panel" id="mp-chars"><div id="mpCharList"></div><button class="add-item-btn" onclick="openModal('charModal')">＋ 添加人物</button></div>
 <div class="mobile-panel" id="mp-ai" style="padding:0">
   <div style="padding:12px"><div id="mpAiModeGrid"></div>
-  <div class="param-row"><div class="param-label">创意度</div><div class="seg-ctrl"><button class="seg-btn" onclick="setTemp('low',this)">严谨</button><button class="seg-btn on" onclick="setTemp('mid',this)">平衡</button><button class="seg-btn" onclick="setTemp('high',this)">创意</button></div></div>
-  <div class="param-row"><div class="param-label">输出长度</div><div class="seg-ctrl"><button class="seg-btn" onclick="setLen('short',this)">短</button><button class="seg-btn" onclick="setLen('mid',this)">中</button><button class="seg-btn on" onclick="setLen('long',this)">长</button><button class="seg-btn" onclick="setLen('xl',this)">超长</button></div></div>
-  <div class="ai-prompt-area"><label>补充指令</label><textarea id="mpAiPrompt" placeholder="可选：输入额外要求..."></textarea></div>
+  <div class="param-row"><div class="param-label" data-i18n="ap-temp">创意度</div><div class="seg-ctrl"><button class="seg-btn" data-i18n="param-strict" onclick="setTemp('low',this)">严谨</button><button class="seg-btn on" data-i18n="param-balance" onclick="setTemp('mid',this)">平衡</button><button class="seg-btn" data-i18n="param-creative" onclick="setTemp('high',this)">创意</button></div></div>
+  <div class="param-row"><div class="param-label" data-i18n="ap-len">输出长度</div><div class="seg-ctrl"><button class="seg-btn" data-i18n="param-short" onclick="setLen('short',this)">短</button><button class="seg-btn" data-i18n="param-medium" onclick="setLen('mid',this)">中</button><button class="seg-btn on" data-i18n="param-long" onclick="setLen('long',this)">长</button><button class="seg-btn" data-i18n="param-xlong" onclick="setLen('xl',this)">超长</button></div></div>
+  <div class="ai-prompt-area"><label data-i18n="ap-prompt">补充指令</label><textarea id="mpAiPrompt" data-i18n-ph="ap-prompt-ph" placeholder="可选：输入额外要求..."></textarea></div>
   <button class="generate-btn" id="mpGenerateBtn" onclick="doGenerateMobile()"><span>✨</span> 开始生成</button></div>
 </div>
 <!-- AI RESULT POPUP -->
@@ -404,7 +404,7 @@ body.light #lockScreen{background-image:radial-gradient(ellipse 60% 60% at 50% 4
 <div class="modal-overlay" id="newProjectModal"><div class="modal">
   <div class="modal-title">📁 新建项目</div><div class="modal-sub">创建一个新的写作项目</div>
   <div class="form-row"><div class="form-label">项目名称 <span class="form-hint">必填</span></div><input class="form-input" id="newProjectName" placeholder="例如：《星河往事》"></div>
-  <div class="form-row"><div class="form-label">作品类型</div><div class="genre-grid" id="genreGrid"><div class="genre-chip on" onclick="toggleGenre(this)">玄幻</div><div class="genre-chip" onclick="toggleGenre(this)">都市</div><div class="genre-chip" onclick="toggleGenre(this)">言情</div><div class="genre-chip" onclick="toggleGenre(this)">科幻</div><div class="genre-chip" onclick="toggleGenre(this)">悬疑</div><div class="genre-chip" onclick="toggleGenre(this)">历史</div><div class="genre-chip" onclick="toggleGenre(this)">武侠</div><div class="genre-chip" onclick="toggleGenre(this)">奇幻</div></div></div>
+  <div class="genre-grid" id="genreGrid"><div class="genre-chip on" data-i18n-genre="genre-xf" onclick="toggleGenre(this)">玄幻</div><div class="genre-chip" data-i18n-genre="genre-ds" onclick="toggleGenre(this)">都市</div><div class="genre-chip" data-i18n-genre="genre-yq" onclick="toggleGenre(this)">言情</div><div class="genre-chip" data-i18n-genre="genre-kh" onclick="toggleGenre(this)">科幻</div><div class="genre-chip" data-i18n-genre="genre-xy" onclick="toggleGenre(this)">悬疑</div><div class="genre-chip" data-i18n-genre="genre-ls" onclick="toggleGenre(this)">历史</div><div class="genre-chip" data-i18n-genre="genre-wx" onclick="toggleGenre(this)">武侠</div><div class="genre-chip" data-i18n-genre="genre-qh" onclick="toggleGenre(this)">奇幻</div></div>
   <div class="form-row"><div class="form-label">每日目标</div><input class="form-input" id="dailyGoal" type="number" value="2000"></div>
   <div class="form-row"><div class="form-label">项目简介</div><textarea class="form-textarea" id="newProjectDesc" placeholder="简述故事..."></textarea></div>
   <div class="form-row"><div class="form-label">世界观</div><textarea class="form-textarea" id="newProjectWorld" placeholder="世界观设定..."></textarea></div>
@@ -423,8 +423,8 @@ body.light #lockScreen{background-image:radial-gradient(ellipse 60% 60% at 50% 4
     <div class="provider-chip" onclick="selectProvider(this,'openai')">⚡ OpenAI</div>
     <div class="provider-chip" onclick="selectProvider(this,'deepseek')">🌊 DeepSeek</div>
     <div class="provider-chip" onclick="selectProvider(this,'xiaomi')">📱 MiMo</div>
-    <div class="provider-chip" onclick="selectProvider(this,'qwen')">☁️ 通义</div>
-    <div class="provider-chip" onclick="selectProvider(this,'zhipu')">🧠 智谱</div>
+    <div class="provider-chip" data-i18n-prov="prov-tongyi" onclick="selectProvider(this,'qwen')">☁️ 通义</div>
+    <div class="provider-chip" data-i18n-prov="prov-zhipu" onclick="selectProvider(this,'zhipu')">🧠 智谱</div>
     <div class="provider-chip" onclick="selectProvider(this,'moonshot')">🌙 Kimi</div>
     <div class="provider-chip" onclick="selectProvider(this,'siliconflow')">🔬 SiliconFlow</div>
     <div class="provider-chip" onclick="selectProvider(this,'openrouter')">🔀 OpenRouter</div>
@@ -840,7 +840,7 @@ zh:{
   // Bottom bar
   'bb-total':'总字数:','bb-para':'段落:',
   // AI panel
-  'ap-title':'AI 助手','ap-tab-modes':'助手','ap-tab-multi':'对比','ap-tab-hist':'历史',
+  'ap-title':'AI 助手','ap-tab-modes':'助手','ap-tab-multi':'对比','ap-tab-hist':'历史','ap-tab-memory':'🧠 记忆',
   'ap-temp':'创意度','ap-len':'输出长度','ap-prompt':'补充指令','ap-prompt-ph':'可选：输入额外要求...',
   'ap-gen':'开始生成','ap-gen-ing':'生成中...',
   // Multi AI
@@ -966,7 +966,7 @@ en:{
   'aq-proof':'✓ Proofread','aq-title':'¶ Auto Title','aq-inspire':'◇ Inspire','aq-research':'⊕ Research','aq-humanize':'▷ Humanize','aq-detect':'⊕ AI Check',
   'ed-placeholder':'Start writing...','ed-chapter':'Chapter title...','ed-para':'¶','ed-sent':'sentences','ed-read':'~','ed-min':'min read','ed-words':'chars',
   'bb-total':'Total:','bb-para':'¶:',
-  'ap-title':'AI Assistant','ap-tab-modes':'Modes','ap-tab-multi':'Compare','ap-tab-hist':'History',
+  'ap-title':'AI Assistant','ap-tab-modes':'Modes','ap-tab-multi':'Compare','ap-tab-hist':'History','ap-tab-memory':'🧠 Memory',
   'ap-temp':'Creativity','ap-len':'Length','ap-prompt':'Extra','ap-prompt-ph':'Optional instructions...',
   'ap-gen':'Generate','ap-gen-ing':'Generating...',
   'multi-slot':'Slot','multi-gen':'⚡ Generate All Slots',
@@ -1083,7 +1083,7 @@ ja:{
   'aq-proof':'✓ 校正','aq-title':'¶ タイトル','aq-inspire':'◇ 着想','aq-research':'⊕ 資料','aq-humanize':'▷ 人間化','aq-detect':'⊕ AI判定',
   'ed-placeholder':'書き始める...','ed-chapter':'章のタイトル...','ed-para':'段落','ed-sent':'文','ed-read':'約','ed-min':'分で読める','ed-words':'文字',
   'bb-total':'合計:','bb-para':'段落:',
-  'ap-title':'AI アシスタント','ap-tab-modes':'モード','ap-tab-multi':'比較','ap-tab-hist':'履歴',
+  'ap-title':'AI アシスタント','ap-tab-modes':'モード','ap-tab-multi':'比較','ap-tab-hist':'履歴','ap-tab-memory':'🧠 メモリ',
   'ap-temp':'創造性','ap-len':'長さ','ap-prompt':'追加','ap-prompt-ph':'オプションの指示...',
   'ap-gen':'生成する','ap-gen-ing':'生成中...',
   'multi-slot':'スロット','multi-gen':'⚡ 全スロット生成',
@@ -1200,7 +1200,7 @@ ko:{
   'aq-proof':'✓ 교정','aq-title':'¶ 제목','aq-inspire':'◇ 영감','aq-research':'⊕ 자료','aq-humanize':'▷ 인간화','aq-detect':'⊕ AI검출',
   'ed-placeholder':'글쓰기 시작...','ed-chapter':'챕터 제목...','ed-para':'단락','ed-sent':'문장','ed-read':'약','ed-min':'분 읽기','ed-words':'자',
   'bb-total':'총:','bb-para':'단락:',
-  'ap-title':'AI 어시스턴트','ap-tab-modes':'모드','ap-tab-multi':'비교','ap-tab-hist':'기록',
+  'ap-title':'AI 어시스턴트','ap-tab-modes':'모드','ap-tab-multi':'비교','ap-tab-hist':'기록','ap-tab-memory':'🧠 메모리',
   'ap-temp':'창의성','ap-len':'길이','ap-prompt':'추가','ap-prompt-ph':'선택 지시사항...',
   'ap-gen':'생성','ap-gen-ing':'생성중...',
   'multi-slot':'슬롯','multi-gen':'⚡ 전체 슬롯 생성',
@@ -1312,13 +1312,13 @@ function saveSettings(){
 }
 
 function applyLang(){
-  // Universal data-i18n translator
-  document.querySelectorAll('[data-i18n]').forEach(el=>{const k=el.getAttribute('data-i18n');if(LANG[currentLang]?.[k])el.textContent=LANG[currentLang][k];});
-  document.querySelectorAll('[data-i18n-ph]').forEach(el=>{const k=el.getAttribute('data-i18n-ph');if(LANG[currentLang]?.[k])el.placeholder=LANG[currentLang][k];});
-  document.querySelectorAll('[data-i18n-title]').forEach(el=>{const k=el.getAttribute('data-i18n-title');if(LANG[currentLang]?.[k])el.title=LANG[currentLang][k];});
+  // Universal data-i18n translator — all translatable elements use data-i18n attributes
+  document.querySelectorAll('[data-i18n]').forEach(el=>{const k=el.getAttribute('data-i18n');if(LANG[currentLang]?.[k])el.textContent=LANG[currentLang][k];else if(LANG['zh']?.[k])el.textContent=LANG['zh'][k];});
+  document.querySelectorAll('[data-i18n-ph]').forEach(el=>{const k=el.getAttribute('data-i18n-ph');if(LANG[currentLang]?.[k])el.placeholder=LANG[currentLang][k];else if(LANG['zh']?.[k])el.placeholder=LANG['zh'][k];});
+  document.querySelectorAll('[data-i18n-title]').forEach(el=>{const k=el.getAttribute('data-i18n-title');if(LANG[currentLang]?.[k])el.title=LANG[currentLang][k];else if(LANG['zh']?.[k])el.title=LANG['zh'][k];});
   document.title=t('logo');
 
-  // Sidebar nav tabs
+  // Sidebar nav tabs (use index-based keys)
   const navTabs=document.querySelectorAll('.nav-tab');
   const navKeys=['nav-outline','nav-chapters','nav-chars','nav-notes'];
   navTabs.forEach((tab,i)=>{if(navKeys[i])tab.lastChild.textContent=' '+t(navKeys[i]);});
@@ -1326,74 +1326,52 @@ function applyLang(){
   const bnavTabs=document.querySelectorAll('#bottomNav .btab');
   const bnavKeys=['bnav-editor','bnav-outline','bnav-chapters','bnav-chars','bnav-ai'];
   bnavTabs.forEach((tab,i)=>{if(bnavKeys[i])tab.lastChild.textContent=' '+t(bnavKeys[i]);});
-  // Toolbar
-  const toolbarBtns=document.querySelectorAll('.editor-toolbar .tool-btn');
-  toolbarBtns.forEach(btn=>{
-    const txt=btn.textContent.trim();
-    if(txt.includes('专注')||txt.includes('Focus'))btn.lastChild&&(btn.lastChild.textContent=' '+t('tb-focus').split(' ')[1]);
-    if(txt.includes('预览')||txt.includes('Preview'))btn.lastChild&&(btn.lastChild.textContent=' '+t('tb-preview').split(' ')[1]);
-    if(txt.includes('自动保存')||txt.includes('AutoSave'))btn.lastChild&&(btn.lastChild.textContent=' '+t('tb-autosave').split(' ')[1]);
-    if(txt.includes('导出')||txt.includes('Export'))btn.lastChild&&(btn.lastChild.textContent=' '+t('tb-export').split(' ')[1]);
-  });
-  // AI quick bar
-  const aqBtns=document.querySelectorAll('#aiQuickBar .tool-btn');
-  const aqKeys=['aq-proof','aq-title','aq-inspire','aq-research','aq-humanize','aq-detect'];
-  aqBtns.forEach((btn,i)=>{if(aqKeys[i])btn.textContent=t(aqKeys[i]);});
   // Editor placeholders
   document.getElementById('mainEditor').placeholder=t('ed-placeholder');
   document.getElementById('chapterTitle').placeholder=t('ed-chapter');
-  // Section labels
+  // Section labels (use data-i18n keys stored in a map)
   document.querySelectorAll('.section-label').forEach(el=>{
-    const txt=el.textContent.trim();
-    if(txt.includes('大纲')||txt.includes('Outline'))el.textContent=t('sb-outline');
-    if(txt.includes('章节')||txt.includes('Chapter'))el.textContent=t('sb-chapters');
-    if(txt.includes('人物')||txt.includes('Character'))el.textContent=t('sb-chars');
-    if(txt.includes('笔记')||txt.includes('Notes'))el.textContent=t('sb-notes');
+    const key=el.getAttribute('data-i18n-sb');
+    if(key)el.textContent=t(key);
   });
-  // Add buttons
+  // Add buttons (use data-i18n keys)
   document.querySelectorAll('.add-item-btn').forEach(btn=>{
-    const txt=btn.textContent.trim();
-    if(txt.includes('大纲')||txt.includes('Outline'))btn.textContent=t('sb-add-outline');
-    if(txt.includes('章节')||txt.includes('Chapter'))btn.textContent=t('sb-add-chapter');
-    if(txt.includes('人物')||txt.includes('Character'))btn.textContent=t('sb-add-char');
+    const key=btn.getAttribute('data-i18n-sb');
+    if(key)btn.textContent=t(key);
   });
-  // AI panel
+  // AI panel title
   const apTitle=document.querySelector('.ai-panel-title');
   if(apTitle)apTitle.lastChild.textContent=' '+t('ap-title');
+  // AI panel tabs
   const apTabs=document.querySelectorAll('.ai-tab');
-  const apKeys=['ap-tab-modes','ap-tab-multi','ap-tab-hist'];
+  const apKeys=['ap-tab-modes','ap-tab-multi','ap-tab-memory','ap-tab-hist'];
   apTabs.forEach((tab,i)=>{if(apKeys[i])tab.textContent=t(apKeys[i]);});
   // Generate button
   const genBtn=document.getElementById('generateBtnText');
   if(genBtn&&!genBtn.closest('.loading'))genBtn.textContent=t('ap-gen');
-  // AI prompt
-  const aiPrompt=document.getElementById('aiPrompt');
-  if(aiPrompt)aiPrompt.placeholder=t('ap-prompt-ph');
-  // Param labels and buttons
-  document.querySelectorAll('.param-label').forEach(el=>{
-    const txt=el.textContent.trim();
-    if(txt.includes('创意')||txt.includes('Creativity')||txt.includes('創造性')||txt.includes('창의성')||txt.includes('Créativité')||txt.includes('Kreativität')||txt.includes('Креативность'))el.textContent=t('ap-temp');
-    if(txt.includes('长度')||txt.includes('Length')||txt.includes('長さ')||txt.includes('길이')||txt.includes('Longueur')||txt.includes('Länge')||txt.includes('Длина'))el.textContent=t('ap-len');
+  // Logo
+  document.querySelector('.topbar-logo').lastChild.textContent=t('logo');
+  // Bottom bar stats
+  document.querySelectorAll('.wc-item').forEach(el=>{
+    const key=el.getAttribute('data-i18n-bb');
+    if(key){
+      const label=el.querySelector('span:first-child, [data-i18n]');
+      if(label)label.textContent=t(key)+' ';
+    }
   });
-  // Translate seg-btn param buttons
-  document.querySelectorAll('.seg-btn').forEach(btn=>{
-    const txt=btn.textContent.trim();
-    if(txt==='严谨'||txt==='Strict'||txt==='厳密'||txt==='엄격'||txt==='Précis'||txt==='Estricto'||txt==='Streng'||txt==='Строгий')btn.textContent=t('param-strict');
-    if(txt==='平衡'||txt==='Balance'||txt==='バランス'||txt==='균형'||txt==='Équilibre'||txt==='Equilibrado'||txt==='Ausgewogen'||txt==='Баланс')btn.textContent=t('param-balance');
-    if(txt==='创意'||txt==='Creative'||txt==='クリエイティブ'||txt==='창의적'||txt==='Créatif'||txt==='Creativo'||txt==='Kreativ'||txt==='Креативный')btn.textContent=t('param-creative');
-    if(txt==='短'||txt==='Short'||txt==='短い'||txt==='짧음'||txt==='Court'||txt==='Corto'||txt==='Kurz'||txt==='Короткий')btn.textContent=t('param-short');
-    if(txt==='中'||txt==='Medium'||txt==='중간'||txt==='Moyen'||txt==='Medio'||txt==='Mittel'||txt==='Средний')btn.textContent=t('param-medium');
-    if(txt==='长'||txt==='Long'||txt==='長い'||txt==='김'||txt==='Largo'||txt==='Lang'||txt==='Длинный')btn.textContent=t('param-long');
-    if(txt==='超长'||txt==='Extra Long'||txt==='超長い'||txt==='매우 김'||txt==='Très long'||txt==='Extra largo'||txt==='Sehr lang'||txt==='Сверхдлинный')btn.textContent=t('param-xlong');
+  // Genre chips — store keys in data attribute
+  document.querySelectorAll('.genre-chip[data-i18n-genre]').forEach(ch=>{
+    const key=ch.getAttribute('data-i18n-genre');
+    if(key)ch.textContent=t(key);
   });
-  // Translate prompt label
-  document.querySelectorAll('.ai-prompt-area label').forEach(el=>{
-    const txt=el.textContent.trim();
-    if(txt.includes('补充')||txt.includes('Extra')||txt.includes('追加')||txt.includes('추가')||txt.includes('Supplémentaire')||txt.includes('Zusatz')||txt.includes('Доп.'))el.textContent=t('ap-prompt');
+  // Provider chips — store keys in data attribute
+  document.querySelectorAll('.provider-chip[data-i18n-prov]').forEach(ch=>{
+    const key=ch.getAttribute('data-i18n-prov');
+    if(key){
+      const icon=ch.querySelector('span,emoji')?.textContent||ch.textContent.charAt(0);
+      ch.textContent=icon+' '+t(key);
+    }
   });
-  // Translate project selector
-  const projName=document.getElementById('currentProjectName');
-  if(projName&&(projName.textContent.includes('选择')||projName.textContent.includes('Select')||projName.textContent.includes('選択')||projName.textContent.includes('선택')||projName.textContent.includes('Choisir')||projName.textContent.includes('Seleccionar')||projName.textContent.includes('Projekt')||projName.textContent.includes('Выбрать')))projName.textContent=t('select-project');
   // Lock screen
   const lockSub=document.getElementById('lockSub');
   if(lockSub){
@@ -1404,47 +1382,10 @@ function applyLang(){
   if(lockBtn)lockBtn.textContent=localStorage.getItem('ww_pwd_hash')?t('lock-btn-unlock'):t('lock-btn-set');
   const lockInput=document.getElementById('lockInput');
   if(lockInput)lockInput.placeholder=t('lock-placeholder');
-  // Logo
-  document.querySelector('.topbar-logo').lastChild.textContent=t('logo');
-  // Bottom bar stats
-  document.querySelectorAll('.wc-item').forEach(el=>{
-    const txt=el.textContent;
-    if(txt.includes('总字数')||txt.includes('Total')){el.childNodes[0].textContent=t('bb-total')+' ';}
-    if(txt.includes('段落')||txt.includes('¶:')){el.childNodes[0].textContent=t('bb-para')+' ';}
-  });
-  // Genre chips in new project modal
-  const genreMap={'玄幻':'genre-xf','都市':'genre-ds','言情':'genre-yq','科幻':'genre-kh',
-    '悬疑':'genre-xy','历史':'genre-ls','武侠':'genre-wx','奇幻':'genre-qh',
-    'Xianxia':'genre-xf','Urban':'genre-ds','Romance':'genre-yq','Sci-Fi':'genre-kh',
-    'Mystery':'genre-xy','Historical':'genre-ls','Martial Arts':'genre-wx','Fantasy':'genre-qh',
-    '仙侠':'genre-xf','恋愛':'genre-yq','SF':'genre-kh','ミステリー':'genre-xy',
-    '歴史':'genre-ls','武侠':'genre-wx','ファンタジー':'genre-qh',
-    '선협':'genre-xf','도시':'genre-ds','로맨스':'genre-yq','미스터리':'genre-xy',
-    '역사':'genre-ls','무협':'genre-wx','판타지':'genre-qh',
-    'Urbain':'genre-ds','Romance':'genre-yq','Mystère':'genre-xy',
-    'Historique':'genre-ls','Arts Martiaux':'genre-wx','Fantaisie':'genre-qh',
-    'Ci-Fi':'genre-kh','Artes Marciales':'genre-wx','Fantasía':'genre-qh',
-    'Kampfkunst':'genre-wx','Fantasy':'genre-qh',
-    'Сянься':'genre-xf','Городской':'genre-ds','Роман':'genre-yq',
-    'Исторический':'genre-ls','Ушу':'genre-wx','Фэнтези':'genre-qh',
-  };
-  document.querySelectorAll('.genre-chip').forEach(ch=>{
-    const key=genreMap[ch.textContent.trim()];
-    if(key)ch.textContent=t(key);
-  });
-  // Provider chips (通义, 智谱, 自定义)
-  document.querySelectorAll('.provider-chip').forEach(ch=>{
-    const txt=ch.textContent.trim();
-    if(txt.includes('通义')||txt.includes('Tongyi')||txt.includes('通義')||txt.includes('퉁이'))ch.innerHTML=ch.innerHTML.replace(/通义|Tongyi|通義|퉁이/g,t('prov-tongyi'));
-    if(txt.includes('智谱')||txt.includes('Zhipu')||txt.includes('智譜')||txt.includes('즈푸'))ch.innerHTML=ch.innerHTML.replace(/智谱|Zhipu|智譜|즈푸/g,t('prov-zhipu'));
-    if(txt.includes('自定义')||txt.includes('Custom')||txt.includes('カスタム')||txt.includes('사용자')||txt.includes('Personnalisé')||txt.includes('Personalizado')||txt.includes('Benutzer')||txt.includes('Пользовательский'))ch.innerHTML=ch.innerHTML.replace(/自定义|Custom|カスタム|사용자 정의|Personnalisé|Personalizado|Benutzerdefiniert|Пользовательский/g,t('prov-custom'));
-  });
   // Re-render AI mode grids with translated names
   renderAiModeGrid();
   const mpGrid=document.getElementById('mpAiModeGrid');
   if(mpGrid){mpGrid.innerHTML='';renderMpAi();}
-  // Modals - update titles dynamically when opened
-  // (translations applied on modal open via openModal hook)
 }
 
 // Hook: apply translations when modals open
