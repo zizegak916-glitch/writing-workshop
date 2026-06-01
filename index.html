@@ -40,8 +40,10 @@ body.light #lockScreen{background-image:radial-gradient(ellipse 60% 60% at 50% 4
 .topbar-logo{font-family:var(--font-serif);font-size:17px;font-weight:700;display:flex;align-items:center;gap:8px;white-space:nowrap}
 .topbar-logo .dot{width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent)}
 .topbar-sep{width:1px;height:24px;background:var(--border);margin:0 4px}
-.project-selector{flex:1;max-width:240px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px 12px;color:var(--text-secondary);font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px;transition:all 0.2s;font-family:var(--font-sans)}
+.project-selector{flex:1 1 0;min-width:0;max-width:240px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px 12px;color:var(--text-secondary);font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px;transition:all 0.2s;font-family:var(--font-sans)}
 .project-selector:hover{border-color:var(--accent-dim);color:var(--text-primary)}
+#currentProjectName{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.project-selector .arrow{flex:0 0 auto}
 .topbar-stats{display:flex;gap:16px;margin-left:auto}
 .stat-item{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text-muted)}.stat-item .val{color:var(--text-secondary);font-weight:500}
 .stat-item .badge{background:var(--green-dim);color:var(--green);padding:2px 6px;border-radius:20px;font-size:11px;font-weight:600}
@@ -267,7 +269,7 @@ body.light #lockScreen{background-image:radial-gradient(ellipse 60% 60% at 50% 4
   <div class="topbar">
     <div class="topbar-logo"><span class="dot"></span>AI 写作工坊</div>
     <div class="topbar-sep"></div>
-    <div class="project-selector" onclick="openModal('projectModal')"><span id="currentProjectName">选择项目...</span><span class="arrow">▾</span></div>
+    <div class="project-selector" onclick="openModal('projectModal')" title="选择项目..."><span id="currentProjectName" data-empty-project="1">选择项目...</span><span class="arrow">▾</span></div>
     <div class="topbar-stats">
       <div class="stat-item">📝 总 <span class="val" id="totalWords">0</span>字</div>
       <div class="stat-item">📅 今日 <span class="val" id="todayWords">0</span>字</div>
@@ -658,7 +660,7 @@ function switchSidebar(t,el){document.querySelectorAll('.nav-tab').forEach(x=>x.
 
 // ═══ Projects ═══
 async function loadProjects(){S.projects=await dbAll('projects');S.projects.sort((a,b)=>(b.updated_at||0)-(a.updated_at||0));if(S.projects.length>0&&!S.proj)await loadProject(S.projects[0].id);}
-async function loadProject(id){const p=await dbGet('projects',id);if(!p)return;const [os,cs,chs]=await Promise.all([dbByIndex('outlines','project_id',id),dbByIndex('characters','project_id',id),dbByIndex('chapters','project_id',id)]);os.sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));chs.sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));S.proj={project:p,outlines:os,characters:cs,chapters:chs};S.active=null;S.wordGoal=p.goal||2000;document.getElementById('currentProjectName').textContent=p.name;renderOutlineList();renderChapterList();renderCharList();if(chs.length>0)loadChapterContent(chs[0].id);else if(os.length>0)loadOutlineContent(os[0].id);else{document.getElementById('mainEditor').value='';document.getElementById('chapterTitle').value='';}onEditorInput();showToast('📁',p.name);}
+async function loadProject(id){const p=await dbGet('projects',id);if(!p)return;const [os,cs,chs]=await Promise.all([dbByIndex('outlines','project_id',id),dbByIndex('characters','project_id',id),dbByIndex('chapters','project_id',id)]);os.sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));chs.sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));S.proj={project:p,outlines:os,characters:cs,chapters:chs};S.active=null;S.wordGoal=p.goal||2000;document.getElementById('currentProjectName').textContent=p.name;document.querySelector('.project-selector')?.setAttribute('title',p.name);renderOutlineList();renderChapterList();renderCharList();if(chs.length>0)loadChapterContent(chs[0].id);else if(os.length>0)loadOutlineContent(os[0].id);else{document.getElementById('mainEditor').value='';document.getElementById('chapterTitle').value='';}onEditorInput();showToast('📁',p.name);}
 async function createProject(){const name=document.getElementById('newProjectName').value.trim();if(!name){showToast('❌',t('toast-enter-name'));return;}const g=[...document.querySelectorAll('#genreGrid .genre-chip.on')].map(e=>e.textContent),now=Date.now();const id=await dbPut('projects',{name,genre:g[0]||t('genre-uncategorized'),description:document.getElementById('newProjectDesc').value.trim(),world_setting:document.getElementById('newProjectWorld').value.trim(),goal:parseInt(document.getElementById('dailyGoal').value)||2000,created_at:now,updated_at:now});await dbPut('outlines',{project_id:id,title:t('default-chapter-title'),content:'',sort_order:0,created_at:now});closeModal('newProjectModal');await loadProjects();await loadProject(id);showToast('📁',t('toast-created')+': '+name);document.getElementById('newProjectName').value='';}
 function renderProjectList(){const el=document.getElementById('projectList');if(!S.projects.length){el.innerHTML='<div style="text-align:center;padding:30px;color:var(--text-muted)">'+t('ps-none')+'</div>';return;}el.innerHTML=S.projects.map(p=>'<div class="project-list-item" onclick="loadProject('+p.id+');closeModal(\'projectModal\')"><div class="pli-name">'+p.name+'</div><div class="pli-meta">'+p.genre+' · '+new Date(p.created_at).toLocaleDateString(currentLang)+'</div></div>').join('');}
 function exportProject(){if(!S.proj)return showToast('❌',t('toast-no-proj'));const d={version:1,project:S.proj.project,outlines:S.proj.outlines,characters:S.proj.characters,chapters:S.proj.chapters};const b=new Blob([JSON.stringify(d,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=(S.proj.project.name||t('default-doc-title'))+'.json';a.click();showToast('↓',t('toast-exported'));}
@@ -3027,6 +3029,8 @@ function applyLang(){
   if(genBtn&&!genBtn.closest('.loading'))genBtn.textContent=t('ap-gen');
   // Logo
   document.querySelector('.topbar-logo').lastChild.textContent=t('logo');
+  const projectNameEl=document.getElementById('currentProjectName');
+  if(projectNameEl&&!S.proj){projectNameEl.textContent=t('select-project');projectNameEl.closest('.project-selector')?.setAttribute('title',t('select-project'));}
   // Bottom bar stats
   document.querySelectorAll('.wc-item').forEach(el=>{
     const key=el.getAttribute('data-i18n-bb');
