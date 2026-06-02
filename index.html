@@ -417,7 +417,7 @@ body.light #lockScreen{background-image:radial-gradient(ellipse 60% 60% at 50% 4
 <div class="modal-overlay" id="projectModal"><div class="modal">
   <div class="modal-title" data-i18n="mod-projlist">📚 我的项目</div><div class="modal-sub" data-i18n="mod-projlist-sub">点击项目进入写作</div>
   <div id="projectList" style="max-height:300px;overflow-y:auto"></div>
-  <div style="margin-top:12px"><label style="padding:8px;border:1px dashed var(--border);border-radius:var(--radius-sm);text-align:center;color:var(--text-hint);font-size:12px;cursor:pointer;display:block"><span data-i18n="mod-import">📥 导入项目</span> <input type="file" accept=".json" onchange="importProject(event)" style="display:none"></label></div>
+  <div style="margin-top:12px"><label style="padding:8px;border:1px dashed var(--border);border-radius:var(--radius-sm);text-align:center;color:var(--text-hint);font-size:12px;cursor:pointer;display:block"><span data-i18n="mod-import">📥 导入项目</span> <input type="file" accept=".json,.txt,.md" onchange="importProject(event)" style="display:none"></label></div>
   <div class="modal-footer"><button class="btn-cancel" data-i18n="mod-close" onclick="closeModal('projectModal')">关闭</button><button class="btn-confirm" data-i18n="mod-newproj-btn" onclick="closeModal('projectModal');openModal('newProjectModal')">＋ 新建</button></div>
 </div></div>
 <div class="modal-overlay" id="apiModal"><div class="modal">
@@ -664,7 +664,82 @@ async function loadProject(id){const p=await dbGet('projects',id);if(!p)return;c
 async function createProject(){const name=document.getElementById('newProjectName').value.trim();if(!name){showToast('❌',t('toast-enter-name'));return;}const g=[...document.querySelectorAll('#genreGrid .genre-chip.on')].map(e=>e.textContent),now=Date.now();const id=await dbPut('projects',{name,genre:g[0]||t('genre-uncategorized'),description:document.getElementById('newProjectDesc').value.trim(),world_setting:document.getElementById('newProjectWorld').value.trim(),goal:parseInt(document.getElementById('dailyGoal').value)||2000,created_at:now,updated_at:now});await dbPut('outlines',{project_id:id,title:t('default-chapter-title'),content:'',sort_order:0,created_at:now});closeModal('newProjectModal');await loadProjects();await loadProject(id);showToast('📁',t('toast-created')+': '+name);document.getElementById('newProjectName').value='';}
 function renderProjectList(){const el=document.getElementById('projectList');if(!S.projects.length){el.innerHTML='<div style="text-align:center;padding:30px;color:var(--text-muted)">'+t('ps-none')+'</div>';return;}el.innerHTML=S.projects.map(p=>'<div class="project-list-item" onclick="loadProject('+p.id+');closeModal(\'projectModal\')"><div class="pli-name">'+p.name+'</div><div class="pli-meta">'+p.genre+' · '+new Date(p.created_at).toLocaleDateString(currentLang)+'</div></div>').join('');}
 function exportProject(){if(!S.proj)return showToast('❌',t('toast-no-proj'));const d={version:1,project:S.proj.project,outlines:S.proj.outlines,characters:S.proj.characters,chapters:S.proj.chapters};const b=new Blob([JSON.stringify(d,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=(S.proj.project.name||t('default-doc-title'))+'.json';a.click();showToast('↓',t('toast-exported'));}
-async function importProject(e){const f=e.target.files[0];if(!f)return;try{const t=await f.text(),d=JSON.parse(t);if(!d.project)return showToast('❌',t('toast-invalid-file'));const now=Date.now(),id=await dbPut('projects',{...d.project,created_at:d.project.created_at||now,updated_at:now});if(d.outlines)for(const o of d.outlines)await dbPut('outlines',{...o,project_id:id});if(d.characters)for(const c of d.characters)await dbPut('characters',{...c,project_id:id});if(d.chapters)for(const c of d.chapters)await dbPut('chapters',{...c,project_id:id});await loadProjects();await loadProject(id);showToast('📥',t('toast-imported'));}catch(err){showToast('❌',err.message);}e.target.value='';}
+function cloneWithoutId(v){const x={...(v||{})};delete x.id;return x;}
+async function importProject(e){const f=e.target.files[0];if(!f)return;try{const raw=await f.text();let d;try{d=JSON.parse(raw);}catch{const now=Date.now(),name=(f.name||t('default-doc-title')).replace(/\.(txt|md)$/i,'');d={project:{name,genre:t('genre-uncategorized'),description:'',world_setting:'',goal:2000,created_at:now,updated_at:now},chapters:[{title:name,content:raw,word_count:countWords(raw),sort_order:0,created_at:now,updated_at:now}]};}if(!d.project)return showToast('❌',t('toast-invalid-file'));const now=Date.now(),id=await dbPut('projects',{...cloneWithoutId(d.project),created_at:d.project.created_at||now,updated_at:now});if(d.outlines)for(const o of d.outlines)await dbPut('outlines',{...cloneWithoutId(o),project_id:id});if(d.characters)for(const c of d.characters)await dbPut('characters',{...cloneWithoutId(c),project_id:id});if(d.chapters)for(const c of d.chapters)await dbPut('chapters',{...cloneWithoutId(c),project_id:id,word_count:c.word_count||countWords(c.content||'')});await loadProjects();await loadProject(id);showToast('📥',t('toast-imported'));await autoAnalyzeImportedProject(id);}catch(err){showToast('❌',err.message);}e.target.value='';}
+
+function collectProjectText(proj){
+  if(!proj)return'';
+  const parts=[];
+  const p=proj.project||{};
+  if(p.name)parts.push('项目：'+p.name);
+  if(p.genre)parts.push('类型：'+p.genre);
+  if(p.description)parts.push('简介：'+p.description);
+  if(p.world_setting)parts.push('世界观：'+p.world_setting);
+  (proj.outlines||[]).forEach(o=>parts.push('【大纲】'+(o.title||'')+'\n'+(o.content||'')));
+  (proj.characters||[]).forEach(c=>parts.push('【人物】'+[c.name,c.role,c.personality,c.background,c.appearance,c.skills].filter(Boolean).join(' / ')));
+  (proj.chapters||[]).forEach(c=>parts.push('【章节】'+(c.title||'')+'\n'+(c.content||'')));
+  return parts.join('\n\n').slice(0,24000);
+}
+function parseAiImportAnalysis(text){
+  const raw=(text||'').replace(/```json|```/g,'').trim();
+  const m=raw.match(/\{[\s\S]*\}/);
+  if(!m)return null;
+  try{return JSON.parse(m[0]);}catch{return null;}
+}
+function fallbackImportAnalysis(proj){
+  const p=proj.project||{},chapters=proj.chapters||[],text=collectProjectText(proj);
+  const outlines=[];
+  if(text.trim())outlines.push({title:p.name||t('outline-new'),content:text.slice(0,800)});
+  const generatedChapters=[];
+  if(!chapters.length&&text.trim()){
+    const sections=text.split(/(?:^|\n)(?:第[一二三四五六七八九十百千万0-9]+[章节回]|chapter\s+\d+)[:：\s-]*/i).filter(x=>x.trim().length>80).slice(0,12);
+    (sections.length?sections:[text]).forEach((content,i)=>generatedChapters.push({title:(i+1)+'. '+(content.trim().split('\n')[0]||t('chapter-new')).slice(0,40),content:content.trim().slice(0,4000)}));
+  }
+  return {outlines,characters:[],chapters:generatedChapters};
+}
+async function applyImportAnalysis(projectId,analysis){
+  if(!analysis)return 0;
+  const [os,cs,chs]=await Promise.all([dbByIndex('outlines','project_id',projectId),dbByIndex('characters','project_id',projectId),dbByIndex('chapters','project_id',projectId)]);
+  const now=Date.now();let added=0;
+  const outlineTitles=new Set(os.map(o=>(o.title||'').trim().toLowerCase()));
+  for(const [i,o] of (analysis.outlines||[]).slice(0,12).entries()){
+    const title=String(o.title||t('outline-new')).trim().slice(0,80);
+    if(!title||outlineTitles.has(title.toLowerCase()))continue;
+    await dbPut('outlines',{project_id:projectId,title,content:String(o.content||o.summary||'').trim(),sort_order:os.length+i,created_at:now,updated_at:now});added++;
+  }
+  const charNames=new Set(cs.map(c=>(c.name||'').trim().toLowerCase()));
+  for(const c of (analysis.characters||[]).slice(0,24)){
+    const name=String(c.name||'').trim().slice(0,40);
+    if(!name||charNames.has(name.toLowerCase()))continue;
+    await dbPut('characters',{project_id:projectId,name,role:String(c.role||'').slice(0,30),personality:String(c.personality||'').slice(0,500),background:String(c.background||'').slice(0,800),appearance:String(c.appearance||'').slice(0,500),skills:String(c.skills||'').slice(0,500),created_at:now});added++;
+  }
+  const chapterTitles=new Set(chs.map(c=>(c.title||'').trim().toLowerCase()));
+  for(const [i,c] of (analysis.chapters||[]).slice(0,40).entries()){
+    const title=String(c.title||t('chapter-new')).trim().slice(0,80);
+    if(!title||chapterTitles.has(title.toLowerCase()))continue;
+    const content=String(c.content||c.summary||'').trim();
+    await dbPut('chapters',{project_id:projectId,title,content,word_count:countWords(content),sort_order:chs.length+i,created_at:now,updated_at:now});added++;
+  }
+  return added;
+}
+async function autoAnalyzeImportedProject(projectId){
+  const p=await dbGet('projects',projectId);if(!p)return;
+  const proj={project:p,outlines:await dbByIndex('outlines','project_id',projectId),characters:await dbByIndex('characters','project_id',projectId),chapters:await dbByIndex('chapters','project_id',projectId)};
+  const source=collectProjectText(proj);if(!source.trim())return;
+  showToast('🔎',t('toast-import-scan'));
+  let analysis=null;
+  if(S.apiConfig.key){
+    try{
+      const prompt='请扫描以下导入的写作项目内容，识别并补全项目结构。只输出严格 JSON，不要 Markdown。JSON 格式：{"outlines":[{"title":"","content":""}],"characters":[{"name":"","role":"","personality":"","background":"","appearance":"","skills":""}],"chapters":[{"title":"","summary":""}]}。如果项目已经有章节/人物/大纲，也请根据内容识别可能缺失的条目，避免重复。\n\n'+source;
+      analysis=parseAiImportAnalysis(await callAI(prompt,S.apiConfig,'你是写作项目导入分析助手，负责从文本中提取大纲、人物和章节结构。'));
+    }catch(err){console.warn('import analysis failed',err);}
+  }
+  if(!analysis)analysis=fallbackImportAnalysis(proj);
+  const added=await applyImportAnalysis(projectId,analysis);
+  if(added>0){await loadProjects();await loadProject(projectId);showToast('✨',t('toast-import-scan-done'));}
+  else showToast('✓',t('toast-import-scan-done'));
+}
+
 
 // ═══ Outlines ═══
 function renderOutlineList(){if(!S.proj)return;const el=document.getElementById('outlineList');if(!S.proj.outlines.length){el.innerHTML='<div style="text-align:center;padding:20px;color:var(--text-hint);font-size:12px">'+t('sb-empty-outline')+'</div>';return;}el.innerHTML=S.proj.outlines.map(o=>'<div class="outline-item'+(S.active&&S.active.type==='outline'&&S.active.id===o.id?' active':'')+'" onclick="loadOutlineContent('+o.id+')"><span class="oi-icon"><svg class="ic ic-sm"><use href="#ic-outline"/></svg></span><span class="oi-text">'+o.title+'</span><span class="oi-count">'+(o.content?countWords(o.content):0)+t('ps-units-2')+'</span><button class="oi-del" onclick="event.stopPropagation();delOutline('+o.id+')">✕</button></div>').join('');}
@@ -1077,6 +1152,8 @@ zh:{
   "ps-units-2":"字",
   "default-doc-title":"我的创作",
   "toast-imported":"导入成功",
+  "toast-import-scan":"AI 正在扫描导入内容...",
+  "toast-import-scan-done":"导入内容扫描完成",
   "toast-invalid-file":"无效文件",
   "toast-copy-failed":"复制失败",
   "toast-new-password-short":"新密码至少4位",
@@ -1334,6 +1411,8 @@ en:{
   "ps-units-2":"words",
   "default-doc-title":"My Writing",
   "toast-imported":"Imported successfully",
+  "toast-import-scan":"AI is scanning imported content...",
+  "toast-import-scan-done":"Imported content scan complete",
   "toast-invalid-file":"Invalid file",
   "toast-copy-failed":"Copy failed",
   "toast-new-password-short":"New password must be at least 4 characters",
@@ -1591,6 +1670,8 @@ ja:{
   "ps-units-2":"文字",
   "default-doc-title":"私の作品",
   "toast-imported":"インポート成功",
+  "toast-import-scan":"AIがインポート内容をスキャン中...",
+  "toast-import-scan-done":"インポート内容のスキャンが完了しました",
   "toast-invalid-file":"無効なファイル",
   "toast-copy-failed":"コピー失敗",
   "toast-new-password-short":"新しいパスワードは4文字以上必要です",
@@ -1848,6 +1929,8 @@ ko:{
   "ps-units-2":"글자",
   "default-doc-title":"내 글",
   "toast-imported":"가져오기 성공",
+  "toast-import-scan":"AI가 가져온 내용을 스캔 중입니다...",
+  "toast-import-scan-done":"가져온 내용 스캔 완료",
   "toast-invalid-file":"잘못된 파일",
   "toast-copy-failed":"복사 실패",
   "toast-new-password-short":"새 비밀번호는 4자 이상이어야 합니다",
@@ -2105,6 +2188,8 @@ fr:{
   "ps-units-2":"caractères",
   "default-doc-title":"Mon texte",
   "toast-imported":"Importation réussie",
+  "toast-import-scan":"L’IA analyse le contenu importé...",
+  "toast-import-scan-done":"Analyse du contenu importé terminée",
   "toast-invalid-file":"Fichier invalide",
   "toast-copy-failed":"Échec de la copie",
   "toast-new-password-short":"Le nouveau mot de passe doit contenir au moins 4 caractères",
@@ -2362,6 +2447,8 @@ es:{
   "ps-units-2":"caracteres",
   "default-doc-title":"Mi escritura",
   "toast-imported":"Importado correctamente",
+  "toast-import-scan":"La IA está analizando el contenido importado...",
+  "toast-import-scan-done":"Análisis del contenido importado completado",
   "toast-invalid-file":"Archivo no válido",
   "toast-copy-failed":"Error al copiar",
   "toast-new-password-short":"La nueva contraseña debe tener al menos 4 caracteres",
@@ -2619,6 +2706,8 @@ de:{
   "ps-units-2":"Zeichen",
   "default-doc-title":"Mein Text",
   "toast-imported":"Import erfolgreich",
+  "toast-import-scan":"KI scannt importierte Inhalte...",
+  "toast-import-scan-done":"Scan der importierten Inhalte abgeschlossen",
   "toast-invalid-file":"Ungültige Datei",
   "toast-copy-failed":"Kopieren fehlgeschlagen",
   "toast-new-password-short":"Neues Passwort muss mindestens 4 Zeichen haben",
@@ -2876,6 +2965,8 @@ ru:{
   "ps-units-2":"символы",
   "default-doc-title":"Мой текст",
   "toast-imported":"Импорт выполнен",
+  "toast-import-scan":"ИИ сканирует импортированное содержимое...",
+  "toast-import-scan-done":"Сканирование импортированного содержимого завершено",
   "toast-invalid-file":"Недопустимый файл",
   "toast-copy-failed":"Не удалось скопировать",
   "toast-new-password-short":"Новый пароль должен быть не короче 4 символов",
