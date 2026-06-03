@@ -223,6 +223,36 @@ body.light #lockScreen{background-image:radial-gradient(ellipse 60% 60% at 50% 4
 .theme-card:hover{border-color:var(--accent-dim)}
 .theme-card.active{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-glow)}
 </style>
+<style>
+/* Cookie Banner */
+#cookieBanner{position:fixed;bottom:0;left:0;right:0;background:var(--bg-panel);border-top:1px solid var(--border);padding:16px 24px;z-index:10000;display:none;align-items:center;justify-content:center;gap:16px;box-shadow:0 -4px 24px rgba(0,0,0,0.3);font-size:13px;color:var(--text-secondary);flex-wrap:wrap}
+#cookieBanner.show{display:flex}
+#cookieBanner p{margin:0;line-height:1.6}
+#cookieBanner .cookie-link{color:var(--accent);cursor:pointer;text-decoration:underline;font-size:13px;white-space:nowrap}
+#cookieBanner .cookie-link:hover{opacity:0.8}
+#cookieBanner .cookie-btn{background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);padding:8px 24px;font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap;font-family:var(--font-sans);transition:.2s}
+#cookieBanner .cookie-btn:hover{opacity:0.85}
+@media(max-width:768px){
+  #cookieBanner{flex-direction:column;text-align:center;padding:14px 16px;padding-bottom:calc(14px + env(safe-area-inset-bottom,0) + 52px)}
+}
+/* Privacy Modal */
+#privacyModal{position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:10001;display:none;align-items:center;justify-content:center;padding:20px}
+#privacyModal.show{display:flex}
+#privacyModal .privacy-card{background:var(--bg-panel);border:1px solid var(--border);border-radius:var(--radius);max-width:600px;width:100%;max-height:80vh;overflow-y:auto;padding:32px;box-shadow:var(--shadow-lg);position:relative}
+#privacyModal .privacy-card h2{font-family:var(--font-serif);font-size:20px;font-weight:600;margin-bottom:20px;color:var(--text-primary)}
+#privacyModal .privacy-card h3{font-size:15px;font-weight:600;color:var(--text-primary);margin:18px 0 8px}
+#privacyModal .privacy-card p,#privacyModal .privacy-card li{font-size:13px;color:var(--text-secondary);line-height:1.8;margin-bottom:6px}
+#privacyModal .privacy-card ul{padding-left:20px;margin-bottom:12px}
+#privacyModal .privacy-close{position:absolute;top:16px;right:16px;background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:var(--radius-sm);transition:.2s}
+#privacyModal .privacy-close:hover{background:var(--bg-hover);color:var(--text-primary)}
+#privacyModal .privacy-card .privacy-link{color:var(--accent);cursor:pointer;text-decoration:underline}
+/* Lock screen privacy link */
+.lock-privacy{margin-top:16px;font-size:11px;color:var(--text-hint)}
+.lock-privacy a{color:var(--text-muted);text-decoration:underline;cursor:pointer}
+.lock-privacy a:hover{color:var(--accent)}
+/* Bottom nav privacy */
+.btab.privacy-link{color:var(--text-hint);font-size:9px;flex:0.6}
+</style>
 </head>
 <body>
 <!-- SVG Icon Sprites -->
@@ -262,7 +292,32 @@ body.light #lockScreen{background-image:radial-gradient(ellipse 60% 60% at 50% 4
     <input class="lock-input" id="lockInput" type="password" data-i18n-ph="lock-placeholder" placeholder="输入密码...">
     <div class="lock-hint" id="lockHint"></div>
     <button class="btn-primary" id="lockBtn" onclick="handleLock()" data-i18n="lock-btn-set">设置密码</button>
+    <div class="lock-privacy"><a onclick="event.preventDefault();showPrivacyModal()">隐私条款</a></div>
   </div>
+</div>
+<!-- PRIVACY MODAL -->
+<div id="privacyModal" onclick="if(event.target===this)closePrivacyModal()">
+  <div class="privacy-card">
+    <button class="privacy-close" onclick="closePrivacyModal()">✕</button>
+    <h2>隐私条款与数据使用说明</h2>
+    <h3>📦 本地存储</h3>
+    <p>所有数据（项目、文本、设置、API配置）仅存储在浏览器 localStorage 和 IndexedDB 中，不会上传到任何服务器。</p>
+    <h3>🍪 Cookie 使用</h3>
+    <p>使用 localStorage 保存用户偏好和登录状态，不使用第三方跟踪 Cookie。</p>
+    <h3>🔑 API 调用</h3>
+    <p>AI 功能通过用户自行配置的 API 密钥调用，密钥仅存储在本地浏览器中。</p>
+    <h3>🛡️ 数据安全</h3>
+    <p>可随时通过「清除数据」功能删除所有本地存储的数据。您的数据完全由您掌控。</p>
+    <h3>🌐 第三方服务</h3>
+    <p>使用 Google Fonts 等 CDN 资源，可能涉及 IP 地址等基本网络信息。</p>
+    <h3>📬 联系方式</h3>
+    <p>如有疑问，请通过 <span class="privacy-link" onclick="window.open('https://github.com','_blank')">GitHub Issues</span> 联系我们。</p>
+  </div>
+</div>
+<!-- COOKIE BANNER -->
+<div id="cookieBanner">
+  <p>本网站使用 Cookie 和本地存储来提升您的使用体验。继续使用即表示您同意我们的<a class="cookie-link" onclick="event.preventDefault();showPrivacyModal()">隐私条款</a>。</p>
+  <button class="cookie-btn" onclick="acceptCookie()">同意</button>
 </div>
 <!-- MAIN APP -->
 <div id="app">
@@ -382,6 +437,7 @@ body.light #lockScreen{background-image:radial-gradient(ellipse 60% 60% at 50% 4
       <button class="btab" onclick="swMobileTab('chapters',this)"><svg class="ic"><use href="#ic-chapter"/></svg> 章节</button>
       <button class="btab" onclick="swMobileTab('chars',this)"><svg class="ic"><use href="#ic-person"/></svg> 人物</button>
       <button class="btab" onclick="swMobileTab('ai',this)"><svg class="ic"><use href="#ic-brain"/></svg> AI</button>
+      <button class="btab privacy-link" onclick="event.stopPropagation();showPrivacyModal()">📋 隐私</button>
     </div>
   </nav>
 </div>
@@ -3407,6 +3463,13 @@ function renderMpChapter(){if(!S.proj)return;const el=document.getElementById('m
 function renderMpChar(){if(!S.proj)return;const el=document.getElementById('mpCharList');if(!S.proj.characters.length){el.innerHTML='<div style="text-align:center;padding:40px;color:var(--text-hint)">'+t('sb-empty-char')+'</div>';return;}el.innerHTML=S.proj.characters.map(c=>'<div class="char-card" onclick="loadCharContent('+c.id+');backToEditor()"><div class="char-name">'+c.name+'</div><span class="char-role">'+c.role+'</span><div class="char-desc">'+(c.personality||t('char-no-desc'))+'</div></div>').join('');}
 function renderMpAi(){const el=document.getElementById('mpAiModeGrid');if(!el||el.children.length>0)return;const g={};for(const[k,v]of Object.entries(AI_MODES)){if(!g[v.group])g[v.group]=[];g[v.group].push(k);}let h='';for(const[label,keys]of Object.entries(g)){h+='<div class="mode-group"><div class="mode-group-title">'+t('grp-'+label)+'</div><div class="mode-grid">';for(const k of keys)h+='<button class="mode-btn'+(S.aiMode===k?' selected':'')+'" onclick="selectMode(this,\''+k+'\')"><span class="micon">'+AI_MODES[k].icon+'</span>'+t('mode-'+k)+'</button>';h+='</div></div>';}el.innerHTML=h;}
 async function doGenerateMobile(){const ac=S.apiConfig;if(!ac.key){showToast('⚙️',t('toast-no-api'));openModal('apiModal');return;}const ed=document.getElementById('mainEditor'),content=ed.value.slice(-1000)||'';const extra=document.getElementById('mpAiPrompt')?.value.trim()||'';if(!content&&!extra){showToast('✍️',t('toast-no-content'));return;}const lm={short:'100字以内',mid:'200-300字',long:'400-600字',xl:'800字以上'},tm={low:'保持严谨',mid:'适度创意',high:'大胆想象'};const md=AI_MODES[S.aiMode]||{p:'请处理以下内容：'};let prompt=md.p+'\n\n'+content+'\n\n【输出要求】'+lm[S.aiLen]+'。'+tm[S.aiTemp]+'。';if(S.proj)prompt+='\n\n【项目信息】\n'+buildCtx();if(extra)prompt+='\n\n【额外指令】'+extra;let sysPrompt='你是一位专业的中文写作助手。';const memCtx=buildMemoryContext();if(memCtx)sysPrompt+='\n\n'+memCtx;const btn=document.getElementById('mpGenerateBtn');btn.classList.add('loading');btn.textContent=t('ap-gen-ing');try{const r=await callAI(prompt,ac,sysPrompt);S.lastArpResult=r;document.getElementById('arpText').textContent=r;document.getElementById('arpMode').textContent=S.aiMode;document.getElementById('aiResultPopup').classList.add('show');addHistory(S.aiMode,r);}catch(e){showToast('❌',e.message||'失败');}finally{btn.classList.remove('loading');btn.innerHTML='<span>✨</span><span data-i18n="ap-gen">'+t('ap-gen')+'</span>';}}
+// ═══ Cookie Consent & Privacy ═══
+function showPrivacyModal(){document.getElementById('privacyModal').classList.add('show');}
+function closePrivacyModal(){document.getElementById('privacyModal').classList.remove('show');}
+function acceptCookie(){localStorage.setItem('ww_cookie_consent','1');document.getElementById('cookieBanner').classList.remove('show');}
+(function(){
+  if(!localStorage.getItem('ww_cookie_consent')){document.getElementById('cookieBanner').classList.add('show');}
+})();
 </script>
 </body>
 </html>
