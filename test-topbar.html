@@ -1,3 +1,9 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<style>
 /* ============================================================
    Writing Workshop — Linear-Inspired Design System
    Mobile-first · Dark/Light · Premium Typography
@@ -3459,3 +3465,51 @@ body.light .char-role {
   animation: blink-cursor 0.7s step-end infinite;
   margin-left: 2px;
 }
+</style>
+<style>
+body { background: #08090a; color: #fff; margin: 0; font-family: system-ui; }
+.test-info { padding: 20px; color: #0f0; font: 14px monospace; }
+</style>
+</head>
+<body>
+<div class="topbar">
+    <div class="topbar-logo" style="color:#ff4444"><span class="dot" style="background:#ff4444;box-shadow:0 0 8px #ff4444"></span>AI 写作工坊 v2.1 🔴</div>
+    <div class="topbar-sep"></div>
+    <div class="project-selector" onclick="openModal('projectModal')" title="选择项目..."><span id="currentProjectName" data-empty-project="1">选择项目...</span><span class="arrow">▾</span></div>
+    <div class="topbar-stats">
+      <div class="stat-item"><svg class="ic ic-sm"><use href="#ic-note"/></svg> 总 <span class="val" id="totalWords">0</span>字</div>
+      <div class="stat-item"><svg class="ic ic-sm"><use href="#ic-calendar"/></svg> 今日 <span class="val" id="todayWords">0</span>字</div>
+      <div class="stat-item"><svg class="ic ic-sm"><use href="#ic-target"/></svg> <span class="badge" id="goalText">0/2000</span></div>
+    </div>
+    <div class="topbar-actions">
+      <button class="icon-btn" onclick="openModal('newProjectModal')" title="新建">＋</button>
+      <button class="icon-btn" onclick="openModal('settingsModal')" data-i18n-title="tb-settings" title="设置"><svg class="ic ic-sm"><use href="#ic-settings"/></svg></button>
+      <button class="icon-btn" onclick="exportProject()" title="导出"><svg class="ic ic-sm"><use href="#ic-download"/></svg></button>
+      <button class="icon-btn" id="saveBtn" onclick="saveDoc()" title="保存"><svg class="ic ic-sm"><use href="#ic-save"/></svg><span class="save-badge"></span></button>
+      <button class="icon-btn" onclick="openModal('profileModal')" title="个人中心"><svg class="ic ic-sm"><use href="#ic-user"/></svg></button>
+    </div>
+  </div>
+  <div class="main-body"
+<div class="test-info">
+  <p>👆 点上面的每个按钮，看哪个有反应</p>
+  <p>测试: </p>
+  <button onclick="alert('OK!')" style="font-size:16px;padding:10px;background:#5e6ad2;color:#fff;border:none;border-radius:8px;margin:5px">内联alert测试</button>
+</div>
+<script>
+// Log all clicks
+document.addEventListener('click', function(e) {
+  var el = e.target;
+  var info = 'CLICK on: ' + el.tagName + '.' + el.className;
+  var oc = el.getAttribute && el.getAttribute('onclick');
+  if (!oc) {
+    // Check parent
+    var p = el.closest && el.closest('[onclick]');
+    if (p) { oc = p.getAttribute('onclick'); info += ' (parent has onclick)'; }
+  }
+  info += ' onclick=' + (oc || 'NONE');
+  document.querySelector('.test-info').innerHTML += '<p style="color:#ff0">' + info + '</p>';
+  console.log(info);
+}, true);
+</script>
+</body>
+</html>

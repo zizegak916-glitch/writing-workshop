@@ -10,10 +10,17 @@
     <div class="lock-privacy"><a onclick="event.preventDefault();showPrivacyModal()">隐私条款</a></div>
   </div>
 </div>
-<!-- PRIVACY MODAL -->
+<!-- PRIVACY / GUIDE / ABOUT MODAL -->
 <div id="privacyModal" onclick="if(event.target===this)closePrivacyModal()">
   <div class="privacy-card">
     <button class="privacy-close" onclick="closePrivacyModal()"><svg class="ic ic-sm"><use href="#ic-close"/></svg></button>
+    <div class="priv-tabs">
+      <button class="priv-tab active" onclick="switchPrivTab('privacy',this)">隐私条款</button>
+      <button class="priv-tab" onclick="switchPrivTab('guide',this)">使用指南</button>
+      <button class="priv-tab" onclick="switchPrivTab('about',this)">关于</button>
+    </div>
+    <!-- TAB: 隐私条款 -->
+    <div class="priv-panel" id="privTab-privacy">
     <h2>隐私条款与数据使用说明</h2>
     <h3>📦 本地存储</h3>
     <p>所有数据（项目、文本、设置、API配置）仅存储在浏览器 localStorage 和 IndexedDB 中，不会上传到任何服务器。</p>
@@ -27,6 +34,101 @@
     <p>使用 Google Fonts 等 CDN 资源，可能涉及 IP 地址等基本网络信息。</p>
     <h3>📬 联系方式</h3>
     <p>如有疑问，请通过 <span class="privacy-link" onclick="window.open('https://github.com','_blank')">GitHub Issues</span> 联系我们。</p>
+    </div>
+    <!-- TAB: 使用指南 -->
+    <div class="priv-panel" id="privTab-guide" style="display:none">
+    <h2>📖 使用指南</h2>
+    <h3>🚀 快速开始</h3>
+    <ol>
+      <li>打开链接，首次使用请设置密码（至少4位）</li>
+      <li>进入工坊后，点击顶栏「＋」创建新项目</li>
+      <li>点击「⚙」配置 API Key（选服务商 → 填 Key → 测试 → 保存）</li>
+      <li>开始写作！AI 功能会自动辅助你</li>
+    </ol>
+    <h3>🔧 API 配置</h3>
+    <p>支持 11+ 服务商：</p>
+    <ul>
+      <li><strong>DeepSeek</strong>（推荐，性价比高）— deepseek.com</li>
+      <li><strong>通义千问</strong> — tongyi.aliyun.com</li>
+      <li><strong>智谱 GLM</strong> — open.bigmodel.cn</li>
+      <li><strong>小米 MiMo</strong> — api.xiaomi.com</li>
+      <li><strong>OpenAI</strong> — platform.openai.com</li>
+      <li><strong>Claude</strong> — console.anthropic.com</li>
+      <li><strong>Kimi/Moonshot</strong> — platform.moonshot.cn</li>
+      <li><strong>Gemini</strong> — aistudio.google.com</li>
+      <li><strong>Grok</strong> — console.x.ai</li>
+      <li><strong>OpenRouter</strong> — openrouter.ai</li>
+      <li><strong>SiliconFlow</strong> — siliconflow.cn</li>
+      <li><strong>自定义</strong>（任意 OpenAI 兼容 API）</li>
+    </ul>
+    <h3>✍️ 编辑器功能</h3>
+    <ul>
+      <li><strong>AI 快捷工具栏</strong>（编辑器上方）：纠错、自动标题、实时灵感、资料搜索、降AI率、查AI</li>
+      <li><strong>工具栏</strong>：专注模式、预览、加粗/斜体、字体大小、导出</li>
+      <li><strong>自动保存</strong>：开启后实时保存，关闭后手动 Ctrl+S</li>
+    </ul>
+    <h3>📱 手机端底部导航</h3>
+    <ul>
+      <li><strong>编辑</strong> — 写作主界面</li>
+      <li><strong>大纲</strong> — 故事大纲管理</li>
+      <li><strong>章节</strong> — 章节列表与切换</li>
+      <li><strong>人物</strong> — 人物档案卡片</li>
+      <li><strong>AI</strong> — AI 助手面板（30+ 模式、多AI对比）</li>
+      <li><strong>隐私</strong> — 查看隐私条款与使用指南</li>
+    </ul>
+    <h3>🤖 AI 面板功能</h3>
+    <ul>
+      <li><strong>助手 Tab</strong>：选择 AI 模式（续写/润色/扩写等30+），调整创意度和输出长度，点「开始生成」</li>
+      <li><strong>对比 Tab</strong>：3 个槽位并行对比不同 AI 服务商的结果</li>
+      <li><strong>记忆 Tab</strong>：添加记忆条目，AI 生成时自动注入上下文</li>
+      <li><strong>历史 Tab</strong>：查看所有 AI 操作记录</li>
+    </ul>
+    <h3>👤 个人中心</h3>
+    <p>点击顶栏「👤」查看项目统计、修改密码、锁屏。</p>
+    <h3>🎨 主题切换</h3>
+    <p>设置 → 主题/Theme → 深色/浅色模式。支持跟随系统。</p>
+    <h3>📊 数据安全</h3>
+    <ul>
+      <li>所有数据存在浏览器本地（IndexedDB）</li>
+      <li>密码用 SHA-256 加密存储</li>
+      <li>不上传任何数据到服务器</li>
+      <li>支持项目导出 JSON 备份</li>
+      <li>支持导入 .json / .txt / .md / .docx 文件</li>
+    </ul>
+    <h3>❓ 常见问题</h3>
+    <p><strong>Q: 刷新页面要重新登录吗？</strong><br>A: 不需要，刷新直接进入。点「👤」里的「🔒 锁屏」才会锁。</p>
+    <p><strong>Q: 数据会丢吗？</strong><br>A: 数据存在浏览器本地。清除浏览器数据会丢失，建议定期导出备份。</p>
+    <p><strong>Q: AI 功能需要付费吗？</strong><br>A: 需要 AI 服务商的 API Key，大部分有免费额度。</p>
+    <p><strong>Q: 手机上能用吗？</strong><br>A: 完全适配手机，底部导航栏切换功能。</p>
+    </div>
+    <!-- TAB: 关于 -->
+    <div class="priv-panel" id="privTab-about" style="display:none">
+    <h2>ℹ️ 关于 AI 写作工坊</h2>
+    <div style="text-align:center;padding:24px 0 16px">
+      <div style="width:64px;height:64px;border-radius:16px;background:linear-gradient(135deg,var(--accent),#a78bfa);display:inline-flex;align-items:center;justify-content:center;margin-bottom:12px;box-shadow:0 4px 20px rgba(94,106,210,0.3)">
+        <svg style="width:32px;height:32px;color:#fff" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+      </div>
+      <div style="font-size:20px;font-weight:600;color:var(--text-primary);margin-bottom:4px">AI 写作工坊</div>
+      <div style="font-size:12px;color:var(--text-muted)">v2.0 · Powered by AI</div>
+    </div>
+    <h3>✨ 功能特色</h3>
+    <ul>
+      <li>30+ AI 写作模式（续写/润色/扩写/缩写/翻译/纠错…）</li>
+      <li>多 AI 并行对比，择优使用</li>
+      <li>AI 检测雷达图 + 降AI率</li>
+      <li>智能分章 + 大纲管理 + 人物档案</li>
+      <li>DOCX/Markdown/文本导入</li>
+      <li>专注写作模式</li>
+      <li>暗色/浅色双主题</li>
+      <li>8 语言国际化</li>
+      <li>数据完全本地化，隐私安全</li>
+    </ul>
+    <h3>🛠️ 技术栈</h3>
+    <p>原生 HTML/CSS/JS · IndexedDB · Canvas · SVG · 无框架依赖</p>
+    <h3>📜 开源</h3>
+    <p>本项目基于 MIT 协议开源。欢迎贡献代码、提交 Issue。</p>
+    <p style="margin-top:16px"><span class="privacy-link" onclick="window.open('https://github.com/zizegak916-glitch','_blank')">GitHub →</span></p>
+    </div>
   </div>
 </div>
 <!-- COOKIE BANNER -->
@@ -37,7 +139,7 @@
 <!-- MAIN APP -->
 <div id="app">
   <div class="topbar">
-    <div class="topbar-logo"><span class="dot"></span>AI 写作工坊</div>
+    <div class="topbar-logo" style="color:#ff4444"><span class="dot" style="background:#ff4444;box-shadow:0 0 8px #ff4444"></span>AI 写作工坊 v2.1 🔴</div>
     <div class="topbar-sep"></div>
     <div class="project-selector" onclick="openModal('projectModal')" title="选择项目..."><span id="currentProjectName" data-empty-project="1">选择项目...</span><span class="arrow">▾</span></div>
     <div class="topbar-stats">
@@ -81,7 +183,7 @@
       <div class="chapter-title-bar"><input class="chapter-title-input" id="chapterTitle" data-i18n-ph="ed-chapter" placeholder="章节标题..." oninput="S.unsaved=true"></div>
       <div class="chapter-meta"><span><span id="paraCount">1</span> <span data-i18n="ed-para">段</span></span><span><span id="sentCount">0</span> <span data-i18n="ed-sent">句</span></span><span id="readTimeWrap"><span id="readTime">0</span> <span data-i18n="ed-min">分钟</span></span><span id="editorWords">0</span> <span data-i18n="ed-words">字</span></div>
       <!-- AI Quick Tools Bar -->
-      <div id="aiQuickBar" style="display:flex;gap:6px;padding:6px 24px;border-bottom:1px solid var(--border);background:var(--bg-mid);flex-wrap:wrap">
+      <div id="aiQuickBar" style="display:flex;gap:6px;padding:6px 20px;border-bottom:1px solid var(--border);background:var(--bg-mid);flex-wrap:wrap">
         <button class="tool-btn" data-i18n="aq-proof" onclick="aiProofread()" id="aiBtnProof" title="检查错别字、语病"><svg class="ic ic-sm"><use href="#ic-check"/></svg> 纠错</button>
         <button class="tool-btn" data-i18n="aq-title" onclick="aiAutoTitle()" id="aiBtnTitle" title="根据内容生成标题"><svg class="ic ic-sm"><use href="#ic-tag"/></svg> 自动标题</button>
         <button class="tool-btn" data-i18n="aq-inspire" onclick="aiInspiration()" id="aiBtnInspire" title="根据上下文提供灵感"><svg class="ic ic-sm"><use href="#ic-bulb"/></svg> 实时灵感</button>
@@ -90,7 +192,7 @@
         <button class="tool-btn" data-i18n="aq-detect" onclick="aiDetect()" id="aiBtnDetect" title="检测文字的AI特征"><svg class="ic ic-sm"><use href="#ic-search"/></svg> 查AI</button>
       </div>
       <!-- AI Result Inline Panel (for quick tools) -->
-      <div id="aiQuickResult" style="display:none;border-bottom:1px solid var(--border);background:var(--bg-panel);padding:12px 24px;max-height:280px;overflow-y:auto">
+      <div id="aiQuickResult" style="display:none;border-bottom:1px solid var(--border);background:var(--bg-panel);padding:12px 20px;max-height:280px;overflow-y:auto">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
           <span id="aiQuickResultTitle" style="font-size:12px;font-weight:600;color:var(--accent)">AI 结果</span>
           <div style="display:flex;gap:6px">
@@ -110,7 +212,7 @@
         <div id="aiSentencesWrap" class="ai-qr-sentences" style="display:none"></div>
       </div>
       <div class="editor-wrap" id="editorWrap"><textarea id="mainEditor" placeholder="开始写作..."></textarea></div>
-      <div id="previewPane" style="display:none;flex:1;overflow-y:auto;padding:16px 24px;font-family:var(--font-serif);font-size:16px;line-height:1.9;color:var(--text-primary)"></div>
+      <div id="previewPane" style="display:none;flex:1;overflow-y:auto;padding:16px 32px;font-family:var(--font-serif);font-size:16px;line-height:1.9;color:var(--text-primary)"></div>
       <div class="bottom-bar"><div class="wc-info"><div class="wc-item" data-i18n-bb="bb-total"><span data-i18n="bb-total">总字数:</span> <strong id="totalWordsBar">0</strong></div><div class="wc-item" data-i18n-bb="bb-para"><span data-i18n="bb-para">段落:</span> <strong id="paraCountBar">1</strong></div></div><div class="goal-bar-wrap"><div class="goal-track"><div class="goal-fill" id="goalFill"></div></div><div class="wc-item" id="goalTextBar">0/2000</div></div></div>
     </div>
     <div class="ai-panel">
@@ -139,7 +241,7 @@
           </div>
           <button class="generate-btn" id="generateBtn" onclick="doGenerate()"><span id="generateBtnIcon"><svg class="ic ic-sm"><use href="#ic-sparkles"/></svg></span><span id="generateBtnText">开始生成</span></button>
         </div>
-        <div id="aiTab-multi" style="display:none"><div id="multiSlots"></div><button class="generate-btn" data-i18n="multi-gen" style="margin-top:14px" onclick="doMultiGenerate()">⚡ 并行生成所有槽位</button></div>
+        <div id="aiTab-multi" style="display:none"><div id="multiSlots"></div></div>
         <div id="aiTab-history" style="display:none"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><span style="font-size:12px;color:var(--text-secondary)">AI 操作记录</span><button onclick="clearHistory()" style="background:none;border:none;color:var(--text-hint);font-size:11px;cursor:pointer">清空</button></div><div id="historyList"></div></div>
         <div id="aiTab-memory" style="display:none">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
@@ -173,7 +275,13 @@
   <div class="param-row"><div class="param-label" data-i18n="ap-temp">创意度</div><div class="seg-ctrl"><button class="seg-btn" data-i18n="param-strict" onclick="setTemp('low',this)">严谨</button><button class="seg-btn on" data-i18n="param-balance" onclick="setTemp('mid',this)">平衡</button><button class="seg-btn" data-i18n="param-creative" onclick="setTemp('high',this)">创意</button></div></div>
   <div class="param-row"><div class="param-label" data-i18n="ap-len">输出长度</div><div class="seg-ctrl"><button class="seg-btn" data-i18n="param-short" onclick="setLen('short',this)">短</button><button class="seg-btn" data-i18n="param-medium" onclick="setLen('mid',this)">中</button><button class="seg-btn on" data-i18n="param-long" onclick="setLen('long',this)">长</button><button class="seg-btn" data-i18n="param-xlong" onclick="setLen('xl',this)">超长</button></div></div>
   <div class="ai-prompt-area"><label data-i18n="ap-prompt">补充指令</label><textarea id="mpAiPrompt" data-i18n-ph="ap-prompt-ph" placeholder="可选：输入额外要求..."></textarea></div>
-  <button class="generate-btn" id="mpGenerateBtn" onclick="doGenerateMobile()"><span><svg class="ic ic-sm"><use href="#ic-sparkles"/></svg></span><span data-i18n="ap-gen">开始生成</span></button></div>
+  <button class="generate-btn" id="mpGenerateBtn" onclick="doGenerateMobile()"><span><svg class="ic ic-sm"><use href="#ic-sparkles"/></svg></span><span data-i18n="ap-gen">开始生成</span></button>
+  <div style="margin-top:12px;border-top:1px solid var(--border);padding-top:12px">
+    <div style="font-size:12px;font-weight:510;color:var(--text-secondary);margin-bottom:8px"><svg class="ic ic-sm" style="vertical-align:middle"><use href="#ic-search-scan"/></svg> 多AI对比</div>
+    <div id="mpMultiSlots"></div>
+    <button class="generate-btn multi-gen-btn" onclick="doMultiGenerateMobile()" style="width:100%;margin-top:8px"><span>⚡</span> 并行生成对比</button>
+  </div>
+</div>
 </div>
 <!-- AI RESULT POPUP -->
 <div class="ai-result-popup" id="aiResultPopup">

@@ -41,7 +41,7 @@ cat parts/body.html >> "$OUT"
 
 # JS (inline, order matches original)
 echo "<script>" >> "$OUT"
-for f in js/db.js js/state.js js/app.js js/editor.js js/project.js js/ai.js js/ui.js js/i18n.js js/settings.js; do
+for f in js/db.js js/state.js js/i18n.js js/app.js js/editor.js js/project.js js/ai.js js/ui.js js/settings.js; do
     if [ -f "$f" ]; then
         cat "$f" >> "$OUT"
         echo "" >> "$OUT"

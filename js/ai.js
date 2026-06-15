@@ -7,11 +7,22 @@ function setLen(v,btn){btn.parentElement.querySelectorAll('.seg-btn').forEach(b=
 
 
 // ═══ API ═══
-const PROVIDERS={claude:{url:'https://api.anthropic.com/v1/messages',model:'claude-sonnet-4-20250514',type:'claude'},openai:{url:'https://api.openai.com/v1/chat/completions',model:'gpt-4o',type:'openai'},deepseek:{url:'https://api.deepseek.com/v1/chat/completions',model:'deepseek-chat',type:'openai'},xiaomi:{url:'https://api.xiaomimimo.com/v1/chat/completions',model:'mimo-v2.5-pro',type:'openai'},qwen:{url:'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',model:'qwen-plus',type:'openai'},zhipu:{url:'https://open.bigmodel.cn/api/paas/v4/chat/completions',model:'glm-4-flash',type:'openai'},moonshot:{url:'https://api.moonshot.cn/v1/chat/completions',model:'moonshot-v1-8k',type:'openai'},siliconflow:{url:'https://api.siliconflow.cn/v1/chat/completions',model:'deepseek-ai/DeepSeek-V3',type:'openai'},openrouter:{url:'https://openrouter.ai/api/v1/chat/completions',model:'anthropic/claude-sonnet-4',type:'openai'},gemini:{url:'https://generativelanguage.googleapis.com/v1beta/chat/completions',model:'gemini-2.0-flash',type:'openai'},grok:{url:'https://api.x.ai/v1/chat/completions',model:'grok-3',type:'openai'},custom:{url:'',model:'',type:'openai'}};
+const PROVIDERS={claude:{url:'https://api.anthropic.com/v1/messages',model:'claude-sonnet-4-20250514',type:'claude'},openai:{url:'https://api.openai.com/v1/chat/completions',model:'gpt-4o',type:'openai'},deepseek:{url:'https://api.deepseek.com/v1/chat/completions',model:'deepseek-chat',type:'openai'},xiaomi:{url:'https://api.xiaomimimo.com/v1/chat/completions',model:'mimo-v2.5-pro',type:'openai'},qwen:{url:'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',model:'qwen-plus',type:'openai'},zhipu:{url:'https://open.bigmodel.cn/api/paas/v4/chat/completions',model:'glm-4-flash',type:'openai'},moonshot:{url:'https://api.moonshot.cn/v1/chat/completions',model:'moonshot-v1-8k',type:'openai'},siliconflow:{url:'https://api.siliconflow.cn/v1/chat/completions',model:'deepseek-ai/DeepSeek-V3',type:'openai'},openrouter:{url:'https://openrouter.ai/api/v1/chat/completions',model:'anthropic/claude-sonnet-4',type:'openai'},gemini:{url:'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',model:'gemini-2.0-flash',type:'gemini'},grok:{url:'https://api.x.ai/v1/chat/completions',model:'grok-3',type:'openai'},custom:{url:'',model:'',type:'openai'}};
 const TRANSIENT_ERRORS=[429,500,502,503,504];
 function _isTransient(err){const m=err.message?.match?.(/HTTP (\d+)/);return m&&TRANSIENT_ERRORS.includes(+m[1]);}
 async function _sleep(ms){return new Promise(r=>setTimeout(r,ms));}
-async function _fetchWithTimeout(url,opts,timeoutMs=60000){const ac=new AbortController();const id=setTimeout(()=>ac.abort(),timeoutMs);opts.signal=ac.signal;try{const r=await fetch(url,opts);return r;}finally{clearTimeout(id);}}
+const PROXY_URL=(location.port==='8090'?'http://localhost:8091':'')+'/proxy';
+async function _fetchWithTimeout(url,opts,timeoutMs=60000){
+  // Route through proxy to avoid CORS
+  const ac=new AbortController();const id=setTimeout(()=>ac.abort(),timeoutMs);
+  try{
+    const proxyBody={url,headers:opts.headers||{},body:opts.body?JSON.parse(opts.body):{}};
+    const r=await fetch(PROXY_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(proxyBody),signal:ac.signal});
+    // Wrap proxy response to look like a normal fetch Response
+    const data=await r.json();
+    return{ok:r.ok&&(!data.error||r.status===200),status:r.status,json:async()=>data,
+      _proxyError:data.error?new Error('HTTP '+(data.error.code||r.status)+': '+(data.error.message||'Unknown')):null};
+  }finally{clearTimeout(id);}}
 function _buildHeaders(conf,p){const h={'Content-Type':'application/json'};if(p.type==='claude'){h['x-api-key']=conf.key;h['anthropic-version']='2023-06-01';}else{h['Authorization']='Bearer '+conf.key;}return h;}
 function _buildBody(conf,p,msgs,systemPrompt,stream){
   if(p.type==='claude'){
@@ -32,8 +43,10 @@ async function callAI(prompt,conf,systemPrompt){
   let lastErr=null;
   for(let attempt=0;attempt<3;attempt++){
     try{const r=await _fetchWithTimeout(url,{method:'POST',headers:h,body},conf.timeout||60000);
+      if(r._proxyError)throw r._proxyError;
       if(!r.ok)throw new Error('HTTP '+r.status);
       const d=await r.json();let result='',usage=null;
+      if(d.error)throw new Error(d.error.message||JSON.stringify(d.error));
       if(p.type==='claude'){result=d.content?.[0]?.text||'（无返回）';usage=d.usage?{input:d.usage.input_tokens,output:d.usage.output_tokens}:null;}
       else{result=d.choices?.[0]?.message?.content||'（无返回）';usage=d.usage?{input:d.usage.prompt_tokens,output:d.usage.completion_tokens}:null;}
       if(usage)updateUsageDisplay(usage);return result;
@@ -163,12 +176,184 @@ function closeAiResult(){document.getElementById('aiResultPopup').classList.remo
 
 
 // ═══ Multi-AI ═══
-const SLOT_PRESETS={xiaomi:{url:'https://api.xiaomimimo.com/v1/chat/completions',model:'mimo-v2.5-pro'},claude:{url:'https://api.anthropic.com/v1/messages',model:'claude-sonnet-4-20250514'},openai:{url:'https://api.openai.com/v1/chat/completions',model:'gpt-4o'},deepseek:{url:'https://api.deepseek.com/v1/chat/completions',model:'deepseek-chat'},qwen:{url:'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',model:'qwen-plus'},openrouter:{url:'https://openrouter.ai/api/v1/chat/completions',model:'anthropic/claude-sonnet-4'},siliconflow:{url:'https://api.siliconflow.cn/v1/chat/completions',model:'deepseek-ai/DeepSeek-V3'},gemini:{url:'https://generativelanguage.googleapis.com/v1beta/chat/completions',model:'gemini-2.0-flash'},grok:{url:'https://api.x.ai/v1/chat/completions',model:'grok-3'}};
-function renderMultiSlots(){const el=document.getElementById('multiSlots');let h='';for(let i=1;i<=3;i++){const s=JSON.parse(localStorage.getItem('ww_slot'+i)||'{}');h+='<div class="multi-slot"><div class="slot-header"><div class="slot-label"><span class="slot-num">'+i+'</span>槽位</div><button class="slot-toggle'+(s.enabled?' on':'')+'" onclick="toggleSlot('+i+')"></button></div><div class="slot-fields'+(s.enabled?' show':'')+'" id="slotFields'+i+'"><select class="slot-select" onchange="applySlotPreset('+i+',this.value)"><option value="">自定义</option>';for(const[k]of Object.entries(SLOT_PRESETS))h+='<option value="'+k+'"'+(s.preset===k?' selected':'')+'>'+k+'</option>';h+='</select><input class="slot-input" id="slotUrl'+i+'" placeholder="Base URL" value="'+(s.url||'')+'" onchange="saveSlot('+i+')"><input class="slot-input" id="slotKey'+i+'" type="password" placeholder="API Key" value="'+(s.key||'')+'" onchange="saveSlot('+i+')"><input class="slot-input" id="slotModel'+i+'" placeholder="Model" value="'+(s.model||'')+'" onchange="saveSlot('+i+')"><div class="slot-result" id="slotResult'+i+'"></div></div></div>';}el.innerHTML=h;}
-function toggleSlot(n){const btn=event.target;btn.classList.toggle('on');document.getElementById('slotFields'+n).classList.toggle('show');saveSlot(n);}
-function applySlotPreset(n,p){if(p&&SLOT_PRESETS[p]){document.getElementById('slotUrl'+n).value=SLOT_PRESETS[p].url;document.getElementById('slotModel'+n).value=SLOT_PRESETS[p].model;}saveSlot(n);}
-function saveSlot(n){const s={enabled:document.querySelector('#slotFields'+n).previousElementSibling.classList.contains('on'),preset:document.querySelector('#slotFields'+n+' .slot-select')?.value||'',url:document.getElementById('slotUrl'+n)?.value||'',key:document.getElementById('slotKey'+n)?.value||'',model:document.getElementById('slotModel'+n)?.value||''};localStorage.setItem('ww_slot'+n,JSON.stringify(s));}
-async function doMultiGenerate(){const ac=S.apiConfig;if(!ac.key){showToast('⚙',t('toast-no-api'));openModal('apiModal');return;}const content=document.getElementById('mainEditor').value.slice(-800)||'请创作一段精彩的故事片段',prompt='请用你独特的风格'+S.aiMode+'以下内容：\n\n'+content;for(let i=1;i<=3;i++){const s=JSON.parse(localStorage.getItem('ww_slot'+i)||'{}');if(!s.enabled||!s.key)continue;const r=document.getElementById('slotResult'+i);r.textContent='⟳ 生成中...';r.classList.add('has-content');try{const conf={key:s.key,provider:s.preset||'openai',model:s.model,baseUrl:s.url};r.textContent=await callAI(prompt,conf);}catch(e){r.textContent='✕ '+e.message;}}showToast('⚡','对比完成');}
+const SLOT_PRESETS={xiaomi:{url:'https://api.xiaomimimo.com/v1/chat/completions',model:'mimo-v2.5-pro'},claude:{url:'https://api.anthropic.com/v1/messages',model:'claude-sonnet-4-20250514'},openai:{url:'https://api.openai.com/v1/chat/completions',model:'gpt-4o'},deepseek:{url:'https://api.deepseek.com/v1/chat/completions',model:'deepseek-chat'},qwen:{url:'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',model:'qwen-plus'},openrouter:{url:'https://openrouter.ai/api/v1/chat/completions',model:'anthropic/claude-sonnet-4'},siliconflow:{url:'https://api.siliconflow.cn/v1/chat/completions',model:'deepseek-ai/DeepSeek-V3'},gemini:{url:'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',model:'gemini-2.0-flash'},grok:{url:'https://api.x.ai/v1/chat/completions',model:'grok-3'}};
+function renderMultiSlots(){
+  const el=document.getElementById('multiSlots');
+  const hasMainKey=!!S.apiConfig?.key;
+  let h='<div id="multiSummary" class="multi-summary" style="display:none"></div><div id="multiSlotList">';
+  for(let i=1;i<=3;i++){
+    const s=JSON.parse(localStorage.getItem('ww_slot'+i)||'{}');
+    if(i===1&&hasMainKey&&!s.key&&!s._touched)s.enabled=true;
+    const enabled=s.enabled;
+    const presetName=s.preset||'';
+    const displayName=presetName?(SLOT_PRESETS[presetName]?presetName:'自定义'):'未配置';
+    const modelDisplay=s.model||SLOT_PRESETS[presetName]?.model||'';
+    h+='<div class="multi-slot'+(enabled?' slot-active':'')+'" id="multiSlot'+i+'">';
+    h+='<div class="slot-header">';
+    h+='<div class="slot-info"><span class="slot-num">'+i+'</span><span class="slot-provider-badge">'+displayName+'</span>';
+    if(modelDisplay)h+='<span class="slot-model-name">'+modelDisplay+'</span>';
+    h+='</div>';
+    h+='<button class="slot-toggle'+(enabled?' on':'')+'" onclick="toggleSlot('+i+')"></button>';
+    h+='</div>';
+    h+='<div class="slot-fields'+(enabled?' show':'')+'" id="slotFields'+i+'">';
+    h+='<select class="slot-select" onchange="applySlotPreset('+i+',this.value)"><option value="">自定义</option>';
+    for(const[k]of Object.entries(SLOT_PRESETS))h+='<option value="'+k+'"'+(s.preset===k?' selected':'')+'>'+k+'</option>';
+    h+='</select>';
+    h+='<input class="slot-input" id="slotUrl'+i+'" placeholder="Base URL" value="'+(s.url||'')+'" onchange="saveSlot('+i+')">';
+    h+='<input class="slot-input" id="slotKey'+i+'" type="password" placeholder="API Key" value="'+(s.key||'')+'" onchange="saveSlot('+i+')">';
+    h+='<input class="slot-input" id="slotModel'+i+'" placeholder="Model" value="'+(s.model||'')+'" onchange="saveSlot('+i+')">';
+    h+='<div class="slot-result" id="slotResult'+i+'"></div>';
+    h+='<div class="slot-meta" id="slotMeta'+i+'" style="display:none"></div>';
+    h+='<div class="slot-actions" id="slotActions'+i+'" style="display:none">';
+    h+='<button class="slot-action-btn slot-best-btn" onclick="markBest('+i+')">★ 最佳</button>';
+    h+='<button class="slot-action-btn" onclick="applySlotToEditor('+i+')">应用到编辑器</button>';
+    h+='<button class="slot-action-btn" onclick="copySlotResult('+i+')">复制</button>';
+    h+='</div>';
+    h+='</div>';
+    h+='</div>';
+  }
+  h+='</div>';
+  h+='<div class="multi-bottom-actions">';
+  h+='<button class="generate-btn multi-gen-btn" data-i18n="multi-gen" onclick="doMultiGenerate()"><span>⚡</span> 并行生成所有槽位</button>';
+  h+='<div class="multi-extra-btns">';
+  h+='<button class="multi-action-btn" onclick="applyAllSlots()">全部应用</button>';
+  h+='<button class="multi-action-btn" onclick="clearAllResults()">清空结果</button>';
+  h+='</div>';
+  h+='</div>';
+  el.innerHTML=h;
+}
+function toggleSlot(n){
+  const btn=document.querySelector('#multiSlot'+n+' .slot-toggle');
+  if(!btn)return;
+  const isOn=btn.classList.toggle('on');
+  document.getElementById('slotFields'+n).classList.toggle('show',isOn);
+  document.getElementById('multiSlot'+n).classList.toggle('slot-active',isOn);
+  saveSlot(n);
+  event&&event.stopPropagation();
+}
+function applySlotPreset(n,p){
+  if(p&&SLOT_PRESETS[p]){document.getElementById('slotUrl'+n).value=SLOT_PRESETS[p].url;document.getElementById('slotModel'+n).value=SLOT_PRESETS[p].model;}
+  saveSlot(n);
+  const badge=document.querySelector('#multiSlot'+n+' .slot-provider-badge');
+  const mName=document.querySelector('#multiSlot'+n+' .slot-model-name');
+  if(badge)badge.textContent=p||(SLOT_PRESETS[p]?'自定义':'未配置');
+  if(mName)mName.textContent=(p&&SLOT_PRESETS[p])?SLOT_PRESETS[p].model:((document.getElementById('slotModel'+n)?.value)||'');
+}
+function saveSlot(n){
+  const toggle=document.querySelector('#multiSlot'+n+' .slot-toggle');
+  const s={enabled:toggle?toggle.classList.contains('on'):false,preset:document.querySelector('#slotFields'+n+' .slot-select')?.value||'',url:document.getElementById('slotUrl'+n)?.value||'',key:document.getElementById('slotKey'+n)?.value||'',model:document.getElementById('slotModel'+n)?.value||'',_touched:true};
+  localStorage.setItem('ww_slot'+n,JSON.stringify(s));
+}
+async function doMultiGenerate(){
+  const ac=S.apiConfig;
+  if(!ac.key){showToast('⚙',t('toast-no-api'));openModal('apiModal');return;}
+  const content=document.getElementById('mainEditor').value.slice(-800)||'请创作一段精彩的故事片段';
+  const lm={short:'100字以内',mid:'200-300字',long:'400-600字',xl:'800字以上'};
+  const tm={low:'保持严谨',mid:'适度创意',high:'大胆想象'};
+  const md=AI_MODES[S.aiMode]||{p:'请处理以下内容：'};
+  let prompt=md.p+'\n\n'+content+'\n\n【输出要求】'+(lm[S.aiLen]||'400-600字')+'。'+(tm[S.aiTemp]||'适度创意')+'。';
+  if(S.proj)prompt+='\n\n【项目信息】\n'+buildCtx();
+  const extra=document.getElementById('aiPrompt')?.value?.trim();
+  if(extra)prompt+='\n\n【额外指令】'+extra;
+  let sysPrompt='你是一位专业的中文写作助手。';
+  const memCtx=buildMemoryContext();
+  if(memCtx)sysPrompt+='\n\n'+memCtx;
+  const promises=[];
+  const results=[];
+  for(let i=1;i<=3;i++){
+    const s=JSON.parse(localStorage.getItem('ww_slot'+i)||'{}');
+    if(!s.enabled||!s.key){results.push({i,skipped:true});continue;}
+    const r=document.getElementById('slotResult'+i);
+    const meta=document.getElementById('slotMeta'+i);
+    const actions=document.getElementById('slotActions'+i);
+    if(r){r.innerHTML='<div class="slot-loading"><div class="spinner"></div> 生成中...</div>';r.classList.add('has-content');}
+    if(meta)meta.style.display='none';
+    if(actions)actions.style.display='none';
+    const conf={key:s.key,provider:s.preset||'openai',model:s.model,baseUrl:s.url};
+    results.push({i,conf});
+  }
+  for(const r of results){
+    if(r.skipped)continue;
+    const p=(async()=>{
+      const start=performance.now();
+      const text=await callAI(prompt,r.conf);
+      const elapsed=Math.round(performance.now()-start);
+      const wc=text.replace(/\s/g,'').length;
+      const el=document.getElementById('slotResult'+r.i);
+      const meta=document.getElementById('slotMeta'+r.i);
+      const actions=document.getElementById('slotActions'+r.i);
+      if(el){el.textContent=text;}
+      if(meta){meta.innerHTML='<span>⏱ '+elapsed+'ms</span><span>📝 '+wc+'字</span>';meta.style.display='flex';}
+      if(actions)actions.style.display='flex';
+      r.text=text;r.time=elapsed;r.wc=wc;r.done=true;
+    })().catch(e=>{
+      const el=document.getElementById('slotResult'+r.i);
+      if(el){el.textContent='✕ '+e.message;}
+      r.text='';r.done=false;r.error=true;
+    });
+    promises.push(p);
+  }
+  await Promise.all(promises);
+  const summary=document.getElementById('multiSummary');
+  if(summary){
+    const parts=[];
+    for(const r of results){
+      if(r.skipped)continue;
+      if(r.done){parts.push('槽位'+r.i+': '+r.wc+'字 '+(r.time/1000).toFixed(1)+'s');}
+      else{parts.push('槽位'+r.i+': 失败');}
+    }
+    if(parts.length){summary.textContent=parts.join(' | ');summary.style.display='flex';}
+  }
+  showToast('⚡','对比完成');
+}
+function applySlotToEditor(n){
+  const r=document.getElementById('slotResult'+n);
+  if(!r||!r.textContent)return;
+  const ed=document.getElementById('mainEditor');
+  const text=r.textContent;
+  const p=ed.selectionStart;
+  ed.value=ed.value.slice(0,p)+text+ed.value.slice(p);
+  onEditorInput();
+  showToast('✓','已应用槽位'+n);
+}
+function copySlotResult(n){
+  const r=document.getElementById('slotResult'+n);
+  if(!r||!r.textContent)return;
+  navigator.clipboard.writeText(r.textContent).then(()=>showToast('✓',t('toast-copied')));
+}
+function markBest(n){
+  document.querySelectorAll('.multi-slot').forEach(el=>el.classList.remove('slot-best'));
+  const slot=document.getElementById('multiSlot'+n);
+  if(slot)slot.classList.add('slot-best');
+  showToast('★','槽位'+n+'标记为最佳');
+}
+function applyAllSlots(){
+  const parts=[];
+  for(let i=1;i<=3;i++){
+    const r=document.getElementById('slotResult'+i);
+    if(r&&r.textContent&&r.classList.contains('has-content'))parts.push(r.textContent);
+  }
+  if(!parts.length){showToast('✎','没有可应用的结果');return;}
+  const ed=document.getElementById('mainEditor');
+  const text=parts.join('\n\n---\n\n');
+  const p=ed.selectionStart;
+  ed.value=ed.value.slice(0,p)+text+ed.value.slice(p);
+  onEditorInput();
+  showToast('✓','已应用全部结果');
+}
+function clearAllResults(){
+  for(let i=1;i<=3;i++){
+    const r=document.getElementById('slotResult'+i);
+    const meta=document.getElementById('slotMeta'+i);
+    const actions=document.getElementById('slotActions'+i);
+    if(r){r.textContent='';r.classList.remove('has-content');}
+    if(meta)meta.style.display='none';
+    if(actions)actions.style.display='none';
+  }
+  const summary=document.getElementById('multiSummary');
+  if(summary)summary.style.display='none';
+  document.querySelectorAll('.multi-slot').forEach(el=>el.classList.remove('slot-best'));
+}
 
 
 // ═══ History ═══
@@ -179,4 +364,82 @@ async function clearHistory(){if(!confirm('清空历史？'))return;const items=
 
 
 // ═══ AI Tabs ═══
-function switchAiTab(t,el){document.querySelectorAll('.ai-tab').forEach(x=>x.classList.remove('active'));el.classList.add('active');['modes','multi','memory','history'].forEach(x=>{document.getElementById('aiTab-'+x).style.display=x===t?'block':'none';});if(t==='memory')renderMemoryList();}
+function switchAiTab(t,el){document.querySelectorAll('.ai-tab').forEach(x=>x.classList.remove('active'));el.classList.add('active');['modes','multi','memory','history'].forEach(x=>{document.getElementById('aiTab-'+x).style.display=x===t?'block':'none';});if(t==='memory')renderMemoryList();if(t==='multi')renderMultiSlots();}
+
+// ═══ Mobile Multi-AI ═══
+function renderMpMultiSlots(){
+  const el=document.getElementById('mpMultiSlots');if(!el)return;
+  const hasMainKey=!!S.apiConfig?.key;
+  let h='';
+  for(let i=1;i<=3;i++){
+    const s=JSON.parse(localStorage.getItem('ww_slot'+i)||'{}');
+    if(i===1&&hasMainKey&&!s.key&&!s._touched)s.enabled=true;
+    const enabled=s.enabled;
+    const presetName=s.preset||'';
+    const displayName=presetName?(SLOT_PRESETS[presetName]?presetName:'自定义'):'未配置';
+    h+='<div class="multi-slot'+(enabled?' slot-active':'')+'" style="margin-bottom:8px">';
+    h+='<div class="slot-header"><div class="slot-info"><span class="slot-num">'+i+'</span><span class="slot-provider-badge">'+displayName+'</span></div>';
+    h+='<button class="slot-toggle'+(enabled?' on':'')+'" onclick="toggleMpSlot('+i+')"></button></div>';
+    if(enabled){
+      h+='<div style="margin-top:6px">';
+      h+='<select class="slot-select" onchange="applySlotPreset('+i+',this.value);renderMpMultiSlots()"><option value="">自定义</option>';
+      for(const[k]of Object.entries(SLOT_PRESETS))h+='<option value="'+k+'"'+(s.preset===k?' selected':'')+'>'+k+'</option>';
+      h+='</select>';
+      h+='<input class="slot-input" type="password" placeholder="API Key" value="'+(s.key||'')+'" onchange="saveMpSlot('+i+',this.value,\'key\')">';
+      h+='<input class="slot-input" placeholder="Model" value="'+(s.model||'')+'" onchange="saveMpSlot('+i+',this.value,\'model\')">';
+      h+='<div class="slot-result" id="mpSlotResult'+i+'" style="min-height:80px;max-height:200px;overflow-y:auto"></div>';
+      h+='<div class="slot-meta" id="mpSlotMeta'+i+'" style="display:none"></div>';
+      h+='</div>';
+    }
+    h+='</div>';
+  }
+  el.innerHTML=h;
+}
+function toggleMpSlot(n){
+  const slots=el=>el.querySelectorAll('.multi-slot');
+  const allSlots=document.querySelectorAll('#mpMultiSlots .multi-slot');
+  const slot=allSlots[n-1];if(!slot)return;
+  const btn=slot.querySelector('.slot-toggle');
+  const isOn=btn.classList.toggle('on');
+  const s=JSON.parse(localStorage.getItem('ww_slot'+n)||'{}');
+  s.enabled=isOn;localStorage.setItem('ww_slot'+n,JSON.stringify(s));
+  renderMpMultiSlots();
+}
+function saveMpSlot(n,val,key){
+  const s=JSON.parse(localStorage.getItem('ww_slot'+n)||'{}');
+  s[key]=val;s._touched=true;localStorage.setItem('ww_slot'+n,JSON.stringify(s));
+}
+async function doMultiGenerateMobile(){
+  const ac=S.apiConfig;if(!ac.key){showToast('⚙',t('toast-no-api'));openModal('apiModal');return;}
+  const content=document.getElementById('mainEditor').value.slice(-800)||'请创作一段精彩的故事片段';
+  const lm={short:'100字以内',mid:'200-300字',long:'400-600字',xl:'800字以上'};
+  const tm={low:'保持严谨',mid:'适度创意',high:'大胆想象'};
+  const md=AI_MODES[S.aiMode]||{p:'请处理以下内容：'};
+  let prompt=md.p+'\n\n'+content+'\n\n【输出要求】'+(lm[S.aiLen]||'400-600字')+'。'+(tm[S.aiTemp]||'适度创意')+'。';
+  if(S.proj)prompt+='\n\n【项目信息】\n'+buildCtx();
+  const extra=document.getElementById('mpAiPrompt')?.value?.trim();
+  if(extra)prompt+='\n\n【额外指令】'+extra;
+  let sysPrompt='你是一位专业的中文写作助手。';
+  const memCtx=buildMemoryContext();if(memCtx)sysPrompt+='\n\n'+memCtx;
+  const tasks=[];
+  for(let i=1;i<=3;i++){
+    const s=JSON.parse(localStorage.getItem('ww_slot'+i)||'{}');
+    if(!s.enabled||!s.key)continue;
+    tasks.push({i,conf:{key:s.key,provider:s.preset||'openai',model:s.model,baseUrl:s.url}});
+  }
+  if(!tasks.length){showToast('✕','请至少启用一个槽位并填入API Key');return;}
+  showToast('⟳','并行生成中...');
+  const results=await Promise.allSettled(tasks.map(async({i,conf})=>{
+    const t0=Date.now();
+    try{const r=await callAI(prompt,conf,sysPrompt);return{i,text:r,time:Date.now()-t0};}
+    catch(e){return{i,text:'✕ '+e.message,time:Date.now()-t0};}
+  }));
+  for(const r of results){
+    const d=r.value||r.reason;if(!d)continue;
+    const el=document.getElementById('mpSlotResult'+d.i);
+    const meta=document.getElementById('mpSlotMeta'+d.i);
+    if(el){el.textContent=d.text;el.classList.add('has-content');}
+    if(meta){meta.style.display='block';meta.textContent=d.text.replace(/\s/g,'').length+'字 · '+(d.time/1000).toFixed(1)+'s';}
+  }
+  showToast('✓','对比完成');
+}
