@@ -366,8 +366,15 @@ function showReduceAiHistory() {
     return;
   }
 
-  // TODO: Implement history viewer
-  console.log('降AI历史', reduceAiHistory);
+  const lines = reduceAiHistory.slice(-10).reverse().map((item, index) => {
+    const time = item.time ? new Date(item.time).toLocaleString(currentLang || 'zh-CN') : '';
+    const text = (item.result || item.text || '').slice(0, 220);
+    return `${index + 1}. ${time}\n${text}`;
+  });
+  S.lastArpResult = lines.join('\n\n');
+  document.getElementById('arpMode').textContent = '降AI历史';
+  document.getElementById('arpText').textContent = S.lastArpResult;
+  document.getElementById('aiResultPopup').classList.add('show');
 }
 
 // ═══ AI续写建议（三个方向） ═══
@@ -435,9 +442,21 @@ async function aiSuggestContinuations() {
 }
 
 function displayContinuationSuggestions(data) {
-  // TODO: Implement suggestions display modal
-  console.log('续写建议', data);
-  showToast('✓', '生成了 ' + (data.suggestions?.length || 0) + ' 个方向');
+  const suggestions = Array.isArray(data?.suggestions) ? data.suggestions : [];
+  if (!suggestions.length) {
+    showToast('✕', '没有可显示的续写方向');
+    return;
+  }
+  S.lastArpResult = suggestions.map((s, i) => {
+    const direction = s.direction || `方向 ${i + 1}`;
+    const preview = s.preview || '';
+    const reasoning = s.reasoning || '';
+    return `${i + 1}. ${direction}\n${preview}\n${reasoning}`;
+  }).join('\n\n');
+  document.getElementById('arpMode').textContent = 'AI续写建议';
+  document.getElementById('arpText').textContent = S.lastArpResult;
+  document.getElementById('aiResultPopup').classList.add('show');
+  showToast('✓', '生成了 ' + suggestions.length + ' 个方向');
 }
 
 // ═══ 风格学习与迁移 ═══

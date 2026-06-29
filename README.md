@@ -2,6 +2,29 @@
 
 全自动 AI 长篇小说创作引擎。Coordinator 在一次 Prompt 里驱动 Architect / Writer / Editor 三个子代理完成整本书的创作，Host 只做启动、恢复和观察。从一句话需求到完整小说，全程无需人工干预。
 
+## Web 写作工坊
+
+ainovel-cli 现在内置 Writing Workshop Web 前端和 Go 原生管理后台，静态资源通过 `go:embed` 打包进单个二进制，不依赖外部 CDN。启动后即可在浏览器中编辑项目、章节、角色、规则包，并通过 Go 后端代理真实 LLM API。
+
+```bash
+go build -o ainovel-cli ./cmd/ainovel-cli
+./ainovel-cli serve --port 8080
+```
+
+访问地址：
+
+- 写作工坊：`http://127.0.0.1:8080/app.html`
+- 管理后台：`http://127.0.0.1:8080/admin`
+- API：`http://127.0.0.1:8080/api/...`
+
+配置支持本地配置文件和环境变量。API key 可写入 `~/.ainovel/config.json`，也可使用 `AINOVEL_<PROVIDER>_API_KEY` 或 `<PROVIDER>_API_KEY`，例如 `AINOVEL_OPENROUTER_API_KEY`。
+
+更多说明见：
+
+- [API.md](API.md) — Web API 端点
+- [CONFIG.md](CONFIG.md) — 配置、模型和密钥管理
+- [DEVELOPMENT.md](DEVELOPMENT.md) — 开发、构建和自检流程
+
 <p align="center">
   <img src="scripts/sample.gif" alt="ainovel-cli demo" width="800">
   <img src="scripts/novel.png" alt="ainovel-cli bg" width="800">

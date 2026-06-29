@@ -31,7 +31,7 @@
     <h3>🛡️ 数据安全</h3>
     <p>可随时通过「清除数据」功能删除所有本地存储的数据。您的数据完全由您掌控。</p>
     <h3>🌐 第三方服务</h3>
-    <p>使用 Google Fonts 等 CDN 资源，可能涉及 IP 地址等基本网络信息。</p>
+    <p>静态资源由 ainovel-cli 单二进制本地提供，不加载外部 CDN 字体或脚本。</p>
     <h3>📬 联系方式</h3>
     <p>如有疑问，请通过 <span class="privacy-link" onclick="window.open('https://github.com','_blank')">GitHub Issues</span> 联系我们。</p>
     </div>
@@ -343,6 +343,7 @@
     <button class="settings-tab active" onclick="openSettingsTab('lang',this)">语言/Language</button>
     <button class="settings-tab" onclick="openSettingsTab('api',this)">API</button>
     <button class="settings-tab" onclick="openSettingsTab('theme',this)">主题/Theme</button>
+    <button class="settings-tab" onclick="openSettingsTab('rules',this)">技能/规则包</button>
   </div>
   <div id="settingsTab-lang">
     <div class="lang-grid">
@@ -388,6 +389,12 @@
         <div style="font-size:12px;opacity:0.6;margin-top:4px">Light Mode</div>
       </div>
     </div>
+  </div>
+  <div id="settingsTab-rules" style="display:none">
+    <div class="form-row"><div class="form-label">预设规则包</div><div class="provider-grid" id="rulesPresetGrid"></div></div>
+    <div class="form-row"><div class="form-label">自定义规则</div><textarea class="form-textarea" id="rulesRaw" style="min-height:180px" placeholder="Markdown + YAML front matter，或导入 JSON/YAML/MD"></textarea></div>
+    <div class="form-row"><div class="form-label">导入/导出</div><input class="form-input" type="file" id="rulesImportFile" accept=".json,.yaml,.yml,.md" onchange="importRulesFile(event)"></div>
+    <div class="modal-footer" style="padding:0;margin-top:12px;border-top:0"><button class="btn-cancel" onclick="exportRules()">导出 JSON</button><button class="btn-confirm" onclick="saveRulesPack()">保存规则包</button></div>
   </div>
   <div class="modal-footer"><button class="btn-cancel" onclick="closeModal('settingsModal')" data-i18n="mod-close">关闭</button><button class="btn-confirm" onclick="saveSettings()" data-i18n="mod-save">保存 ✓</button></div>
 </div></div>

@@ -8,6 +8,8 @@ import (
 	"io/fs"
 	"log/slog"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -71,11 +73,17 @@ func (s *Server) ListenAndServe(ctx context.Context) error {
 func (s *Server) routes(mux *http.ServeMux) {
 	sub, _ := fs.Sub(staticfiles.Files, ".")
 	mux.Handle("/", http.FileServer(http.FS(sub)))
+	mux.HandleFunc("GET /admin", s.handleAdmin)
 	mux.HandleFunc("GET /api/events", s.handleEvents)
 	mux.HandleFunc("GET /api/dashboard", s.handleDashboard)
 	mux.HandleFunc("GET /api/agents/status", s.handleAgents)
 	mux.HandleFunc("GET /api/config", s.handleConfig)
+	mux.HandleFunc("POST /api/config", s.handleConfig)
+	mux.HandleFunc("PUT /api/config", s.handleConfig)
 	mux.HandleFunc("GET /api/rules", s.handleRules)
+	mux.HandleFunc("POST /api/rules", s.handleRules)
+	mux.HandleFunc("PUT /api/rules", s.handleRules)
+	mux.HandleFunc("DELETE /api/rules", s.handleRules)
 	mux.HandleFunc("GET /api/projects", s.handleProjects)
 	mux.HandleFunc("POST /api/projects", s.handleProjects)
 	mux.HandleFunc("PUT /api/projects", s.handleProjects)
@@ -100,6 +108,10 @@ func (s *Server) routes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/style/check", s.handleStyleCheck)
 }
 
+func (s *Server) handleAdmin(w http.ResponseWriter, r *http.Request) {
+	http.ServeFileFS(w, r, staticfiles.Files, "admin.html")
+}
+
 func (s *Server) handleEvents(w http.ResponseWriter, r *http.Request) {
 	s.hub.serve(w, r)
 }
@@ -117,17 +129,75 @@ func (s *Server) handleDashboard(w http.ResponseWriter, _ *http.Request) {
 	})
 }
 
-func (s *Server) handleConfig(w http.ResponseWriter, _ *http.Request) {
-	writeJSON(w, redactConfig(s.host.Config()))
+func (s *Server) handleConfig(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		cfg := redactConfig(s.host.Config())
+		writeJSON(w, map[string]any{
+			"config":     cfg,
+			"configPath": bootstrap.DefaultConfigPath(),
+			"env": map[string]string{
+				"api_key_pattern": "AINOVEL_<PROVIDER>_API_KEY 或 <PROVIDER>_API_KEY",
+			},
+		})
+	case http.MethodPost, http.MethodPut:
+		cfg := s.host.Config()
+		var req configUpdate
+		if err := readJSON(r, &req); err != nil {
+			httpError(w, err, http.StatusBadRequest)
+			return
+		}
+		if req.Config != nil {
+			cfg = *req.Config
+		}
+		applyConfigUpdate(&cfg, req)
+		if err := s.host.UpdateConfig(cfg); err != nil {
+			httpError(w, err, http.StatusBadRequest)
+			return
+		}
+		writeJSON(w, map[string]any{"saved": true, "config": redactConfig(s.host.Config())})
+	}
 }
 
-func (s *Server) handleRules(w http.ResponseWriter, _ *http.Request) {
-	bundle := s.ruleBundle()
-	writeJSON(w, map[string]any{
-		"structured": bundle.Structured,
-		"conflicts":  bundle.Conflicts,
-		"sources":    bundle.Sources,
-	})
+func (s *Server) handleRules(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		bundle := s.ruleBundle()
+		raw, _ := s.loadWebRules()
+		writeJSON(w, map[string]any{
+			"structured":   bundle.Structured,
+			"preferences":  bundle.Preferences,
+			"conflicts":    bundle.Conflicts,
+			"sources":      bundle.Sources,
+			"custom":       raw,
+			"presets":      rulePresets(),
+			"rules_path":   s.webRulesPath(),
+			"export_types": []string{"json", "yaml"},
+		})
+	case http.MethodPost, http.MethodPut:
+		var req rulesUpdate
+		if err := readJSON(r, &req); err != nil {
+			httpError(w, err, http.StatusBadRequest)
+			return
+		}
+		content, err := buildRulesContent(req)
+		if err != nil {
+			httpError(w, err, http.StatusBadRequest)
+			return
+		}
+		if err := s.saveWebRules(content); err != nil {
+			respond(w, nil, err)
+			return
+		}
+		bundle := s.ruleBundle()
+		writeJSON(w, map[string]any{"saved": true, "custom": content, "structured": bundle.Structured, "sources": bundle.Sources})
+	case http.MethodDelete:
+		err := os.Remove(s.webRulesPath())
+		if os.IsNotExist(err) {
+			err = nil
+		}
+		respond(w, map[string]any{"deleted": err == nil}, err)
+	}
 }
 
 func (s *Server) handleProjects(w http.ResponseWriter, r *http.Request) {
@@ -179,7 +249,8 @@ func (s *Server) handleProjects(w http.ResponseWriter, r *http.Request) {
 		project, err := s.currentProject()
 		respond(w, project, err)
 	case http.MethodDelete:
-		writeJSON(w, map[string]any{"deleted": false, "reason": "current ainovel store project cannot be deleted from web API"})
+		err := s.clearCurrentProject()
+		respond(w, map[string]any{"deleted": err == nil}, err)
 	}
 }
 
@@ -548,6 +619,11 @@ func (s *Server) chapterList() ([]chapterSummary, error) {
 	if maxChapter == 0 {
 		maxChapter = len(snap.Outline)
 	}
+	if diskMax, err := s.maxChapterOnDisk(); err != nil {
+		return nil, err
+	} else if diskMax > maxChapter {
+		maxChapter = diskMax
+	}
 	list := make([]chapterSummary, 0, maxChapter)
 	for i := 1; i <= maxChapter; i++ {
 		ch, err := s.loadChapter(i)
@@ -566,6 +642,30 @@ func (s *Server) chapterList() ([]chapterSummary, error) {
 		})
 	}
 	return list, nil
+}
+
+func (s *Server) maxChapterOnDisk() (int, error) {
+	maxChapter := 0
+	for _, dir := range []string{"chapters", "drafts"} {
+		entries, err := os.ReadDir(filepath.Join(s.store.Dir(), dir))
+		if os.IsNotExist(err) {
+			continue
+		}
+		if err != nil {
+			return 0, err
+		}
+		for _, entry := range entries {
+			name := entry.Name()
+			if entry.IsDir() || !strings.HasSuffix(name, ".md") {
+				continue
+			}
+			n, err := strconv.Atoi(strings.TrimLeft(strings.TrimSuffix(strings.TrimSuffix(name, ".draft.md"), ".md"), "0"))
+			if err == nil && n > maxChapter {
+				maxChapter = n
+			}
+		}
+	}
+	return maxChapter, nil
 }
 
 func (s *Server) loadChapter(chapter int) (chapterPayload, error) {
@@ -628,9 +728,172 @@ type projectPayload struct {
 	StoreDir      string `json:"store_dir"`
 }
 
+type configUpdate struct {
+	Config   *bootstrap.Config `json:"config"`
+	Provider string            `json:"provider"`
+	Model    string            `json:"model"`
+	APIKey   string            `json:"api_key"`
+	BaseURL  string            `json:"base_url"`
+	Type     string            `json:"type"`
+	Models   []string          `json:"models"`
+}
+
+type rulesUpdate struct {
+	Raw              string           `json:"raw"`
+	Format           string           `json:"format"`
+	Preference       string           `json:"preference"`
+	Genre            string           `json:"genre"`
+	ChapterWords     *rules.WordRange `json:"chapter_words"`
+	ForbiddenChars   []string         `json:"forbidden_chars"`
+	ForbiddenPhrases []string         `json:"forbidden_phrases"`
+	FatigueWords     map[string]int   `json:"fatigue_words"`
+	Preset           string           `json:"preset"`
+}
+
 type aiMessage struct {
 	Role    string `json:"role"`
 	Content any    `json:"content"`
+}
+
+func applyConfigUpdate(cfg *bootstrap.Config, req configUpdate) {
+	provider := strings.TrimSpace(req.Provider)
+	model := strings.TrimSpace(req.Model)
+	if provider != "" {
+		cfg.Provider = provider
+	}
+	if model != "" {
+		cfg.ModelName = model
+	}
+	if cfg.Providers == nil {
+		cfg.Providers = make(map[string]bootstrap.ProviderConfig)
+	}
+	if provider == "" {
+		provider = cfg.Provider
+	}
+	pc := cfg.Providers[provider]
+	if req.APIKey != "" {
+		pc.APIKey = req.APIKey
+	}
+	if req.BaseURL != "" {
+		pc.BaseURL = req.BaseURL
+	}
+	if req.Type != "" {
+		pc.Type = req.Type
+	}
+	if len(req.Models) > 0 {
+		pc.Models = append([]string(nil), req.Models...)
+	}
+	if model != "" && !containsString(pc.Models, model) {
+		pc.Models = append(pc.Models, model)
+	}
+	cfg.Providers[provider] = pc
+}
+
+func (s *Server) webRulesPath() string {
+	return filepath.Join(s.store.Dir(), ".ainovel", "rules", "web.rules.md")
+}
+
+func (s *Server) loadWebRules() (string, error) {
+	data, err := os.ReadFile(s.webRulesPath())
+	if os.IsNotExist(err) {
+		return "", nil
+	}
+	return string(data), err
+}
+
+func (s *Server) saveWebRules(content string) error {
+	path := s.webRulesPath()
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		return err
+	}
+	return os.WriteFile(path, []byte(content), 0o644)
+}
+
+func buildRulesContent(req rulesUpdate) (string, error) {
+	if raw := strings.TrimSpace(req.Raw); raw != "" {
+		return raw + "\n", nil
+	}
+	if preset := strings.TrimSpace(req.Preset); preset != "" {
+		for _, p := range rulePresets() {
+			if p["id"] == preset {
+				return strings.TrimSpace(p["content"]) + "\n", nil
+			}
+		}
+		return "", fmt.Errorf("unknown preset %q", preset)
+	}
+	var b strings.Builder
+	b.WriteString("---\n")
+	if req.Genre != "" {
+		fmt.Fprintf(&b, "genre: %q\n", req.Genre)
+	}
+	if req.ChapterWords != nil {
+		fmt.Fprintf(&b, "chapter_words: %d-%d\n", req.ChapterWords.Min, req.ChapterWords.Max)
+	}
+	if len(req.ForbiddenChars) > 0 {
+		writeYAMLStringList(&b, "forbidden_chars", req.ForbiddenChars)
+	}
+	if len(req.ForbiddenPhrases) > 0 {
+		writeYAMLStringList(&b, "forbidden_phrases", req.ForbiddenPhrases)
+	}
+	if len(req.FatigueWords) > 0 {
+		b.WriteString("fatigue_words:\n")
+		for k, v := range req.FatigueWords {
+			fmt.Fprintf(&b, "  %q: %d\n", k, v)
+		}
+	}
+	b.WriteString("---\n")
+	if strings.TrimSpace(req.Preference) != "" {
+		b.WriteString(strings.TrimSpace(req.Preference))
+		b.WriteByte('\n')
+	}
+	if b.String() == "---\n---\n" {
+		return "", fmt.Errorf("rule content is required")
+	}
+	return b.String(), nil
+}
+
+func writeYAMLStringList(b *strings.Builder, key string, values []string) {
+	b.WriteString(key + ":\n")
+	for _, value := range values {
+		value = strings.TrimSpace(value)
+		if value != "" {
+			fmt.Fprintf(b, "  - %q\n", value)
+		}
+	}
+}
+
+func rulePresets() []map[string]string {
+	return []map[string]string{
+		{
+			"id":          "character",
+			"name":        "人物描写规则",
+			"description": "强调动作、选择和关系压力，减少标签化心理描写。",
+			"content":     "---\nforbidden_phrases: [\"他很复杂\", \"她很特别\"]\nfatigue_words: {不禁: 1, 似乎: 3}\n---\n# 人物描写规则\n- 用动作、物件和具体选择体现人物性格。\n- 重要角色每次出场要带出当下目标、阻力或关系变化。\n- 避免只用性格标签解释人物。",
+		},
+		{
+			"id":          "dialogue",
+			"name":        "对话规则",
+			"description": "控制对白解释感，要求每句对白承担冲突、信息或节奏功能。",
+			"content":     "---\nforbidden_phrases: [\"如你所知\", \"我来解释一下\"]\n---\n# 对话规则\n- 对话应有潜台词，避免角色直接替作者说明设定。\n- 同一场对话中，每个角色的措辞和关注点要可区分。\n- 长解释拆进动作、反问、打断或误解里。",
+		},
+		{
+			"id":          "scene",
+			"name":        "场景规则",
+			"description": "让场景服务目标、冲突和转折，避免空泛环境描写。",
+			"content":     "---\nchapter_words: 2500-6000\nfatigue_words: {突然: 2, 只见: 2}\n---\n# 场景规则\n- 每个场景要有明确目标、阻碍和结果变化。\n- 环境描写优先选择会影响行动或情绪判断的细节。\n- 场景结尾要推动人物处境变化，而不是原地停住。",
+		},
+	}
+}
+
+func (s *Server) clearCurrentProject() error {
+	dir := filepath.Clean(s.store.Dir())
+	if dir == "." || dir == string(filepath.Separator) || dir == "" {
+		return fmt.Errorf("refuse to delete unsafe store dir %q", s.store.Dir())
+	}
+	if err := os.RemoveAll(dir); err != nil {
+		return err
+	}
+	return s.store.Init()
 }
 
 func (s *Server) currentProject() (*projectPayload, error) {
@@ -680,6 +943,9 @@ func (s *Server) aiModel(provider, modelName string) (agentcore.ChatModel, strin
 	pc, ok := cfg.Providers[provider]
 	if !ok {
 		return nil, provider, modelName, fmt.Errorf("provider %q is not configured", provider)
+	}
+	if pc.APIKey == "" {
+		pc.APIKey = providerAPIKeyFromEnv(provider)
 	}
 	providerType, err := pc.ProviderType(provider)
 	if err != nil {
@@ -818,6 +1084,25 @@ func extractMarkdownTitle(text string) string {
 func firstNonEmpty(values ...string) string {
 	for _, value := range values {
 		if strings.TrimSpace(value) != "" {
+			return value
+		}
+	}
+	return ""
+}
+
+func containsString(values []string, target string) bool {
+	for _, value := range values {
+		if value == target {
+			return true
+		}
+	}
+	return false
+}
+
+func providerAPIKeyFromEnv(provider string) string {
+	key := strings.ToUpper(strings.NewReplacer("-", "_", ".", "_").Replace(strings.TrimSpace(provider)))
+	for _, name := range []string{"AINOVEL_" + key + "_API_KEY", key + "_API_KEY"} {
+		if value := strings.TrimSpace(os.Getenv(name)); value != "" {
 			return value
 		}
 	}

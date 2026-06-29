@@ -3,6 +3,7 @@ package bootstrap
 import (
 	"fmt"
 	"log/slog"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -186,6 +187,10 @@ func (c *Config) ValidateBase() error {
 	if !ok {
 		return fmt.Errorf("provider %q 未在 providers 中配置凭证；若在 ./.ainovel/config.json 里覆盖了 provider，需同时声明 providers.%s（含 api_key/base_url），不能只改顶层 provider: %w", c.Provider, c.Provider, errs.ErrConfig)
 	}
+	if pc.APIKey == "" {
+		pc.APIKey = providerAPIKeyFromEnv(c.Provider)
+		c.Providers[c.Provider] = pc
+	}
 	if pc.RequiresAPIKey(c.Provider) && pc.APIKey == "" {
 		return fmt.Errorf("provider %q has no api_key configured: %w", c.Provider, errs.ErrConfig)
 	}
@@ -259,6 +264,16 @@ func (c *Config) ValidateBase() error {
 	}
 
 	return nil
+}
+
+func providerAPIKeyFromEnv(provider string) string {
+	key := strings.ToUpper(strings.NewReplacer("-", "_", ".", "_").Replace(strings.TrimSpace(provider)))
+	for _, name := range []string{"AINOVEL_" + key + "_API_KEY", key + "_API_KEY"} {
+		if value := strings.TrimSpace(os.Getenv(name)); value != "" {
+			return value
+		}
+	}
+	return ""
 }
 
 var knownNotifyEvents = map[string]bool{"run_end": true, "repeat": true, "budget": true}

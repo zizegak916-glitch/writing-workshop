@@ -56,9 +56,9 @@
   --shadow-glow: 0 0 20px rgba(94, 106, 210, 0.15);
 
   /* Fonts */
-  --font-sans: 'Inter', 'Noto Sans SC', sans-serif;
-  --font-serif: 'Inter', 'Noto Serif SC', serif;
-  --font-mono: 'JetBrains Mono', monospace;
+  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC", "Microsoft YaHei", "PingFang SC", sans-serif;
+  --font-serif: "Noto Serif SC", "Songti SC", SimSun, Georgia, serif;
+  --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
 
   /* Layout */
   --sidebar-w: 260px;

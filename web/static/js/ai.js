@@ -8,6 +8,12 @@ function setLen(v,btn){btn.parentElement.querySelectorAll('.seg-btn').forEach(b=
 
 // ═══ API ═══
 const PROVIDERS={claude:{url:'https://api.anthropic.com/v1/messages',model:'claude-sonnet-4-20250514',type:'claude'},openai:{url:'https://api.openai.com/v1/chat/completions',model:'gpt-4o',type:'openai'},deepseek:{url:'https://api.deepseek.com/v1/chat/completions',model:'deepseek-chat',type:'openai'},xiaomi:{url:'https://api.xiaomimimo.com/v1/chat/completions',model:'mimo-v2.5-pro',type:'openai'},qwen:{url:'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',model:'qwen-plus',type:'openai'},zhipu:{url:'https://open.bigmodel.cn/api/paas/v4/chat/completions',model:'glm-4-flash',type:'openai'},moonshot:{url:'https://api.moonshot.cn/v1/chat/completions',model:'moonshot-v1-8k',type:'openai'},siliconflow:{url:'https://api.siliconflow.cn/v1/chat/completions',model:'deepseek-ai/DeepSeek-V3',type:'openai'},openrouter:{url:'https://openrouter.ai/api/v1/chat/completions',model:'anthropic/claude-sonnet-4',type:'openai'},gemini:{url:'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',model:'gemini-2.0-flash',type:'gemini'},grok:{url:'https://api.x.ai/v1/chat/completions',model:'grok-3',type:'openai'},custom:{url:'',model:'',type:'openai'}};
+async function apiJSON(url,opts={}){
+  const r=await fetch(url,{headers:{'Content-Type':'application/json',...(opts.headers||{})},...opts});
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok)throw new Error(d.error||('HTTP '+r.status));
+  return d;
+}
 const TRANSIENT_ERRORS=[429,500,502,503,504];
 function _isTransient(err){const m=err.message?.match?.(/HTTP (\d+)/);return m&&TRANSIENT_ERRORS.includes(+m[1]);}
 async function _sleep(ms){return new Promise(r=>setTimeout(r,ms));}
@@ -25,12 +31,12 @@ async function _fetchWithTimeout(url,opts,timeoutMs=60000){
 function _buildHeaders(conf,p){const h={'Content-Type':'application/json'};if(p.type==='claude'){h['x-api-key']=conf.key;h['anthropic-version']='2023-06-01';}else{h['Authorization']='Bearer '+conf.key;}return h;}
 function _buildBody(conf,p,msgs,systemPrompt,stream){
   if(p.type==='claude'){
-    const claudeBody={model:conf.model||p.model,max_tokens:2000,messages:msgs.filter(m=>m.role!=='system')};
+    const claudeBody={provider:conf.provider,model:conf.model||p.model,max_tokens:2000,messages:msgs.filter(m=>m.role!=='system')};
     if(systemPrompt)claudeBody.system=systemPrompt;
     if(stream)claudeBody.stream=true;
     return JSON.stringify(claudeBody);
   }
-  const b={model:conf.model||p.model,max_tokens:2000,messages:msgs};
+  const b={provider:conf.provider,model:conf.model||p.model,max_tokens:2000,messages:msgs};
   if(stream)b.stream=true;
   return JSON.stringify(b);
 }
@@ -137,9 +143,9 @@ function editMemory(id){
 }
 function toggleMemCat(el){el.parentElement.querySelectorAll('.genre-chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');}
 function selectProvider(el,p){el.parentElement.querySelectorAll('.provider-chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');S.selectedProvider=p;const cur=el.closest('.provider-grid').id;const urlRow=cur==='sProviderGrid'?'sCustomUrlRow':'customUrlRow';document.getElementById(urlRow).style.display=p==='custom'?'block':'none';const d={claude:'claude-sonnet-4-20250514',openai:'gpt-4o',deepseek:'deepseek-chat',xiaomi:'mimo-v2.5-pro',qwen:'qwen-plus',zhipu:'glm-4-flash',moonshot:'moonshot-v1-8k',siliconflow:'deepseek-ai/DeepSeek-V3',openrouter:'anthropic/claude-sonnet-4',gemini:'gemini-2.0-flash',grok:'grok-3',custom:''};const modelEl=cur==='sProviderGrid'?document.getElementById('sApiModel'):document.getElementById('apiModel');if(modelEl)modelEl.placeholder=d[p]||'';}
-async function testApi(){const k=document.getElementById('apiKey').value.trim(),r=document.getElementById('testResult');if(!k){r.className='test-result fail';r.textContent=t('toast-no-api');return;}r.className='test-result ok';r.textContent='⟳ '+t('mod-api-test')+'...';try{const conf={key:k,provider:S.selectedProvider,model:document.getElementById('apiModel').value.trim(),baseUrl:document.getElementById('apiBaseUrl').value.trim()};const t=await callAI('Reply with OK',conf);r.className='test-result ok';r.textContent='✓ '+t.slice(0,30);}catch(e){r.className='test-result fail';r.textContent='✗ '+e.message;}}
-function saveApi(){const c={provider:S.selectedProvider,key:document.getElementById('apiKey').value.trim(),model:document.getElementById('apiModel').value.trim(),baseUrl:document.getElementById('apiBaseUrl').value.trim()};if(!c.key){showToast('✕',t('toast-no-api'));return;}S.apiConfig=c;localStorage.setItem('ww_api',JSON.stringify(c));closeModal('apiModal');showToast('✓',t('toast-saved'));}
-function loadApiUI(){const c=S.apiConfig;if(c.provider){const el=document.querySelector('.provider-chip[onclick*="'+c.provider+'"]');if(el)selectProvider(el,c.provider);}document.getElementById('apiKey').value=c.key||'';document.getElementById('apiModel').value=c.model||'';document.getElementById('apiBaseUrl').value=c.baseUrl||'';}
+async function testApi(){const k=document.getElementById('apiKey').value.trim(),r=document.getElementById('testResult');r.className='test-result ok';r.textContent='⟳ '+t('mod-api-test')+'...';try{const conf={key:k||'backend',provider:S.selectedProvider,model:document.getElementById('apiModel').value.trim(),baseUrl:document.getElementById('apiBaseUrl').value.trim()};await apiJSON('/api/config',{method:'POST',body:JSON.stringify({provider:conf.provider,model:conf.model,api_key:k,base_url:conf.baseUrl})});const t=await callAI('Reply with OK',conf);r.className='test-result ok';r.textContent='✓ '+t.slice(0,30);}catch(e){r.className='test-result fail';r.textContent='✗ '+e.message;}}
+async function saveApi(){const key=document.getElementById('apiKey').value.trim();const c={provider:S.selectedProvider,key:key||'backend',model:document.getElementById('apiModel').value.trim(),baseUrl:document.getElementById('apiBaseUrl').value.trim()};try{await apiJSON('/api/config',{method:'POST',body:JSON.stringify({provider:c.provider,model:c.model,api_key:key,base_url:c.baseUrl})});S.apiConfig=c;localStorage.setItem('ww_api',JSON.stringify(c));closeModal('apiModal');showToast('✓',t('toast-saved'));}catch(e){showToast('✕',e.message);}}
+function loadApiUI(){const c=S.apiConfig;if(c.provider){const el=document.querySelector('.provider-chip[onclick*="'+c.provider+'"]');if(el)selectProvider(el,c.provider);}document.getElementById('apiKey').value=c.key==='backend'?'':(c.key||'');document.getElementById('apiModel').value=c.model||'';document.getElementById('apiBaseUrl').value=c.baseUrl||'';}
 
 
 // ═══ AI Generate ═══

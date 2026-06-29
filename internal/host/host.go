@@ -484,6 +484,32 @@ func (h *Host) Config() bootstrap.Config    { return h.cfg }
 func (h *Host) RulesFS() fs.FS              { return h.bundle.RulesFS }
 func (h *Host) AskUser() *tools.AskUserTool { return h.askUser }
 
+// UpdateConfig replaces the runtime Web-visible configuration and persists it.
+// Already-running agents keep their current model instances; /api/ai and future
+// starts use the updated credentials and defaults immediately.
+func (h *Host) UpdateConfig(cfg bootstrap.Config) error {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	cfg.OutputDir = h.cfg.OutputDir
+	cfg.FillDefaults()
+	if err := cfg.ValidateBase(); err != nil {
+		return err
+	}
+	h.cfg = cfg
+	if path := bootstrap.DefaultConfigPath(); path != "" {
+		if err := bootstrap.SaveConfig(path, h.cfg); err != nil {
+			return err
+		}
+	}
+	h.emitEvent(Event{
+		Time:     time.Now(),
+		Category: "SYSTEM",
+		Summary:  fmt.Sprintf("Web 配置已更新: %s/%s", cfg.Provider, cfg.ModelName),
+		Level:    "info",
+	})
+	return nil
+}
+
 // ── 事件发射 ──
 
 func (h *Host) emitEvent(ev Event) {

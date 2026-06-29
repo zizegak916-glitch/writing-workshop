@@ -7,7 +7,6 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>AI 写作工坊</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;510&family=Noto+Serif+SC:wght@400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 /* ============================================================
    Writing Workshop — Linear-Inspired Design System
@@ -67,9 +66,9 @@
   --shadow-glow: 0 0 20px rgba(94, 106, 210, 0.15);
 
   /* Fonts */
-  --font-sans: 'Inter', 'Noto Sans SC', sans-serif;
-  --font-serif: 'Inter', 'Noto Serif SC', serif;
-  --font-mono: 'JetBrains Mono', monospace;
+  --font-sans: Inter, "Noto Sans SC", "Microsoft YaHei", "PingFang SC", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-serif: "Noto Serif SC", "Songti SC", SimSun, Georgia, serif;
+  --font-mono: "JetBrains Mono", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
 
   /* Layout */
   --sidebar-w: 260px;
@@ -4651,7 +4650,7 @@ body.light .char-role {
     <h3>🛡️ 数据安全</h3>
     <p>可随时通过「清除数据」功能删除所有本地存储的数据。您的数据完全由您掌控。</p>
     <h3>🌐 第三方服务</h3>
-    <p>使用 Google Fonts 等 CDN 资源，可能涉及 IP 地址等基本网络信息。</p>
+    <p>静态资源由 ainovel-cli 单二进制本地提供，不加载外部 CDN 字体或脚本。</p>
     <h3>📬 联系方式</h3>
     <p>如有疑问，请通过 <span class="privacy-link" onclick="window.open('https://github.com/zizegak916-glitch/writing-workshop/issues','_blank')">GitHub Issues</span> 或 <span class="privacy-link" onclick="window.open('https://t.me/t_fo0l','_blank')">Telegram</span> 联系我们。</p>
     <p style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);font-size:13px;color:var(--text-muted)">
@@ -4977,6 +4976,7 @@ body.light .char-role {
     <button class="settings-tab active" onclick="openSettingsTab('lang',this)">语言/Language</button>
     <button class="settings-tab" onclick="openSettingsTab('api',this)">API</button>
     <button class="settings-tab" onclick="openSettingsTab('theme',this)">主题/Theme</button>
+    <button class="settings-tab" onclick="openSettingsTab('rules',this)">技能/规则包</button>
   </div>
   <div id="settingsTab-lang">
     <div class="lang-grid">
@@ -5022,6 +5022,12 @@ body.light .char-role {
         <div style="font-size:12px;opacity:0.6;margin-top:4px">Light Mode</div>
       </div>
     </div>
+  </div>
+  <div id="settingsTab-rules" style="display:none">
+    <div class="form-row"><div class="form-label">预设规则包</div><div class="provider-grid" id="rulesPresetGrid"></div></div>
+    <div class="form-row"><div class="form-label">自定义规则</div><textarea class="form-textarea" id="rulesRaw" style="min-height:180px" placeholder="Markdown + YAML front matter，或导入 JSON/YAML/MD"></textarea></div>
+    <div class="form-row"><div class="form-label">导入/导出</div><input class="form-input" type="file" id="rulesImportFile" accept=".json,.yaml,.yml,.md" onchange="importRulesFile(event)"></div>
+    <div class="modal-footer" style="padding:0;margin-top:12px;border-top:0"><button class="btn-cancel" onclick="exportRules()">导出 JSON</button><button class="btn-confirm" onclick="saveRulesPack()">保存规则包</button></div>
   </div>
   <div class="modal-footer"><button class="btn-cancel" onclick="closeModal('settingsModal')" data-i18n="mod-close">关闭</button><button class="btn-confirm" onclick="saveSettings()" data-i18n="mod-save">保存 ✓</button></div>
 </div></div>
@@ -5101,6 +5107,64 @@ function dbGet(s,id){return new Promise((r,j)=>{const t=db.transaction(s,'readon
 function dbDel(s,id){return new Promise((r,j)=>{const t=db.transaction(s,'readwrite');const q=t.objectStore(s).delete(id);q.onsuccess=()=>r();q.onerror=()=>j(q.error);});}
 function dbAll(s){return new Promise((r,j)=>{const t=db.transaction(s,'readonly');const q=t.objectStore(s).getAll();q.onsuccess=()=>r(q.result);q.onerror=()=>j(q.error);});}
 function dbByIndex(s,f,v){return new Promise((r,j)=>{const t=db.transaction(s,'readonly');const st=t.objectStore(s);if(st.indexNames.contains(f)){const q=st.index(f).getAll(v);q.onsuccess=()=>r(q.result);q.onerror=()=>j(q.error);return;}const a=[];const q=st.openCursor();q.onsuccess=e=>{const c=e.target.result;if(c){if(c.value[f]===v)a.push(c.value);c.continue();}else r(a);};q.onerror=()=>j(q.error);});}
+
+// ═══ ainovel-cli backend bridge ═══
+const rawDbPut=dbPut,rawDbAll=dbAll,rawDbByIndex=dbByIndex;
+let backendSeeded=false,backendSyncing=false;
+async function apiJSON(url,opts={}){
+  const r=await fetch(url,{headers:{'Content-Type':'application/json',...(opts.headers||{})},...opts});
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok)throw new Error(d.error||('HTTP '+r.status));
+  return d;
+}
+async function seedFromBackend(){
+  if(backendSeeded||!db)return;
+  backendSeeded=true;
+  try{
+    const cfgResp=await apiJSON('/api/config').catch(()=>null);
+    const cfg=cfgResp?.config||cfgResp;
+    if(cfg?.provider&&!S.apiConfig.provider){
+      S.apiConfig={provider:cfg.provider,model:cfg.model||'',key:'backend',baseUrl:''};
+      localStorage.setItem('ww_api',JSON.stringify(S.apiConfig));
+    }
+    const projects=await apiJSON('/api/projects');
+    if(!Array.isArray(projects)||!projects.length)return;
+    const existing=await rawDbAll('projects');
+    if(existing.length)return;
+    const p=projects[0],now=Date.now();
+    await rawDbPut('projects',{id:1,name:p.name||'当前项目',genre:'ainovel-cli',description:p.premise||p.description||'',world_setting:'',goal:2000,total_chapters:p.total_chapters||0,created_at:now,updated_at:now});
+    const chapters=await apiJSON('/api/chapters').catch(()=>[]);
+    for(const ch of chapters){
+      const detail=await apiJSON('/api/chapters?chapter='+encodeURIComponent(ch.chapter)).catch(()=>ch);
+      await rawDbPut('chapters',{id:ch.chapter,project_id:1,title:detail.title||ch.title||('第 '+ch.chapter+' 章'),content:detail.content||'',word_count:detail.word_count||0,sort_order:ch.chapter-1,created_at:now,updated_at:now});
+    }
+    const chars=await apiJSON('/api/characters').catch(()=>[]);
+    let cid=1;
+    for(const c of chars){
+      await rawDbPut('characters',{id:cid++,project_id:1,name:c.name||'',role:c.role||'',personality:(c.traits||[]).join('、'),background:c.arc||'',appearance:'',skills:'',created_at:now});
+    }
+  }catch(e){console.warn('backend seed failed',e);}
+}
+dbAll=async function(s){await seedFromBackend();return rawDbAll(s);}
+dbByIndex=async function(s,f,v){await seedFromBackend();return rawDbByIndex(s,f,v);}
+dbPut=async function(s,v){
+  const id=await rawDbPut(s,v);
+  if(!backendSyncing)backendSync(s,{...v,id}).catch(e=>console.warn('backend sync failed',e));
+  return id;
+}
+async function backendSync(store,value){
+  if(!['projects','chapters','characters'].includes(store))return;
+  backendSyncing=true;
+  try{
+    if(store==='projects'){
+      await apiJSON('/api/projects',{method:'POST',body:JSON.stringify({name:value.name,description:value.description,total_chapters:value.total_chapters||0})});
+    }else if(store==='chapters'){
+      await apiJSON('/api/chapters',{method:'POST',body:JSON.stringify({chapter:value.id||value.sort_order+1,content:value.content||'',final:false})});
+    }else if(store==='characters'){
+      await apiJSON('/api/characters',{method:'PUT',body:JSON.stringify({name:value.name,role:value.role,description:[value.personality,value.background,value.appearance,value.skills].filter(Boolean).join('\n'),traits:String(value.personality||'').split(/[、,，\\n]/).filter(Boolean),arc:value.background||''})});
+    }
+  }finally{backendSyncing=false;}
+}
 
 // ═══ State ═══
 const S={proj:null,active:null,editCharId:null,aiMode:'润色',aiTemp:'mid',aiLen:'long',apiConfig:JSON.parse(localStorage.getItem('ww_api')||'{}'),autoSave:true,unsaved:false,wordGoal:2000,curFontSize:16,lastArpResult:'',selectedProvider:'claude',previewMode:false,projects:[],aiMemories:[]};
@@ -7988,12 +8052,12 @@ async function _fetchWithTimeout(url,opts,timeoutMs=60000){
 function _buildHeaders(conf,p){const h={'Content-Type':'application/json'};if(p.type==='claude'){h['x-api-key']=conf.key;h['anthropic-version']='2023-06-01';}else{h['Authorization']='Bearer '+conf.key;}return h;}
 function _buildBody(conf,p,msgs,systemPrompt,stream){
   if(p.type==='claude'){
-    const claudeBody={model:conf.model||p.model,max_tokens:2000,messages:msgs.filter(m=>m.role!=='system')};
+    const claudeBody={provider:conf.provider,model:conf.model||p.model,max_tokens:2000,messages:msgs.filter(m=>m.role!=='system')};
     if(systemPrompt)claudeBody.system=systemPrompt;
     if(stream)claudeBody.stream=true;
     return JSON.stringify(claudeBody);
   }
-  const b={model:conf.model||p.model,max_tokens:2000,messages:msgs};
+  const b={provider:conf.provider,model:conf.model||p.model,max_tokens:2000,messages:msgs};
   if(stream)b.stream=true;
   return JSON.stringify(b);
 }
@@ -8100,9 +8164,9 @@ function editMemory(id){
 }
 function toggleMemCat(el){el.parentElement.querySelectorAll('.genre-chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');}
 function selectProvider(el,p){el.parentElement.querySelectorAll('.provider-chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');S.selectedProvider=p;const cur=el.closest('.provider-grid').id;const urlRow=cur==='sProviderGrid'?'sCustomUrlRow':'customUrlRow';document.getElementById(urlRow).style.display=p==='custom'?'block':'none';const d={claude:'claude-sonnet-4-20250514',openai:'gpt-4o',deepseek:'deepseek-chat',xiaomi:'mimo-v2.5-pro',qwen:'qwen-plus',zhipu:'glm-4-flash',moonshot:'moonshot-v1-8k',siliconflow:'deepseek-ai/DeepSeek-V3',openrouter:'anthropic/claude-sonnet-4',gemini:'gemini-2.0-flash',grok:'grok-3',custom:''};const modelEl=cur==='sProviderGrid'?document.getElementById('sApiModel'):document.getElementById('apiModel');if(modelEl)modelEl.placeholder=d[p]||'';}
-async function testApi(){const k=document.getElementById('apiKey').value.trim(),r=document.getElementById('testResult');if(!k){r.className='test-result fail';r.textContent=t('toast-no-api');return;}r.className='test-result ok';r.textContent='⟳ '+t('mod-api-test')+'...';try{const conf={key:k,provider:S.selectedProvider,model:document.getElementById('apiModel').value.trim(),baseUrl:document.getElementById('apiBaseUrl').value.trim()};const t=await callAI('Reply with OK',conf);r.className='test-result ok';r.textContent='✓ '+t.slice(0,30);}catch(e){r.className='test-result fail';r.textContent='✗ '+e.message;}}
-function saveApi(){const c={provider:S.selectedProvider,key:document.getElementById('apiKey').value.trim(),model:document.getElementById('apiModel').value.trim(),baseUrl:document.getElementById('apiBaseUrl').value.trim()};if(!c.key){showToast('✕',t('toast-no-api'));return;}S.apiConfig=c;localStorage.setItem('ww_api',JSON.stringify(c));closeModal('apiModal');showToast('✓',t('toast-saved'));}
-function loadApiUI(){const c=S.apiConfig;if(c.provider){const el=document.querySelector('.provider-chip[onclick*="'+c.provider+'"]');if(el)selectProvider(el,c.provider);}document.getElementById('apiKey').value=c.key||'';document.getElementById('apiModel').value=c.model||'';document.getElementById('apiBaseUrl').value=c.baseUrl||'';}
+async function testApi(){const k=document.getElementById('apiKey').value.trim(),r=document.getElementById('testResult');r.className='test-result ok';r.textContent='⟳ '+t('mod-api-test')+'...';try{const conf={key:k||'backend',provider:S.selectedProvider,model:document.getElementById('apiModel').value.trim(),baseUrl:document.getElementById('apiBaseUrl').value.trim()};await apiJSON('/api/config',{method:'POST',body:JSON.stringify({provider:conf.provider,model:conf.model,api_key:k,base_url:conf.baseUrl})});const t=await callAI('Reply with OK',conf);r.className='test-result ok';r.textContent='✓ '+t.slice(0,30);}catch(e){r.className='test-result fail';r.textContent='✗ '+e.message;}}
+async function saveApi(){const key=document.getElementById('apiKey').value.trim();const c={provider:S.selectedProvider,key:key||'backend',model:document.getElementById('apiModel').value.trim(),baseUrl:document.getElementById('apiBaseUrl').value.trim()};try{await apiJSON('/api/config',{method:'POST',body:JSON.stringify({provider:c.provider,model:c.model,api_key:key,base_url:c.baseUrl})});S.apiConfig=c;localStorage.setItem('ww_api',JSON.stringify(c));closeModal('apiModal');showToast('✓',t('toast-saved'));}catch(e){showToast('✕',e.message);}}
+function loadApiUI(){const c=S.apiConfig;if(c.provider){const el=document.querySelector('.provider-chip[onclick*="'+c.provider+'"]');if(el)selectProvider(el,c.provider);}document.getElementById('apiKey').value=c.key==='backend'?'':(c.key||'');document.getElementById('apiModel').value=c.model||'';document.getElementById('apiBaseUrl').value=c.baseUrl||'';}
 
 
 // ═══ AI Generate ═══
@@ -8748,8 +8812,15 @@ function showReduceAiHistory() {
     return;
   }
 
-  // TODO: Implement history viewer
-  console.log('降AI历史', reduceAiHistory);
+  const lines = reduceAiHistory.slice(-10).reverse().map((item, index) => {
+    const time = item.time ? new Date(item.time).toLocaleString(currentLang || 'zh-CN') : '';
+    const text = (item.result || item.text || '').slice(0, 220);
+    return `${index + 1}. ${time}\n${text}`;
+  });
+  S.lastArpResult = lines.join('\n\n');
+  document.getElementById('arpMode').textContent = '降AI历史';
+  document.getElementById('arpText').textContent = S.lastArpResult;
+  document.getElementById('aiResultPopup').classList.add('show');
 }
 
 // ═══ AI续写建议（三个方向） ═══
@@ -8817,9 +8888,21 @@ async function aiSuggestContinuations() {
 }
 
 function displayContinuationSuggestions(data) {
-  // TODO: Implement suggestions display modal
-  console.log('续写建议', data);
-  showToast('✓', '生成了 ' + (data.suggestions?.length || 0) + ' 个方向');
+  const suggestions = Array.isArray(data?.suggestions) ? data.suggestions : [];
+  if (!suggestions.length) {
+    showToast('✕', '没有可显示的续写方向');
+    return;
+  }
+  S.lastArpResult = suggestions.map((s, i) => {
+    const direction = s.direction || `方向 ${i + 1}`;
+    const preview = s.preview || '';
+    const reasoning = s.reasoning || '';
+    return `${i + 1}. ${direction}\n${preview}\n${reasoning}`;
+  }).join('\n\n');
+  document.getElementById('arpMode').textContent = 'AI续写建议';
+  document.getElementById('arpText').textContent = S.lastArpResult;
+  document.getElementById('aiResultPopup').classList.add('show');
+  showToast('✓', '生成了 ' + suggestions.length + ' 个方向');
 }
 
 // ═══ 风格学习与迁移 ═══
@@ -9277,7 +9360,8 @@ function toggleTheme(){document.body.classList.toggle('light');const isLight=doc
 function openSettingsTab(tab,el){
   document.querySelectorAll('.settings-tab').forEach(t=>t.classList.remove('active'));
   if(el)el.classList.add('active');
-  ['lang','api','theme'].forEach(t=>{document.getElementById('settingsTab-'+t).style.display=t===tab?'block':'none';});
+  ['lang','api','theme','rules'].forEach(t=>{document.getElementById('settingsTab-'+t).style.display=t===tab?'block':'none';});
+  if(tab==='rules')loadRulesPanel();
 }
 
 function initSettingsModal(){
@@ -9286,7 +9370,7 @@ function initSettingsModal(){
   // Load API settings into settings modal fields
   const c=S.apiConfig;
   if(c.provider){const el=document.querySelector('#sProviderGrid .provider-chip[onclick*="'+c.provider+'"]');if(el)selectProvider(el,c.provider);}
-  document.getElementById('sApiKey').value=c.key||'';
+  document.getElementById('sApiKey').value=c.key==='backend'?'':(c.key||'');
   document.getElementById('sApiModel').value=c.model||'';
   document.getElementById('sApiBaseUrl').value=c.baseUrl||'';
   // Highlight current theme
@@ -9295,6 +9379,51 @@ function initSettingsModal(){
   document.getElementById('themeCardLight').classList.toggle('active',isLight);
   // Reset to lang tab
   openSettingsTab('lang',document.querySelector('.settings-tab'));
+}
+
+let currentRulesPayload=null;
+async function loadRulesPanel(){
+  try{
+    const data=await apiJSON('/api/rules');
+    currentRulesPayload=data;
+    document.getElementById('rulesRaw').value=data.custom||data.preferences||'';
+    const grid=document.getElementById('rulesPresetGrid');
+    grid.innerHTML=(data.presets||[]).map(p=>`<div class="provider-chip" onclick="applyRulePreset('${p.id}')">${p.name}</div>`).join('');
+  }catch(e){
+    document.getElementById('rulesPresetGrid').innerHTML='<div style="color:var(--text-muted);font-size:12px">规则加载失败</div>';
+  }
+}
+async function applyRulePreset(id){
+  const p=(currentRulesPayload?.presets||[]).find(x=>x.id===id);
+  if(!p)return;
+  document.getElementById('rulesRaw').value=p.content||'';
+}
+async function saveRulesPack(){
+  const raw=document.getElementById('rulesRaw').value.trim();
+  if(!raw){showToast('✕','请输入规则内容');return;}
+  try{
+    await apiJSON('/api/rules',{method:'POST',body:JSON.stringify({raw})});
+    showToast('✓','规则包已保存');
+    await loadRulesPanel();
+  }catch(e){showToast('✕',e.message);}
+}
+async function importRulesFile(e){
+  const f=e.target.files?.[0];if(!f)return;
+  const text=await f.text();
+  if(f.name.endsWith('.json')){
+    try{
+      const obj=JSON.parse(text);
+      document.getElementById('rulesRaw').value=obj.custom||obj.preferences||obj.raw||JSON.stringify(obj,null,2);
+    }catch{document.getElementById('rulesRaw').value=text;}
+  }else{
+    document.getElementById('rulesRaw').value=text;
+  }
+  e.target.value='';
+}
+function exportRules(){
+  const data={version:1,raw:document.getElementById('rulesRaw').value,exported_at:new Date().toISOString()};
+  const b=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='ainovel-rules.json';a.click();
 }
 
 function settingsSetLang(lang,el){
@@ -9312,14 +9441,14 @@ function settingsTestApi(){
   const r=document.getElementById('sTestResult');
   const key=document.getElementById('sApiKey').value.trim();
   const provider=S.selectedProvider||'claude';
-  if(!key){r.className='test-result fail';r.textContent='✕ '+t('toast-no-api');return;}
   r.className='test-result ok';r.textContent='⟳ '+t('mod-api-test')+'...';
-  const conf={key,provider,model:document.getElementById('sApiModel').value.trim(),baseUrl:document.getElementById('sApiBaseUrl').value.trim()};
-  // Single request, no retry for test
+  const conf={key:key||'backend',provider,model:document.getElementById('sApiModel').value.trim(),baseUrl:document.getElementById('sApiBaseUrl').value.trim()};
+  apiJSON('/api/config',{method:'POST',body:JSON.stringify({provider:conf.provider,model:conf.model,api_key:key,base_url:conf.baseUrl})}).then(()=>{
   const pr=conf.provider||'claude',p=PROVIDERS[pr]||PROVIDERS.claude,url=conf.baseUrl||p.url;
   const msgs=[{role:'user',content:'Reply with exactly: OK'}];
   const h=_buildHeaders(conf,p),body=_buildBody(conf,p,msgs,null,false);
-  _fetchWithTimeout(url,{method:'POST',headers:h,body},30000).then(resp=>{
+  return _fetchWithTimeout(url,{method:'POST',headers:h,body},30000);
+  }).then(resp=>{
     if(resp._proxyError)throw resp._proxyError;
     if(!resp.ok)throw new Error('HTTP '+resp.status);
     return resp.json();
@@ -9338,10 +9467,14 @@ function settingsTestApi(){
 
 function saveSettings(){
   // Save API settings from settings modal
-  const c={provider:S.selectedProvider,key:document.getElementById('sApiKey').value.trim(),model:document.getElementById('sApiModel').value.trim(),baseUrl:document.getElementById('sApiBaseUrl').value.trim()};
-  if(c.key){S.apiConfig=c;localStorage.setItem('ww_api',JSON.stringify(c));}
-  closeModal('settingsModal');
-  showToast('✓',t('mod-save'));
+  const key=document.getElementById('sApiKey').value.trim();
+  const c={provider:S.selectedProvider,key:key||'backend',model:document.getElementById('sApiModel').value.trim(),baseUrl:document.getElementById('sApiBaseUrl').value.trim()};
+  if(!key&&!c.model&&!c.baseUrl&&!S.apiConfig.provider){closeModal('settingsModal');showToast('✓',t('mod-save'));return;}
+  apiJSON('/api/config',{method:'POST',body:JSON.stringify({provider:c.provider,model:c.model,api_key:key,base_url:c.baseUrl})}).then(()=>{
+    S.apiConfig=c;localStorage.setItem('ww_api',JSON.stringify(c));
+    closeModal('settingsModal');
+    showToast('✓',t('mod-save'));
+  }).catch(e=>showToast('✕',e.message));
 }
 
 function applyLang(){

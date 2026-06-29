@@ -1,8 +1,19 @@
 // ═══ Settings Modal ═══
+async function apiJSON(url,opts={}){
+  const r=await fetch(url,{headers:{'Content-Type':'application/json',...(opts.headers||{})},...opts});
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok)throw new Error(d.error||('HTTP '+r.status));
+  return d;
+}
+
 function openSettingsTab(tab,el){
   document.querySelectorAll('.settings-tab').forEach(t=>t.classList.remove('active'));
   if(el)el.classList.add('active');
-  ['lang','api','theme'].forEach(t=>{document.getElementById('settingsTab-'+t).style.display=t===tab?'block':'none';});
+  ['lang','api','theme','rules'].forEach(t=>{
+    const pane=document.getElementById('settingsTab-'+t);
+    if(pane)pane.style.display=t===tab?'block':'none';
+  });
+  if(tab==='rules')loadRulesPanel();
 }
 
 function initSettingsModal(){
@@ -11,7 +22,7 @@ function initSettingsModal(){
   // Load API settings into settings modal fields
   const c=S.apiConfig;
   if(c.provider){const el=document.querySelector('#sProviderGrid .provider-chip[onclick*="'+c.provider+'"]');if(el)selectProvider(el,c.provider);}
-  document.getElementById('sApiKey').value=c.key||'';
+  document.getElementById('sApiKey').value=c.key==='backend'?'':(c.key||'');
   document.getElementById('sApiModel').value=c.model||'';
   document.getElementById('sApiBaseUrl').value=c.baseUrl||'';
   // Highlight current theme
@@ -20,6 +31,56 @@ function initSettingsModal(){
   document.getElementById('themeCardLight').classList.toggle('active',isLight);
   // Reset to lang tab
   openSettingsTab('lang',document.querySelector('.settings-tab'));
+}
+
+let currentRulesPayload=null;
+async function loadRulesPanel(){
+  const grid=document.getElementById('rulesPresetGrid');
+  const rawEl=document.getElementById('rulesRaw');
+  if(!grid||!rawEl)return;
+  try{
+    const data=await apiJSON('/api/rules');
+    currentRulesPayload=data;
+    rawEl.value=data.custom||data.preferences||'';
+    grid.innerHTML=(data.presets||[]).map(p=>`<div class="provider-chip" onclick="applyRulePreset('${p.id}')">${p.name}</div>`).join('');
+  }catch(e){
+    grid.innerHTML='<div style="color:var(--text-muted);font-size:12px">规则加载失败</div>';
+  }
+}
+async function applyRulePreset(id){
+  const p=(currentRulesPayload?.presets||[]).find(x=>x.id===id);
+  if(p)document.getElementById('rulesRaw').value=p.content||'';
+}
+async function saveRulesPack(){
+  const raw=document.getElementById('rulesRaw').value.trim();
+  if(!raw){showToast('✕','请输入规则内容');return;}
+  try{
+    await apiJSON('/api/rules',{method:'POST',body:JSON.stringify({raw})});
+    showToast('✓','规则包已保存');
+    await loadRulesPanel();
+  }catch(e){showToast('✕',e.message);}
+}
+async function importRulesFile(e){
+  const f=e.target.files?.[0];if(!f)return;
+  const text=await f.text();
+  if(f.name.endsWith('.json')){
+    try{
+      const obj=JSON.parse(text);
+      document.getElementById('rulesRaw').value=obj.custom||obj.preferences||obj.raw||JSON.stringify(obj,null,2);
+    }catch{document.getElementById('rulesRaw').value=text;}
+  }else{
+    document.getElementById('rulesRaw').value=text;
+  }
+  e.target.value='';
+}
+function exportRules(){
+  const data={version:1,raw:document.getElementById('rulesRaw').value,exported_at:new Date().toISOString()};
+  const b=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(b);
+  a.download='ainovel-rules.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
 }
 
 function settingsSetLang(lang,el){
@@ -37,14 +98,14 @@ function settingsTestApi(){
   const r=document.getElementById('sTestResult');
   const key=document.getElementById('sApiKey').value.trim();
   const provider=S.selectedProvider||'claude';
-  if(!key){r.className='test-result fail';r.textContent='✕ '+t('toast-no-api');return;}
   r.className='test-result ok';r.textContent='⟳ '+t('mod-api-test')+'...';
-  const conf={key,provider,model:document.getElementById('sApiModel').value.trim(),baseUrl:document.getElementById('sApiBaseUrl').value.trim()};
-  // Single request, no retry for test
+  const conf={key:key||'backend',provider,model:document.getElementById('sApiModel').value.trim(),baseUrl:document.getElementById('sApiBaseUrl').value.trim()};
+  apiJSON('/api/config',{method:'POST',body:JSON.stringify({provider:conf.provider,model:conf.model,api_key:key,base_url:conf.baseUrl})}).then(()=>{
   const pr=conf.provider||'claude',p=PROVIDERS[pr]||PROVIDERS.claude,url=conf.baseUrl||p.url;
   const msgs=[{role:'user',content:'Reply with exactly: OK'}];
   const h=_buildHeaders(conf,p),body=_buildBody(conf,p,msgs,null,false);
-  _fetchWithTimeout(url,{method:'POST',headers:h,body},30000).then(resp=>{
+  return _fetchWithTimeout(url,{method:'POST',headers:h,body},30000);
+  }).then(resp=>{
     if(resp._proxyError)throw resp._proxyError;
     if(!resp.ok)throw new Error('HTTP '+resp.status);
     return resp.json();
@@ -63,10 +124,14 @@ function settingsTestApi(){
 
 function saveSettings(){
   // Save API settings from settings modal
-  const c={provider:S.selectedProvider,key:document.getElementById('sApiKey').value.trim(),model:document.getElementById('sApiModel').value.trim(),baseUrl:document.getElementById('sApiBaseUrl').value.trim()};
-  if(c.key){S.apiConfig=c;localStorage.setItem('ww_api',JSON.stringify(c));}
-  closeModal('settingsModal');
-  showToast('✓',t('mod-save'));
+  const key=document.getElementById('sApiKey').value.trim();
+  const c={provider:S.selectedProvider,key:key||'backend',model:document.getElementById('sApiModel').value.trim(),baseUrl:document.getElementById('sApiBaseUrl').value.trim()};
+  if(!key&&!c.model&&!c.baseUrl&&!S.apiConfig.provider){closeModal('settingsModal');showToast('✓',t('mod-save'));return;}
+  apiJSON('/api/config',{method:'POST',body:JSON.stringify({provider:c.provider,model:c.model,api_key:key,base_url:c.baseUrl})}).then(()=>{
+    S.apiConfig=c;localStorage.setItem('ww_api',JSON.stringify(c));
+    closeModal('settingsModal');
+    showToast('✓',t('mod-save'));
+  }).catch(e=>showToast('✕',e.message));
 }
 
 function applyLang(){
