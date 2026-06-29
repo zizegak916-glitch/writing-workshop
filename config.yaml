@@ -1,0 +1,18 @@
+provider: openrouter
+model: google/gemini-2.5-flash
+providers:
+  openrouter:
+    api_key: sk-or-v1-xxx
+    base_url: https://openrouter.ai/api/v1
+    models:
+      - google/gemini-2.5-flash
+      - anthropic/claude-sonnet-4
+  openai:
+    api_key: sk-xxx
+    models:
+      - gpt-4o
+  ollama:
+    base_url: http://localhost:11434/v1
+    models:
+      - qwen3:14b
+style: default

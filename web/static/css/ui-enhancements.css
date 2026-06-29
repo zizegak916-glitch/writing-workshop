@@ -1,0 +1,306 @@
+/* ═══════════════════════════════════════════════════════════
+   UI Enhancement Patch - 视觉优化补丁
+   ═══════════════════════════════════════════════════════════ */
+
+/* ─── 1. 改进按钮样式 ─── */
+.btn,
+.btn-primary,
+.btn-confirm,
+.mode-btn {
+  transition: all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+.btn-primary:hover,
+.btn-confirm:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(94, 106, 210, 0.25);
+}
+
+.btn-cancel:hover {
+  background: var(--bg-hover);
+}
+
+/* ─── 2. 改进输入框聚焦效果 ─── */
+.form-input:focus,
+.form-textarea:focus,
+#mainEditor:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+  outline: none;
+}
+
+/* ─── 3. 改进卡片悬停效果 ─── */
+.proj-card,
+.char-card,
+.chapter-item {
+  transition: all 0.2s ease;
+}
+
+.proj-card:hover,
+.char-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--border-light);
+}
+
+.chapter-item:hover {
+  background: var(--bg-hover);
+}
+
+/* ─── 4. 改进顶栏样式 ─── */
+.topbar {
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+/* ─── 5. 改进侧边栏滚动条 ─── */
+.sidebar-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar-content::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
+.sidebar-content::-webkit-scrollbar-thumb:hover {
+  background: var(--border-light);
+}
+
+/* ─── 6. 改进AI面板样式 ─── */
+.ai-panel {
+  border-left: 1px solid var(--border);
+  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.03);
+}
+
+.ai-tool-btn {
+  transition: all 0.2s ease;
+}
+
+.ai-tool-btn:hover:not(:disabled) {
+  background: var(--bg-hover);
+  transform: translateX(-2px);
+}
+
+/* ─── 7. 改进模态框动画 ─── */
+.modal-overlay {
+  animation: fadeIn 0.2s ease;
+}
+
+.modal {
+  animation: modalSlideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes modalSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ─── 8. 改进Toast通知 ─── */
+#toast {
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+}
+
+/* ─── 9. 改进标签页切换 ─── */
+.nav-tab {
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.nav-tab.on::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 32px;
+  height: 2px;
+  background: var(--accent);
+  border-radius: 1px;
+}
+
+/* ─── 10. 改进字数统计显示 ─── */
+.word-count {
+  background: var(--bg-card);
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+}
+
+/* ─── 11. 改进加载状态 ─── */
+.loading {
+  position: relative;
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+.loading::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+/* ─── 12. 改进空状态提示 ─── */
+.empty-hint {
+  padding: 48px 24px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.empty-hint::before {
+  content: '📝';
+  display: block;
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+/* ─── 13. 改进选中文本样式 ─── */
+::selection {
+  background: var(--accent-glow-strong);
+  color: var(--text-primary);
+}
+
+/* ─── 14. 改进滚动行为 ─── */
+html {
+  scroll-behavior: smooth;
+}
+
+/* ─── 15. 改进响应式断点优化 ─── */
+@media (max-width: 768px) {
+  .modal {
+    width: 94vw !important;
+    max-height: 90vh;
+  }
+
+  .modal-body {
+    max-height: calc(90vh - 140px);
+    overflow-y: auto;
+  }
+}
+
+/* ─── 16. 改进深色模式下的对比度 ─── */
+body:not(.light) {
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 0 0 1px rgba(255, 255, 255, 0.05), 0 8px 40px rgba(0, 0, 0, 0.4);
+}
+
+/* ─── 17. 改进焦点可见性 ─── */
+*:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+/* ─── 18. 改进禁用状态 ─── */
+button:disabled,
+input:disabled,
+textarea:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* ─── 19. 改进链接样式 ─── */
+a {
+  color: var(--accent);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+a:hover {
+  color: var(--accent-bright);
+  text-decoration: underline;
+}
+
+/* ─── 20. 改进分隔线 ─── */
+hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 24px 0;
+}
+
+/* ─── 21. 改进代码块样式 ─── */
+code,
+pre {
+  font-family: var(--font-mono);
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 2px 6px;
+  font-size: 13px;
+}
+
+pre {
+  padding: 12px;
+  overflow-x: auto;
+}
+
+/* ─── 22. 改进列表样式 ─── */
+ul, ol {
+  padding-left: 24px;
+}
+
+li {
+  margin-bottom: 8px;
+}
+
+/* ─── 23. 性能优化 ─── */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* ─── 24. 改进字体渲染 ─── */
+body {
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ─── 25. 改进主题切换动画 ─── */
+body,
+.topbar,
+.sidebar,
+.ai-panel,
+.modal,
+.modal-overlay {
+  transition: background-color 0.3s ease,
+              border-color 0.3s ease,
+              color 0.3s ease;
+}

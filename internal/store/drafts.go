@@ -96,6 +96,16 @@ func (s *DraftStore) LoadChapterText(chapter int) (string, error) {
 	return string(data), nil
 }
 
+// DeleteChapter removes both draft and final files for a chapter.
+func (s *DraftStore) DeleteChapter(chapter int) error {
+	return s.io.WithWriteLock(func() error {
+		if err := s.io.RemoveFileUnlocked(fmt.Sprintf("drafts/%02d.draft.md", chapter)); err != nil {
+			return err
+		}
+		return s.io.RemoveFileUnlocked(fmt.Sprintf("chapters/%02d.md", chapter))
+	})
+}
+
 // LoadChapterRange 读取指定范围的终稿原文片段。
 func (s *DraftStore) LoadChapterRange(from, to, maxRunes int) (map[int]string, error) {
 	result := make(map[int]string)

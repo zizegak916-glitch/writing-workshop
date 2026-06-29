@@ -3,6 +3,7 @@ package host
 import (
 	"context"
 	"fmt"
+	"io/fs"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -478,6 +479,9 @@ func (h *Host) Events() <-chan Event        { return h.events }
 func (h *Host) Stream() <-chan string       { return h.streamCh }
 func (h *Host) Done() <-chan struct{}       { return h.done }
 func (h *Host) Dir() string                 { return h.store.Dir() }
+func (h *Host) Store() *storepkg.Store      { return h.store }
+func (h *Host) Config() bootstrap.Config    { return h.cfg }
+func (h *Host) RulesFS() fs.FS              { return h.bundle.RulesFS }
 func (h *Host) AskUser() *tools.AskUserTool { return h.askUser }
 
 // ── 事件发射 ──

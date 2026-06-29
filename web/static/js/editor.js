@@ -1,0 +1,23 @@
+// ═══ Editor ═══
+let editorTimer;
+function onEditorInput(){const txt=document.getElementById('mainEditor').value,w=countWords(txt);document.getElementById('editorWords').textContent=w;document.getElementById('totalWordsBar').textContent=w;const ps=txt.split(/\n\n+/).filter(p=>p.trim()).length||1;document.getElementById('paraCount').textContent=ps;document.getElementById('paraCountBar').textContent=ps;document.getElementById('sentCount').textContent=(txt.match(/[。！？.!?]/g)||[]).length;document.getElementById('readTime').textContent=Math.max(1,Math.ceil(w/300));updateGoal();S.unsaved=true;document.getElementById('saveBtn').classList.add('unsaved');clearTimeout(editorTimer);editorTimer=setTimeout(()=>{if(S.autoSave)saveDoc();updateContextBar();},3000);if(S.previewMode)document.getElementById('previewPane').innerHTML=renderMD(txt);}
+function countWords(t){return t.replace(/\s/g,'').length;}
+function updateGoal(){const w=countWords(document.getElementById('mainEditor').value),p=Math.min(100,Math.round(w/S.wordGoal*100));document.getElementById('goalFill').style.width=p+'%';document.getElementById('goalText').textContent=w+'/'+S.wordGoal;document.getElementById('goalTextBar').textContent=w+'/'+S.wordGoal;document.getElementById('todayWords').textContent=w;}
+function updateAllStats(){document.getElementById('totalWords').textContent=countWords(document.getElementById('mainEditor').value);updateGoal();}
+function formatText(c){document.execCommand(c);document.getElementById('mainEditor').focus();}
+function changeFontSize(d){S.curFontSize=Math.max(12,Math.min(24,S.curFontSize+d));document.getElementById('mainEditor').style.fontSize=S.curFontSize+'px';document.getElementById('fontSizeDisplay').textContent=S.curFontSize+'px';}
+function insertDivider(){const e=document.getElementById('mainEditor'),p=e.selectionStart,i='\n\n────────────────\n\n';e.value=e.value.slice(0,p)+i+e.value.slice(p);e.selectionStart=e.selectionEnd=p+i.length;onEditorInput();}
+function insertQuote(){const e=document.getElementById('mainEditor'),p=e.selectionStart,s=e.value.slice(e.selectionStart,e.selectionEnd),i=s?'「'+s+'」':'「」';e.value=e.value.slice(0,p)+i+e.value.slice(e.selectionEnd);onEditorInput();}
+function exportText(){const t=document.getElementById('mainEditor').value,n=document.getElementById('chapterTitle').value||t('default-doc-title'),b=new Blob([t],{type:'text/plain;charset=utf-8'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=n+'.txt';a.click();showToast('↓',t('toast-exported'));}
+function toggleAutoSave(){S.autoSave=!S.autoSave;document.getElementById('autoSaveToggle').classList.toggle('active',S.autoSave);showToast(S.autoSave?'⚡':'⏸',S.autoSave?t('toast-autosave-on'):t('toast-autosave-off'));}
+function renderMD(t){return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/^### (.+)$/gm,'<h3 style="font-size:18px;font-weight:700;margin:12px 0 6px">$1</h3>').replace(/^## (.+)$/gm,'<h2 style="font-size:20px;font-weight:700;margin:12px 0 6px">$1</h2>').replace(/^# (.+)$/gm,'<h1 style="font-size:24px;font-weight:700;margin:12px 0 6px">$1</h1>').replace(/^> (.+)$/gm,'<blockquote style="border-left:3px solid var(--accent);padding-left:12px;color:var(--text-secondary)">$1</blockquote>').replace(/^---$/gm,'<hr style="border:none;border-top:1px solid var(--border);margin:12px 0">').replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\*(.+?)\*/g,'<em>$1</em>').replace(/`(.+?)`/g,'<code style="background:var(--bg-card);padding:1px 4px;border-radius:3px">$1</code>').replace(/\n/g,'<br>');}
+function togglePreview(){S.previewMode=!S.previewMode;const ed=document.getElementById('mainEditor'),pv=document.getElementById('previewPane'),b=document.getElementById('previewBtn');if(S.previewMode){pv.innerHTML=renderMD(ed.value);pv.style.display='block';ed.style.display='none';b.classList.add('active');}else{pv.style.display='none';ed.style.display='block';b.classList.remove('active');}}
+
+
+// ═══ Focus ═══
+function openFocus(){document.getElementById('focusEditor').value=document.getElementById('mainEditor').value;document.getElementById('focusOverlay').classList.add('on');document.getElementById('focusEditor').focus();}
+function closeFocus(){document.getElementById('mainEditor').value=document.getElementById('focusEditor').value;document.getElementById('focusOverlay').classList.remove('on');onEditorInput();}
+
+
+// ═══ Sidebar ═══
+function switchSidebar(t,el){document.querySelectorAll('.nav-tab').forEach(x=>x.classList.remove('active'));el.classList.add('active');['outline','chapters','chars','notes'].forEach(x=>{document.getElementById('tab-'+x).style.display=x===t?'block':'none';});}

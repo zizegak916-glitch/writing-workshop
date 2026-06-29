@@ -4,14 +4,17 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/signal"
 	"strings"
 
 	"github.com/voocel/ainovel-cli/assets"
 	"github.com/voocel/ainovel-cli/internal/bootstrap"
 	"github.com/voocel/ainovel-cli/internal/entry/headless"
 	"github.com/voocel/ainovel-cli/internal/entry/tui"
+	"github.com/voocel/ainovel-cli/internal/host"
 	"github.com/voocel/ainovel-cli/internal/rules"
 	buildversion "github.com/voocel/ainovel-cli/internal/version"
+	"github.com/voocel/ainovel-cli/internal/web"
 )
 
 var (
@@ -98,6 +101,20 @@ func runWithConfig(cfg bootstrap.Config, opts cliOptions, args []string) {
 	}
 
 	bundle := assets.Load(cfg.Style)
+	if opts.Serve {
+		h, err := host.New(cfg, bundle)
+		if err != nil {
+			die("web: %v", err)
+		}
+		defer h.Close()
+		addr := fmt.Sprintf("127.0.0.1:%d", opts.Port)
+		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+		defer stop()
+		if err := web.NewServer(h, addr).ListenAndServe(ctx); err != nil {
+			die("web: %v", err)
+		}
+		return
+	}
 	if opts.Headless {
 		prompt, err := loadPrompt(opts)
 		if err != nil {
@@ -124,14 +141,34 @@ type cliOptions struct {
 	Version       bool
 	Update        bool
 	UpdateVersion string
+	Serve         bool
+	Port          int
 }
 
 // parseCLIOptions 提取 CLI flag，返回选项和剩余参数。
 func parseCLIOptions(argv []string) (cliOptions, []string, error) {
 	var opts cliOptions
+	opts.Port = 8080
 	var args []string
 	for i := 0; i < len(argv); i++ {
 		switch argv[i] {
+		case "serve":
+			if opts.Serve {
+				return opts, nil, fmt.Errorf("serve 只能指定一次")
+			}
+			opts.Serve = true
+		case "--serve":
+			opts.Serve = true
+		case "--port":
+			if i+1 >= len(argv) {
+				return opts, nil, fmt.Errorf("--port 缺少值")
+			}
+			var port int
+			if _, err := fmt.Sscanf(argv[i+1], "%d", &port); err != nil || port <= 0 || port > 65535 {
+				return opts, nil, fmt.Errorf("--port 必须是 1-65535 的整数")
+			}
+			opts.Port = port
+			i++
 		case "--version", "-v":
 			opts.Version = true
 		case "version":
@@ -181,11 +218,14 @@ func parseCLIOptions(argv []string) (cliOptions, []string, error) {
 	if opts.Prompt != "" && opts.PromptFile != "" {
 		return opts, nil, fmt.Errorf("--prompt 和 --prompt-file 不能同时使用")
 	}
-	if opts.Version && (opts.Update || opts.ConfigPath != "" || opts.Headless || opts.Prompt != "" || opts.PromptFile != "" || len(args) > 0) {
+	if opts.Version && (opts.Update || opts.ConfigPath != "" || opts.Headless || opts.Prompt != "" || opts.PromptFile != "" || opts.Serve || len(args) > 0) {
 		return opts, nil, fmt.Errorf("version 不能与其他启动参数混用")
 	}
-	if opts.Update && (opts.ConfigPath != "" || opts.Headless || opts.Prompt != "" || opts.PromptFile != "" || len(args) > 0) {
+	if opts.Update && (opts.ConfigPath != "" || opts.Headless || opts.Prompt != "" || opts.PromptFile != "" || opts.Serve || len(args) > 0) {
 		return opts, nil, fmt.Errorf("update 不能与其他启动参数混用")
+	}
+	if opts.Serve && (opts.Headless || opts.Prompt != "" || opts.PromptFile != "" || len(args) > 0) {
+		return opts, nil, fmt.Errorf("serve 不能与 --headless/--prompt/位置参数混用")
 	}
 	return opts, args, nil
 }

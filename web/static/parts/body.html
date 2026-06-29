@@ -1,0 +1,459 @@
+<!-- LOCK SCREEN -->
+<div id="lockScreen">
+  <div class="lock-box">
+    <div class="lock-icon"><svg class="ic"><use href="#ic-lock"/></svg></div>
+    <div class="lock-title">AI 写作工坊</div>
+    <div class="lock-sub" id="lockSub" data-i18n="lock-set">首次使用请设置密码</div>
+    <input class="lock-input" id="lockInput" type="password" data-i18n-ph="lock-placeholder" placeholder="输入密码...">
+    <div class="lock-hint" id="lockHint"></div>
+    <button class="btn-primary" id="lockBtn" onclick="handleLock()" data-i18n="lock-btn-set">设置密码</button>
+    <div class="lock-privacy"><a onclick="event.preventDefault();showPrivacyModal()">隐私条款</a></div>
+  </div>
+</div>
+<!-- PRIVACY / GUIDE / ABOUT MODAL -->
+<div id="privacyModal" onclick="if(event.target===this)closePrivacyModal()">
+  <div class="privacy-card">
+    <button class="privacy-close" onclick="closePrivacyModal()"><svg class="ic ic-sm"><use href="#ic-close"/></svg></button>
+    <div class="priv-tabs">
+      <button class="priv-tab active" onclick="switchPrivTab('privacy',this)">隐私条款</button>
+      <button class="priv-tab" onclick="switchPrivTab('guide',this)">使用指南</button>
+      <button class="priv-tab" onclick="switchPrivTab('about',this)">关于</button>
+    </div>
+    <!-- TAB: 隐私条款 -->
+    <div class="priv-panel" id="privTab-privacy">
+    <h2>隐私条款与数据使用说明</h2>
+    <h3>📦 本地存储</h3>
+    <p>所有数据（项目、文本、设置、API配置）仅存储在浏览器 localStorage 和 IndexedDB 中，不会上传到任何服务器。</p>
+    <h3>🍪 Cookie 使用</h3>
+    <p>使用 localStorage 保存用户偏好和登录状态，不使用第三方跟踪 Cookie。</p>
+    <h3>🔑 API 调用</h3>
+    <p>AI 功能通过用户自行配置的 API 密钥调用，密钥仅存储在本地浏览器中。</p>
+    <h3>🛡️ 数据安全</h3>
+    <p>可随时通过「清除数据」功能删除所有本地存储的数据。您的数据完全由您掌控。</p>
+    <h3>🌐 第三方服务</h3>
+    <p>使用 Google Fonts 等 CDN 资源，可能涉及 IP 地址等基本网络信息。</p>
+    <h3>📬 联系方式</h3>
+    <p>如有疑问，请通过 <span class="privacy-link" onclick="window.open('https://github.com','_blank')">GitHub Issues</span> 联系我们。</p>
+    </div>
+    <!-- TAB: 使用指南 -->
+    <div class="priv-panel" id="privTab-guide" style="display:none">
+    <h2>📖 使用指南</h2>
+    <h3>🚀 快速开始</h3>
+    <ol>
+      <li>打开链接，首次使用请设置密码（至少4位）</li>
+      <li>进入工坊后，点击顶栏「＋」创建新项目</li>
+      <li>点击「⚙」配置 API Key（选服务商 → 填 Key → 测试 → 保存）</li>
+      <li>开始写作！AI 功能会自动辅助你</li>
+    </ol>
+    <h3>🔧 API 配置</h3>
+    <p>支持 11+ 服务商：</p>
+    <ul>
+      <li><strong>DeepSeek</strong>（推荐，性价比高）— deepseek.com</li>
+      <li><strong>通义千问</strong> — tongyi.aliyun.com</li>
+      <li><strong>智谱 GLM</strong> — open.bigmodel.cn</li>
+      <li><strong>小米 MiMo</strong> — api.xiaomi.com</li>
+      <li><strong>OpenAI</strong> — platform.openai.com</li>
+      <li><strong>Claude</strong> — console.anthropic.com</li>
+      <li><strong>Kimi/Moonshot</strong> — platform.moonshot.cn</li>
+      <li><strong>Gemini</strong> — aistudio.google.com</li>
+      <li><strong>Grok</strong> — console.x.ai</li>
+      <li><strong>OpenRouter</strong> — openrouter.ai</li>
+      <li><strong>SiliconFlow</strong> — siliconflow.cn</li>
+      <li><strong>自定义</strong>（任意 OpenAI 兼容 API）</li>
+    </ul>
+    <h3>✍️ 编辑器功能</h3>
+    <ul>
+      <li><strong>AI 快捷工具栏</strong>（编辑器上方）：纠错、自动标题、实时灵感、资料搜索、降AI率、查AI</li>
+      <li><strong>工具栏</strong>：专注模式、预览、加粗/斜体、字体大小、导出</li>
+      <li><strong>自动保存</strong>：开启后实时保存，关闭后手动 Ctrl+S</li>
+    </ul>
+    <h3>📱 手机端底部导航</h3>
+    <ul>
+      <li><strong>编辑</strong> — 写作主界面</li>
+      <li><strong>大纲</strong> — 故事大纲管理</li>
+      <li><strong>章节</strong> — 章节列表与切换</li>
+      <li><strong>人物</strong> — 人物档案卡片</li>
+      <li><strong>AI</strong> — AI 助手面板（30+ 模式、多AI对比）</li>
+      <li><strong>隐私</strong> — 查看隐私条款与使用指南</li>
+    </ul>
+    <h3>🤖 AI 面板功能</h3>
+    <ul>
+      <li><strong>助手 Tab</strong>：选择 AI 模式（续写/润色/扩写等30+），调整创意度和输出长度，点「开始生成」</li>
+      <li><strong>对比 Tab</strong>：3 个槽位并行对比不同 AI 服务商的结果</li>
+      <li><strong>记忆 Tab</strong>：添加记忆条目，AI 生成时自动注入上下文</li>
+      <li><strong>历史 Tab</strong>：查看所有 AI 操作记录</li>
+    </ul>
+    <h3>👤 个人中心</h3>
+    <p>点击顶栏「👤」查看项目统计、修改密码、锁屏。</p>
+    <h3>🎨 主题切换</h3>
+    <p>设置 → 主题/Theme → 深色/浅色模式。支持跟随系统。</p>
+    <h3>📊 数据安全</h3>
+    <ul>
+      <li>所有数据存在浏览器本地（IndexedDB）</li>
+      <li>密码用 SHA-256 加密存储</li>
+      <li>不上传任何数据到服务器</li>
+      <li>支持项目导出 JSON 备份</li>
+      <li>支持导入 .json / .txt / .md / .docx 文件</li>
+    </ul>
+    <h3>❓ 常见问题</h3>
+    <p><strong>Q: 刷新页面要重新登录吗？</strong><br>A: 不需要，刷新直接进入。点「👤」里的「🔒 锁屏」才会锁。</p>
+    <p><strong>Q: 数据会丢吗？</strong><br>A: 数据存在浏览器本地。清除浏览器数据会丢失，建议定期导出备份。</p>
+    <p><strong>Q: AI 功能需要付费吗？</strong><br>A: 需要 AI 服务商的 API Key，大部分有免费额度。</p>
+    <p><strong>Q: 手机上能用吗？</strong><br>A: 完全适配手机，底部导航栏切换功能。</p>
+    </div>
+    <!-- TAB: 关于 -->
+    <div class="priv-panel" id="privTab-about" style="display:none">
+    <h2>ℹ️ 关于 AI 写作工坊</h2>
+    <div style="text-align:center;padding:24px 0 16px">
+      <div style="width:64px;height:64px;border-radius:16px;background:linear-gradient(135deg,var(--accent),#a78bfa);display:inline-flex;align-items:center;justify-content:center;margin-bottom:12px;box-shadow:0 4px 20px rgba(94,106,210,0.3)">
+        <svg style="width:32px;height:32px;color:#fff" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+      </div>
+      <div style="font-size:20px;font-weight:600;color:var(--text-primary);margin-bottom:4px">AI 写作工坊</div>
+      <div style="font-size:12px;color:var(--text-muted)">v2.0 · Powered by AI</div>
+    </div>
+    <h3>✨ 功能特色</h3>
+    <ul>
+      <li>30+ AI 写作模式（续写/润色/扩写/缩写/翻译/纠错…）</li>
+      <li>多 AI 并行对比，择优使用</li>
+      <li>AI 检测雷达图 + 降AI率</li>
+      <li>智能分章 + 大纲管理 + 人物档案</li>
+      <li>DOCX/Markdown/文本导入</li>
+      <li>专注写作模式</li>
+      <li>暗色/浅色双主题</li>
+      <li>8 语言国际化</li>
+      <li>数据完全本地化，隐私安全</li>
+    </ul>
+    <h3>🛠️ 技术栈</h3>
+    <p>原生 HTML/CSS/JS · IndexedDB · Canvas · SVG · 无框架依赖</p>
+    <h3>📜 开源</h3>
+    <p>本项目基于 MIT 协议开源。欢迎贡献代码、提交 Issue。</p>
+    <p style="margin-top:16px"><span class="privacy-link" onclick="window.open('https://github.com/zizegak916-glitch','_blank')">GitHub →</span></p>
+    </div>
+  </div>
+</div>
+<!-- COOKIE BANNER -->
+<div id="cookieBanner">
+  <p>本网站使用 Cookie 和本地存储来提升您的使用体验。继续使用即表示您同意我们的<a class="cookie-link" onclick="event.preventDefault();showPrivacyModal()">隐私条款</a>。</p>
+  <button class="cookie-btn" onclick="acceptCookie()">同意</button>
+</div>
+<!-- MAIN APP -->
+<div id="app">
+  <div class="topbar">
+    <div class="topbar-logo" style="color:#ff4444"><span class="dot" style="background:#ff4444;box-shadow:0 0 8px #ff4444"></span>AI 写作工坊 v2.1 🔴</div>
+    <div class="topbar-sep"></div>
+    <div class="project-selector" onclick="openModal('projectModal')" title="选择项目..."><span id="currentProjectName" data-empty-project="1">选择项目...</span><span class="arrow">▾</span></div>
+    <div class="topbar-stats">
+      <div class="stat-item"><svg class="ic ic-sm"><use href="#ic-note"/></svg> 总 <span class="val" id="totalWords">0</span>字</div>
+      <div class="stat-item"><svg class="ic ic-sm"><use href="#ic-calendar"/></svg> 今日 <span class="val" id="todayWords">0</span>字</div>
+      <div class="stat-item"><svg class="ic ic-sm"><use href="#ic-target"/></svg> <span class="badge" id="goalText">0/2000</span></div>
+    </div>
+    <div class="topbar-actions">
+      <button class="icon-btn" onclick="openModal('newProjectModal')" title="新建">＋</button>
+      <button class="icon-btn" onclick="openModal('settingsModal')" data-i18n-title="tb-settings" title="设置"><svg class="ic ic-sm"><use href="#ic-settings"/></svg></button>
+      <button class="icon-btn" onclick="exportProject()" title="导出"><svg class="ic ic-sm"><use href="#ic-download"/></svg></button>
+      <button class="icon-btn" id="saveBtn" onclick="saveDoc()" title="保存"><svg class="ic ic-sm"><use href="#ic-save"/></svg><span class="save-badge"></span></button>
+      <button class="icon-btn" onclick="openModal('profileModal')" title="个人中心"><svg class="ic ic-sm"><use href="#ic-user"/></svg></button>
+    </div>
+  </div>
+  <div class="main-body">
+    <div class="sidebar">
+      <div class="sidebar-nav">
+        <button class="nav-tab active" onclick="switchSidebar('outline',this)"><svg class="ic"><use href="#ic-outline"/></svg> 大纲</button>
+        <button class="nav-tab" onclick="switchSidebar('chapters',this)"><svg class="ic"><use href="#ic-chapter"/></svg> 章节</button>
+        <button class="nav-tab" onclick="switchSidebar('chars',this)"><svg class="ic"><use href="#ic-person"/></svg> 人物</button>
+        <button class="nav-tab" onclick="switchSidebar('notes',this)"><svg class="ic"><use href="#ic-note"/></svg> 笔记</button>
+      </div>
+      <div class="sidebar-content">
+        <div id="tab-outline"><div class="section-label" data-i18n-sb="sb-outline">故事大纲</div><div id="outlineList"></div><button class="add-item-btn" data-i18n-sb="sb-add-outline" onclick="addOutline()">＋ 添加大纲</button></div>
+        <div id="tab-chapters" style="display:none"><div class="section-label" data-i18n-sb="sb-chapters">章节列表</div><div id="chapterList"></div><button class="add-item-btn" data-i18n-sb="sb-add-chapter" onclick="addChapter()">＋ 添加章节</button></div>
+        <div id="tab-chars" style="display:none"><div class="section-label" data-i18n-sb="sb-chars">人物档案</div><div id="charList"></div><button class="add-item-btn" data-i18n-sb="sb-add-char" onclick="openModal('charModal')">＋ 添加人物</button></div>
+        <div id="tab-notes" style="display:none"><div class="section-label" data-i18n-sb="sb-notes">笔记</div><div style="text-align:center;padding:20px;color:var(--text-hint);font-size:12px">功能开发中...</div></div>
+      </div>
+    </div>
+    <div class="editor-area">
+      <div class="editor-toolbar">
+        <div class="toolbar-group"><button class="tool-btn" data-i18n="tb-focus" onclick="openFocus()"><svg class="ic ic-sm"><use href="#ic-focus"/></svg> 专注</button><button class="tool-btn" data-i18n="tb-preview" onclick="togglePreview()" id="previewBtn"><svg class="ic ic-sm"><use href="#ic-eye"/></svg> 预览</button></div>
+        <div class="toolbar-sep"></div>
+        <div class="toolbar-group"><button class="tool-btn" onclick="formatText('bold')"><b>B</b></button><button class="tool-btn" onclick="formatText('italic')"><i>I</i></button><button class="tool-btn" onclick="insertDivider()">──</button><button class="tool-btn" onclick="insertQuote()">「」</button></div>
+        <div class="toolbar-sep"></div>
+        <div class="toolbar-group"><button class="tool-btn" onclick="changeFontSize(-1)">A-</button><span style="font-size:11px;color:var(--text-muted);min-width:32px;text-align:center" id="fontSizeDisplay">16px</span><button class="tool-btn" onclick="changeFontSize(1)">A+</button></div>
+        <div class="toolbar-sep"></div>
+        <div class="toolbar-group"><button class="tool-btn" data-i18n="tb-export" onclick="exportText()"><svg class="ic ic-sm"><use href="#ic-download"/></svg> 导出</button><button class="tool-btn active" data-i18n="tb-autosave" id="autoSaveToggle" onclick="toggleAutoSave()"><svg class="ic ic-sm"><use href="#ic-zap"/></svg> 自动保存</button></div>
+      </div>
+      <div class="chapter-title-bar"><input class="chapter-title-input" id="chapterTitle" data-i18n-ph="ed-chapter" placeholder="章节标题..." oninput="S.unsaved=true"></div>
+      <div class="chapter-meta"><span><span id="paraCount">1</span> <span data-i18n="ed-para">段</span></span><span><span id="sentCount">0</span> <span data-i18n="ed-sent">句</span></span><span id="readTimeWrap"><span id="readTime">0</span> <span data-i18n="ed-min">分钟</span></span><span id="editorWords">0</span> <span data-i18n="ed-words">字</span></div>
+      <!-- AI Quick Tools Bar -->
+      <div id="aiQuickBar" style="display:flex;gap:6px;padding:6px 20px;border-bottom:1px solid var(--border);background:var(--bg-mid);flex-wrap:wrap">
+        <button class="tool-btn" data-i18n="aq-proof" onclick="aiProofread()" id="aiBtnProof" title="检查错别字、语病"><svg class="ic ic-sm"><use href="#ic-check"/></svg> 纠错</button>
+        <button class="tool-btn" data-i18n="aq-title" onclick="aiAutoTitle()" id="aiBtnTitle" title="根据内容生成标题"><svg class="ic ic-sm"><use href="#ic-tag"/></svg> 自动标题</button>
+        <button class="tool-btn" data-i18n="aq-inspire" onclick="aiInspiration()" id="aiBtnInspire" title="根据上下文提供灵感"><svg class="ic ic-sm"><use href="#ic-bulb"/></svg> 实时灵感</button>
+        <button class="tool-btn" data-i18n="aq-research" onclick="aiResearch()" id="aiBtnResearch" title="搜索相关资料和知识"><svg class="ic ic-sm"><use href="#ic-search"/></svg> 资料搜索</button>
+        <button class="tool-btn" data-i18n="aq-humanize" onclick="aiHumanize()" id="aiBtnHumanize" title="降低AI检测率，让文字更像人写的"><svg class="ic ic-sm"><use href="#ic-shield"/></svg> 降AI率</button>
+        <button class="tool-btn" data-i18n="aq-detect" onclick="aiDetect()" id="aiBtnDetect" title="检测文字的AI特征"><svg class="ic ic-sm"><use href="#ic-search"/></svg> 查AI</button>
+      </div>
+      <!-- AI Result Inline Panel (for quick tools) -->
+      <div id="aiQuickResult" style="display:none;border-bottom:1px solid var(--border);background:var(--bg-panel);padding:12px 20px;max-height:280px;overflow-y:auto">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <span id="aiQuickResultTitle" style="font-size:12px;font-weight:600;color:var(--accent)">AI 结果</span>
+          <div style="display:flex;gap:6px">
+            <div id="presLevelBar" class="pres-level-bar" style="display:none">
+              <button onclick="setPresLevel('light')" data-pl="light">轻度</button>
+              <button onclick="setPresLevel('medium')" data-pl="medium" class="active">中度</button>
+              <button onclick="setPresLevel('heavy')" data-pl="heavy">重度</button>
+            </div>
+            <button class="tool-btn" onclick="aiQuickApply()" style="font-size:11px;padding:3px 8px">✓ 应用</button>
+            <button class="tool-btn" onclick="aiQuickCopy()" style="font-size:11px;padding:3px 8px"><svg class="ic ic-sm"><use href="#ic-copy"/></svg> 复制</button>
+            <button class="tool-btn" onclick="closeAiQuickResult()" style="font-size:11px;padding:3px 8px"><svg class="ic ic-sm"><use href="#ic-close"/></svg></button>
+          </div>
+        </div>
+        <div id="aiRadarWrap" class="ai-qr-radar-wrap" style="display:none"><canvas id="aiRadarCanvas" width="200" height="200"></canvas></div>
+        <div id="aiDiffWrap" class="ai-diff-view" style="display:none"></div>
+        <div id="aiQuickResultText" style="font-family:var(--font-serif);font-size:14px;line-height:1.8;color:var(--text-primary);white-space:pre-wrap"></div>
+        <div id="aiSentencesWrap" class="ai-qr-sentences" style="display:none"></div>
+      </div>
+      <div class="editor-wrap" id="editorWrap"><textarea id="mainEditor" placeholder="开始写作..."></textarea></div>
+      <div id="previewPane" style="display:none;flex:1;overflow-y:auto;padding:16px 32px;font-family:var(--font-serif);font-size:16px;line-height:1.9;color:var(--text-primary)"></div>
+      <div class="bottom-bar"><div class="wc-info"><div class="wc-item" data-i18n-bb="bb-total"><span data-i18n="bb-total">总字数:</span> <strong id="totalWordsBar">0</strong></div><div class="wc-item" data-i18n-bb="bb-para"><span data-i18n="bb-para">段落:</span> <strong id="paraCountBar">1</strong></div></div><div class="goal-bar-wrap"><div class="goal-track"><div class="goal-fill" id="goalFill"></div></div><div class="wc-item" id="goalTextBar">0/2000</div></div></div>
+    </div>
+    <div class="ai-panel">
+      <div class="ai-panel-header">
+        <div class="ai-panel-title"><span class="dot-pulse"></span>AI 助手</div>
+        <div class="ai-tabs">
+          <button class="ai-tab active" onclick="switchAiTab('modes',this)">助手</button>
+          <button class="ai-tab" onclick="switchAiTab('multi',this)">对比</button>
+          <button class="ai-tab" onclick="switchAiTab('memory',this)"><svg class="ic"><use href="#ic-brain"/></svg> 记忆</button>
+          <button class="ai-tab" onclick="switchAiTab('history',this)">历史</button>
+        </div>
+      </div>
+      <div class="ai-panel-body">
+        <div id="aiTab-modes">
+          <div id="aiModeGrid"></div>
+          <div class="param-row"><div class="param-label" data-i18n="ap-temp">创意度</div><div class="seg-ctrl"><button class="seg-btn" data-i18n="param-strict" onclick="setTemp('low',this)">严谨</button><button class="seg-btn on" data-i18n="param-balance" onclick="setTemp('mid',this)">平衡</button><button class="seg-btn" data-i18n="param-creative" onclick="setTemp('high',this)">创意</button></div></div>
+          <div class="param-row"><div class="param-label" data-i18n="ap-len">输出长度</div><div class="seg-ctrl"><button class="seg-btn" data-i18n="param-short" onclick="setLen('short',this)">短</button><button class="seg-btn" data-i18n="param-medium" onclick="setLen('mid',this)">中</button><button class="seg-btn on" data-i18n="param-long" onclick="setLen('long',this)">长</button><button class="seg-btn" data-i18n="param-xlong" onclick="setLen('xl',this)">超长</button></div></div>
+          <div class="ai-prompt-area"><label data-i18n="ap-prompt">补充指令</label><textarea id="aiPrompt" data-i18n-ph="ap-prompt-ph" placeholder="可选：输入额外要求..." oninput="updateContextBar()"></textarea></div>
+          <div style="margin-bottom:10px;padding:0 2px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+              <span style="font-size:10px;color:var(--text-hint);letter-spacing:0.5px">上下文用量</span>
+              <span id="ctxText" style="font-size:10px;color:var(--text-muted)">-</span>
+            </div>
+            <div style="width:100%;height:3px;background:var(--bg-card);border-radius:2px;overflow:hidden"><div id="ctxBar" style="height:100%;width:0%;background:var(--accent);border-radius:2px;transition:width 0.3s,background 0.3s"></div></div>
+            <div id="ctxUsedText" style="font-size:10px;color:var(--text-hint);margin-top:3px;display:none"></div>
+          </div>
+          <button class="generate-btn" id="generateBtn" onclick="doGenerate()"><span id="generateBtnIcon"><svg class="ic ic-sm"><use href="#ic-sparkles"/></svg></span><span id="generateBtnText">开始生成</span></button>
+        </div>
+        <div id="aiTab-multi" style="display:none"><div id="multiSlots"></div></div>
+        <div id="aiTab-history" style="display:none"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><span style="font-size:12px;color:var(--text-secondary)">AI 操作记录</span><button onclick="clearHistory()" style="background:none;border:none;color:var(--text-hint);font-size:11px;cursor:pointer">清空</button></div><div id="historyList"></div></div>
+        <div id="aiTab-memory" style="display:none">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+            <span style="font-size:12px;color:var(--text-secondary)"><svg class="ic"><use href="#ic-brain"/></svg> AI 记忆</span>
+            <button onclick="openModal('memoryModal')" style="background:var(--accent-glow);border:1px solid var(--accent-dim);color:var(--accent);padding:4px 10px;border-radius:var(--radius-sm);font-size:11px;cursor:pointer;font-family:var(--font-sans)">＋ 添加</button>
+          </div>
+          <div style="font-size:10px;color:var(--text-hint);margin-bottom:8px;line-height:1.5">记忆内容会在每次AI生成时自动注入提示词，让AI了解你的剧情设定、写作风格偏好等。</div>
+          <div id="memoryList"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Mobile Bottom Nav -->
+  <nav class="bottom-nav" id="bottomNav">
+    <div class="bottom-nav-items">
+      <button class="btab on" onclick="swMobileTab('editor',this)"><svg class="ic"><use href="#ic-pencil"/></svg> 编辑</button>
+      <button class="btab" onclick="swMobileTab('outline',this)"><svg class="ic"><use href="#ic-outline"/></svg> 大纲</button>
+      <button class="btab" onclick="swMobileTab('chapters',this)"><svg class="ic"><use href="#ic-chapter"/></svg> 章节</button>
+      <button class="btab" onclick="swMobileTab('chars',this)"><svg class="ic"><use href="#ic-person"/></svg> 人物</button>
+      <button class="btab" onclick="swMobileTab('ai',this)"><svg class="ic"><use href="#ic-brain"/></svg> AI</button>
+      <button class="btab privacy-link" onclick="event.stopPropagation();showPrivacyModal()"><svg class="ic ic-sm"><use href="#ic-clipboard"/></svg> 隐私</button>
+    </div>
+  </nav>
+</div>
+<!-- Mobile Panels (sidebar content on mobile) -->
+<div class="mobile-panel" id="mp-outline"><div id="mpOutlineList"></div><button class="add-item-btn" data-i18n-sb="sb-add-outline" onclick="addOutline()">＋ 添加大纲</button></div>
+<div class="mobile-panel" id="mp-chapters"><div id="mpChapterList"></div><button class="add-item-btn" data-i18n-sb="sb-add-chapter" onclick="addChapter()">＋ 添加章节</button></div>
+<div class="mobile-panel" id="mp-chars"><div id="mpCharList"></div><button class="add-item-btn" data-i18n-sb="sb-add-char" onclick="openModal('charModal')">＋ 添加人物</button></div>
+<div class="mobile-panel" id="mp-ai" style="padding:0">
+  <div style="padding:12px"><div id="mpAiModeGrid"></div>
+  <div class="param-row"><div class="param-label" data-i18n="ap-temp">创意度</div><div class="seg-ctrl"><button class="seg-btn" data-i18n="param-strict" onclick="setTemp('low',this)">严谨</button><button class="seg-btn on" data-i18n="param-balance" onclick="setTemp('mid',this)">平衡</button><button class="seg-btn" data-i18n="param-creative" onclick="setTemp('high',this)">创意</button></div></div>
+  <div class="param-row"><div class="param-label" data-i18n="ap-len">输出长度</div><div class="seg-ctrl"><button class="seg-btn" data-i18n="param-short" onclick="setLen('short',this)">短</button><button class="seg-btn" data-i18n="param-medium" onclick="setLen('mid',this)">中</button><button class="seg-btn on" data-i18n="param-long" onclick="setLen('long',this)">长</button><button class="seg-btn" data-i18n="param-xlong" onclick="setLen('xl',this)">超长</button></div></div>
+  <div class="ai-prompt-area"><label data-i18n="ap-prompt">补充指令</label><textarea id="mpAiPrompt" data-i18n-ph="ap-prompt-ph" placeholder="可选：输入额外要求..."></textarea></div>
+  <button class="generate-btn" id="mpGenerateBtn" onclick="doGenerateMobile()"><span><svg class="ic ic-sm"><use href="#ic-sparkles"/></svg></span><span data-i18n="ap-gen">开始生成</span></button>
+  <div style="margin-top:12px;border-top:1px solid var(--border);padding-top:12px">
+    <div style="font-size:12px;font-weight:510;color:var(--text-secondary);margin-bottom:8px"><svg class="ic ic-sm" style="vertical-align:middle"><use href="#ic-search-scan"/></svg> 多AI对比</div>
+    <div id="mpMultiSlots"></div>
+    <button class="generate-btn multi-gen-btn" onclick="doMultiGenerateMobile()" style="width:100%;margin-top:8px"><span>⚡</span> 并行生成对比</button>
+  </div>
+</div>
+</div>
+<!-- AI RESULT POPUP -->
+<div class="ai-result-popup" id="aiResultPopup">
+  <div class="arp-header"><div class="arp-title"><span><svg class="ic ic-sm"><use href="#ic-sparkles"/></svg></span> AI 生成结果 <span class="arp-tag" id="arpMode">润色</span></div><button class="arp-close" onclick="closeAiResult()">×</button></div>
+  <div class="arp-body"><div class="arp-text" id="arpText"></div></div>
+  <div class="arp-actions"><button class="arp-btn" onclick="arpAction('replace')">替换原文</button><button class="arp-btn" onclick="arpAction('append')">追加到末尾</button><button class="arp-btn" onclick="arpAction('insert')">插入光标处</button><button class="arp-btn primary" onclick="arpAction('copy')">复制</button></div>
+</div>
+<!-- FOCUS MODE -->
+<div class="focus-overlay" id="focusOverlay"><div class="focus-editor-wrap"><textarea class="focus-editor" id="focusEditor" placeholder="专注写作..."></textarea><div class="focus-bar"><div class="focus-info" id="focusInfo">0 字 · Esc 退出</div><button class="focus-exit" onclick="closeFocus()">退出专注</button></div></div></div>
+<!-- MODALS -->
+<div class="modal-overlay" id="newProjectModal"><div class="modal">
+  <div class="modal-title">📁 新建项目</div><div class="modal-sub">创建一个新的写作项目</div>
+  <div class="form-row"><div class="form-label">项目名称 <span class="form-hint">必填</span></div><input class="form-input" id="newProjectName" placeholder="例如：《星河往事》"></div>
+  <div class="genre-grid" id="genreGrid"><div class="genre-chip on" data-i18n-genre="genre-xf" onclick="toggleGenre(this)">玄幻</div><div class="genre-chip" data-i18n-genre="genre-ds" onclick="toggleGenre(this)">都市</div><div class="genre-chip" data-i18n-genre="genre-yq" onclick="toggleGenre(this)">言情</div><div class="genre-chip" data-i18n-genre="genre-kh" onclick="toggleGenre(this)">科幻</div><div class="genre-chip" data-i18n-genre="genre-xy" onclick="toggleGenre(this)">悬疑</div><div class="genre-chip" data-i18n-genre="genre-ls" onclick="toggleGenre(this)">历史</div><div class="genre-chip" data-i18n-genre="genre-wx" onclick="toggleGenre(this)">武侠</div><div class="genre-chip" data-i18n-genre="genre-qh" onclick="toggleGenre(this)">奇幻</div></div>
+  <div class="form-row"><div class="form-label">每日目标</div><input class="form-input" id="dailyGoal" type="number" value="2000"></div>
+  <div class="form-row"><div class="form-label">项目简介</div><textarea class="form-textarea" id="newProjectDesc" placeholder="简述故事..."></textarea></div>
+  <div class="form-row"><div class="form-label">世界观</div><textarea class="form-textarea" id="newProjectWorld" placeholder="世界观设定..."></textarea></div>
+  <div class="modal-footer"><button class="btn-cancel" onclick="closeModal('newProjectModal')">取消</button><button class="btn-confirm" onclick="createProject()">创建 ✓</button></div>
+</div></div>
+<div class="modal-overlay" id="projectModal"><div class="modal">
+  <div class="modal-title" data-i18n="mod-projlist"><svg class="ic ic-sm"><use href="#ic-book-open"/></svg> 我的项目</div><div class="modal-sub" data-i18n="mod-projlist-sub">点击项目进入写作</div>
+  <div id="projectList" style="max-height:300px;overflow-y:auto"></div>
+  <div style="margin-top:12px">
+  <label style="padding:8px;border:1px dashed var(--border);border-radius:var(--radius-sm);text-align:center;color:var(--text-hint);font-size:12px;cursor:pointer;display:block">
+    <span data-i18n="mod-import"><svg class="ic ic-sm"><use href="#ic-import"/></svg> 导入项目（.json .txt .md .docx）</span>
+    <input type="file" accept=".json,.txt,.md,.docx" multiple onchange="importProject(event)" style="display:none">
+  </label>
+  <div style="margin-top:8px;display:flex;gap:6px">
+    <input class="form-input" id="importUrlInput" placeholder="粘贴网页URL..." style="flex:1;font-size:12px;padding:6px 10px">
+    <button class="btn-confirm" onclick="importFromUrl()" style="padding:6px 12px;font-size:12px">导入</button>
+  </div>
+</div>
+  <div class="modal-footer"><button class="btn-cancel" data-i18n="mod-close" onclick="closeModal('projectModal')">关闭</button><button class="btn-confirm" data-i18n="mod-newproj-btn" onclick="closeModal('projectModal');openModal('newProjectModal')">＋ 新建</button></div>
+</div></div>
+<div class="modal-overlay" id="apiModal"><div class="modal">
+  <div class="modal-title" data-i18n="mod-api"><svg class="ic" style="width:20px;height:20px"><use href="#ic-logo"/></svg> API 设置</div><div class="modal-sub" data-i18n="mod-api-sub">配置 AI 服务商，API Key 仅存本地</div>
+  <div class="form-row"><div class="form-label" data-i18n="form-api-provider">选择服务商</div><div class="provider-grid" id="providerGrid">
+    <div class="provider-chip on" onclick="selectProvider(this,'claude')"><img src="data:image/svg+xml;base64,PHN2ZyBmaWxsPSIjRDk3NzU3IiByb2xlPSJpbWciIHZpZXdCb3g9IjAgMCAyNCAyNCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48dGl0bGU+Q2xhdWRlPC90aXRsZT48cGF0aCBkPSJtNC43MTQ0IDE1Ljk1NTUgNC43MTc0LTIuNjQ3MS4wNzktLjIzMDctLjA3OS0uMTI3NWgtLjIzMDdsLS43ODkzLS4wNDg2LTIuNjk1Ni0uMDcyOS0yLjMzNzUtLjA5NzEtMi4yNjQ2LS4xMjE0LS41NzA3LS4xMjE1LS41MzQzLS43MDQyLjA1NDYtLjM1MjIuNDc5Ny0uMzIxOC42ODYuMDYwOCAxLjUxNzkuMTAzMiAyLjI3NjcuMTU3OCAxLjY1MTQuMDk3MiAyLjQ0NjguMjU1aC4zODg2bC4wNTQ2LS4xNTc5LS4xMzM2LS4wOTcxLS4xMDMyLS4wOTcyTDYuOTczIDkuODM1NmwtMi41NS0xLjY4NzktMS4zMzU2LS45NzE0LS43MjI1LS40OTE4LS4zNjQzLS40NjE0LS4xNTc4LTEuMDA3OC42NTU3LS43MjI1Ljg4MDMuMDYwNy4yMjQ2LjA2MDcuODkyNS42ODYgMS45MDY0IDEuNDc1NCAyLjQ4OTMgMS44MzM2LjM2NDMuMzAzNS4xNDU3LS4xMDMyLjAxODItLjA3MjgtLjE2NC0uMjczMy0xLjM1MzktMi40NDY3LTEuNDQ1LTIuNDg5My0uNjQzNS0xLjAzMi0uMTctLjYxOTRjLS4wNjA3LS4yNTUtLjEwMzItLjQ2NzQtLjEwMzItLjcyODVMNi4yODcuMTMzNSA2LjY5OTcgMGwuOTk1Ny4xMzM2LjQxOS4zNjQyLjYxOTIgMS40MTQ3IDEuMDAxOCAyLjIyODIgMS41NTQzIDMuMDI5Ni40NTUzLjg5ODUuMjQyOS44MzE4LjA5MS4yNTVoLjE1Nzl2LS4xNDU3bC4xMjc1LTEuNzA2LjIzNjgtMi4wOTQ3LjIzMDctMi42OTU3LjA3ODktLjc1ODkuMzc2NC0uOTEwNy43NDY4LS40OTE4LjU4MjguMjc5My40Nzk3LjY4Ni0uMDY2OC40NDMzLS4yODUzIDEuODUxNy0uNTU4NiAyLjkwMjEtLjM2NDMgMS45NDI5aC4yMTI1bC4yNDI5LS4yNDI5Ljk4MzUtMS4zMDUzIDEuNjUxNC0yLjA2NDMuNzI4Ni0uODE5Ni44NS0uOTA0Ni41NDY0LS40MzExaDEuMDMyMWwuNzU5IDEuMTI5My0uMzQgMS4xNjU3LTEuMDYyNSAxLjM0NzgtLjg4MDQgMS4xNDE0LTEuMjYyOCAxLjctLjc4OTMgMS4zNi4wNzI5LjEwOTMuMTg4Mi0uMDE4MyAyLjg1MzUtLjYwNyAxLjU0MjEtLjI3OTQgMS44Mzk2LS4zMTU3LjgzMTguMzg4Ni4wOTEuMzk0Ni0uMzI3OC44MDc1LTEuOTY3LjQ4NTctMi4zMDcyLjQ2MTQtMy40MzY0LjgxMzYtLjA0MjUuMDMwNC4wNDg2LjA2MDcgMS41NDgyLjE0NTcuNjYxOC4wMzY0aDEuNjIxbDMuMDE3NS4yMjQ3Ljc4OTIuNTIyLjQ3MzYuNjM3Ni0uMDc5LjQ4NTctMS4yMTQyLjYxOTMtMS42MzkzLS4zODg2LTMuODI1LS45MTA3LTEuMzExMy0uMzI3OWgtLjE4MjJ2LjEwOTNsMS4wOTI5IDEuMDY4NiAyLjAwMzUgMS44MDkyIDIuNTA3NSAyLjMzMTQuMTI3NS41NzY4LS4zMjE4LjQ1NTQtLjM0LS4wNDg2LTIuMjAzOS0xLjY1NzUtLjg1LS43NDY4LTEuOTI0Ni0xLjYyMWgtLjEyNzV2LjE3bC40NDMyLjY0OTYgMi4zNDM2IDMuNTIxNC4xMjE0IDEuMDgwNy0uMTcuMzUyMS0uNjA3MS4yMTI1LS42Njc5LS4xMjE0LTEuMzcyMS0xLjkyNDZMMTQuMzggMTcuOTU5bC0xLjE0MTQtMS45NDI4LS4xMzk3LjA3OS0uNjc0IDcuMjU1Mi0uMzE1Ni4zNzAzLS43Mjg2LjI3OTMtLjYwNzEtLjQ2MTQtLjMyMTgtLjc0NjguMzIxOC0xLjQ3NTMuMzg4Ni0xLjkyNDYuMzE1Ny0xLjUzLjI4NTMtMS45MDA0LjE3LS42MzE0LS4wMTIxLS4wNDI1LS4xMzk3LjAxODItMS40MzI4IDEuOTY3Mi0yLjE3OTYgMi45NDQ2LTEuNzI0MyAxLjg0NTYtLjQxMjguMTY0LS43MTY0LS4zNzA0LjA2NjctLjY2MTguNDAwOC0uNTg4OSAyLjM4Ni0zLjAzNTcgMS40Mzg5LTEuODgyLjkyOS0xLjA4NjgtLjAwNjItLjE1NzloLS4wNTQ2bC02LjMzODUgNC4xMTY0LTEuMTI5My4xNDU3LS40ODU3LS40NTU0LjA2MDgtLjc0NjcuMjMwNy0uMjQyOSAxLjkwNjQtMS4zMTE0WiIvPjwvc3ZnPg==" style="width:22px;height:22px" alt=""> Claude</div>
+    <div class="provider-chip" onclick="selectProvider(this,'openai')"><img src="data:image/svg+xml;base64,PHN2ZyBoZWlnaHQ9IjI1MDAiIHZpZXdCb3g9Ii0xIC0uMSA5NDkuMSA5NTkuOCIgd2lkdGg9IjI0NzQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0ibTkyNS44IDQ1Ni4zYzEwLjQgMjMuMiAxNyA0OCAxOS43IDczLjMgMi42IDI1LjMgMS4zIDUwLjktNC4xIDc1LjgtNS4zIDI0LjktMTQuNSA0OC44LTI3LjMgNzAuOC04LjQgMTQuNy0xOC4zIDI4LjUtMjkuNyA0MS4yLTExLjMgMTIuNi0yMy45IDI0LTM3LjYgMzQtMTMuOCAxMC0yOC41IDE4LjQtNDQuMSAyNS4zLTE1LjUgNi44LTMxLjcgMTItNDguMyAxNS40LTcuOCAyNC4yLTE5LjQgNDcuMS0zNC40IDY3LjctMTQuOSAyMC42LTMzIDM4LjctNTMuNiA1My42LTIwLjYgMTUtNDMuNCAyNi42LTY3LjYgMzQuNC0yNC4yIDcuOS00OS41IDExLjgtNzUgMTEuOC0xNi45LjEtMzMuOS0xLjctNTAuNS01LjEtMTYuNS0zLjUtMzIuNy04LjgtNDguMi0xNS43cy0zMC4yLTE1LjUtNDMuOS0yNS41Yy0xMy42LTEwLTI2LjItMjEuNS0zNy40LTM0LjItMjUgNS40LTUwLjYgNi43LTc1LjkgNC4xLTI1LjMtMi43LTUwLjEtOS4zLTczLjQtMTkuNy0yMy4yLTEwLjMtNDQuNy0yNC4zLTYzLjYtNDEuNHMtMzUtMzcuMS00Ny43LTU5LjFjLTguNS0xNC43LTE1LjUtMzAuMi0yMC44LTQ2LjNzLTguOC0zMi43LTEwLjYtNDkuNmMtMS44LTE2LjgtMS43LTMzLjguMS01MC43IDEuOC0xNi44IDUuNS0zMy40IDEwLjgtNDkuNS0xNy0xOC45LTMxLTQwLjQtNDEuNC02My42LTEwLjMtMjMuMy0xNy00OC0xOS42LTczLjMtMi43LTI1LjMtMS4zLTUwLjkgNC03NS44czE0LjUtNDguOCAyNy4zLTcwLjhjOC40LTE0LjcgMTguMy0yOC42IDI5LjYtNDEuMnMyNC0yNCAzNy43LTM0IDI4LjUtMTguNSA0NC0yNS4zYzE1LjYtNi45IDMxLjgtMTIgNDguNC0xNS40IDcuOC0yNC4zIDE5LjQtNDcuMSAzNC4zLTY3LjcgMTUtMjAuNiAzMy4xLTM4LjcgNTMuNy01My43IDIwLjYtMTQuOSA0My40LTI2LjUgNjcuNi0zNC40IDI0LjItNy44IDQ5LjUtMTEuOCA3NS0xMS43IDE2LjktLjEgMzMuOSAxLjYgNTAuNSA1LjFzMzIuOCA4LjcgNDguMyAxNS42YzE1LjUgNyAzMC4yIDE1LjUgNDMuOSAyNS41IDEzLjcgMTAuMSAyNi4zIDIxLjUgMzcuNSAzNC4yIDI0LjktNS4zIDUwLjUtNi42IDc1LjgtNHM1MCA5LjMgNzMuMyAxOS42YzIzLjIgMTAuNCA0NC43IDI0LjMgNjMuNiA0MS40IDE4LjkgMTcgMzUgMzYuOSA0Ny43IDU5IDguNSAxNC42IDE1LjUgMzAuMSAyMC44IDQ2LjMgNS4zIDE2LjEgOC45IDMyLjcgMTAuNiA0OS42IDEuOCAxNi45IDEuOCAzMy45LS4xIDUwLjgtMS44IDE2LjktNS41IDMzLjUtMTAuOCA0OS42IDE3LjEgMTguOSAzMSA0MC4zIDQxLjQgNjMuNnptLTMzMy4yIDQyNi45YzIxLjgtOSA0MS42LTIyLjMgNTguMy0zOXMzMC0zNi41IDM5LTU4LjRjOS0yMS44IDEzLjctNDUuMiAxMy43LTY4Ljh2LTIyM3EtLjEtLjMtLjItLjctLjEtLjMtLjMtLjYtLjItLjMtLjUtLjUtLjMtLjMtLjYtLjRsLTgwLjctNDYuNnYyNjkuNGMwIDIuNy0uNCA1LjUtMS4xIDguMS0uNyAyLjctMS43IDUuMi0zLjEgNy42cy0zIDQuNi01IDYuNWEzMi4xIDMyLjEgMCAwIDEgLTYuNSA1bC0xOTEuMSAxMTAuM2MtMS42IDEtNC4zIDIuNC01LjcgMy4yIDcuOSA2LjcgMTYuNSAxMi42IDI1LjUgMTcuOCA5LjEgNS4yIDE4LjUgOS42IDI4LjMgMTMuMiA5LjggMy41IDE5LjkgNi4yIDMwLjEgOCAxMC4zIDEuOCAyMC43IDIuNyAzMS4xIDIuNyAyMy42IDAgNDctNC43IDY4LjgtMTMuOHptLTQ1NS4xLTE1MS40YzExLjkgMjAuNSAyNy42IDM4LjMgNDYuMyA1Mi43IDE4LjggMTQuNCA0MC4xIDI0LjkgNjIuOSAzMXM0Ni42IDcuNyA3MCA0LjYgNDUuOS0xMC43IDY2LjQtMjIuNWwxOTMuMi0xMTEuNS41LS41cS4yLS4yLjMtLjYuMi0uMy4zLS42di05NGwtMjMzLjIgMTM0LjljLTIuNCAxLjQtNC45IDIuNC03LjUgMy4yLTIuNy43LTUuNCAxLTguMiAxLTIuNyAwLTUuNC0uMy04LjEtMS0yLjYtLjgtNS4yLTEuOC03LjYtMy4ybC0xOTEuMS0xMTAuNGMtMS43LTEtNC4yLTIuNS01LjYtMy40LTEuOCAxMC4zLTIuNyAyMC43LTIuNyAzMS4xczEgMjAuOCAyLjggMzEuMWMxLjggMTAuMiA0LjYgMjAuMyA4LjEgMzAuMSAzLjYgOS44IDggMTkuMiAxMy4yIDI4LjJ6bS01MC4yLTQxN2MtMTEuOCAyMC41LTE5LjQgNDMuMS0yMi41IDY2LjVzLTEuNSA0Ny4xIDQuNiA3MGM2LjEgMjIuOCAxNi42IDQ0LjEgMzEgNjIuOSAxNC40IDE4LjcgMzIuMyAzNC40IDUyLjcgNDYuMmwxOTMuMSAxMTEuNnEuMy4xLjcuMmguN3EuNCAwIC43LS4yLjMtLjEuNi0uM2w4MS00Ni44LTIzMy4yLTEzNC42Yy0yLjMtMS40LTQuNS0zLjEtNi41LTVhMzIuMSAzMi4xIDAgMCAxIC01LTYuNWMtMS4zLTIuNC0yLjQtNC45LTMuMS03LjYtLjctMi42LTEuMS01LjMtMS04LjF2LTIyNy4xYy05LjggMy42LTE5LjMgOC0yOC4zIDEzLjItOSA1LjMtMTcuNSAxMS4zLTI1LjUgMTgtNy45IDYuNy0xNS4zIDE0LjEtMjIgMjIuMS02LjcgNy45LTEyLjYgMTYuNS0xNy44IDI1LjV6bTY2My4zIDE1NC40YzIuNCAxLjQgNC42IDMgNi42IDUgMS45IDEuOSAzLjYgNC4xIDUgNi41IDEuMyAyLjQgMi40IDUgMy4xIDcuNi42IDIuNyAxIDUuNC45IDguMnYyMjcuMWMzMi4xLTExLjggNjAuMS0zMi41IDgwLjgtNTkuNyAyMC44LTI3LjIgMzMuMy01OS43IDM2LjItOTMuN3MtMy45LTY4LjItMTkuNy05OC41LTM5LjktNTUuNS02OS41LTcyLjVsLTE5My4xLTExMS42cS0uMy0uMS0uNy0uMmgtLjdxLS4zLjEtLjcuMi0uMy4xLS42LjNsLTgwLjYgNDYuNiAyMzMuMiAxMzQuN3ptODAuNS0xMjFoLS4xdi4xem0tLjEtLjFjNS44LTMzLjYgMS45LTY4LjItMTEuMy05OS43LTEzLjEtMzEuNS0zNS01OC42LTYzLTc4LjItMjgtMTkuNS02MS0zMC43LTk1LjEtMzIuMi0zNC4yLTEuNC02OCA2LjktOTcuNiAyMy45bC0xOTMuMSAxMTEuNXEtLjMuMi0uNS41bC0uNC42cS0uMS4zLS4yLjctLjEuMy0uMS43djkzLjJsMjMzLjItMTM0LjdjMi40LTEuNCA1LTIuNCA3LjYtMy4yIDIuNy0uNyA1LjQtMSA4LjEtMSAyLjggMCA1LjUuMyA4LjIgMSAyLjYuOCA1LjEgMS44IDcuNSAzLjJsMTkxLjEgMTEwLjRjMS43IDEgNC4yIDIuNCA1LjYgMy4zem0tNTA1LjMtMTAzLjJjMC0yLjcuNC01LjQgMS4xLTguMS43LTIuNiAxLjctNS4yIDMuMS03LjYgMS40LTIuMyAzLTQuNSA1LTYuNSAxLjktMS45IDQuMS0zLjYgNi41LTQuOWwxOTEuMS0xMTAuM2MxLjgtMS4xIDQuMy0yLjUgNS43LTMuMi0yNi4yLTIxLjktNTguMi0zNS45LTkyLjEtNDAuMi0zMy45LTQuNC02OC4zIDEtOTkuMiAxNS41LTMxIDE0LjUtNTcuMiAzNy42LTc1LjUgNjYuNC0xOC4zIDI4LjktMjggNjIuMy0yOCA5Ni41djIyM3EuMS40LjIuNy4xLjMuMy42LjIuMy41LjYuMi4yLjYuNGw4MC43IDQ2LjZ6bTQzLjggMjk0LjcgMTAzLjkgNjAgMTAzLjktNjB2LTExOS45bC0xMDMuOC02MC0xMDMuOSA2MHoiLz48L3N2Zz4=" style="width:22px;height:22px" alt=""> OpenAI</div>
+    <div class="provider-chip" onclick="selectProvider(this,'deepseek')"><img src="data:image/svg+xml;base64,PHN2ZyBmaWxsPSIjNTc4NkZFIiByb2xlPSJpbWciIHZpZXdCb3g9IjAgMCAyNCAyNCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48dGl0bGU+RGVlcFNlZWs8L3RpdGxlPjxwYXRoIGQ9Ik0yMy43NDggNC42NTFjLS4yNTQtLjEyNC0uMzY0LjExMy0uNTEyLjIzMy0uMDUxLjA0LS4wOTQuMDktLjEzNy4xMzctLjM3Mi4zOTctLjgwNi42NTctMS4zNzMuNjI2LS44MjktLjA0Ni0xLjUzNy4yMTQtMi4xNjMuODQ4LS4xMzMtLjc4Mi0uNTc1LTEuMjQ4LTEuMjQ3LTEuNTQ4LS4zNTItLjE1NS0uNzA4LS4zMTEtLjk1NS0uNjUtLjE3Mi0uMjQtLjIxOS0uNTA5LS4zMDUtLjc3NC0uMDU1LS4xNi0uMTEtLjMyMy0uMjkzLS4zNS0uMi0uMDMxLS4yNzguMTM2LS4zNTYuMjc2LS4zMTMuNTcyLS40MzQgMS4yMDItLjQyMiAxLjg0LjAyNyAxLjQzNi42MzMgMi41OCAxLjgzOCAzLjM5My4xMzcuMDk0LjE3Mi4xODcuMTI5LjMyMy0uMDgyLjI4LS4xOC41NTMtLjI2Ni44MzMtLjA1NS4xNzktLjEzNy4yMTgtLjMyOC4xNGE1LjUgNS41IDAgMCAxLTEuNzM3LTEuMTc5Yy0uODU3LS44MjgtMS42MzEtMS43NDMtMi41OTctMi40NmExMiAxMiAwIDAgMC0uNjg5LS40N2MtLjk4NS0uOTU3LjEzLTEuNzQzLjM4Ny0xLjgzNi4yNy0uMDk4LjA5NC0uNDMzLS43NzgtLjQyOC0uODcyLjAwMy0xLjY3LjI5NS0yLjY4Ny42ODVhMyAzIDAgMCAxLS40NjUuMTM2IDkuNiA5LjYgMCAwIDAtMi44ODMtLjEwMWMtMS44ODUuMjEtMy4zOSAxLjEtNC40OTcgMi42MjJDLjA4MiA4Ljc3Ni0uMjMxIDEwLjg1NC4xNTIgMTMuMDJjLjQwMyAyLjI4NCAxLjU2OCA0LjE3NSAzLjM2IDUuNjUzIDEuODU3IDEuNTMzIDMuOTk3IDIuMjg0IDYuNDM4IDIuMTQgMS40ODItLjA4NSAzLjEzMi0uMjg0IDQuOTk0LTEuODYuNDcuMjM0Ljk2Mi4zMjggMS43OC4zOTguNjI5LjA1OCAxLjIzNS0uMDMxIDEuNzA1LS4xMjkuNzM1LS4xNTUuNjg0LS44MzYuNDE4LS45NjEtMi4xNTUtMS4wMDQtMS42ODItLjU5NS0yLjExMi0uOTI2IDEuMDk1LTEuMjk1IDIuNzY4LTMuNTk4IDMuMjg0LTYuNzMzLjA1LS4zNDYuMTE1LS44MzQuMTA4LTEuMTE0LS4wMDQtLjE3MS4wMzUtLjIzOC4yMy0uMjU3YTQuMiA0LjIgMCAwIDAgMS41NDUtLjQ3NWMxLjM5Ny0uNzYzIDEuOTYtMi4wMTYgMi4wOTMtMy41MTcuMDItLjIzLS4wMDQtLjQ2Ny0uMjQ3LS41ODhNMTEuNTggMTguMTY4Yy0yLjA4OC0xLjY0Mi0zLjEwMS0yLjE4My0zLjUyLTIuMTYtLjM5LjAyNC0uMzIuNDcyLS4yMzQuNzYzLjA5LjI4OC4yMDcuNDg3LjM3MS43NC4xMTQuMTY3LjE5Mi40MTYtLjExMy42MDMtLjY3My40MTYtMS44NDItLjE0LTEuODk3LS4xNjgtMS4zNjEtLjgwMS0yLjUtMS44Ni0zLjMwMS0zLjMwNi0uNzc1LTEuMzkzLTEuMjI1LTIuODg4LTEuMjk5LTQuNDgyLS4wMi0uMzg1LjA5NC0uNTIyLjQ3Ny0uNTkyYTQuNyA0LjcgMCAwIDEgMS41My0uMDM4YzIuMTMxLjMxMSAzLjk0NiAxLjI2NCA1LjQ2NyAyLjc3NC44NjguODYgMS41MjUgMS44ODcgMi4yMDIgMi44OS43MiAxLjA2NiAxLjQ5NCAyLjA4MiAyLjQ4IDIuOTE1LjM0OC4yOTEuNjI2LjUxMy44OTIuNjc3LS44MDIuMDktMi4xNC4xMDktMy4wNTUtLjYxNXptMS4wMDEtNi40NGEuMzA2LjMwNiAwIDAgMSAuNDE1LS4yODcuMy4zIDAgMCAxIC4xMTMuMDc0LjMuMyAwIDAgMSAuMDg2LjIxNGMwIC4xNy0uMTM2LjMwNy0uMzA4LjMwN2EuMzAzLjMwMyAwIDAgMS0uMzA2LS4zMDdtMy4xMSAxLjU5NmMtLjIuMDgxLS40LjE1MS0uNTkxLjE2YTEuMjUgMS4yNSAwIDAgMS0uNzk4LS4yNTRjLS4yNzQtLjIzLS40Ny0uMzU4LS41NTEtLjc1OGExLjcgMS43IDAgMCAxIC4wMTUtLjU4OGMuMDctLjMyNy0uMDA3LS41MzctLjIzOC0uNzI3LS4xODgtLjE1Ni0uNDI2LS4xOTktLjY4OS0uMTk5YS42LjYgMCAwIDEtLjI1NC0uMDc4LjI1My4yNTMgMCAwIDEtLjExNC0uMzU4IDEgMSAwIDAgMSAuMTkyLS4yMWMuMzU2LS4yMDIuNzY3LS4xMzYgMS4xNDYuMDE2LjM1Mi4xNDQuNjE4LjQwOCAxLjAwMS43ODIuMzkyLjQ1MS40NjIuNTc2LjY4NS45MTUuMTc2LjI2NC4zMzYuNTM2LjQ0Ni44NDguMDY2LjE5NC0uMDIuMzUzLS4yNS40NSIvPjwvc3ZnPg==" style="width:22px;height:22px" alt=""> DeepSeek</div>
+    <div class="provider-chip" onclick="selectProvider(this,'xiaomi')"><img src="data:image/svg+xml;base64,PHN2ZyBmaWxsPSIjRkY2OTAwIiByb2xlPSJpbWciIHZpZXdCb3g9IjAgMCAyNCAyNCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48dGl0bGU+WGlhb21pPC90aXRsZT48cGF0aCBkPSJNMTIgMEM4LjAxNiAwIDQuNzU2LjI1NSAyLjQ5MyAyLjUxNi4yMyA0Ljc3NiAwIDguMDMzIDAgMTIuMDEyYzAgMy45OC4yMyA3LjIzNSAyLjQ5NCA5LjQ5N0M0Ljc1NyAyMy43NyA4LjAxNyAyNCAxMiAyNGMzLjk4MyAwIDcuMjQzLS4yMyA5LjUwNi0yLjQ5MUMyMy43NyAxOS4yNDcgMjQgMTUuOTkgMjQgMTIuMDEyYzAtMy45ODQtLjIzMy03LjI0My0yLjUwMi05LjUwNEMxOS4yMzQuMjUyIDE1Ljk3OCAwIDEyIDB6TTQuOTA2IDcuNDA1aDUuNjI0YzEuNDcgMCAzLjAwNy4wNjggMy43NjQuODI3Ljc0Ni43NDYuODI3IDIuMjMzLjgzIDMuNjc2djQuNTRhLjE1LjE1IDAgMCAxLS4xNTIuMTQ3aC0xLjk0N2EuMTUuMTUgMCAwIDEtLjE1Mi0uMTQ4VjExLjgzYy0uMDAyLS44MDYtLjA0OC0xLjYzNC0uNDY0LTIuMDUxLS4zNTgtLjM2LTEuMDI2LS40NDEtMS43Mi0uNDU4SDcuMTU4YS4xNS4xNSAwIDAgMC0uMTUxLjE0N3Y2Ljk4YS4xNS4xNSAwIDAgMS0uMTUyLjE0OEg0LjkwNmEuMTUuMTUgMCAwIDEtLjE1LS4xNDhWNy41NTRhLjE1LjE1IDAgMCAxIC4xNS0uMTQ5em0xMi4xMzEgMGgxLjk0OWEuMTUuMTUgMCAwIDEgLjE1LjE1djguODkyYS4xNS4xNSAwIDAgMS0uMTUuMTQ4aC0xLjk0OWEuMTUuMTUgMCAwIDEtLjE1MS0uMTQ4VjcuNTU0YS4xNS4xNSAwIDAgMSAuMTUxLS4xNDl6TTguOTIgMTAuOTQ4aDIuMDQ2Yy4wODMgMCAuMTUuMDY2LjE1LjE0N3Y1LjM1MmEuMTUuMTUgMCAwIDEtLjE1LjE0OEg4LjkyYS4xNS4xNSAwIDAgMS0uMTUyLS4xNDh2LTUuMzUyYS4xNS4xNSAwIDAgMSAuMTUyLS4xNDdaIi8+PC9zdmc+" style="width:22px;height:22px" alt=""> MiMo</div>
+    <div class="provider-chip" data-i18n-prov="prov-tongyi" onclick="selectProvider(this,'qwen')"><img src="data:image/svg+xml;base64,PHN2ZyBmaWxsPSIjNjk1MEVGIiByb2xlPSJpbWciIHZpZXdCb3g9IjAgMCAyNCAyNCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48dGl0bGU+UVdlbjwvdGl0bGU+PHBhdGggZD0iTTIzLjkxOSAxNC41NDUgMjAuODE3IDkuMTdsMS40Ny0yLjU0NGEuNTYuNTYgMCAwIDAgMC0uNTY2bC0xLjYzMy0yLjgzYS41Ny41NyAwIDAgMC0uNDktLjI4M2gtNi4yMDdMMTIuNDg3LjQwMmEuNTcuNTcgMCAwIDAtLjQ5LS4yODRIOC43MzJhLjU2LjU2IDAgMCAwLS40OS4yODRMNS4xMzkgNS43NzVoLTIuOTRhLjU2LjU2IDAgMCAwLS40OS4yODRMLjA3NyA4Ljg4N2EuNTYuNTYgMCAwIDAgMCAuNTY3TDMuMTggMTQuODNsLTEuNDcgMi41NDVhLjU2LjU2IDAgMCAwIDAgLjU2NmwxLjYzNCAyLjgzYS41Ny41NyAwIDAgMCAuNDkuMjgzaDYuMjA1bDEuNDcgMi41NDVhLjU3LjU3IDAgMCAwIC40OS4yODRoMy4yNjZhLjU3LjU3IDAgMCAwIC40OS0uMjg0bDMuMTA0LTUuMzc1aDIuOTRhLjU3LjU3IDAgMCAwIC40OS0uMjgzbDEuNjM0LTIuODI4YS41NS41NSAwIDAgMC0uMDA0LS41NjhNOC43MzMuNjg2bDEuNjM0IDIuODI4LTEuNjM0IDIuODI4SDIxLjhMMjAuMTY0IDkuMTdINy40MjVMNS42MyA2LjA2Wm0xLjMwNiAxOS44MDEtNi4yMDUtLjAwMiAxLjYzNC0yLjgzaDMuMjY1TDIuMjAxIDYuMzQ0aDMuMjY3cTMuMTgyIDUuNTE3IDYuMzY3IDExLjAzMnptMTAuMTI0LTUuNjZMMTguNTMgMTJsLTYuNTMyIDExLjMxNS0xLjYzNC0yLjgzYzIuMTI5LTMuNjczIDQuMjUtNy4zNTEgNi4zNzMtMTEuMDI4aDMuNTkybDMuMTAyIDUuMzc0eiIvPjwvc3ZnPg==" style="width:22px;height:22px" alt=""> 通义</div>
+    <div class="provider-chip" data-i18n-prov="prov-zhipu" onclick="selectProvider(this,'zhipu')"><img src="data:image/png;base64,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" style="width:22px;height:22px" alt=""> 智谱</div>
+    <div class="provider-chip" onclick="selectProvider(this,'moonshot')"><img src="data:image/svg+xml;base64,PHN2ZyBmaWxsPSIjMDAwMDAwIiByb2xlPSJpbWciIHZpZXdCb3g9IjAgMCAyNCAyNCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48dGl0bGU+TW9vbnNob3QgQUk8L3RpdGxlPjxwYXRoIGQ9Im0xLjA1MyAxNi45MSA5LjUzOCAyLjU1YTIxIDIwLjk4MSAwIDAgMCAuMDYgMi4wMzFsNS45NTYgMS41OTJhMTIgMTEuOTkgMCAwIDEtMTUuNTU0LTYuMTcybS0xLjAyLTUuNzkgMTEuMzUyIDMuMDM1YTIxIDIwLjk4MSAwIDAgMC0uNDY5IDIuMDFsMTAuODE3IDIuODlhMTIgMTEuOTkgMCAwIDEtMS44NDUgMi4wMDRMLjY1OCAxNS45MThhMTIgMTEuOTkgMCAwIDEtLjYyNS00Ljc5Nm0xLjU5My01LjE0NkwxMy41NzMgOS4xN2EyMSAyMC45ODEgMCAwIDAtMS4wMSAxLjg3NGwxMS4yOTcgMy4wMmEyMSAyMC45ODEgMCAwIDEtLjY3IDIuMzYybC0xMS41NS0zLjA4N0wuMTI1IDEwLjI2YTEyIDExLjk5IDAgMCAxIDEuNDk5LTQuMjg1Wk02LjA2NyAxLjU4bDExLjI4NSAzLjAxNmEyMSAyMC45ODEgMCAwIDAtMS42ODggMS43MTlsNy44MjQgMi4wOTFhMjEgMjAuOTgxIDAgMCAxIC41MTMgMi42NjRMMi4xMDcgNS4yMThhMTIgMTEuOTkgMCAwIDEgMy45Ni0zLjYzOE0yMS42OCA0Ljg2NiA3LjIyMiAxLjAwM0ExMiAxMS45OSAwIDAgMSAyMS42OCA0Ljg2NiIvPjwvc3ZnPg==" style="width:22px;height:22px" alt=""> Kimi</div>
+    <div class="provider-chip" onclick="selectProvider(this,'siliconflow')"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAABAUlEQVR4nO3VsU0DQRAF0P8NgYFkSyAFEkqBDtyBjwosOjjJBVh0AJ04g/BKuOQky7J3SAjQ7UHAzfgI/gsn+LtfWs0CIiIiIiJTYWR4ddM9ZGIDY/LIM+Bp/X5Zf5/NPIJ/komV1+UBgMCqPwstQMfLfynyQgucggpMTQV+Y7QUmQ8A50PD6m5/Dx7/fvgxJwOXZuXW8FYUWN52m5wPi3GxMf8jadv+rChgxoX7wcA2Ay9ns9yOCuquXvujwSfkjcbH9cdFE5F9ii3U1EGXB7RGp6cCUwsvQFobmV8WMHv2PMCAN8+8vsEvs7q2hPkujU7fzdu6YTs6R0RERETkX/oEmtg6iIB86yMAAAAASUVORK5CYII=" style="width:22px;height:22px" alt=""> SiliconFlow</div>
+    <div class="provider-chip" onclick="selectProvider(this,'openrouter')"><img src="data:image/svg+xml;base64,PHN2ZyBmaWxsPSIjOTRBM0I4IiByb2xlPSJpbWciIHZpZXdCb3g9IjAgMCAyNCAyNCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48dGl0bGU+T3BlblJvdXRlcjwvdGl0bGU+PHBhdGggZD0iTTE2Ljc3OCAxLjg0NHYxLjkxOXEtLjU2OS0uMDI2LTEuMTM4LS4wMzItLjcwOC0uMDA4LTEuNDE1LjAzN2MtMS45My4xMjYtNC4wMjMuNzI4LTYuMTQ5IDIuMjM3LTIuOTExIDIuMDY2LTIuNzMxIDEuOTUtNC4xNCAyLjc1LS4zOTYuMjIzLTEuMzQyLjU3NC0yLjE4NS43OTgtLjg0MS4yMjUtMS43NTMuMzMzLTEuNzUxLjMzM3Y0LjIyOXMuNzY4LjEwOCAxLjYxLjMzM2MuODQyLjIyNCAxLjc4OS41NzUgMi4xODUuNzk5IDEuNDEuNzk4IDEuMjI4LjY4MyA0LjE0IDIuNzUgMi4xMjYgMS41MDkgNC4yMiAyLjExIDYuMTQ4IDIuMjM2Ljg4LjA1OCAxLjcxNi4wNDEgMi41NTUuMDA1djEuOTE4bDcuMjIyLTQuMTY4LTcuMjIyLTQuMTd2Mi4xNzZjLS44Ni4wMzgtMS42MTEuMDY1LTIuMjc4LjAyMS0xLjM2NC0uMDktMi40MTctLjM1Ny0zLjk3OS0xLjQ2NS0yLjI0NC0xLjU5My0yLjg2Ni0yLjAyNy0zLjY4LTIuNTA4Ljg4OS0uNTE4IDEuNDQ5LS45MDYgMy44MjItMi41OSAxLjU2LTEuMTA5IDIuNjE0LTEuMzc3IDMuOTc4LTEuNDY2LjY2Ny0uMDQ0IDEuNDE4LS4wMTcgMi4yNzguMDJ2Mi4xNzZMMjQgNi4wMTRaIi8+PC9zdmc+" style="width:22px;height:22px" alt=""> OpenRouter</div>
+    <div class="provider-chip" onclick="selectProvider(this,'gemini')"><img src="data:image/svg+xml;base64,PHN2ZyBmaWxsPSIjOEU3NUIyIiByb2xlPSJpbWciIHZpZXdCb3g9IjAgMCAyNCAyNCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48dGl0bGU+R29vZ2xlIEdlbWluaTwvdGl0bGU+PHBhdGggZD0iTTExLjA0IDE5LjMyUTEyIDIxLjUxIDEyIDI0cTAtMi40OS45My00LjY4Ljk2LTIuMTkgMi41OC0zLjgxdDMuODEtMi41NVEyMS41MSAxMiAyNCAxMnEtMi40OSAwLTQuNjgtLjkzYTEyLjMgMTIuMyAwIDAgMS0zLjgxLTIuNTggMTIuMyAxMi4zIDAgMCAxLTIuNTgtMy44MVExMiAyLjQ5IDEyIDBxMCAyLjQ5LS45NiA0LjY4LS45MyAyLjE5LTIuNTUgMy44MWExMi4zIDEyLjMgMCAwIDEtMy44MSAyLjU4UTIuNDkgMTIgMCAxMnEyLjQ5IDAgNC42OC45NiAyLjE5LjkzIDMuODEgMi41NXQyLjU1IDMuODEiLz48L3N2Zz4=" style="width:22px;height:22px" alt=""> Gemini</div>
+    <div class="provider-chip" onclick="selectProvider(this,'grok')"><img src="data:image/svg+xml;base64,PHN2ZyBoZWlnaHQ9IjIzNDQiIHZpZXdCb3g9IjAgMSA0OCA0NiIgd2lkdGg9IjI1MDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0ibTE4LjU0MiAzMC41MzIgMTUuOTU2LTExLjc3NmMuNzgzLS41NzYgMS45MDItLjM1NCAyLjI3NC41NDUgMS45NjIgNC43MjggMS4wODQgMTAuNDExLTIuODE5IDE0LjMxNS0zLjkwMyAzLjkwMS05LjMzMyA0Ljc1Ni0xNC4yOTkgMi44MDhsLTUuNDIzIDIuNTExYzcuNzc4IDUuMzE1IDE3LjIyNCA0IDIzLjEyNS0xLjkwMyA0LjY4Mi00LjY3OSA2LjEzMS0xMS4wNTggNC43NzUtMTYuODEybC4wMTEuMDExYy0xLjk2Ni04LjQ1Mi40ODItMTEuODI5IDUuNTAxLTE4LjczNS4xMTYtLjE2NC4yMzctLjMzLjM1Ny0uNDk2bC02LjYwMiA2LjU5OXYtLjAyMmwtMjIuODYgMjIuOTU4bS0zLjI5IDIuODU3Yy01LjU4Mi01LjMyOS00LjYxOS0xMy41NzkuMTQyLTE4LjMzOSAzLjUyMS0zLjUyMiA5LjI5NC00Ljk1OCAxNC4zMzEtMi44NDdsNS40MTItMi40OTdjLS45NzQtLjcwNC0yLjIyNC0xLjQ2LTMuNjU5LTEuOTk0LTYuNDc4LTIuNjY2LTE0LjIzOC0xLjM0LTE5LjUwNSAzLjkyMi01LjA2NSA1LjA2NC02LjY1OSAxMi44NTEtMy45MjQgMTkuNDk2IDIuMDQ0IDQuOTY1LTEuMzA3IDguNDgtNC42ODIgMTIuMDIzLTEuMTk5IDEuMjU1LTIuMzk2IDIuNTE0LTMuMzYzIDMuODQ0bDE1LjI0MS0xMy42MDgiLz48L3N2Zz4=" style="width:22px;height:22px" alt=""> Grok</div>
+    <div class="provider-chip" onclick="selectProvider(this,'custom')"><svg class="ic" style="width:22px;height:22px"><use href="#ic-logo"/></svg> 自定义</div>
+  </div></div>
+  <div class="form-row" id="customUrlRow" style="display:none"><div class="form-label" data-i18n="mod-api-url">Base URL</div><input class="form-input" id="apiBaseUrl" placeholder="https://api.example.com/v1"></div>
+  <div class="form-row"><div class="form-label" data-i18n="form-api-key-label">API Key</div><div class="test-row"><input class="form-input" id="apiKey" type="password" placeholder="sk-..."><button class="btn-test" data-i18n="form-api-test" onclick="testApi()">测试</button></div><div class="test-result" id="testResult"></div></div>
+  <div class="form-row"><div class="form-label" data-i18n="form-api-model-label">模型</div><input class="form-input" id="apiModel" data-i18n-ph="form-api-model-ph" placeholder="留空使用默认"></div>
+  <div class="modal-footer"><button class="btn-cancel" data-i18n="form-cancel" onclick="closeModal('apiModal')">取消</button><button class="btn-confirm" data-i18n="form-save" onclick="saveApi()">保存 ✓</button></div>
+</div></div>
+<div class="modal-overlay" id="settingsModal"><div class="modal" style="width:min(520px,94vw)">
+  <div class="modal-title" data-i18n="mod-settings"><svg class="ic" style="width:20px;height:20px"><use href="#ic-logo"/></svg> 设置</div><div class="modal-sub" data-i18n="mod-settings-sub">语言、API 和主题设置</div>
+  <div class="settings-tabs">
+    <button class="settings-tab active" onclick="openSettingsTab('lang',this)">语言/Language</button>
+    <button class="settings-tab" onclick="openSettingsTab('api',this)">API</button>
+    <button class="settings-tab" onclick="openSettingsTab('theme',this)">主题/Theme</button>
+  </div>
+  <div id="settingsTab-lang">
+    <div class="lang-grid">
+      <div class="lang-card active" onclick="settingsSetLang('zh',this)">🇨🇳 中文</div>
+      <div class="lang-card" onclick="settingsSetLang('en',this)">🇺🇸 English</div>
+      <div class="lang-card" onclick="settingsSetLang('ja',this)">🇯🇵 日本語</div>
+      <div class="lang-card" onclick="settingsSetLang('ko',this)">🇰🇷 한국어</div>
+      <div class="lang-card" onclick="settingsSetLang('fr',this)">🇫🇷 Français</div>
+      <div class="lang-card" onclick="settingsSetLang('es',this)">🇪🇸 Español</div>
+      <div class="lang-card" onclick="settingsSetLang('de',this)">🇩🇪 Deutsch</div>
+      <div class="lang-card" onclick="settingsSetLang('ru',this)">🇷🇺 Русский</div>
+    </div>
+  </div>
+  <div id="settingsTab-api" style="display:none">
+    <div class="form-row"><div class="form-label" data-i18n="form-api-provider">选择服务商</div><div class="provider-grid" id="sProviderGrid">
+      <div class="provider-chip on" onclick="selectProvider(this,'claude')"><img src="data:image/svg+xml;base64,PHN2ZyBmaWxsPSIjRDk3NzU3IiByb2xlPSJpbWciIHZpZXdCb3g9IjAgMCAyNCAyNCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48dGl0bGU+Q2xhdWRlPC90aXRsZT48cGF0aCBkPSJtNC43MTQ0IDE1Ljk1NTUgNC43MTc0LTIuNjQ3MS4wNzktLjIzMDctLjA3OS0uMTI3NWgtLjIzMDdsLS43ODkzLS4wNDg2LTIuNjk1Ni0uMDcyOS0yLjMzNzUtLjA5NzEtMi4yNjQ2LS4xMjE0LS41NzA3LS4xMjE1LS41MzQzLS43MDQyLjA1NDYtLjM1MjIuNDc5Ny0uMzIxOC42ODYuMDYwOCAxLjUxNzkuMTAzMiAyLjI3NjcuMTU3OCAxLjY1MTQuMDk3MiAyLjQ0NjguMjU1aC4zODg2bC4wNTQ2LS4xNTc5LS4xMzM2LS4wOTcxLS4xMDMyLS4wOTcyTDYuOTczIDkuODM1NmwtMi41NS0xLjY4NzktMS4zMzU2LS45NzE0LS43MjI1LS40OTE4LS4zNjQzLS40NjE0LS4xNTc4LTEuMDA3OC42NTU3LS43MjI1Ljg4MDMuMDYwNy4yMjQ2LjA2MDcuODkyNS42ODYgMS45MDY0IDEuNDc1NCAyLjQ4OTMgMS44MzM2LjM2NDMuMzAzNS4xNDU3LS4xMDMyLjAxODItLjA3MjgtLjE2NC0uMjczMy0xLjM1MzktMi40NDY3LTEuNDQ1LTIuNDg5My0uNjQzNS0xLjAzMi0uMTctLjYxOTRjLS4wNjA3LS4yNTUtLjEwMzItLjQ2NzQtLjEwMzItLjcyODVMNi4yODcuMTMzNSA2LjY5OTcgMGwuOTk1Ny4xMzM2LjQxOS4zNjQyLjYxOTIgMS40MTQ3IDEuMDAxOCAyLjIyODIgMS41NTQzIDMuMDI5Ni40NTUzLjg5ODUuMjQyOS44MzE4LjA5MS4yNTVoLjE1Nzl2LS4xNDU3bC4xMjc1LTEuNzA2LjIzNjgtMi4wOTQ3LjIzMDctMi42OTU3LjA3ODktLjc1ODkuMzc2NC0uOTEwNy43NDY4LS40OTE4LjU4MjguMjc5My40Nzk3LjY4Ni0uMDY2OC40NDMzLS4yODUzIDEuODUxNy0uNTU4NiAyLjkwMjEtLjM2NDMgMS45NDI5aC4yMTI1bC4yNDI5LS4yNDI5Ljk4MzUtMS4zMDUzIDEuNjUxNC0yLjA2NDMuNzI4Ni0uODE5Ni44NS0uOTA0Ni41NDY0LS40MzExaDEuMDMyMWwuNzU5IDEuMTI5My0uMzQgMS4xNjU3LTEuMDYyNSAxLjM0NzgtLjg4MDQgMS4xNDE0LTEuMjYyOCAxLjctLjc4OTMgMS4zNi4wNzI5LjEwOTMuMTg4Mi0uMDE4MyAyLjg1MzUtLjYwNyAxLjU0MjEtLjI3OTQgMS44Mzk2LS4zMTU3LjgzMTguMzg4Ni4wOTEuMzk0Ni0uMzI3OC44MDc1LTEuOTY3LjQ4NTctMi4zMDcyLjQ2MTQtMy40MzY0LjgxMzYtLjA0MjUuMDMwNC4wNDg2LjA2MDcgMS41NDgyLjE0NTcuNjYxOC4wMzY0aDEuNjIxbDMuMDE3NS4yMjQ3Ljc4OTIuNTIyLjQ3MzYuNjM3Ni0uMDc5LjQ4NTctMS4yMTQyLjYxOTMtMS42MzkzLS4zODg2LTMuODI1LS45MTA3LTEuMzExMy0uMzI3OWgtLjE4MjJ2LjEwOTNsMS4wOTI5IDEuMDY4NiAyLjAwMzUgMS44MDkyIDIuNTA3NSAyLjMzMTQuMTI3NS41NzY4LS4zMjE4LjQ1NTQtLjM0LS4wNDg2LTIuMjAzOS0xLjY1NzUtLjg1LS43NDY4LTEuOTI0Ni0xLjYyMWgtLjEyNzV2LjE3bC40NDMyLjY0OTYgMi4zNDM2IDMuNTIxNC4xMjE0IDEuMDgwNy0uMTcuMzUyMS0uNjA3MS4yMTI1LS42Njc5LS4xMjE0LTEuMzcyMS0xLjkyNDZMMTQuMzggMTcuOTU5bC0xLjE0MTQtMS45NDI4LS4xMzk3LjA3OS0uNjc0IDcuMjU1Mi0uMzE1Ni4zNzAzLS43Mjg2LjI3OTMtLjYwNzEtLjQ2MTQtLjMyMTgtLjc0NjguMzIxOC0xLjQ3NTMuMzg4Ni0xLjkyNDYuMzE1Ny0xLjUzLjI4NTMtMS45MDA0LjE3LS42MzE0LS4wMTIxLS4wNDI1LS4xMzk3LjAxODItMS40MzI4IDEuOTY3Mi0yLjE3OTYgMi45NDQ2LTEuNzI0MyAxLjg0NTYtLjQxMjguMTY0LS43MTY0LS4zNzA0LjA2NjctLjY2MTguNDAwOC0uNTg4OSAyLjM4Ni0zLjAzNTcgMS40Mzg5LTEuODgyLjkyOS0xLjA4NjgtLjAwNjItLjE1NzloLS4wNTQ2bC02LjMzODUgNC4xMTY0LTEuMTI5My4xNDU3LS40ODU3LS40NTU0LjA2MDgtLjc0NjcuMjMwNy0uMjQyOSAxLjkwNjQtMS4zMTE0WiIvPjwvc3ZnPg==" style="width:22px;height:22px" alt=""> Claude</div>
+      <div class="provider-chip" onclick="selectProvider(this,'openai')"><img src="data:image/svg+xml;base64,PHN2ZyBoZWlnaHQ9IjI1MDAiIHZpZXdCb3g9Ii0xIC0uMSA5NDkuMSA5NTkuOCIgd2lkdGg9IjI0NzQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0ibTkyNS44IDQ1Ni4zYzEwLjQgMjMuMiAxNyA0OCAxOS43IDczLjMgMi42IDI1LjMgMS4zIDUwLjktNC4xIDc1LjgtNS4zIDI0LjktMTQuNSA0OC44LTI3LjMgNzAuOC04LjQgMTQuNy0xOC4zIDI4LjUtMjkuNyA0MS4yLTExLjMgMTIuNi0yMy45IDI0LTM3LjYgMzQtMTMuOCAxMC0yOC41IDE4LjQtNDQuMSAyNS4zLTE1LjUgNi44LTMxLjcgMTItNDguMyAxNS40LTcuOCAyNC4yLTE5LjQgNDcuMS0zNC40IDY3LjctMTQuOSAyMC42LTMzIDM4LjctNTMuNiA1My42LTIwLjYgMTUtNDMuNCAyNi42LTY3LjYgMzQuNC0yNC4yIDcuOS00OS41IDExLjgtNzUgMTEuOC0xNi45LjEtMzMuOS0xLjctNTAuNS01LjEtMTYuNS0zLjUtMzIuNy04LjgtNDguMi0xNS43cy0zMC4yLTE1LjUtNDMuOS0yNS41Yy0xMy42LTEwLTI2LjItMjEuNS0zNy40LTM0LjItMjUgNS40LTUwLjYgNi43LTc1LjkgNC4xLTI1LjMtMi43LTUwLjEtOS4zLTczLjQtMTkuNy0yMy4yLTEwLjMtNDQuNy0yNC4zLTYzLjYtNDEuNHMtMzUtMzcuMS00Ny43LTU5LjFjLTguNS0xNC43LTE1LjUtMzAuMi0yMC44LTQ2LjNzLTguOC0zMi43LTEwLjYtNDkuNmMtMS44LTE2LjgtMS43LTMzLjguMS01MC43IDEuOC0xNi44IDUuNS0zMy40IDEwLjgtNDkuNS0xNy0xOC45LTMxLTQwLjQtNDEuNC02My42LTEwLjMtMjMuMy0xNy00OC0xOS42LTczLjMtMi43LTI1LjMtMS4zLTUwLjkgNC03NS44czE0LjUtNDguOCAyNy4zLTcwLjhjOC40LTE0LjcgMTguMy0yOC42IDI5LjYtNDEuMnMyNC0yNCAzNy43LTM0IDI4LjUtMTguNSA0NC0yNS4zYzE1LjYtNi45IDMxLjgtMTIgNDguNC0xNS40IDcuOC0yNC4zIDE5LjQtNDcuMSAzNC4zLTY3LjcgMTUtMjAuNiAzMy4xLTM4LjcgNTMuNy01My43IDIwLjYtMTQuOSA0My40LTI2LjUgNjcuNi0zNC40IDI0LjItNy44IDQ5LjUtMTEuOCA3NS0xMS43IDE2LjktLjEgMzMuOSAxLjYgNTAuNSA1LjFzMzIuOCA4LjcgNDguMyAxNS42YzE1LjUgNyAzMC4yIDE1LjUgNDMuOSAyNS41IDEzLjcgMTAuMSAyNi4zIDIxLjUgMzcuNSAzNC4yIDI0LjktNS4zIDUwLjUtNi42IDc1LjgtNHM1MCA5LjMgNzMuMyAxOS42YzIzLjIgMTAuNCA0NC43IDI0LjMgNjMuNiA0MS40IDE4LjkgMTcgMzUgMzYuOSA0Ny43IDU5IDguNSAxNC42IDE1LjUgMzAuMSAyMC44IDQ2LjMgNS4zIDE2LjEgOC45IDMyLjcgMTAuNiA0OS42IDEuOCAxNi45IDEuOCAzMy45LS4xIDUwLjgtMS44IDE2LjktNS41IDMzLjUtMTAuOCA0OS42IDE3LjEgMTguOSAzMSA0MC4zIDQxLjQgNjMuNnptLTMzMy4yIDQyNi45YzIxLjgtOSA0MS42LTIyLjMgNTguMy0zOXMzMC0zNi41IDM5LTU4LjRjOS0yMS44IDEzLjctNDUuMiAxMy43LTY4Ljh2LTIyM3EtLjEtLjMtLjItLjctLjEtLjMtLjMtLjYtLjItLjMtLjUtLjUtLjMtLjMtLjYtLjRsLTgwLjctNDYuNnYyNjkuNGMwIDIuNy0uNCA1LjUtMS4xIDguMS0uNyAyLjctMS43IDUuMi0zLjEgNy42cy0zIDQuNi01IDYuNWEzMi4xIDMyLjEgMCAwIDEgLTYuNSA1bC0xOTEuMSAxMTAuM2MtMS42IDEtNC4zIDIuNC01LjcgMy4yIDcuOSA2LjcgMTYuNSAxMi42IDI1LjUgMTcuOCA5LjEgNS4yIDE4LjUgOS42IDI4LjMgMTMuMiA5LjggMy41IDE5LjkgNi4yIDMwLjEgOCAxMC4zIDEuOCAyMC43IDIuNyAzMS4xIDIuNyAyMy42IDAgNDctNC43IDY4LjgtMTMuOHptLTQ1NS4xLTE1MS40YzExLjkgMjAuNSAyNy42IDM4LjMgNDYuMyA1Mi43IDE4LjggMTQuNCA0MC4xIDI0LjkgNjIuOSAzMXM0Ni42IDcuNyA3MCA0LjYgNDUuOS0xMC43IDY2LjQtMjIuNWwxOTMuMi0xMTEuNS41LS41cS4yLS4yLjMtLjYuMi0uMy4zLS42di05NGwtMjMzLjIgMTM0LjljLTIuNCAxLjQtNC45IDIuNC03LjUgMy4yLTIuNy43LTUuNCAxLTguMiAxLTIuNyAwLTUuNC0uMy04LjEtMS0yLjYtLjgtNS4yLTEuOC03LjYtMy4ybC0xOTEuMS0xMTAuNGMtMS43LTEtNC4yLTIuNS01LjYtMy40LTEuOCAxMC4zLTIuNyAyMC43LTIuNyAzMS4xczEgMjAuOCAyLjggMzEuMWMxLjggMTAuMiA0LjYgMjAuMyA4LjEgMzAuMSAzLjYgOS44IDggMTkuMiAxMy4yIDI4LjJ6bS01MC4yLTQxN2MtMTEuOCAyMC41LTE5LjQgNDMuMS0yMi41IDY2LjVzLTEuNSA0Ny4xIDQuNiA3MGM2LjEgMjIuOCAxNi42IDQ0LjEgMzEgNjIuOSAxNC40IDE4LjcgMzIuMyAzNC40IDUyLjcgNDYuMmwxOTMuMSAxMTEuNnEuMy4xLjcuMmguN3EuNCAwIC43LS4yLjMtLjEuNi0uM2w4MS00Ni44LTIzMy4yLTEzNC42Yy0yLjMtMS40LTQuNS0zLjEtNi41LTVhMzIuMSAzMi4xIDAgMCAxIC01LTYuNWMtMS4zLTIuNC0yLjQtNC45LTMuMS03LjYtLjctMi42LTEuMS01LjMtMS04LjF2LTIyNy4xYy05LjggMy42LTE5LjMgOC0yOC4zIDEzLjItOSA1LjMtMTcuNSAxMS4zLTI1LjUgMTgtNy45IDYuNy0xNS4zIDE0LjEtMjIgMjIuMS02LjcgNy45LTEyLjYgMTYuNS0xNy44IDI1LjV6bTY2My4zIDE1NC40YzIuNCAxLjQgNC42IDMgNi42IDUgMS45IDEuOSAzLjYgNC4xIDUgNi41IDEuMyAyLjQgMi40IDUgMy4xIDcuNi42IDIuNyAxIDUuNC45IDguMnYyMjcuMWMzMi4xLTExLjggNjAuMS0zMi41IDgwLjgtNTkuNyAyMC44LTI3LjIgMzMuMy01OS43IDM2LjItOTMuN3MtMy45LTY4LjItMTkuNy05OC41LTM5LjktNTUuNS02OS41LTcyLjVsLTE5My4xLTExMS42cS0uMy0uMS0uNy0uMmgtLjdxLS4zLjEtLjcuMi0uMy4xLS42LjNsLTgwLjYgNDYuNiAyMzMuMiAxMzQuN3ptODAuNS0xMjFoLS4xdi4xem0tLjEtLjFjNS44LTMzLjYgMS45LTY4LjItMTEuMy05OS43LTEzLjEtMzEuNS0zNS01OC42LTYzLTc4LjItMjgtMTkuNS02MS0zMC43LTk1LjEtMzIuMi0zNC4yLTEuNC02OCA2LjktOTcuNiAyMy45bC0xOTMuMSAxMTEuNXEtLjMuMi0uNS41bC0uNC42cS0uMS4zLS4yLjctLjEuMy0uMS43djkzLjJsMjMzLjItMTM0LjdjMi40LTEuNCA1LTIuNCA3LjYtMy4yIDIuNy0uNyA1LjQtMSA4LjEtMSAyLjggMCA1LjUuMyA4LjIgMSAyLjYuOCA1LjEgMS44IDcuNSAzLjJsMTkxLjEgMTEwLjRjMS43IDEgNC4yIDIuNCA1LjYgMy4zem0tNTA1LjMtMTAzLjJjMC0yLjcuNC01LjQgMS4xLTguMS43LTIuNiAxLjctNS4yIDMuMS03LjYgMS40LTIuMyAzLTQuNSA1LTYuNSAxLjktMS45IDQuMS0zLjYgNi41LTQuOWwxOTEuMS0xMTAuM2MxLjgtMS4xIDQuMy0yLjUgNS43LTMuMi0yNi4yLTIxLjktNTguMi0zNS45LTkyLjEtNDAuMi0zMy45LTQuNC02OC4zIDEtOTkuMiAxNS41LTMxIDE0LjUtNTcuMiAzNy42LTc1LjUgNjYuNC0xOC4zIDI4LjktMjggNjIuMy0yOCA5Ni41djIyM3EuMS40LjIuNy4xLjMuMy42LjIuMy41LjYuMi4yLjYuNGw4MC43IDQ2LjZ6bTQzLjggMjk0LjcgMTAzLjkgNjAgMTAzLjktNjB2LTExOS45bC0xMDMuOC02MC0xMDMuOSA2MHoiLz48L3N2Zz4=" style="width:22px;height:22px" alt=""> OpenAI</div>
+      <div class="provider-chip" onclick="selectProvider(this,'deepseek')"><img src="data:image/svg+xml;base64,PHN2ZyBmaWxsPSIjNTc4NkZFIiByb2xlPSJpbWciIHZpZXdCb3g9IjAgMCAyNCAyNCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48dGl0bGU+RGVlcFNlZWs8L3RpdGxlPjxwYXRoIGQ9Ik0yMy43NDggNC42NTFjLS4yNTQtLjEyNC0uMzY0LjExMy0uNTEyLjIzMy0uMDUxLjA0LS4wOTQuMDktLjEzNy4xMzctLjM3Mi4zOTctLjgwNi42NTctMS4zNzMuNjI2LS44MjktLjA0Ni0xLjUzNy4yMTQtMi4xNjMuODQ4LS4xMzMtLjc4Mi0uNTc1LTEuMjQ4LTEuMjQ3LTEuNTQ4LS4zNTItLjE1NS0uNzA4LS4zMTEtLjk1NS0uNjUtLjE3Mi0uMjQtLjIxOS0uNTA5LS4zMDUtLjc3NC0uMDU1LS4xNi0uMTEtLjMyMy0uMjkzLS4zNS0uMi0uMDMxLS4yNzguMTM2LS4zNTYuMjc2LS4zMTMuNTcyLS40MzQgMS4yMDItLjQyMiAxLjg0LjAyNyAxLjQzNi42MzMgMi41OCAxLjgzOCAzLjM5My4xMzcuMDk0LjE3Mi4xODcuMTI5LjMyMy0uMDgyLjI4LS4xOC41NTMtLjI2Ni44MzMtLjA1NS4xNzktLjEzNy4yMTgtLjMyOC4xNGE1LjUgNS41IDAgMCAxLTEuNzM3LTEuMTc5Yy0uODU3LS44MjgtMS42MzEtMS43NDMtMi41OTctMi40NmExMiAxMiAwIDAgMC0uNjg5LS40N2MtLjk4NS0uOTU3LjEzLTEuNzQzLjM4Ny0xLjgzNi4yNy0uMDk4LjA5NC0uNDMzLS43NzgtLjQyOC0uODcyLjAwMy0xLjY3LjI5NS0yLjY4Ny42ODVhMyAzIDAgMCAxLS40NjUuMTM2IDkuNiA5LjYgMCAwIDAtMi44ODMtLjEwMWMtMS44ODUuMjEtMy4zOSAxLjEtNC40OTcgMi42MjJDLjA4MiA4Ljc3Ni0uMjMxIDEwLjg1NC4xNTIgMTMuMDJjLjQwMyAyLjI4NCAxLjU2OCA0LjE3NSAzLjM2IDUuNjUzIDEuODU3IDEuNTMzIDMuOTk3IDIuMjg0IDYuNDM4IDIuMTQgMS40ODItLjA4NSAzLjEzMi0uMjg0IDQuOTk0LTEuODYuNDcuMjM0Ljk2Mi4zMjggMS43OC4zOTguNjI5LjA1OCAxLjIzNS0uMDMxIDEuNzA1LS4xMjkuNzM1LS4xNTUuNjg0LS44MzYuNDE4LS45NjEtMi4xNTUtMS4wMDQtMS42ODItLjU5NS0yLjExMi0uOTI2IDEuMDk1LTEuMjk1IDIuNzY4LTMuNTk4IDMuMjg0LTYuNzMzLjA1LS4zNDYuMTE1LS44MzQuMTA4LTEuMTE0LS4wMDQtLjE3MS4wMzUtLjIzOC4yMy0uMjU3YTQuMiA0LjIgMCAwIDAgMS41NDUtLjQ3NWMxLjM5Ny0uNzYzIDEuOTYtMi4wMTYgMi4wOTMtMy41MTcuMDItLjIzLS4wMDQtLjQ2Ny0uMjQ3LS41ODhNMTEuNTggMTguMTY4Yy0yLjA4OC0xLjY0Mi0zLjEwMS0yLjE4My0zLjUyLTIuMTYtLjM5LjAyNC0uMzIuNDcyLS4yMzQuNzYzLjA5LjI4OC4yMDcuNDg3LjM3MS43NC4xMTQuMTY3LjE5Mi40MTYtLjExMy42MDMtLjY3My40MTYtMS44NDItLjE0LTEuODk3LS4xNjgtMS4zNjEtLjgwMS0yLjUtMS44Ni0zLjMwMS0zLjMwNi0uNzc1LTEuMzkzLTEuMjI1LTIuODg4LTEuMjk5LTQuNDgyLS4wMi0uMzg1LjA5NC0uNTIyLjQ3Ny0uNTkyYTQuNyA0LjcgMCAwIDEgMS41My0uMDM4YzIuMTMxLjMxMSAzLjk0NiAxLjI2NCA1LjQ2NyAyLjc3NC44NjguODYgMS41MjUgMS44ODcgMi4yMDIgMi44OS43MiAxLjA2NiAxLjQ5NCAyLjA4MiAyLjQ4IDIuOTE1LjM0OC4yOTEuNjI2LjUxMy44OTIuNjc3LS44MDIuMDktMi4xNC4xMDktMy4wNTUtLjYxNXptMS4wMDEtNi40NGEuMzA2LjMwNiAwIDAgMSAuNDE1LS4yODcuMy4zIDAgMCAxIC4xMTMuMDc0LjMuMyAwIDAgMSAuMDg2LjIxNGMwIC4xNy0uMTM2LjMwNy0uMzA4LjMwN2EuMzAzLjMwMyAwIDAgMS0uMzA2LS4zMDdtMy4xMSAxLjU5NmMtLjIuMDgxLS40LjE1MS0uNTkxLjE2YTEuMjUgMS4yNSAwIDAgMS0uNzk4LS4yNTRjLS4yNzQtLjIzLS40Ny0uMzU4LS41NTEtLjc1OGExLjcgMS43IDAgMCAxIC4wMTUtLjU4OGMuMDctLjMyNy0uMDA3LS41MzctLjIzOC0uNzI3LS4xODgtLjE1Ni0uNDI2LS4xOTktLjY4OS0uMTk5YS42LjYgMCAwIDEtLjI1NC0uMDc4LjI1My4yNTMgMCAwIDEtLjExNC0uMzU4IDEgMSAwIDAgMSAuMTkyLS4yMWMuMzU2LS4yMDIuNzY3LS4xMzYgMS4xNDYuMDE2LjM1Mi4xNDQuNjE4LjQwOCAxLjAwMS43ODIuMzkyLjQ1MS40NjIuNTc2LjY4NS45MTUuMTc2LjI2NC4zMzYuNTM2LjQ0Ni44NDguMDY2LjE5NC0uMDIuMzUzLS4yNS40NSIvPjwvc3ZnPg==" style="width:22px;height:22px" alt=""> DeepSeek</div>
+      <div class="provider-chip" onclick="selectProvider(this,'xiaomi')"><img src="data:image/svg+xml;base64,PHN2ZyBmaWxsPSIjRkY2OTAwIiByb2xlPSJpbWciIHZpZXdCb3g9IjAgMCAyNCAyNCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48dGl0bGU+WGlhb21pPC90aXRsZT48cGF0aCBkPSJNMTIgMEM4LjAxNiAwIDQuNzU2LjI1NSAyLjQ5MyAyLjUxNi4yMyA0Ljc3NiAwIDguMDMzIDAgMTIuMDEyYzAgMy45OC4yMyA3LjIzNSAyLjQ5NCA5LjQ5N0M0Ljc1NyAyMy43NyA4LjAxNyAyNCAxMiAyNGMzLjk4MyAwIDcuMjQzLS4yMyA5LjUwNi0yLjQ5MUMyMy43NyAxOS4yNDcgMjQgMTUuOTkgMjQgMTIuMDEyYzAtMy45ODQtLjIzMy03LjI0My0yLjUwMi05LjUwNEMxOS4yMzQuMjUyIDE1Ljk3OCAwIDEyIDB6TTQuOTA2IDcuNDA1aDUuNjI0YzEuNDcgMCAzLjAwNy4wNjggMy43NjQuODI3Ljc0Ni43NDYuODI3IDIuMjMzLjgzIDMuNjc2djQuNTRhLjE1LjE1IDAgMCAxLS4xNTIuMTQ3aC0xLjk0N2EuMTUuMTUgMCAwIDEtLjE1Mi0uMTQ4VjExLjgzYy0uMDAyLS44MDYtLjA0OC0xLjYzNC0uNDY0LTIuMDUxLS4zNTgtLjM2LTEuMDI2LS40NDEtMS43Mi0uNDU4SDcuMTU4YS4xNS4xNSAwIDAgMC0uMTUxLjE0N3Y2Ljk4YS4xNS4xNSAwIDAgMS0uMTUyLjE0OEg0LjkwNmEuMTUuMTUgMCAwIDEtLjE1LS4xNDhWNy41NTRhLjE1LjE1IDAgMCAxIC4xNS0uMTQ5em0xMi4xMzEgMGgxLjk0OWEuMTUuMTUgMCAwIDEgLjE1LjE1djguODkyYS4xNS4xNSAwIDAgMS0uMTUuMTQ4aC0xLjk0OWEuMTUuMTUgMCAwIDEtLjE1MS0uMTQ4VjcuNTU0YS4xNS4xNSAwIDAgMSAuMTUxLS4xNDl6TTguOTIgMTAuOTQ4aDIuMDQ2Yy4wODMgMCAuMTUuMDY2LjE1LjE0N3Y1LjM1MmEuMTUuMTUgMCAwIDEtLjE1LjE0OEg4LjkyYS4xNS4xNSAwIDAgMS0uMTUyLS4xNDh2LTUuMzUyYS4xNS4xNSAwIDAgMSAuMTUyLS4xNDdaIi8+PC9zdmc+" style="width:22px;height:22px" alt=""> MiMo</div>
+      <div class="provider-chip" onclick="selectProvider(this,'qwen')"><img src="data:image/svg+xml;base64,PHN2ZyBmaWxsPSIjNjk1MEVGIiByb2xlPSJpbWciIHZpZXdCb3g9IjAgMCAyNCAyNCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48dGl0bGU+UVdlbjwvdGl0bGU+PHBhdGggZD0iTTIzLjkxOSAxNC41NDUgMjAuODE3IDkuMTdsMS40Ny0yLjU0NGEuNTYuNTYgMCAwIDAgMC0uNTY2bC0xLjYzMy0yLjgzYS41Ny41NyAwIDAgMC0uNDktLjI4M2gtNi4yMDdMMTIuNDg3LjQwMmEuNTcuNTcgMCAwIDAtLjQ5LS4yODRIOC43MzJhLjU2LjU2IDAgMCAwLS40OS4yODRMNS4xMzkgNS43NzVoLTIuOTRhLjU2LjU2IDAgMCAwLS40OS4yODRMLjA3NyA4Ljg4N2EuNTYuNTYgMCAwIDAgMCAuNTY3TDMuMTggMTQuODNsLTEuNDcgMi41NDVhLjU2LjU2IDAgMCAwIDAgLjU2NmwxLjYzNCAyLjgzYS41Ny41NyAwIDAgMCAuNDkuMjgzaDYuMjA1bDEuNDcgMi41NDVhLjU3LjU3IDAgMCAwIC40OS4yODRoMy4yNjZhLjU3LjU3IDAgMCAwIC40OS0uMjg0bDMuMTA0LTUuMzc1aDIuOTRhLjU3LjU3IDAgMCAwIC40OS0uMjgzbDEuNjM0LTIuODI4YS41NS41NSAwIDAgMC0uMDA0LS41NjhNOC43MzMuNjg2bDEuNjM0IDIuODI4LTEuNjM0IDIuODI4SDIxLjhMMjAuMTY0IDkuMTdINy40MjVMNS42MyA2LjA2Wm0xLjMwNiAxOS44MDEtNi4yMDUtLjAwMiAxLjYzNC0yLjgzaDMuMjY1TDIuMjAxIDYuMzQ0aDMuMjY3cTMuMTgyIDUuNTE3IDYuMzY3IDExLjAzMnptMTAuMTI0LTUuNjZMMTguNTMgMTJsLTYuNTMyIDExLjMxNS0xLjYzNC0yLjgzYzIuMTI5LTMuNjczIDQuMjUtNy4zNTEgNi4zNzMtMTEuMDI4aDMuNTkybDMuMTAyIDUuMzc0eiIvPjwvc3ZnPg==" style="width:22px;height:22px" alt=""> 通义</div>
+      <div class="provider-chip" onclick="selectProvider(this,'zhipu')"><img src="data:image/png;base64,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" style="width:22px;height:22px" alt=""> 智谱</div>
+      <div class="provider-chip" onclick="selectProvider(this,'moonshot')"><img src="data:image/svg+xml;base64,PHN2ZyBmaWxsPSIjMDAwMDAwIiByb2xlPSJpbWciIHZpZXdCb3g9IjAgMCAyNCAyNCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48dGl0bGU+TW9vbnNob3QgQUk8L3RpdGxlPjxwYXRoIGQ9Im0xLjA1MyAxNi45MSA5LjUzOCAyLjU1YTIxIDIwLjk4MSAwIDAgMCAuMDYgMi4wMzFsNS45NTYgMS41OTJhMTIgMTEuOTkgMCAwIDEtMTUuNTU0LTYuMTcybS0xLjAyLTUuNzkgMTEuMzUyIDMuMDM1YTIxIDIwLjk4MSAwIDAgMC0uNDY5IDIuMDFsMTAuODE3IDIuODlhMTIgMTEuOTkgMCAwIDEtMS44NDUgMi4wMDRMLjY1OCAxNS45MThhMTIgMTEuOTkgMCAwIDEtLjYyNS00Ljc5Nm0xLjU5My01LjE0NkwxMy41NzMgOS4xN2EyMSAyMC45ODEgMCAwIDAtMS4wMSAxLjg3NGwxMS4yOTcgMy4wMmEyMSAyMC45ODEgMCAwIDEtLjY3IDIuMzYybC0xMS41NS0zLjA4N0wuMTI1IDEwLjI2YTEyIDExLjk5IDAgMCAxIDEuNDk5LTQuMjg1Wk02LjA2NyAxLjU4bDExLjI4NSAzLjAxNmEyMSAyMC45ODEgMCAwIDAtMS42ODggMS43MTlsNy44MjQgMi4wOTFhMjEgMjAuOTgxIDAgMCAxIC41MTMgMi42NjRMMi4xMDcgNS4yMThhMTIgMTEuOTkgMCAwIDEgMy45Ni0zLjYzOE0yMS42OCA0Ljg2NiA3LjIyMiAxLjAwM0ExMiAxMS45OSAwIDAgMSAyMS42OCA0Ljg2NiIvPjwvc3ZnPg==" style="width:22px;height:22px" alt=""> Kimi</div>
+      <div class="provider-chip" onclick="selectProvider(this,'siliconflow')"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAABAUlEQVR4nO3VsU0DQRAF0P8NgYFkSyAFEkqBDtyBjwosOjjJBVh0AJ04g/BKuOQky7J3SAjQ7UHAzfgI/gsn+LtfWs0CIiIiIiJTYWR4ddM9ZGIDY/LIM+Bp/X5Zf5/NPIJ/komV1+UBgMCqPwstQMfLfynyQgucggpMTQV+Y7QUmQ8A50PD6m5/Dx7/fvgxJwOXZuXW8FYUWN52m5wPi3GxMf8jadv+rChgxoX7wcA2Ay9ns9yOCuquXvujwSfkjcbH9cdFE5F9ii3U1EGXB7RGp6cCUwsvQFobmV8WMHv2PMCAN8+8vsEvs7q2hPkujU7fzdu6YTs6R0RERETkX/oEmtg6iIB86yMAAAAASUVORK5CYII=" style="width:22px;height:22px" alt=""> SiliconFlow</div>
+      <div class="provider-chip" onclick="selectProvider(this,'openrouter')"><img src="data:image/svg+xml;base64,PHN2ZyBmaWxsPSIjOTRBM0I4IiByb2xlPSJpbWciIHZpZXdCb3g9IjAgMCAyNCAyNCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48dGl0bGU+T3BlblJvdXRlcjwvdGl0bGU+PHBhdGggZD0iTTE2Ljc3OCAxLjg0NHYxLjkxOXEtLjU2OS0uMDI2LTEuMTM4LS4wMzItLjcwOC0uMDA4LTEuNDE1LjAzN2MtMS45My4xMjYtNC4wMjMuNzI4LTYuMTQ5IDIuMjM3LTIuOTExIDIuMDY2LTIuNzMxIDEuOTUtNC4xNCAyLjc1LS4zOTYuMjIzLTEuMzQyLjU3NC0yLjE4NS43OTgtLjg0MS4yMjUtMS43NTMuMzMzLTEuNzUxLjMzM3Y0LjIyOXMuNzY4LjEwOCAxLjYxLjMzM2MuODQyLjIyNCAxLjc4OS41NzUgMi4xODUuNzk5IDEuNDEuNzk4IDEuMjI4LjY4MyA0LjE0IDIuNzUgMi4xMjYgMS41MDkgNC4yMiAyLjExIDYuMTQ4IDIuMjM2Ljg4LjA1OCAxLjcxNi4wNDEgMi41NTUuMDA1djEuOTE4bDcuMjIyLTQuMTY4LTcuMjIyLTQuMTd2Mi4xNzZjLS44Ni4wMzgtMS42MTEuMDY1LTIuMjc4LjAyMS0xLjM2NC0uMDktMi40MTctLjM1Ny0zLjk3OS0xLjQ2NS0yLjI0NC0xLjU5My0yLjg2Ni0yLjAyNy0zLjY4LTIuNTA4Ljg4OS0uNTE4IDEuNDQ5LS45MDYgMy44MjItMi41OSAxLjU2LTEuMTA5IDIuNjE0LTEuMzc3IDMuOTc4LTEuNDY2LjY2Ny0uMDQ0IDEuNDE4LS4wMTcgMi4yNzguMDJ2Mi4xNzZMMjQgNi4wMTRaIi8+PC9zdmc+" style="width:22px;height:22px" alt=""> OpenRouter</div>
+      <div class="provider-chip" onclick="selectProvider(this,'gemini')"><img src="data:image/svg+xml;base64,PHN2ZyBmaWxsPSIjOEU3NUIyIiByb2xlPSJpbWciIHZpZXdCb3g9IjAgMCAyNCAyNCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48dGl0bGU+R29vZ2xlIEdlbWluaTwvdGl0bGU+PHBhdGggZD0iTTExLjA0IDE5LjMyUTEyIDIxLjUxIDEyIDI0cTAtMi40OS45My00LjY4Ljk2LTIuMTkgMi41OC0zLjgxdDMuODEtMi41NVEyMS41MSAxMiAyNCAxMnEtMi40OSAwLTQuNjgtLjkzYTEyLjMgMTIuMyAwIDAgMS0zLjgxLTIuNTggMTIuMyAxMi4zIDAgMCAxLTIuNTgtMy44MVExMiAyLjQ5IDEyIDBxMCAyLjQ5LS45NiA0LjY4LS45MyAyLjE5LTIuNTUgMy44MWExMi4zIDEyLjMgMCAwIDEtMy44MSAyLjU4UTIuNDkgMTIgMCAxMnEyLjQ5IDAgNC42OC45NiAyLjE5LjkzIDMuODEgMi41NXQyLjU1IDMuODEiLz48L3N2Zz4=" style="width:22px;height:22px" alt=""> Gemini</div>
+      <div class="provider-chip" onclick="selectProvider(this,'grok')"><img src="data:image/svg+xml;base64,PHN2ZyBoZWlnaHQ9IjIzNDQiIHZpZXdCb3g9IjAgMSA0OCA0NiIgd2lkdGg9IjI1MDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0ibTE4LjU0MiAzMC41MzIgMTUuOTU2LTExLjc3NmMuNzgzLS41NzYgMS45MDItLjM1NCAyLjI3NC41NDUgMS45NjIgNC43MjggMS4wODQgMTAuNDExLTIuODE5IDE0LjMxNS0zLjkwMyAzLjkwMS05LjMzMyA0Ljc1Ni0xNC4yOTkgMi44MDhsLTUuNDIzIDIuNTExYzcuNzc4IDUuMzE1IDE3LjIyNCA0IDIzLjEyNS0xLjkwMyA0LjY4Mi00LjY3OSA2LjEzMS0xMS4wNTggNC43NzUtMTYuODEybC4wMTEuMDExYy0xLjk2Ni04LjQ1Mi40ODItMTEuODI5IDUuNTAxLTE4LjczNS4xMTYtLjE2NC4yMzctLjMzLjM1Ny0uNDk2bC02LjYwMiA2LjU5OXYtLjAyMmwtMjIuODYgMjIuOTU4bS0zLjI5IDIuODU3Yy01LjU4Mi01LjMyOS00LjYxOS0xMy41NzkuMTQyLTE4LjMzOSAzLjUyMS0zLjUyMiA5LjI5NC00Ljk1OCAxNC4zMzEtMi44NDdsNS40MTItMi40OTdjLS45NzQtLjcwNC0yLjIyNC0xLjQ2LTMuNjU5LTEuOTk0LTYuNDc4LTIuNjY2LTE0LjIzOC0xLjM0LTE5LjUwNSAzLjkyMi01LjA2NSA1LjA2NC02LjY1OSAxMi44NTEtMy45MjQgMTkuNDk2IDIuMDQ0IDQuOTY1LTEuMzA3IDguNDgtNC42ODIgMTIuMDIzLTEuMTk5IDEuMjU1LTIuMzk2IDIuNTE0LTMuMzYzIDMuODQ0bDE1LjI0MS0xMy42MDgiLz48L3N2Zz4=" style="width:22px;height:22px" alt=""> Grok</div>
+      <div class="provider-chip" onclick="selectProvider(this,'custom')"><svg class="ic" style="width:22px;height:22px"><use href="#ic-logo"/></svg> 自定义</div>
+    </div></div>
+    <div class="form-row" id="sCustomUrlRow" style="display:none"><div class="form-label" data-i18n="mod-api-url">Base URL</div><input class="form-input" id="sApiBaseUrl" placeholder="https://api.example.com/v1"></div>
+    <div class="form-row"><div class="form-label" data-i18n="form-api-key-label">API Key</div><div class="test-row"><input class="form-input" id="sApiKey" type="password" placeholder="sk-..."><button class="btn-test" data-i18n="form-api-test" onclick="settingsTestApi()">测试</button></div><div class="test-result" id="sTestResult"></div></div>
+    <div class="form-row"><div class="form-label" data-i18n="form-api-model-label">模型</div><input class="form-input" id="sApiModel" data-i18n-ph="form-api-model-ph" placeholder="留空使用默认"></div>
+  </div>
+  <div id="settingsTab-theme" style="display:none">
+    <div class="theme-grid">
+      <div class="theme-card dark-preview active" onclick="settingsSetTheme('dark',this)" id="themeCardDark">
+        <div style="font-size:24px;margin-bottom:8px"><svg class="ic"><use href="#ic-moon"/></svg></div>
+        <div style="font-weight:600;font-size:14px">深色模式</div>
+        <div style="font-size:12px;opacity:0.6;margin-top:4px">Dark Mode</div>
+      </div>
+      <div class="theme-card light-preview" onclick="settingsSetTheme('light',this)" id="themeCardLight">
+        <div style="font-size:24px;margin-bottom:8px"><svg class="ic"><use href="#ic-sun"/></svg></div>
+        <div style="font-weight:600;font-size:14px">浅色模式</div>
+        <div style="font-size:12px;opacity:0.6;margin-top:4px">Light Mode</div>
+      </div>
+    </div>
+  </div>
+  <div class="modal-footer"><button class="btn-cancel" onclick="closeModal('settingsModal')" data-i18n="mod-close">关闭</button><button class="btn-confirm" onclick="saveSettings()" data-i18n="mod-save">保存 ✓</button></div>
+</div></div>
+<div class="modal-overlay" id="charModal"><div class="modal">
+  <div class="modal-title" id="charModalTitle"><svg class="ic"><use href="#ic-user"/></svg> 添加人物</div><div class="modal-sub">建立人物档案</div>
+  <div class="form-row"><div class="form-label">姓名</div><input class="form-input" id="charName" placeholder="例如：陆云深"></div>
+  <div class="form-row"><div class="form-label">定位</div><div class="genre-grid" id="charRoleGrid"><div class="genre-chip on" onclick="toggleGenre(this)">主角</div><div class="genre-chip" onclick="toggleGenre(this)">女主</div><div class="genre-chip" onclick="toggleGenre(this)">反派</div><div class="genre-chip" onclick="toggleGenre(this)">配角</div><div class="genre-chip" onclick="toggleGenre(this)">导师</div><div class="genre-chip" onclick="toggleGenre(this)">盟友</div><div class="genre-chip" onclick="toggleGenre(this)">神秘人</div><div class="genre-chip" onclick="toggleGenre(this)">其他</div></div></div>
+  <div class="form-row"><div class="form-label">性格</div><textarea class="form-textarea" id="charPers" placeholder="性格特点..."></textarea></div>
+  <div class="form-row"><div class="form-label">背景</div><textarea class="form-textarea" id="charBack" placeholder="背景故事..."></textarea></div>
+  <div class="form-row"><div class="form-label">外貌</div><textarea class="form-textarea" id="charLook" placeholder="外貌描述..."></textarea></div>
+  <div class="form-row"><div class="form-label">技能</div><textarea class="form-textarea" id="charSkill" placeholder="技能/能力..."></textarea></div>
+  <div class="modal-footer"><button class="btn-cancel" onclick="closeModal('charModal')">取消</button><button class="btn-confirm" onclick="saveChar()">保存 ✓</button></div>
+</div></div>
+<!-- MODAL: PROFILE CENTER -->
+<div class="modal-overlay" id="profileModal">
+  <div class="modal">
+    <div class="modal-title" data-i18n="mod-profile"><svg class="ic"><use href="#ic-user"/></svg> 个人中心</div>
+    <div class="modal-sub" data-i18n="mod-profile-sub">管理密码、查看项目统计</div>
+    <div id="profileStats" style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:16px">
+      <div style="font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:10px" data-i18n="mod-profile-stats"><svg class="ic ic-sm"><use href="#ic-bar-chart"/></svg> 当前项目统计</div>
+      <div id="profileStatsContent" style="font-size:12px;color:var(--text-secondary);line-height:2">...</div>
+    </div>
+    <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:16px">
+      <div style="font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:10px" data-i18n="mod-profile-chpwd"><svg class="ic ic-sm"><use href="#ic-lock"/></svg> 修改密码</div>
+      <input class="form-input" id="oldPwd" type="password" data-i18n-ph="mod-oldpwd" placeholder="当前密码" style="margin-bottom:8px">
+      <input class="form-input" id="newPwd" type="password" data-i18n-ph="mod-newpwd" placeholder="新密码（至少4位）" style="margin-bottom:8px">
+      <input class="form-input" id="newPwd2" type="password" data-i18n-ph="mod-newpwd2" placeholder="确认新密码">
+    </div>
+    <div class="modal-footer" style="flex-wrap:wrap;gap:8px">
+      <button class="btn-cancel" data-i18n="mod-lock" onclick="lockApp();closeModal('profileModal')" style="flex:0 0 auto;padding:10px 16px"><svg class="ic ic-sm"><use href="#ic-lock"/></svg> 锁屏</button>
+      <button class="btn-cancel" data-i18n="mod-close" onclick="closeModal('profileModal')" style="flex:1">关闭</button>
+      <button class="btn-confirm" data-i18n="mod-chpwd-btn" onclick="changePassword()" style="flex:1">修改密码</button>
+    </div>
+  </div>
+</div>
+<!-- Memory Modal -->
+<div class="modal-overlay" id="memoryModal"><div class="modal">
+  <div class="modal-title"><svg class="ic"><use href="#ic-brain"/></svg> 添加记忆</div><div class="modal-sub">让AI记住你的设定、风格偏好等信息，每次生成时自动参考</div>
+  <div class="form-row"><div class="form-label">分类</div>
+    <div class="genre-grid" id="memCatGrid" style="grid-template-columns:repeat(3,1fr)">
+      <div class="genre-chip on" onclick="toggleMemCat(this)"><svg class="ic ic-sm"><use href="#ic-clipboard"/></svg> 剧情</div>
+      <div class="genre-chip" onclick="toggleMemCat(this)">✍️ 风格</div>
+      <div class="genre-chip" onclick="toggleMemCat(this)">🌍 世界观</div>
+      <div class="genre-chip" onclick="toggleMemCat(this)"><svg class="ic ic-sm"><use href="#ic-user"/></svg> 人物</div>
+      <div class="genre-chip" onclick="toggleMemCat(this)"><svg class="ic ic-sm"><use href="#ic-note"/></svg> 备注</div>
+      <div class="genre-chip" onclick="toggleMemCat(this)">📏 规则</div>
+    </div>
+  </div>
+  <div class="form-row"><div class="form-label">记忆内容</div><textarea class="form-textarea" id="memContent" placeholder="例如：主角林远性格内向但关键时刻果断，口头禅是'再想想'..." style="min-height:100px"></textarea></div>
+  <div class="modal-footer"><button class="btn-cancel" onclick="closeModal('memoryModal')">取消</button><button class="btn-confirm" onclick="saveMemory()">保存记忆 ✓</button></div>
+</div></div>
+<!-- Import Preview Modal -->
+<div class="modal-overlay" id="importPreviewModal"><div class="modal">
+  <div class="modal-title">📥 导入预览</div><div class="modal-sub">确认导入设置</div>
+  <div id="importPreviewContent" style="margin-bottom:12px"></div>
+  <div class="form-row"><div class="form-label">项目名称</div><input class="form-input" id="importProjectName" placeholder="输入项目名称"></div>
+  <div class="form-row"><div class="form-label">AI 自动分析</div>
+    <div style="display:flex;align-items:center;gap:12px">
+      <div class="seg-ctrl" id="importAnalyzeToggle">
+        <button class="seg-btn on" onclick="document.getElementById('importAnalyzeToggle').querySelectorAll('.seg-btn').forEach(b=>b.classList.remove('on'));this.classList.add('on');document.getElementById('importAutoAnalyzeVal').value='1'">开启</button>
+        <button class="seg-btn" onclick="document.getElementById('importAnalyzeToggle').querySelectorAll('.seg-btn').forEach(b=>b.classList.remove('on'));this.classList.add('on');document.getElementById('importAutoAnalyzeVal').value='0'">关闭</button>
+      </div>
+      <input type="hidden" id="importAutoAnalyzeVal" value="1">
+      <span style="font-size:11px;color:var(--text-hint)">导入后自动识别人物、大纲等</span>
+    </div>
+  </div>
+  <div class="modal-footer"><button class="btn-cancel" onclick="closeModal('importPreviewModal')">取消</button><button class="btn-confirm" onclick="confirmImport()">确认导入 ✓</button></div>
+</div></div>
+<div class="toast" id="toast"><span id="toastIcon">✓</span><span id="toastMsg">已保存</span></div>
