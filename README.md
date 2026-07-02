@@ -1,10 +1,14 @@
-# ainovel-cli
+# AI写作工坊
 
-全自动 AI 长篇小说创作引擎。Coordinator 在一次 Prompt 里驱动 Architect / Writer / Editor 三个子代理完成整本书的创作，Host 只做启动、恢复和观察。从一句话需求到完整小说，全程无需人工干预。
+AI写作工坊是面向小说创作的开源可自定义前端项目。它可以在 GitHub Pages 上作为静态前端发布，也可以接入本地或自部署后端来启用真实 AI 调用、配置保存、项目同步和规则管理。
+
+## 后端归属说明
+
+`ainovel-cli` 原版是他人维护的开源项目，原始上游为 [`voocel/ainovel-cli`](https://github.com/voocel/ainovel-cli)。本仓库不声明其原创归属，只把它作为 AI写作工坊可原生支持的后端项目之一，用于提供兼容的 `/api/` 能力。
 
 ## Web 写作工坊
 
-ainovel-cli 现在内置 Writing Workshop Web 前端和 Go 原生管理后台，静态资源通过 `go:embed` 打包进单个二进制，不依赖外部 CDN。启动后即可在浏览器中编辑项目、章节、角色、规则包，并通过 Go 后端代理真实 LLM API。
+当前仓库保留了一个 `ainovel-cli` 后端适配示例。静态资源可以通过 `go:embed` 打包进单个二进制，不依赖外部 CDN。启动后即可在浏览器中编辑项目、章节、角色、规则包，并通过后端代理真实 LLM API。
 
 ```bash
 go build -o ainovel-cli ./cmd/ainovel-cli
@@ -30,7 +34,9 @@ go build -o ainovel-cli ./cmd/ainovel-cli
   <img src="scripts/novel.png" alt="ainovel-cli bg" width="800">
 </p>
 
-## 特性
+## ainovel-cli 后端示例特性
+
+以下能力来自 `ainovel-cli` 后端示例及其上游项目，本仓库仅做前端集成和原生适配说明。
 
 - **多智能体协作** — Coordinator 在一次长循环中调度 Architect / Writer / Editor 三个子代理，自主决策创作流程
 - **LLM 驱动长循环** — 一次 Prompt 写完整本书，Host 不介入调度。越简单越稳定，拒绝复杂编排
@@ -43,7 +49,7 @@ go build -o ainovel-cli ./cmd/ainovel-cli
 - **统一 TUI 入口** — 交互界面实时观察进度，也支持携带一句需求直接启动
 - **多 LLM 支持** — OpenRouter / Anthropic / Gemini / OpenAI 等等随意切换
 
-## 架构
+## ainovel-cli 后端示例架构
 
 核心设计：**LLM 驱动，Host 服务**。Coordinator 在一次 Run 中自主决策整本书的创作流程，Host 只做启动、恢复和事件观察。
 
@@ -214,7 +220,7 @@ ToolResultMicrocompact → LightTrim → StoreSummaryCompact → FullSummary
 - **CJK Token 估算** — 中文 `runes × 1.5`，不会因为 `bytes/4` 低估而导致压缩触发滞后
 - **TUI 健康度渐变** — 上下文占用绿(<70%)→黄(70-85%)→红(>85%)实时展示
 
-## 快速开始
+## ainovel-cli 后端示例快速开始
 
 ```bash
 # 一键安装（macOS / Linux，无需 Go）
@@ -321,7 +327,7 @@ docker compose run --rm ainovel --headless --prompt "写一本悬疑短篇"
 
 `providers.<name>.extra` 为 provider 级配置，会传给底层 HTTP 客户端，适合配置 `user_agent`、`headers`、`anthropic_beta` 等代理识别字段；`providers.<name>.extra_body` 才是请求体扩展参数，两者不要混用。
 
-## 诊断报告
+## ainovel-cli 后端示例诊断报告
 
 在 TUI 中输入 `/diag` 可对当前小说的 output 产物进行诊断分析，产出可执行的发现和改进建议。
 
@@ -336,7 +342,7 @@ docker compose run --rm ainovel --headless --prompt "写一本悬疑短篇"
 
 `/diag` 同时会写出一份**已脱敏**的 `meta/diag-export.md`（移除小说正文，仅保留工具调用、错误串、重复次数等行为骨架）。遇到死循环 / 中断类问题，把它贴到 GitHub issue 即可，方便维护者在拿不到本地数据的情况下定位。
 
-## 仿写画像
+## ainovel-cli 后端示例仿写画像
 
 把参考文章放到当前启动目录的 `simulate/` 文件夹中，然后在 TUI 输入 `/simulate`。系统会递归读取 `.txt`、`.md`、`.markdown` 文件，用 architect 模型分析语料，并写入：
 
@@ -355,7 +361,7 @@ output/novel/meta/simulation_profile.json
 
 `/importsim` 只接受本功能生成的 `simulation_profile.v1` JSON，并按语料指纹合并，重复来源会跳过。只导入可信来源的画像文件；导入内容会成为后续 Agent 的上下文参考。画像会以 compact 形式注入 `novel_context`，Coordinator、Architect、Writer、Editor 都能读取；各 Agent 只借鉴结构、节奏、钩子和吸引读者手法，不复制原文表达或专有设定。
 
-## 导入
+## ainovel-cli 后端示例导入
 
 在 TUI 中输入 `/import <文件路径>` 可把一本已有的小说反推导入：先按章切分，再用 LLM 反推出前提 / 角色 / 世界观 / 分层大纲 / 指南针，逐章落盘。原文作为第一卷落成可续写的连载，导入完成后会**自动接力续写**——Coordinator 在第一卷末做评审/摘要、追加新卷，从下一章继续。
 
@@ -374,7 +380,7 @@ output/novel/meta/simulation_profile.json
 
 > 导入是确定性回放，不经过 Coordinator；原文会逐字落盘为已完成章节，因此适合"续写同一本书"。如果只想借鉴设定做全新创作，请用普通方式起一本新书、在需求里描述想要的风格设定。
 
-## 导出
+## ainovel-cli 后端示例导出
 
 在 TUI 中输入 `/export` 可把已完成的章节合并导出，默认 TXT，写到 `{novelDir}/{NovelName}.txt`。导出是只读操作，写作中途也可以随时拿"现阶段成品"，不影响 Coordinator 运行。
 
@@ -497,7 +503,7 @@ output/novel/meta/simulation_profile.json
 
 想叠加自己的偏好**无需改源码**：在 `~/.ainovel/rules/` 目录（全局，放任意 `.md`，按文件名字典序合并）或 `./.ainovel/rules/` 目录（本书，同样放任意 `.md`，与全局同形态）里，**用大白话写偏好即可**（如「主角别写成圣母」「多用身体感知」），editor 会按语义审阅——零格式、零 YAML。想要「字数 / 禁词」这类硬性确定检查，再**可选地**在文件顶部加一段 front matter。就近覆盖、与内置基线叠加生效；完整字段见 [`rules.md.example`](rules.md.example)。
 
-## 输出结构
+## ainovel-cli 后端示例输出结构
 
 所有创作数据（章节、大纲、角色、进度等）保存在output目录中。中断后重新运行会自动从上次进度续写。删除output目录将重新开始创作。
 
@@ -527,7 +533,7 @@ output/{novel_name}/
 │   └── world_rules.md  # 世界规则（可读版）
 ```
 
-## 断点恢复
+## ainovel-cli 后端示例断点恢复
 
 写一部长篇小说可能需要数小时甚至数天，中途崩溃、断网、Ctrl+C 都是常见情况。系统在**同一目录再次运行时自动恢复**，无需手动操作。
 
@@ -553,7 +559,7 @@ output/{novel_name}/
 
 > 文件写入使用 temp + fsync + rename 原子操作，即使在写入过程中断电也不会损坏已有数据。
 
-## 实时干预（Steer）
+## ainovel-cli 后端示例实时干预（Steer）
 
 创作过程中可以随时通过输入框注入修改意见，**不需要暂停或重启**。
 
@@ -579,7 +585,7 @@ output/{novel_name}/
 | "加入一个反派角色" | 更新角色档案和世界规则，在后续章节引入 |
 | "节奏太慢了，加快推进" | 调整后续章节的大纲密度 |
 
-## 设计理念
+## ainovel-cli 后端示例设计理念
 
 > **把复杂度从代码搬到模型里。** 代码越少，能坏的地方越少。决策权交给更擅长做决策的角色。
 
@@ -619,7 +625,7 @@ output/{novel_name}/
 
 这样指令不会被链式调用吞掉，也不会在工具产物里漂移。改 bug 只需加一个 generator + 一个测试。
 
-## 技术栈
+## ainovel-cli 后端示例技术栈
 
 - **Go 1.25** — 主语言
 - **[agentcore](https://github.com/voocel/agentcore)** — 极简 Agent 内核（tool-calling + streaming）

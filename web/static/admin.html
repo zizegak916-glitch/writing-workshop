@@ -96,11 +96,11 @@ async function testAI(){testResult.textContent='请求中...';try{const d=await 
 const isPages = location.hostname.endsWith('github.io');
 if(isPages){
   apiStatus.textContent='Pages 静态预览';
-  showRuntimeNotice('<b>当前没有连接后端。</b> GitHub Pages 只发布静态前端，配置保存、项目同步、规则写入和 AI 测试需要运行 <code>./ainovel-cli serve --port 8080</code> 后访问本地服务。');
+  showRuntimeNotice('<b>当前没有连接后端。</b> GitHub Pages 只发布静态前端，配置保存、项目同步、规则写入和 AI 测试需要接入本地或自部署后端。<code>ainovel-cli</code> 是他人维护的开源原版项目，在这里仅作为可原生支持的后端选项之一。');
 }else{
   loadAll().then(()=>{apiStatus.textContent='后端已连接'}).catch(e=>{
     apiStatus.textContent='后端未连接';
-    showRuntimeNotice('<b>后端 API 不可用。</b> 请确认 ainovel-cli 服务已启动，并通过服务地址打开本页面。错误：<code>'+String(e.message).replace(/[<>&]/g,s=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[s]))+'</code>');
+    showRuntimeNotice('<b>后端 API 不可用。</b> 请确认已启动可兼容 <code>/api/</code> 的后端服务，并通过服务地址打开本页面。错误：<code>'+String(e.message).replace(/[<>&]/g,s=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[s]))+'</code>');
   });
 }
 </script>

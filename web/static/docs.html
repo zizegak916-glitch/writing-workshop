@@ -17,14 +17,17 @@
   <header><div class="wrap nav"><a class="logo" href="index.html">AI写作工坊</a><nav><a href="app.html">主应用</a><a href="admin.html">管理后台</a><a href="about.html">关于</a></nav></div></header>
   <main class="wrap">
     <h1>使用文档</h1>
-    <p>AI写作工坊是开源可自定义项目：GitHub Pages 发布静态前端，ainovel-cli 的 Go 服务提供可选后端 API。</p>
+    <p>AI写作工坊是开源可自定义项目：GitHub Pages 发布静态前端，后端可以按项目需要接入。</p>
     <a class="btn" href="app.html">打开写作工坊</a>
     <div class="note">当前 Pages 地址没有常驻后端。你可以浏览界面和文档；真实 AI 调用、配置保存、项目同步和规则管理，需要运行本地后端或部署自己的 API 服务。</div>
 
-    <h2>快速开始</h2>
+    <h2>后端归属说明</h2>
+    <p><code>ainovel-cli</code> 原版是他人维护的开源项目，本仓库不声明其原创归属。这里仅把它作为 AI写作工坊可原生支持的后端项目之一，用于演示和适配 <code>/api/</code> 能力。</p>
+
+    <h2>ainovel-cli 后端示例</h2>
     <pre><code>go build -o ainovel-cli ./cmd/ainovel-cli
 ./ainovel-cli serve --port 8080</code></pre>
-    <p>本地服务启动后访问 <code>http://127.0.0.1:8080/app.html</code> 或 <code>http://127.0.0.1:8080/admin.html</code>。此时前端会通过同源 <code>/api/</code> 端点连接 Go 后端。</p>
+    <p>使用该后端示例时，本地服务启动后访问 <code>http://127.0.0.1:8080/app.html</code> 或 <code>http://127.0.0.1:8080/admin.html</code>。此时前端会通过同源 <code>/api/</code> 端点连接后端。</p>
 
     <h2>核心入口</h2>
     <div class="grid">

@@ -9,6 +9,8 @@ go build -o ainovel-cli ./cmd/ainovel-cli
 
 当前仓库的 Web 前端位于 `web/static/`，由 `web/static/static.go` 通过 `go:embed` 打包。
 
+`ainovel-cli` 原版是他人维护的开源项目；当前仓库仅把它作为 AI写作工坊可原生支持的后端项目之一。新增后端适配时应保持 `/api/` 契约稳定。
+
 ## 常用验证
 
 在受限环境中，建议把 Go 缓存放到 `/tmp`：
