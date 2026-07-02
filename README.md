@@ -18,6 +18,18 @@ AI写作工坊是面向小说创作的开源可自定义主体应用。它可以
 - 权限边界，包括文件访问、网络访问、环境变量和密钥需求。
 - 通用适用范围。能力应面向写作、分析、导入、规划、改写等通用任务，不能绑定某个单一小说或私有项目。
 
+## 已实现的能力 API
+
+后端已经提供通用能力链路，供所有使用者和二开者接入：
+
+- `GET /api/capabilities`：列出内置能力和已保存能力。
+- `POST /api/capabilities`：保存 GitHub 项目、远程 manifest 或本地 skill 清单。数据落盘到当前工作目录的 `.ainovel/capabilities.json`。
+- `DELETE /api/capabilities?id=...`：删除用户保存的能力。
+- `POST /api/run`：按 `backend_id` 和 `skill_ids` 执行任务，返回 JSON；传 `params.stream=true` 时返回 SSE 事件流。
+- `POST /api/abort`：中断当前写作运行和能力运行。
+
+当前内置能力包括 `builtin-echo`、`builtin-outline`、`builtin-rewrite` 和 `ainovel-cli` 后端适配。出于安全原因，保存 GitHub 链接或 skill manifest 不会立即执行任意仓库代码；真正执行第三方代码需要后续接入明确的沙箱执行器。
+
 ## Web 写作工坊
 
 当前仓库保留了一个 `ainovel-cli` 后端适配示例。静态资源可以通过 `go:embed` 打包进单个二进制，不依赖外部 CDN。启动后即可在浏览器中编辑项目、章节、角色、规则包，并通过后端代理真实 LLM API。

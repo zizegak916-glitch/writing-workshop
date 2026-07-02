@@ -31,6 +31,14 @@
       <div class="card"><h3>实时回传</h3><p>后端输出直接传回前端。长任务应支持流式输出，前端可以随时中断并保留已生成内容。</p></div>
     </div>
 
+    <h2>当前可用接口</h2>
+    <div class="grid">
+      <div class="card"><h3>保存能力</h3><p><code>GET/POST /api/capabilities</code> 已可用，能力保存到后端工作目录的 <code>.ainovel/capabilities.json</code>。</p></div>
+      <div class="card"><h3>执行能力</h3><p><code>POST /api/run</code> 已可用，支持 <code>backend_id</code>、<code>skill_ids</code>、任务、上下文和参数。</p></div>
+      <div class="card"><h3>中断运行</h3><p><code>POST /api/abort</code> 会同时中断写作运行和能力运行；流式输出使用 SSE 的 <code>start/delta/done</code> 事件。</p></div>
+    </div>
+    <p>默认内置 <code>builtin-echo</code>、<code>builtin-outline</code>、<code>builtin-rewrite</code> 和 <code>ainovel-cli</code>。保存 GitHub 链接或 skill manifest 不会直接执行任意仓库代码；第三方代码执行需要明确的沙箱执行器。</p>
+
     <h2>自定义文件或链接要求</h2>
     <p>添加 GitHub 项目、远程链接或本地 skill 时，必须能被后端安全解析，并满足下面的最小契约。</p>
     <div class="grid">
@@ -50,8 +58,8 @@
     <h2>核心入口</h2>
     <div class="grid">
       <div class="card"><h3>写作工坊</h3><p><a href="app.html">app.html</a>，用于项目、章节、角色、AI 辅助写作。</p></div>
-      <div class="card"><h3>管理后台</h3><p><a href="admin.html">admin.html</a>，用于配置 provider、model、API key、后端项目、skill 和项目规则。</p></div>
-      <div class="card"><h3>API</h3><p>后端端点以 <code>/api/</code> 开头，主要包括 <code>/api/ai</code>、<code>/api/config</code>、<code>/api/rules</code>。</p></div>
+      <div class="card"><h3>管理后台</h3><p><a href="admin.html">admin.html</a>，用于配置 provider、model、API key、后端项目、skill、项目规则，并测试 <code>/api/run</code>。</p></div>
+      <div class="card"><h3>API</h3><p>后端端点以 <code>/api/</code> 开头，主要包括 <code>/api/ai</code>、<code>/api/config</code>、<code>/api/rules</code>、<code>/api/capabilities</code>、<code>/api/run</code>。</p></div>
     </div>
 
     <h2>开源自定义</h2>

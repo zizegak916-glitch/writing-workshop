@@ -72,24 +72,46 @@ pre{white-space:pre-wrap;background:var(--card);border:1px solid var(--border);b
   <section id="capabilities" class="panel card">
     <h2>能力来源</h2>
     <p style="color:var(--muted)">写作工坊是主体；GitHub 开源项目、skill、规则包和自定义文件只是可组合的能力来源。前端选择一个后端项目或多个 skill 后，把当前项目、章节、上下文和参数传给后端，后端输出再回传前端。</p>
+    <div id="capabilityList"></div>
     <div class="grid">
       <div>
+        <label>名称</label>
+        <input id="capName" placeholder="通用改写 skill">
+      </div>
+      <div>
+        <label>类型</label>
+        <select id="capType"><option value="skill">skill</option><option value="backend">backend</option><option value="rules">rules</option><option value="prompt">prompt</option></select>
+      </div>
+      <div>
+        <label>版本</label>
+        <input id="capVersion" placeholder="1.0.0 / commit hash">
+      </div>
+      <div>
+        <label>许可证</label>
+        <input id="capLicense" placeholder="MIT / Apache-2.0 / Upstream">
+      </div>
+      <div>
         <label>GitHub 项目链接</label>
-        <input placeholder="https://github.com/owner/repo/tree/tag-or-commit">
+        <input id="capSource" placeholder="https://github.com/owner/repo/tree/tag-or-commit">
       </div>
       <div>
         <label>Skill / 能力清单</label>
-        <input placeholder="skill.json / manifest.json / raw URL">
+        <input id="capEntry" placeholder="skill.json / manifest.json / raw URL / builtin:name">
       </div>
     </div>
+    <label>输出类型</label><input id="capOutput" placeholder="text / json / patch / event-stream">
+    <p class="row"><button class="primary" onclick="saveCapability()">保存能力</button><span id="capMsg"></span></p>
     <label>接入要求</label>
     <pre>必须声明：名称、版本、来源、许可证、入口、输入 schema、输出类型、是否支持流式输出、是否支持取消、权限边界。
 能力应面向通用写作任务，不能绑定某个单一小说或私有项目。</pre>
   </section>
   <section id="test" class="panel card">
     <h2>API 测试</h2>
-    <label>提示词</label><textarea id="testPrompt">回复 OK，并说明当前模型可用。</textarea>
-    <p><button class="primary" onclick="testAI()">发送测试</button></p>
+    <label>后端项目 ID</label><input id="runBackend" value="ainovel-cli">
+    <label>Skill IDs（逗号分隔）</label><input id="runSkills" value="builtin-rewrite">
+    <label>任务</label><input id="runTask" value="rewrite">
+    <label>提示词 / 选中文本</label><textarea id="testPrompt">请把这句话改写得更有画面感：雨落在窗边。</textarea>
+    <p class="row"><button class="primary" onclick="testRun()">执行能力</button><button class="danger" onclick="abortRun()">中断</button><button class="primary" onclick="testAI()">模型直连测试</button></p>
     <pre id="testResult"></pre>
   </section>
 </main>
@@ -98,7 +120,7 @@ pre{white-space:pre-wrap;background:var(--card);border:1px solid var(--border);b
 async function api(url,opt={}){const r=await fetch(url,{headers:{'Content-Type':'application/json',...(opt.headers||{})},...opt});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||('HTTP '+r.status));return d}
 function showTab(id,btn){document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));document.getElementById(id).classList.add('active');btn.classList.add('active')}
 function showRuntimeNotice(message){runtimeNotice.hidden=false;runtimeNotice.innerHTML=message}
-async function loadAll(){await Promise.all([loadConfig(),loadProjects(),loadChars(),loadRules()])}
+async function loadAll(){await Promise.all([loadConfig(),loadProjects(),loadChars(),loadRules(),loadCapabilities()])}
 async function loadConfig(){const d=await api('/api/config');const c=d.config||d;provider.value=c.provider||'';model.value=c.model||'';const pc=(c.providers||{})[c.provider]||{};ptype.value=pc.type||'';baseUrl.value=pc.base_url||''}
 async function saveConfig(){try{await api('/api/config',{method:'POST',body:JSON.stringify({provider:provider.value,model:model.value,type:ptype.value,base_url:baseUrl.value,api_key:apiKey.value})});configMsg.textContent='已保存'}catch(e){configMsg.textContent=e.message}}
 async function loadProjects(){const ps=await api('/api/projects');projectList.innerHTML=(ps||[]).map(p=>`<div class="list-item"><b>${p.name}</b><br><small>${p.store_dir||''}</small></div>`).join('')||'<p style="color:var(--muted)">暂无项目</p>';const p=ps[0];if(p){projectName.value=p.name||'';projectPremise.value=p.premise||'';totalChapters.value=p.total_chapters||0}}
@@ -111,6 +133,10 @@ async function loadRules(){const d=await api('/api/rules');rulesRaw.value=d.cust
 async function saveRules(){await api('/api/rules',{method:'POST',body:JSON.stringify({raw:rulesRaw.value})});loadRules()}
 async function deleteRules(){await api('/api/rules',{method:'DELETE'});loadRules()}
 async function testAI(){testResult.textContent='请求中...';try{const d=await api('/api/ai',{method:'POST',body:JSON.stringify({message:testPrompt.value})});testResult.textContent=d.choices?.[0]?.message?.content||JSON.stringify(d,null,2)}catch(e){testResult.textContent=e.message}}
+async function loadCapabilities(){const d=await api('/api/capabilities');capabilityList.innerHTML=(d.capabilities||[]).map(c=>`<div class="list-item"><b>${c.name}</b> <small>${c.id} · ${c.type} · ${c.version}</small><br><small>${c.source}</small></div>`).join('')||'<p style="color:var(--muted)">暂无能力</p>'}
+async function saveCapability(){try{const d=await api('/api/capabilities',{method:'POST',body:JSON.stringify({name:capName.value,type:capType.value,version:capVersion.value,source:capSource.value,license:capLicense.value,entry:capEntry.value,output:capOutput.value,supports_stream:true,supports_abort:true,enabled:true})});capMsg.textContent='已保存 '+d.capability.id;loadCapabilities()}catch(e){capMsg.textContent=e.message}}
+async function testRun(){testResult.textContent='执行中...';try{const d=await api('/api/run',{method:'POST',body:JSON.stringify({backend_id:runBackend.value,skill_ids:runSkills.value.split(',').map(s=>s.trim()).filter(Boolean),task:runTask.value,context:{selection:testPrompt.value},params:{stream:false}})});testResult.textContent=d.output||JSON.stringify(d,null,2)}catch(e){testResult.textContent=e.message}}
+async function abortRun(){try{const d=await api('/api/abort',{method:'POST'});testResult.textContent='已发送中断：'+JSON.stringify(d)}catch(e){testResult.textContent=e.message}}
 const isPages = location.hostname.endsWith('github.io');
 if(isPages){
   apiStatus.textContent='Pages 静态预览';

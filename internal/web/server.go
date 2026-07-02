@@ -30,7 +30,9 @@ type Server struct {
 	store *storepkg.Store
 	addr  string
 
-	hub *sseHub
+	hub    *sseHub
+	runMu  sync.Mutex
+	runCtx map[string]context.CancelFunc
 }
 
 func NewServer(h *host.Host, addr string) *Server {
@@ -38,10 +40,11 @@ func NewServer(h *host.Host, addr string) *Server {
 		addr = "127.0.0.1:8787"
 	}
 	s := &Server{
-		host:  h,
-		store: h.Store(),
-		addr:  addr,
-		hub:   newSSEHub(),
+		host:   h,
+		store:  h.Store(),
+		addr:   addr,
+		hub:    newSSEHub(),
+		runCtx: map[string]context.CancelFunc{},
 	}
 	s.hub.attachHost(h)
 	return s
@@ -84,6 +87,11 @@ func (s *Server) routes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/rules", s.handleRules)
 	mux.HandleFunc("PUT /api/rules", s.handleRules)
 	mux.HandleFunc("DELETE /api/rules", s.handleRules)
+	mux.HandleFunc("GET /api/capabilities", s.handleCapabilities)
+	mux.HandleFunc("POST /api/capabilities", s.handleCapabilities)
+	mux.HandleFunc("PUT /api/capabilities", s.handleCapabilities)
+	mux.HandleFunc("DELETE /api/capabilities", s.handleCapabilities)
+	mux.HandleFunc("POST /api/run", s.handleRun)
 	mux.HandleFunc("GET /api/projects", s.handleProjects)
 	mux.HandleFunc("POST /api/projects", s.handleProjects)
 	mux.HandleFunc("PUT /api/projects", s.handleProjects)
@@ -482,7 +490,8 @@ func (s *Server) handleResume(w http.ResponseWriter, _ *http.Request) {
 }
 
 func (s *Server) handleAbort(w http.ResponseWriter, _ *http.Request) {
-	writeJSON(w, map[string]any{"aborted": s.host.Abort()})
+	capabilityRuns := s.abortCapabilityRuns()
+	writeJSON(w, map[string]any{"aborted": s.host.Abort() || capabilityRuns > 0, "capability_runs": capabilityRuns})
 }
 
 func (s *Server) handleAI(w http.ResponseWriter, r *http.Request) {

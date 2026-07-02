@@ -35,6 +35,9 @@ GOCACHE=/tmp/go-cache GOMODCACHE=/tmp/gomodcache go build ./cmd/ainovel-cli
 ## 后端约定
 
 - Web API 实现在 `internal/web/server.go`。
+- 通用能力 API 实现在 `internal/web/capabilities.go`，能力清单保存到 `.ainovel/capabilities.json`。
+- 第三方 GitHub 项目和 skill manifest 只做登记、校验和选择；不要在 Web 层直接执行未沙箱化的远程代码。
+- `/api/run` 支持 JSON 响应和 SSE 响应。新增长任务时必须使用 request context，并注册取消函数，保证 `/api/abort` 可中断。
 - 运行时配置由 `host.UpdateConfig` 持久化到本地配置文件。
 - 章节读写复用 `internal/store`，不要绕过 Store 写入核心小说数据。
 - 规则解析复用 `internal/rules`，不要在 Web 层重新实现规则合并逻辑。
@@ -46,4 +49,4 @@ GOCACHE=/tmp/go-cache GOMODCACHE=/tmp/gomodcache go build ./cmd/ainovel-cli
 3. `go vet ./...`
 4. `go build ./cmd/ainovel-cli`
 5. 启动 `serve` 后访问 `/app.html` 和 `/admin`。
-6. 在管理后台测试 `/api/ai`，确认 provider/model/key 配置有效。
+6. 在管理后台测试 `/api/capabilities`、`/api/run` 和 `/api/ai`，确认能力保存、执行和 provider/model/key 配置有效。

@@ -16,12 +16,37 @@
 
 ## 通用执行
 
-推荐新后端实现：
+当前后端已实现：
 
 - `GET /api/capabilities`：列出可用后端项目、skill、规则包和来源状态。
 - `POST /api/capabilities`：保存 GitHub 链接、manifest 或本地能力文件。
+- `DELETE /api/capabilities?id=...`：删除用户保存的能力。
 - `POST /api/run`：执行选中的后端项目或多个 skill。
 - `POST /api/abort`：取消当前长任务。
+
+能力保存到当前工作目录的 `.ainovel/capabilities.json`。默认内置能力：
+
+- `builtin-echo`
+- `builtin-outline`
+- `builtin-rewrite`
+- `ainovel-cli`
+
+`POST /api/capabilities` 最小请求：
+
+```json
+{
+  "name": "通用润色",
+  "type": "skill",
+  "version": "1.0.0",
+  "source": "https://github.com/example/writing-skill",
+  "license": "MIT",
+  "entry": "skill.json",
+  "output": "text",
+  "supports_stream": true,
+  "supports_abort": true,
+  "enabled": true
+}
+```
 
 `POST /api/run` 请求示例：
 
@@ -41,7 +66,9 @@
 }
 ```
 
-输出可以是文本、JSON、补丁、文件列表或事件流。错误响应应包含 `error`、`code` 和可读说明。
+普通响应会返回 `run_id`、`task`、`backend_id`、`skill_ids`、`capabilities`、`output` 和 `content`。传 `params.stream=true` 或请求头 `Accept: text/event-stream` 时返回 SSE，事件包括 `start`、`delta`、`done`、`error`、`aborted`。
+
+当前 `/api/run` 已支持内置 `echo`、`outline`、`rewrite`、`ai/generate` 任务。`ai/generate` 和 `rewrite` 的 AI 模式会调用当前配置的 LLM provider；未配置 provider 时，`rewrite` 会返回本地链路验证结果。保存第三方 GitHub 项目或 skill manifest 只负责登记和校验，不会直接执行任意仓库代码。
 
 ## AI
 
