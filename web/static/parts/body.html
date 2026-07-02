@@ -3,10 +3,10 @@
   <div class="lock-box">
     <div class="lock-icon"><svg class="ic"><use href="#ic-lock"/></svg></div>
     <div class="lock-title">AI 写作工坊</div>
-    <div class="lock-sub" id="lockSub" data-i18n="lock-set">首次使用请设置密码</div>
-    <input class="lock-input" id="lockInput" type="password" data-i18n-ph="lock-placeholder" placeholder="输入密码...">
+    <div class="lock-sub" id="lockSub" data-i18n="lock-set">游客本地模式</div>
+    <input class="lock-input" id="lockInput" type="password" data-i18n-ph="lock-placeholder" placeholder="本地游客模式无需密码" style="display:none">
     <div class="lock-hint" id="lockHint"></div>
-    <button class="btn-primary" id="lockBtn" onclick="handleLock()" data-i18n="lock-btn-set">设置密码</button>
+    <button class="btn-primary" id="lockBtn" onclick="showApp()" data-i18n="lock-btn-set">进入工坊</button>
     <div class="lock-privacy"><a onclick="event.preventDefault();showPrivacyModal()">隐私条款</a></div>
   </div>
 </div>
@@ -40,7 +40,7 @@
     <h2>📖 使用指南</h2>
     <h3>🚀 快速开始</h3>
     <ol>
-      <li>打开链接，首次使用请设置密码（至少4位）</li>
+      <li>打开链接，默认以游客本地模式进入</li>
       <li>进入工坊后，点击顶栏「＋」创建新项目</li>
       <li>点击「⚙」配置 API Key（选服务商 → 填 Key → 测试 → 保存）</li>
       <li>开始写作！AI 功能会自动辅助你</li>
@@ -84,19 +84,19 @@
       <li><strong>历史 Tab</strong>：查看所有 AI 操作记录</li>
     </ul>
     <h3>👤 个人中心</h3>
-    <p>点击顶栏「👤」查看项目统计、修改密码、锁屏。</p>
+    <p>点击顶栏「👤」查看项目统计和本地数据状态。</p>
     <h3>🎨 主题切换</h3>
     <p>设置 → 主题/Theme → 深色/浅色模式。支持跟随系统。</p>
     <h3>📊 数据安全</h3>
     <ul>
       <li>所有数据存在浏览器本地（IndexedDB）</li>
-      <li>密码用 SHA-256 加密存储</li>
+      <li>默认游客本地模式，不设置本地密码</li>
       <li>不上传任何数据到服务器</li>
       <li>支持项目导出 JSON 备份</li>
       <li>支持导入 .json / .txt / .md / .docx 文件</li>
     </ul>
     <h3>❓ 常见问题</h3>
-    <p><strong>Q: 刷新页面要重新登录吗？</strong><br>A: 不需要，刷新直接进入。点「👤」里的「🔒 锁屏」才会锁。</p>
+    <p><strong>Q: 刷新页面要重新登录吗？</strong><br>A: 不需要，本地游客模式会直接进入。</p>
     <p><strong>Q: 数据会丢吗？</strong><br>A: 数据存在浏览器本地。清除浏览器数据会丢失，建议定期导出备份。</p>
     <p><strong>Q: AI 功能需要付费吗？</strong><br>A: 需要 AI 服务商的 API Key，大部分有免费额度。</p>
     <p><strong>Q: 手机上能用吗？</strong><br>A: 完全适配手机，底部导航栏切换功能。</p>
@@ -149,6 +149,7 @@
     </div>
     <div class="topbar-actions">
       <button class="icon-btn" onclick="openModal('newProjectModal')" title="新建">＋</button>
+      <button class="icon-btn" onclick="location.href='admin.html'" title="能力后台">后台</button>
       <button class="icon-btn" onclick="openModal('settingsModal')" data-i18n-title="tb-settings" title="设置"><svg class="ic ic-sm"><use href="#ic-settings"/></svg></button>
       <button class="icon-btn" onclick="exportProject()" title="导出"><svg class="ic ic-sm"><use href="#ic-download"/></svg></button>
       <button class="icon-btn" id="saveBtn" onclick="saveDoc()" title="保存"><svg class="ic ic-sm"><use href="#ic-save"/></svg><span class="save-badge"></span></button>
@@ -412,21 +413,17 @@
 <div class="modal-overlay" id="profileModal">
   <div class="modal">
     <div class="modal-title" data-i18n="mod-profile"><svg class="ic"><use href="#ic-user"/></svg> 个人中心</div>
-    <div class="modal-sub" data-i18n="mod-profile-sub">管理密码、查看项目统计</div>
+    <div class="modal-sub" data-i18n="mod-profile-sub">游客本地模式、查看项目统计</div>
     <div id="profileStats" style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:16px">
       <div style="font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:10px" data-i18n="mod-profile-stats"><svg class="ic ic-sm"><use href="#ic-bar-chart"/></svg> 当前项目统计</div>
       <div id="profileStatsContent" style="font-size:12px;color:var(--text-secondary);line-height:2">...</div>
     </div>
     <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:16px">
-      <div style="font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:10px" data-i18n="mod-profile-chpwd"><svg class="ic ic-sm"><use href="#ic-lock"/></svg> 修改密码</div>
-      <input class="form-input" id="oldPwd" type="password" data-i18n-ph="mod-oldpwd" placeholder="当前密码" style="margin-bottom:8px">
-      <input class="form-input" id="newPwd" type="password" data-i18n-ph="mod-newpwd" placeholder="新密码（至少4位）" style="margin-bottom:8px">
-      <input class="form-input" id="newPwd2" type="password" data-i18n-ph="mod-newpwd2" placeholder="确认新密码">
+      <div style="font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:10px" data-i18n="mod-profile-chpwd"><svg class="ic ic-sm"><use href="#ic-lock"/></svg> 游客本地模式</div>
+      <div style="font-size:12px;color:var(--text-secondary);line-height:1.8">当前版本不设置本地密码；项目数据保存在浏览器本地，后端能力按你选择的本地或自部署服务执行。</div>
     </div>
     <div class="modal-footer" style="flex-wrap:wrap;gap:8px">
-      <button class="btn-cancel" data-i18n="mod-lock" onclick="lockApp();closeModal('profileModal')" style="flex:0 0 auto;padding:10px 16px"><svg class="ic ic-sm"><use href="#ic-lock"/></svg> 锁屏</button>
       <button class="btn-cancel" data-i18n="mod-close" onclick="closeModal('profileModal')" style="flex:1">关闭</button>
-      <button class="btn-confirm" data-i18n="mod-chpwd-btn" onclick="changePassword()" style="flex:1">修改密码</button>
     </div>
   </div>
 </div>

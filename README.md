@@ -6,6 +6,8 @@ AI写作工坊是面向小说创作的开源可自定义主体应用。它可以
 
 写作工坊可以保存来自 GitHub 的优质开源项目、skill、规则包和你自己编写的通用能力文件。创作时，前端选择一个后端项目或多个 skill，把项目、章节、角色、上下文和参数传给后端；后端执行后把文本、JSON、补丁或事件流直接回传到前端，前端可以随时中断长任务。
 
+主应用默认以本地游客模式打开，不要求设置密码；数据默认留在浏览器本地或你运行的本地/自部署后端工作目录中。除非后续提供数据管理服务，否则不把本地使用包装成账号体系。
+
 `ainovel-cli` 原版是他人维护的开源项目，原始上游为 [`voocel/ainovel-cli`](https://github.com/voocel/ainovel-cli)。本仓库不声明其原创归属，只把它作为 AI写作工坊可原生支持的后端项目之一。
 
 ## 自定义接入要求
@@ -42,7 +44,7 @@ go build -o ainovel-cli ./cmd/ainovel-cli
 访问地址：
 
 - 写作工坊：`http://127.0.0.1:8080/app.html`
-- 管理后台：`http://127.0.0.1:8080/admin`
+- 管理后台：`http://127.0.0.1:8080/admin.html`
 - API：`http://127.0.0.1:8080/api/...`
 
 配置支持本地配置文件和环境变量。API key 可写入 `~/.ainovel/config.json`，也可使用 `AINOVEL_<PROVIDER>_API_KEY` 或 `<PROVIDER>_API_KEY`，例如 `AINOVEL_OPENROUTER_API_KEY`。

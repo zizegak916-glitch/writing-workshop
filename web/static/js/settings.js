@@ -214,12 +214,9 @@ function applyLang(){
   localizeProviderChips();
   // Lock screen
   const lockSub=document.getElementById('lockSub');
-  if(lockSub){
-    const stored=localStorage.getItem('ww_pwd_hash');
-    lockSub.textContent=stored?t('lock-unlock'):t('lock-set');
-  }
+  if(lockSub)lockSub.textContent=t('lock-set');
   const lockBtn=document.getElementById('lockBtn');
-  if(lockBtn)lockBtn.textContent=localStorage.getItem('ww_pwd_hash')?t('lock-btn-unlock'):t('lock-btn-set');
+  if(lockBtn)lockBtn.textContent=t('lock-btn-set');
   const lockInput=document.getElementById('lockInput');
   if(lockInput)lockInput.placeholder=t('lock-placeholder');
   // Re-render AI mode grids with translated names
@@ -303,9 +300,6 @@ function applyLang(){
     if(id==='profileModal'){
       document.querySelector('#profileModal .modal-title').textContent=t('mod-profile');
       document.querySelector('#profileModal .modal-sub').textContent=t('mod-profile-sub');
-      document.getElementById('oldPwd').placeholder=t('mod-oldpwd');
-      document.getElementById('newPwd').placeholder=t('mod-newpwd');
-      document.getElementById('newPwd2').placeholder=t('mod-newpwd2');
     }
   };
 })();
@@ -328,14 +322,8 @@ async function renderProfileStats(){
   el.innerHTML='<div>📁 '+t('ps-project')+' <b>'+p.name+'</b></div><div>◎ '+t('ps-genre')+' '+(p.genre||'-')+'</div><div>📝 '+t('ps-words')+' <b>'+totalWords+'</b> '+t('ps-units-2')+'</div><div>☐ '+t('ps-outlines')+' '+totalOutlines+' '+t('ps-units-1')+t('ps-chapters')+' '+totalChapters+' '+t('ps-units-1')+'</div><div>● '+t('ps-chars')+' '+totalChars+' '+t('ps-units-1')+'</div><div>◎ '+t('ps-goal')+' '+S.wordGoal+' '+t('ps-units-2')+'</div><div>◷ '+t('ps-created')+' '+created+' · '+t('ps-updated')+' '+updated+'</div>';
 }
 async function changePassword(){
-  const old=document.getElementById('oldPwd').value,new1=document.getElementById('newPwd').value,new2=document.getElementById('newPwd2').value;
-  const stored=localStorage.getItem('ww_pwd_hash');
-  if(stored){if(!old){showToast('✕',t('toast-enter-current-password'));return;}if(await sha256(old)!==stored){showToast('✕',t('toast-current-password-wrong'));return;}}
-  if(!new1||new1.length<4){showToast('✕',t('toast-new-password-short'));return;}
-  if(new1!==new2){showToast('✕',t('toast-password-mismatch'));return;}
-  localStorage.setItem('ww_pwd_hash',await sha256(new1));
-  document.getElementById('oldPwd').value='';document.getElementById('newPwd').value='';document.getElementById('newPwd2').value='';
-  showToast('✓',t('toast-pwd-changed'));
+  localStorage.removeItem('ww_pwd_hash');
+  showToast('i','本地游客模式不提供密码设置');
 }
 // Hook: render stats when profile modal opens
 (function(){const orig=openModal;openModal=function(id){orig(id);if(id==='profileModal')renderProfileStats();};})();

@@ -177,14 +177,14 @@ zh:{
   "mod-char-skill-ph":"技能或特殊能力...",
   "mod-char-save":"保存 ✓",
   "mod-profile":"👤 个人中心",
-  "mod-profile-sub":"管理密码、查看项目统计",
+  "mod-profile-sub":"游客本地模式、查看项目统计",
   "mod-profile-stats":"📊 当前项目统计",
-  "mod-profile-chpwd":"🔒 修改密码",
+  "mod-profile-chpwd":"🔒 游客本地模式",
   "mod-oldpwd":"当前密码",
   "mod-newpwd":"新密码（至少4位）",
   "mod-newpwd2":"确认新密码",
-  "mod-lock":"🔒 锁屏",
-  "mod-chpwd-btn":"修改密码",
+  "mod-lock":"游客本地模式",
+  "mod-chpwd-btn":"无需密码",
   "sb-outline":"故事大纲",
   "sb-chapters":"章节列表",
   "sb-chars":"人物档案",
@@ -196,13 +196,13 @@ zh:{
   "sb-empty-chapter":"暂无章节",
   "sb-empty-char":"暂无人物",
   "sb-empty-notes":"功能开发中...",
-  "lock-set":"首次使用请设置密码",
-  "lock-unlock":"请输入密码解锁工坊",
-  "lock-btn-set":"设置密码",
-  "lock-btn-unlock":"解锁",
+  "lock-set":"游客本地模式",
+  "lock-unlock":"游客本地模式",
+  "lock-btn-set":"进入工坊",
+  "lock-btn-unlock":"进入工坊",
   "lock-hint":"忘记密码？",
   "lock-reset":"重置（将清除所有数据）",
-  "lock-placeholder":"输入密码...",
+  "lock-placeholder":"本地游客模式无需密码",
   "toast-saved":"已保存",
   "toast-deleted":"已删除",
   "toast-added":"已添加",
@@ -436,14 +436,14 @@ en:{
   "mod-char-skill-ph":"Special abilities...",
   "mod-char-save":"Save ✓",
   "mod-profile":"👤 Profile",
-  "mod-profile-sub":"Password & project stats",
+  "mod-profile-sub":"Local guest mode & project stats",
   "mod-profile-stats":"📊 Project Stats",
-  "mod-profile-chpwd":"🔒 Change Password",
+  "mod-profile-chpwd":"Guest local mode",
   "mod-oldpwd":"Current Password",
   "mod-newpwd":"New Password (4+ chars)",
   "mod-newpwd2":"Confirm Password",
-  "mod-lock":"🔒 Lock",
-  "mod-chpwd-btn":"Change Password",
+  "mod-lock":"Guest mode",
+  "mod-chpwd-btn":"Guest mode",
   "sb-outline":"Story Outline",
   "sb-chapters":"Chapters",
   "sb-chars":"Characters",
@@ -455,13 +455,13 @@ en:{
   "sb-empty-chapter":"No chapters",
   "sb-empty-char":"No characters",
   "sb-empty-notes":"Coming soon...",
-  "lock-set":"Set a password to get started",
-  "lock-unlock":"Enter password to unlock",
-  "lock-btn-set":"Set Password",
-  "lock-btn-unlock":"Unlock",
+  "lock-set":"Local guest mode",
+  "lock-unlock":"Local guest mode",
+  "lock-btn-set":"Enter workshop",
+  "lock-btn-unlock":"Enter workshop",
   "lock-hint":"Forgot?",
   "lock-reset":"Reset (clears all data)",
-  "lock-placeholder":"Enter password...",
+  "lock-placeholder":"Local guest mode",
   "toast-saved":"Saved",
   "toast-deleted":"Deleted",
   "toast-added":"Added",
@@ -695,14 +695,14 @@ ja:{
   "mod-char-skill-ph":"特殊能力...",
   "mod-char-save":"保存 ✓",
   "mod-profile":"👤 プロファイル",
-  "mod-profile-sub":"パスワードと統計",
+  "mod-profile-sub":"Local guest mode & project stats",
   "mod-profile-stats":"📊 プロジェクト統計",
-  "mod-profile-chpwd":"🔒 パスワード変更",
+  "mod-profile-chpwd":"Guest local mode",
   "mod-oldpwd":"現在のパスワード",
   "mod-newpwd":"新しいパスワード（4文字以上）",
   "mod-newpwd2":"確認",
-  "mod-lock":"🔒 ロック",
-  "mod-chpwd-btn":"パスワード変更",
+  "mod-lock":"Guest mode",
+  "mod-chpwd-btn":"Guest mode",
   "sb-outline":"ストーリーあらすじ",
   "sb-chapters":"章一覧",
   "sb-chars":"キャラ一覧",
@@ -714,13 +714,13 @@ ja:{
   "sb-empty-chapter":"章なし",
   "sb-empty-char":"キャラなし",
   "sb-empty-notes":"準備中...",
-  "lock-set":"パスワードを設定してください",
-  "lock-unlock":"パスワードを入力",
-  "lock-btn-set":"パスワード設定",
-  "lock-btn-unlock":"ロック解除",
+  "lock-set":"Local guest mode",
+  "lock-unlock":"Local guest mode",
+  "lock-btn-set":"Enter workshop",
+  "lock-btn-unlock":"Enter workshop",
   "lock-hint":"忘れた？",
   "lock-reset":"リセット（全データ消去）",
-  "lock-placeholder":"パスワード...",
+  "lock-placeholder":"Local guest mode",
   "toast-saved":"保存済",
   "toast-deleted":"削除済",
   "toast-added":"追加済",
@@ -954,14 +954,14 @@ ko:{
   "mod-char-skill-ph":"특수 능력...",
   "mod-char-save":"저장 ✓",
   "mod-profile":"👤 프로필",
-  "mod-profile-sub":"비밀번호 및 통계",
+  "mod-profile-sub":"Local guest mode & project stats",
   "mod-profile-stats":"📊 프로젝트 통계",
-  "mod-profile-chpwd":"🔒 비밀번호 변경",
+  "mod-profile-chpwd":"Guest local mode",
   "mod-oldpwd":"현재 비밀번호",
   "mod-newpwd":"새 비밀번호 (4자 이상)",
   "mod-newpwd2":"확인",
-  "mod-lock":"🔒 잠금",
-  "mod-chpwd-btn":"비밀번호 변경",
+  "mod-lock":"Guest mode",
+  "mod-chpwd-btn":"Guest mode",
   "sb-outline":"스토리 개요",
   "sb-chapters":"챕터 목록",
   "sb-chars":"캐릭터 목록",
@@ -973,13 +973,13 @@ ko:{
   "sb-empty-chapter":"챕터 없음",
   "sb-empty-char":"캐릭터 없음",
   "sb-empty-notes":"준비중...",
-  "lock-set":"비밀번호를 설정하세요",
-  "lock-unlock":"비밀번호 입력",
-  "lock-btn-set":"비밀번호 설정",
-  "lock-btn-unlock":"잠금 해제",
+  "lock-set":"Local guest mode",
+  "lock-unlock":"Local guest mode",
+  "lock-btn-set":"Enter workshop",
+  "lock-btn-unlock":"Enter workshop",
   "lock-hint":"잊으셨나요?",
   "lock-reset":"초기화 (모든 데이터 삭제)",
-  "lock-placeholder":"비밀번호...",
+  "lock-placeholder":"Local guest mode",
   "toast-saved":"저장됨",
   "toast-deleted":"삭제됨",
   "toast-added":"추가됨",
@@ -1213,14 +1213,14 @@ fr:{
   "mod-char-skill-ph":"Compétences ou capacités spéciales...",
   "mod-char-save":"Enregistrer ✓",
   "mod-profile":"👤 Centre personnel",
-  "mod-profile-sub":"Gérer le mot de passe et consulter les statistiques",
+  "mod-profile-sub":"Local guest mode & project stats",
   "mod-profile-stats":"📊 Statistiques du projet actuel",
-  "mod-profile-chpwd":"🔒 Modifier le mot de passe",
+  "mod-profile-chpwd":"Guest local mode",
   "mod-oldpwd":"Mot de passe actuel",
   "mod-newpwd":"Nouveau mot de passe (4+ caractères)",
   "mod-newpwd2":"Confirmer le nouveau mot de passe",
-  "mod-lock":"🔒 Verrouillage",
-  "mod-chpwd-btn":"Modifier le mot de passe",
+  "mod-lock":"Guest mode",
+  "mod-chpwd-btn":"Guest mode",
   "sb-outline":"Plan de l’histoire",
   "sb-chapters":"Liste des chapitres",
   "sb-chars":"Fiches personnages",
@@ -1232,13 +1232,13 @@ fr:{
   "sb-empty-chapter":"Aucun chapitre",
   "sb-empty-char":"Aucun personnage",
   "sb-empty-notes":"Fonction en développement...",
-  "lock-set":"Définir un mot de passe",
-  "lock-unlock":"Entrez le mot de passe",
-  "lock-btn-set":"Définir",
-  "lock-btn-unlock":"Déverrouiller",
+  "lock-set":"Local guest mode",
+  "lock-unlock":"Local guest mode",
+  "lock-btn-set":"Enter workshop",
+  "lock-btn-unlock":"Enter workshop",
   "lock-hint":"Mot de passe oublié ?",
   "lock-reset":"Réinitialiser (efface toutes les données)",
-  "lock-placeholder":"Saisir le mot de passe...",
+  "lock-placeholder":"Local guest mode",
   "toast-saved":"Enregistré",
   "toast-deleted":"Supprimé",
   "toast-added":"Ajouté",
@@ -1472,14 +1472,14 @@ es:{
   "mod-char-skill-ph":"Habilidades o poderes especiales...",
   "mod-char-save":"Guardar ✓",
   "mod-profile":"👤 Centro personal",
-  "mod-profile-sub":"Gestiona contraseña y estadísticas",
+  "mod-profile-sub":"Local guest mode & project stats",
   "mod-profile-stats":"📊 Estadísticas del proyecto actual",
-  "mod-profile-chpwd":"🔒 Cambiar contraseña",
+  "mod-profile-chpwd":"Guest local mode",
   "mod-oldpwd":"Contraseña actual",
   "mod-newpwd":"Nueva contraseña (4+ caracteres)",
   "mod-newpwd2":"Confirmar nueva contraseña",
-  "mod-lock":"🔒 Bloquear pantalla",
-  "mod-chpwd-btn":"Cambiar contraseña",
+  "mod-lock":"Guest mode",
+  "mod-chpwd-btn":"Guest mode",
   "sb-outline":"Esquema de la historia",
   "sb-chapters":"Lista de capítulos",
   "sb-chars":"Perfiles de personajes",
@@ -1491,13 +1491,13 @@ es:{
   "sb-empty-chapter":"Sin capítulos",
   "sb-empty-char":"Sin personajes",
   "sb-empty-notes":"Función en desarrollo...",
-  "lock-set":"Establecer contraseña",
-  "lock-unlock":"Ingrese contraseña",
-  "lock-btn-set":"Establecer",
-  "lock-btn-unlock":"Desbloquear",
+  "lock-set":"Local guest mode",
+  "lock-unlock":"Local guest mode",
+  "lock-btn-set":"Enter workshop",
+  "lock-btn-unlock":"Enter workshop",
   "lock-hint":"¿Olvidaste la contraseña?",
   "lock-reset":"Restablecer (borra todos los datos)",
-  "lock-placeholder":"Introducir contraseña...",
+  "lock-placeholder":"Local guest mode",
   "toast-saved":"Guardado",
   "toast-deleted":"Eliminado",
   "toast-added":"Añadido",
@@ -1731,14 +1731,14 @@ de:{
   "mod-char-skill-ph":"Fähigkeiten oder besondere Kräfte...",
   "mod-char-save":"Speichern ✓",
   "mod-profile":"👤 Profilcenter",
-  "mod-profile-sub":"Passwort verwalten und Statistiken ansehen",
+  "mod-profile-sub":"Local guest mode & project stats",
   "mod-profile-stats":"📊 Aktuelle Projektstatistiken",
-  "mod-profile-chpwd":"🔒 Passwort ändern",
+  "mod-profile-chpwd":"Guest local mode",
   "mod-oldpwd":"Aktuelles Passwort",
   "mod-newpwd":"Neues Passwort (4+ Zeichen)",
   "mod-newpwd2":"Neues Passwort bestätigen",
-  "mod-lock":"🔒 Sperrbildschirm",
-  "mod-chpwd-btn":"Passwort ändern",
+  "mod-lock":"Guest mode",
+  "mod-chpwd-btn":"Guest mode",
   "sb-outline":"Story-Gliederung",
   "sb-chapters":"Kapitelliste",
   "sb-chars":"Charakterprofile",
@@ -1750,13 +1750,13 @@ de:{
   "sb-empty-chapter":"Keine Kapitel",
   "sb-empty-char":"Keine Charaktere",
   "sb-empty-notes":"Funktion in Entwicklung...",
-  "lock-set":"Passwort festlegen",
-  "lock-unlock":"Passwort eingeben",
-  "lock-btn-set":"Festlegen",
-  "lock-btn-unlock":"Entsperren",
+  "lock-set":"Local guest mode",
+  "lock-unlock":"Local guest mode",
+  "lock-btn-set":"Enter workshop",
+  "lock-btn-unlock":"Enter workshop",
   "lock-hint":"Passwort vergessen?",
   "lock-reset":"Zurücksetzen (löscht alle Daten)",
-  "lock-placeholder":"Passwort eingeben...",
+  "lock-placeholder":"Local guest mode",
   "toast-saved":"Guardado",
   "toast-deleted":"Eliminado",
   "toast-added":"Hinzugefügt",
@@ -1990,14 +1990,14 @@ ru:{
   "mod-char-skill-ph":"Навыки или особые способности...",
   "mod-char-save":"Сохранить ✓",
   "mod-profile":"👤 Личный центр",
-  "mod-profile-sub":"Управление паролем и статистикой",
+  "mod-profile-sub":"Local guest mode & project stats",
   "mod-profile-stats":"📊 Статистика текущего проекта",
-  "mod-profile-chpwd":"🔒 Изменить пароль",
+  "mod-profile-chpwd":"Guest local mode",
   "mod-oldpwd":"Текущий пароль",
   "mod-newpwd":"Новый пароль (4+ символа)",
   "mod-newpwd2":"Подтвердить новый пароль",
-  "mod-lock":"🔒 Экран блокировки",
-  "mod-chpwd-btn":"Изменить пароль",
+  "mod-lock":"Guest mode",
+  "mod-chpwd-btn":"Guest mode",
   "sb-outline":"План истории",
   "sb-chapters":"Список глав",
   "sb-chars":"Профили персонажей",
@@ -2009,13 +2009,13 @@ ru:{
   "sb-empty-chapter":"Глав нет",
   "sb-empty-char":"Персонажей нет",
   "sb-empty-notes":"Функция в разработке...",
-  "lock-set":"Установить пароль",
-  "lock-unlock":"Введите пароль",
-  "lock-btn-set":"Установить",
-  "lock-btn-unlock":"Разблокировать",
+  "lock-set":"Local guest mode",
+  "lock-unlock":"Local guest mode",
+  "lock-btn-set":"Enter workshop",
+  "lock-btn-unlock":"Enter workshop",
   "lock-hint":"Забыли пароль?",
   "lock-reset":"Сброс (удалит все данные)",
-  "lock-placeholder":"Введите пароль...",
+  "lock-placeholder":"Local guest mode",
   "toast-saved":"Guardado",
   "toast-deleted":"Eliminado",
   "toast-added":"Добавлено",
@@ -2189,13 +2189,13 @@ function setLang(lang){
 }
 
 // ═══ Lock ═══
-async function handleLock(){const v=document.getElementById('lockInput').value.trim();if(!v||v.length<4){showToast('✕',t('toast-pwd-short'));return;}const h=localStorage.getItem('ww_pwd_hash');if(!h){localStorage.setItem('ww_pwd_hash',await sha256(v));showToast('✓',t('toast-locked'));showApp();}else{if(await sha256(v)===h){showApp();}else{showToast('✕',t('toast-pwd-err'));document.getElementById('lockInput').value='';}}}
-function showApp(){document.getElementById('lockScreen').style.display='none';document.getElementById('app').classList.add('visible');if(!db)initApp();}
+async function handleLock(){showApp();}
+function showApp(){const lock=document.getElementById('lockScreen');if(lock)lock.style.display='none';document.getElementById('app').classList.add('visible');localStorage.removeItem('ww_pwd_hash');if(!db)initApp();}
 function clearPwd(){if(confirm('确定重置？将清除所有数据。')){localStorage.clear();indexedDB.deleteDatabase(DB_NAME);location.reload();}}
-function lockApp(){document.getElementById('lockScreen').style.display='flex';document.getElementById('app').classList.remove('visible');document.getElementById('lockInput').value='';}
+function lockApp(){showToast('i','本地游客模式无需本地锁定');showApp();}
 
-// Boot: show lock only if no password set yet
-(function(){document.getElementById('lockInput').addEventListener('keydown',e=>{if(e.key==='Enter')handleLock();});if(!localStorage.getItem('ww_pwd_hash')){document.getElementById('lockScreen').style.display='flex';document.getElementById('lockSub').textContent=t('lock-set');document.getElementById('lockBtn').textContent=t('lock-btn-set');document.getElementById('lockHint').innerHTML='';}else{showApp();}})();
+// Boot directly into local guest mode. Old password hashes are ignored and removed.
+(function(){localStorage.removeItem('ww_pwd_hash');showApp();})();
 
 
 // ═══ Init ═══
@@ -3189,12 +3189,9 @@ function applyLang(){
   localizeProviderChips();
   // Lock screen
   const lockSub=document.getElementById('lockSub');
-  if(lockSub){
-    const stored=localStorage.getItem('ww_pwd_hash');
-    lockSub.textContent=stored?t('lock-unlock'):t('lock-set');
-  }
+  if(lockSub)lockSub.textContent=t('lock-set');
   const lockBtn=document.getElementById('lockBtn');
-  if(lockBtn)lockBtn.textContent=localStorage.getItem('ww_pwd_hash')?t('lock-btn-unlock'):t('lock-btn-set');
+  if(lockBtn)lockBtn.textContent=t('lock-btn-set');
   const lockInput=document.getElementById('lockInput');
   if(lockInput)lockInput.placeholder=t('lock-placeholder');
   // Re-render AI mode grids with translated names
@@ -3278,9 +3275,6 @@ function applyLang(){
     if(id==='profileModal'){
       document.querySelector('#profileModal .modal-title').textContent=t('mod-profile');
       document.querySelector('#profileModal .modal-sub').textContent=t('mod-profile-sub');
-      document.getElementById('oldPwd').placeholder=t('mod-oldpwd');
-      document.getElementById('newPwd').placeholder=t('mod-newpwd');
-      document.getElementById('newPwd2').placeholder=t('mod-newpwd2');
     }
   };
 })();
@@ -3303,14 +3297,8 @@ async function renderProfileStats(){
   el.innerHTML='<div>📁 '+t('ps-project')+' <b>'+p.name+'</b></div><div>◎ '+t('ps-genre')+' '+(p.genre||'-')+'</div><div>📝 '+t('ps-words')+' <b>'+totalWords+'</b> '+t('ps-units-2')+'</div><div>☐ '+t('ps-outlines')+' '+totalOutlines+' '+t('ps-units-1')+t('ps-chapters')+' '+totalChapters+' '+t('ps-units-1')+'</div><div>● '+t('ps-chars')+' '+totalChars+' '+t('ps-units-1')+'</div><div>◎ '+t('ps-goal')+' '+S.wordGoal+' '+t('ps-units-2')+'</div><div>◷ '+t('ps-created')+' '+created+' · '+t('ps-updated')+' '+updated+'</div>';
 }
 async function changePassword(){
-  const old=document.getElementById('oldPwd').value,new1=document.getElementById('newPwd').value,new2=document.getElementById('newPwd2').value;
-  const stored=localStorage.getItem('ww_pwd_hash');
-  if(stored){if(!old){showToast('✕',t('toast-enter-current-password'));return;}if(await sha256(old)!==stored){showToast('✕',t('toast-current-password-wrong'));return;}}
-  if(!new1||new1.length<4){showToast('✕',t('toast-new-password-short'));return;}
-  if(new1!==new2){showToast('✕',t('toast-password-mismatch'));return;}
-  localStorage.setItem('ww_pwd_hash',await sha256(new1));
-  document.getElementById('oldPwd').value='';document.getElementById('newPwd').value='';document.getElementById('newPwd2').value='';
-  showToast('✓',t('toast-pwd-changed'));
+  localStorage.removeItem('ww_pwd_hash');
+  showToast('i','本地游客模式不提供密码设置');
 }
 // Hook: render stats when profile modal opens
 (function(){const orig=openModal;openModal=function(id){orig(id);if(id==='profileModal')renderProfileStats();};})();

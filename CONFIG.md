@@ -12,6 +12,8 @@
 
 Web 管理后台保存配置时写入 `~/.ainovel/config.json`。
 
+主应用默认使用本地游客模式，不要求设置密码。配置和密钥由本地配置文件、环境变量或你部署的数据管理服务负责；当前本地模式不提供账号密码体系。
+
 ## 最小配置
 
 ```json
@@ -66,6 +68,6 @@ Ollama/OpenAI 兼容本地服务可不配置 API key：
 ```
 
 - 写作工坊：`/app.html`
-- 管理后台：`/admin`
+- 管理后台：`/admin.html`
 - 所有静态资源由 Go embed 提供。
 - 规则包保存到当前项目输出目录 `.ainovel/rules/web.rules.md`。
