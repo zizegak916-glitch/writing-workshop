@@ -9,7 +9,7 @@ go build -o ainovel-cli ./cmd/ainovel-cli
 
 当前仓库的 Web 前端位于 `web/static/`，由 `web/static/static.go` 通过 `go:embed` 打包。
 
-`ainovel-cli` 原版是他人维护的开源项目；当前仓库仅把它作为 AI写作工坊可原生支持的后端项目之一。新增后端适配时应保持 `/api/` 契约稳定。
+写作工坊是主体应用。GitHub 开源项目、skill、规则包和自定义能力都只是可保存、可组合、可执行的能力来源。`ainovel-cli` 原版是他人维护的开源项目；当前仓库仅把它作为 AI写作工坊可原生支持的后端项目之一。新增后端适配时应保持 `/api/` 契约稳定。
 
 ## 常用验证
 
@@ -29,6 +29,8 @@ GOCACHE=/tmp/go-cache GOMODCACHE=/tmp/gomodcache go build ./cmd/ainovel-cli
 - 前端 AI 调用必须走 `/api/ai`，浏览器不直接访问厂商 API。
 - 项目、章节、角色写入会同步到 `/api/projects`、`/api/chapters`、`/api/characters`。
 - 规则包使用 `/api/rules`，项目级规则落盘到 `.ainovel/rules/web.rules.md`。
+- 新的通用能力入口使用 `/api/capabilities` 和 `/api/run`。前端传递 `backend_id`、`skill_ids`、上下文和参数；后端输出直接回传前端。
+- 长任务必须支持取消，前端可使用 `AbortController` 或调用 `/api/abort` 中断。
 
 ## 后端约定
 

@@ -203,7 +203,7 @@
       background: var(--bg-alt);
     }
     .runtime-grid {
-      display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px;
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px;
       margin-top: 30px;
     }
     .runtime-card {
@@ -391,6 +391,9 @@
     .mobile-close { position: absolute; top: 20px; right: 20px; background: none; border: none; color: #fff; font-size: 28px; cursor: pointer; }
 
     /* ===== RESPONSIVE ===== */
+    @media (max-width: 1100px) {
+      .runtime-grid { grid-template-columns: repeat(2, 1fr); }
+    }
     @media (max-width: 768px) {
       .hero h1 { font-size: 34px; }
       .hero-sub { font-size: 16px; }
@@ -444,7 +447,7 @@
     <div class="wrap">
       <div class="hero-badge"><span class="dot"></span> 免费开源 · 无需注册</div>
       <h1>用 AI 解锁<br><span class="gradient">创作超能力</span></h1>
-      <p class="hero-sub">静态前端可直接预览，连接原生支持的后端后启用 AI、配置、项目与规则管理</p>
+      <p class="hero-sub">写作工坊是主体：开源项目、skill、自定义能力和后端执行器都只是可接入的创作能力来源</p>
       <div class="hero-btns">
         <a href="app.html" class="btn btn-primary btn-lg">开始创作 →</a>
         <a href="#features" class="btn btn-ghost btn-lg">了解更多</a>
@@ -487,35 +490,43 @@
   <section class="runtime" id="runtime">
     <div class="wrap reveal">
       <div class="section-label">Runtime</div>
-      <div class="section-title">前端可视化，后端按需接入</div>
-      <div class="section-sub">GitHub Pages 负责展示和静态编辑；本地或自部署后端负责真实 API 能力</div>
+      <div class="section-title">能力来源与执行链路</div>
+      <div class="section-sub">保存 GitHub 优质开源项目或 skill，也可以接入自己的通用能力文件</div>
       <div class="runtime-grid">
         <div class="runtime-card">
-          <div class="runtime-kicker">01 · Pages</div>
-          <h3>静态预览</h3>
-          <p>当前 Pages 版本可以打开首页、写作界面、文档和后台界面。没有后端时，AI 请求、项目同步和配置保存不会执行真实服务端操作。</p>
+          <div class="runtime-kicker">01 · Sources</div>
+          <h3>能力保存</h3>
+          <p>写作工坊可以保存来自 GitHub 的优质开源项目、能力包、规则包或自定义 skill。来源只是素材库，不改变写作工坊的主体定位。</p>
           <div class="endpoint-list">
-            <div class="endpoint"><span>可访问</span><code>app.html</code></div>
-            <div class="endpoint"><span>可访问</span><code>admin.html</code></div>
+            <div class="endpoint"><span>开源项目</span><code>GitHub URL</code></div>
+            <div class="endpoint"><span>能力包</span><code>skill.json</code></div>
           </div>
         </div>
         <div class="runtime-card">
-          <div class="runtime-kicker">02 · Backend</div>
-          <h3>接入原生后端</h3>
-          <p><code>ainovel-cli</code> 是他人维护的开源原版项目，在这里仅作为可原生支持的后端选项之一。连接后前端通过后端 API 工作，浏览器不直接暴露厂商密钥。</p>
+          <div class="runtime-kicker">02 · Select</div>
+          <h3>前端选择</h3>
+          <p>创作时可以选择一个后端项目，也可以叠加多个 skill。前端把项目、章节、上下文、选中的能力和参数统一传给后端。</p>
           <div class="endpoint-list">
-            <div class="endpoint"><span>AI 代理</span><code>/api/ai</code></div>
-            <div class="endpoint"><span>模型配置</span><code>/api/config</code></div>
-            <div class="endpoint"><span>项目数据</span><code>/api/projects</code></div>
+            <div class="endpoint"><span>项目</span><code>backend_id</code></div>
+            <div class="endpoint"><span>能力</span><code>skill_ids[]</code></div>
           </div>
         </div>
         <div class="runtime-card">
-          <div class="runtime-kicker">03 · Open Source</div>
-          <h3>开源自定义</h3>
-          <p>可以自定义 provider、model、base URL、环境变量、规则包和页面文案。适合 fork 后部署自己的写作工坊。</p>
+          <div class="runtime-kicker">03 · Stream</div>
+          <h3>后端回传</h3>
+          <p>后端执行后的输出直接回传到前端，可用于续写、改写、分析、导入和结构化生成。长任务应支持流式输出和中途停止。</p>
           <div class="endpoint-list">
-            <div class="endpoint"><span>规则管理</span><code>/api/rules</code></div>
-            <div class="endpoint"><span>角色管理</span><code>/api/characters</code></div>
+            <div class="endpoint"><span>执行</span><code>/api/run</code></div>
+            <div class="endpoint"><span>停止</span><code>AbortController</code></div>
+          </div>
+        </div>
+        <div class="runtime-card">
+          <div class="runtime-kicker">04 · Custom</div>
+          <h3>自定义接入</h3>
+          <p>自定义文件或链接必须声明名称、版本、入口、输入输出格式、权限边界和来源。能力要通用，不绑定某个单一小说项目。</p>
+          <div class="endpoint-list">
+            <div class="endpoint"><span>清单</span><code>manifest</code></div>
+            <div class="endpoint"><span>契约</span><code>input/output</code></div>
           </div>
         </div>
       </div>

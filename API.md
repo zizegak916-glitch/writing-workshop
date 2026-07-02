@@ -1,6 +1,47 @@
-# ainovel-cli Web API
+# AI写作工坊后端 API 契约
 
-所有端点由 `./ainovel-cli serve --port 8080` 提供，默认监听 `127.0.0.1`。请求和响应均为 JSON，静态前端与管理后台使用同一组 API。
+写作工坊前端通过 `/api/` 与后端通信。`ainovel-cli` 只是当前仓库保留的一个后端适配示例；其他 GitHub 开源项目、skill 或自定义后端也可以实现同一组契约。
+
+请求和响应默认使用 JSON。长任务应优先支持 SSE 或分块文本回传，并提供取消能力，让前端可以随时打断。
+
+## 能力来源
+
+后端可以保存和暴露多个能力来源：
+
+- GitHub 开源项目：包含仓库 URL、版本或 commit、许可证和适配入口。
+- Skill / 能力包：包含 manifest、入口、输入输出 schema、权限边界和流式/取消支持声明。
+- 自定义规则包：面向写作偏好、风格、导入、规划、改写等通用任务。
+
+前端执行任务时应传递选中的 `backend_id`、`skill_ids`、当前项目上下文和用户参数。后端负责校验能力来源并执行。
+
+## 通用执行
+
+推荐新后端实现：
+
+- `GET /api/capabilities`：列出可用后端项目、skill、规则包和来源状态。
+- `POST /api/capabilities`：保存 GitHub 链接、manifest 或本地能力文件。
+- `POST /api/run`：执行选中的后端项目或多个 skill。
+- `POST /api/abort`：取消当前长任务。
+
+`POST /api/run` 请求示例：
+
+```json
+{
+  "backend_id": "ainovel-cli",
+  "skill_ids": ["outline-planner", "style-rewriter"],
+  "task": "rewrite",
+  "context": {
+    "project_id": "current",
+    "chapter_id": "chapter-3",
+    "selection": "需要改写的文本"
+  },
+  "params": {
+    "stream": true
+  }
+}
+```
+
+输出可以是文本、JSON、补丁、文件列表或事件流。错误响应应包含 `error`、`code` 和可读说明。
 
 ## AI
 

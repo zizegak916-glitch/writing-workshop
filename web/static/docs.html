@@ -17,12 +17,30 @@
   <header><div class="wrap nav"><a class="logo" href="index.html">AI写作工坊</a><nav><a href="app.html">主应用</a><a href="admin.html">管理后台</a><a href="about.html">关于</a></nav></div></header>
   <main class="wrap">
     <h1>使用文档</h1>
-    <p>AI写作工坊是开源可自定义项目：GitHub Pages 发布静态前端，后端可以按项目需要接入。</p>
+    <p>AI写作工坊是主体应用：GitHub Pages 发布静态前端，后端、GitHub 开源项目、skill 和自定义能力都只是可接入的能力来源。</p>
     <a class="btn" href="app.html">打开写作工坊</a>
-    <div class="note">当前 Pages 地址没有常驻后端。你可以浏览界面和文档；真实 AI 调用、配置保存、项目同步和规则管理，需要运行本地后端或部署自己的 API 服务。</div>
+    <div class="note">当前 Pages 地址没有常驻后端。你可以浏览界面和文档；真实 AI 调用、配置保存、项目同步、skill 执行和规则管理，需要运行本地后端或部署自己的 API 服务。</div>
 
-    <h2>后端归属说明</h2>
-    <p><code>ainovel-cli</code> 原版是他人维护的开源项目，本仓库不声明其原创归属。这里仅把它作为 AI写作工坊可原生支持的后端项目之一，用于演示和适配 <code>/api/</code> 能力。</p>
+    <h2>主体与能力来源</h2>
+    <p>写作工坊统一保存和调度多个能力来源：GitHub 上的优质开源项目、可组合 skill、项目规则包，以及你自己编写的通用能力。<code>ainovel-cli</code> 原版是他人维护的开源项目，本仓库不声明其原创归属；它只是可原生支持的后端项目之一。</p>
+
+    <h2>执行链路</h2>
+    <div class="grid">
+      <div class="card"><h3>选择能力</h3><p>前端允许选择一个后端项目，或同时选择多个 skill，并带上当前项目、章节、角色、上下文和用户参数。</p></div>
+      <div class="card"><h3>后端执行</h3><p>后端接收结构化请求，调用对应项目或 skill，输出文本、JSON、补丁、文件列表或事件流。</p></div>
+      <div class="card"><h3>实时回传</h3><p>后端输出直接传回前端。长任务应支持流式输出，前端可以随时中断并保留已生成内容。</p></div>
+    </div>
+
+    <h2>自定义文件或链接要求</h2>
+    <p>添加 GitHub 项目、远程链接或本地 skill 时，必须能被后端安全解析，并满足下面的最小契约。</p>
+    <div class="grid">
+      <div class="card"><h3>来源</h3><p>提供 GitHub 仓库链接、版本或 commit；本地文件需包含名称、版本、作者、许可证和用途说明。</p></div>
+      <div class="card"><h3>入口</h3><p>声明可执行入口或提示词入口，例如命令、HTTP endpoint、脚本路径、prompt 模板或规则文件路径。</p></div>
+      <div class="card"><h3>输入输出</h3><p>明确输入 schema、输出类型、是否支持流式输出、是否支持取消，以及错误返回格式。</p></div>
+      <div class="card"><h3>权限边界</h3><p>声明需要访问的文件、网络、环境变量和密钥。默认不能越权读取用户项目之外的数据。</p></div>
+      <div class="card"><h3>通用性</h3><p>能力必须面向写作、分析、导入、改写、规划等通用任务，不能绑定某个单一小说或私有项目。</p></div>
+      <div class="card"><h3>可审计</h3><p>保存原始链接、版本、摘要和启用状态，方便用户知道当前前端传给后端的能力组合。</p></div>
+    </div>
 
     <h2>ainovel-cli 后端示例</h2>
     <pre><code>go build -o ainovel-cli ./cmd/ainovel-cli
@@ -32,15 +50,15 @@
     <h2>核心入口</h2>
     <div class="grid">
       <div class="card"><h3>写作工坊</h3><p><a href="app.html">app.html</a>，用于项目、章节、角色、AI 辅助写作。</p></div>
-      <div class="card"><h3>管理后台</h3><p><a href="admin.html">admin.html</a>，用于配置 provider、model、API key 和项目规则。</p></div>
+      <div class="card"><h3>管理后台</h3><p><a href="admin.html">admin.html</a>，用于配置 provider、model、API key、后端项目、skill 和项目规则。</p></div>
       <div class="card"><h3>API</h3><p>后端端点以 <code>/api/</code> 开头，主要包括 <code>/api/ai</code>、<code>/api/config</code>、<code>/api/rules</code>。</p></div>
     </div>
 
     <h2>开源自定义</h2>
     <div class="grid">
       <div class="card"><h3>模型供应商</h3><p>在后台或配置文件中修改 provider、model、base URL，也可以通过环境变量注入 API key。</p></div>
-      <div class="card"><h3>项目规则</h3><p>通过 <code>/api/rules</code> 管理写作偏好、风格要求和项目约束，规则会落到本地项目目录。</p></div>
-      <div class="card"><h3>前端页面</h3><p>静态文件位于 <code>web/static/</code>，fork 后可以直接替换文案、样式和入口页面。</p></div>
+      <div class="card"><h3>能力组合</h3><p>保存多个后端项目和多个 skill，创作时按任务选择组合，由前端传递给后端执行。</p></div>
+      <div class="card"><h3>前端页面</h3><p>静态文件位于 <code>web/static/</code>，fork 后可以替换文案、样式、入口页面和能力管理界面。</p></div>
     </div>
 
     <h2>API Key 配置</h2>

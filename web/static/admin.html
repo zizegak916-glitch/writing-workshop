@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ainovel-cli 管理后台</title>
+<title>写作工坊能力后台</title>
 <style>
 :root{--bg:#0b0c0f;--panel:#15161a;--card:#1b1d22;--border:rgba(255,255,255,.08);--text:#eceef3;--muted:#8f96a3;--accent:#5e6ad2;--red:#f87171;--green:#34d399;--amber:#fbbf24}
 body.light{--bg:#f4f6fa;--panel:#fff;--card:#f8f9fc;--border:#dfe3ec;--text:#111827;--muted:#667085}
@@ -21,13 +21,14 @@ pre{white-space:pre-wrap;background:var(--card);border:1px solid var(--border);b
 </style>
 </head>
 <body>
-<header><h1>ainovel-cli 管理后台</h1><div class="row"><span id="apiStatus" class="status">检测后端中...</span><a style="color:var(--muted)" href="app.html">写作工坊</a><button class="primary" onclick="document.body.classList.toggle('light')">主题</button></div></header>
+<header><h1>写作工坊能力后台</h1><div class="row"><span id="apiStatus" class="status">检测后端中...</span><a style="color:var(--muted)" href="app.html">写作工坊</a><button class="primary" onclick="document.body.classList.toggle('light')">主题</button></div></header>
 <div class="wrap">
 <nav>
   <button class="tab active" onclick="showTab('config',this)">配置</button>
   <button class="tab" onclick="showTab('projects',this)">项目</button>
   <button class="tab" onclick="showTab('characters',this)">角色</button>
   <button class="tab" onclick="showTab('rules',this)">规则</button>
+  <button class="tab" onclick="showTab('capabilities',this)">能力来源</button>
   <button class="tab" onclick="showTab('test',this)">API 测试</button>
 </nav>
 <main>
@@ -68,6 +69,23 @@ pre{white-space:pre-wrap;background:var(--card);border:1px solid var(--border);b
     <p class="row"><button class="primary" onclick="saveRules()">保存规则</button><button class="danger" onclick="deleteRules()">清空 Web 规则</button></p>
     <pre id="rulesInfo"></pre>
   </section>
+  <section id="capabilities" class="panel card">
+    <h2>能力来源</h2>
+    <p style="color:var(--muted)">写作工坊是主体；GitHub 开源项目、skill、规则包和自定义文件只是可组合的能力来源。前端选择一个后端项目或多个 skill 后，把当前项目、章节、上下文和参数传给后端，后端输出再回传前端。</p>
+    <div class="grid">
+      <div>
+        <label>GitHub 项目链接</label>
+        <input placeholder="https://github.com/owner/repo/tree/tag-or-commit">
+      </div>
+      <div>
+        <label>Skill / 能力清单</label>
+        <input placeholder="skill.json / manifest.json / raw URL">
+      </div>
+    </div>
+    <label>接入要求</label>
+    <pre>必须声明：名称、版本、来源、许可证、入口、输入 schema、输出类型、是否支持流式输出、是否支持取消、权限边界。
+能力应面向通用写作任务，不能绑定某个单一小说或私有项目。</pre>
+  </section>
   <section id="test" class="panel card">
     <h2>API 测试</h2>
     <label>提示词</label><textarea id="testPrompt">回复 OK，并说明当前模型可用。</textarea>
@@ -96,7 +114,7 @@ async function testAI(){testResult.textContent='请求中...';try{const d=await 
 const isPages = location.hostname.endsWith('github.io');
 if(isPages){
   apiStatus.textContent='Pages 静态预览';
-  showRuntimeNotice('<b>当前没有连接后端。</b> GitHub Pages 只发布静态前端，配置保存、项目同步、规则写入和 AI 测试需要接入本地或自部署后端。<code>ainovel-cli</code> 是他人维护的开源原版项目，在这里仅作为可原生支持的后端选项之一。');
+  showRuntimeNotice('<b>当前没有连接后端。</b> GitHub Pages 只发布静态前端。保存 GitHub 项目、skill、自定义能力，执行任务和实时回传结果，都需要接入本地或自部署后端。');
 }else{
   loadAll().then(()=>{apiStatus.textContent='后端已连接'}).catch(e=>{
     apiStatus.textContent='后端未连接';
