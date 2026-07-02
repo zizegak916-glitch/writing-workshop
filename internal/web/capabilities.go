@@ -3,6 +3,7 @@ package web
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -30,6 +31,7 @@ type capabilityManifest struct {
 	SupportsStream bool           `json:"supports_stream"`
 	SupportsAbort  bool           `json:"supports_abort"`
 	Enabled        bool           `json:"enabled"`
+	ReadOnly       bool           `json:"read_only,omitempty"`
 	CreatedAt      string         `json:"created_at,omitempty"`
 	UpdatedAt      string         `json:"updated_at,omitempty"`
 }
@@ -71,6 +73,10 @@ func (s *Server) handleCapabilities(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		err := s.deleteCapability(id)
+		if errors.Is(err, errReadOnlyCapability) {
+			httpError(w, err, http.StatusBadRequest)
+			return
+		}
 		respond(w, map[string]any{"deleted": err == nil, "id": id}, err)
 	}
 }
@@ -92,6 +98,10 @@ func (s *Server) handleRun(w http.ResponseWriter, r *http.Request) {
 	}
 	result, err := s.executeRun(ctx, runID, req)
 	if err != nil {
+		if isRunRequestError(err) {
+			httpError(w, err, http.StatusBadRequest)
+			return
+		}
 		respond(w, nil, err)
 		return
 	}
@@ -249,9 +259,6 @@ func (s *Server) upsertCapability(cap capabilityManifest) (capabilityManifest, e
 	now := time.Now().Format(time.RFC3339)
 	cap.ID = capabilityID(cap)
 	cap.Type = normalizeCapabilityType(cap.Type)
-	if !cap.Enabled {
-		cap.Enabled = true
-	}
 	cap.UpdatedAt = now
 	list, err := s.loadUserCapabilities()
 	if err != nil {
@@ -276,6 +283,11 @@ func (s *Server) upsertCapability(cap capabilityManifest) (capabilityManifest, e
 }
 
 func (s *Server) deleteCapability(id string) error {
+	for _, cap := range defaultCapabilities() {
+		if cap.ID == id {
+			return fmt.Errorf("%w: %q", errReadOnlyCapability, id)
+		}
+	}
 	list, err := s.loadUserCapabilities()
 	if err != nil {
 		return err
@@ -287,6 +299,16 @@ func (s *Server) deleteCapability(id string) error {
 		}
 	}
 	return s.saveUserCapabilities(out)
+}
+
+var errReadOnlyCapability = errors.New("read_only capability cannot be deleted")
+
+func isRunRequestError(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := err.Error()
+	return strings.Contains(msg, "not found") || strings.Contains(msg, "disabled") || strings.Contains(msg, "is required")
 }
 
 func (s *Server) loadUserCapabilities() ([]capabilityManifest, error) {
@@ -341,6 +363,9 @@ func (s *Server) abortCapabilityRuns() int {
 }
 
 func validateCapability(cap capabilityManifest) error {
+	if cap.ReadOnly {
+		return fmt.Errorf("read_only capabilities are managed by the backend")
+	}
 	if strings.TrimSpace(cap.Name) == "" {
 		return fmt.Errorf("name is required")
 	}
@@ -371,15 +396,9 @@ func validateCapability(cap capabilityManifest) error {
 }
 
 func mergeDefaultCapabilities(user []capabilityManifest) []capabilityManifest {
-	defaults := []capabilityManifest{
-		{ID: "builtin-echo", Name: "内置回显", Type: "skill", Version: "1.0.0", Source: "builtin://echo", License: "MIT", Entry: "builtin:echo", Output: "text", SupportsStream: true, SupportsAbort: true, Enabled: true},
-		{ID: "builtin-outline", Name: "内置大纲拆分", Type: "skill", Version: "1.0.0", Source: "builtin://outline", License: "MIT", Entry: "builtin:outline", Output: "text", SupportsStream: true, SupportsAbort: true, Enabled: true},
-		{ID: "builtin-rewrite", Name: "内置改写链路", Type: "skill", Version: "1.0.0", Source: "builtin://rewrite", License: "MIT", Entry: "builtin:rewrite", Output: "text", SupportsStream: true, SupportsAbort: true, Enabled: true},
-		{ID: "ainovel-cli", Name: "ainovel-cli 后端适配", Type: "backend", Version: "upstream", Source: "https://github.com/voocel/ainovel-cli", License: "Upstream", Entry: "/api/*", Output: "json/event-stream", SupportsStream: true, SupportsAbort: true, Enabled: true},
-	}
 	seen := map[string]bool{}
-	out := make([]capabilityManifest, 0, len(defaults)+len(user))
-	for _, cap := range defaults {
+	out := make([]capabilityManifest, 0, len(user)+4)
+	for _, cap := range defaultCapabilities() {
 		seen[cap.ID] = true
 		out = append(out, cap)
 	}
@@ -393,6 +412,15 @@ func mergeDefaultCapabilities(user []capabilityManifest) []capabilityManifest {
 		out = append(out, cap)
 	}
 	return out
+}
+
+func defaultCapabilities() []capabilityManifest {
+	return []capabilityManifest{
+		{ID: "builtin-echo", Name: "内置回显", Type: "skill", Version: "1.0.0", Source: "builtin://echo", License: "MIT", Entry: "builtin:echo", Output: "text", SupportsStream: true, SupportsAbort: true, Enabled: true, ReadOnly: true},
+		{ID: "builtin-outline", Name: "内置大纲拆分", Type: "skill", Version: "1.0.0", Source: "builtin://outline", License: "MIT", Entry: "builtin:outline", Output: "text", SupportsStream: true, SupportsAbort: true, Enabled: true, ReadOnly: true},
+		{ID: "builtin-rewrite", Name: "内置改写链路", Type: "skill", Version: "1.0.0", Source: "builtin://rewrite", License: "MIT", Entry: "builtin:rewrite", Output: "text", SupportsStream: true, SupportsAbort: true, Enabled: true, ReadOnly: true},
+		{ID: "ainovel-cli", Name: "ainovel-cli 后端适配", Type: "backend", Version: "upstream", Source: "https://github.com/voocel/ainovel-cli", License: "Upstream", Entry: "/api/*", Output: "json/event-stream", SupportsStream: true, SupportsAbort: true, Enabled: true, ReadOnly: true},
+	}
 }
 
 func readJSONFile(path string, v any) error {

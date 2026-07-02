@@ -31,6 +31,8 @@
 - `builtin-rewrite`
 - `ainovel-cli`
 
+默认内置能力带 `read_only=true`，不能删除；用户保存的能力可以通过再次 `POST /api/capabilities` 覆盖更新。`enabled=false` 的能力会保留在列表中，但不能被 `/api/run` 执行。删除内置能力、执行停用能力或引用不存在的能力会返回 `400`。
+
 `POST /api/capabilities` 最小请求：
 
 ```json

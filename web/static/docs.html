@@ -37,7 +37,7 @@
       <div class="card"><h3>执行能力</h3><p><code>POST /api/run</code> 已可用，支持 <code>backend_id</code>、<code>skill_ids</code>、任务、上下文和参数。</p></div>
       <div class="card"><h3>中断运行</h3><p><code>POST /api/abort</code> 会同时中断写作运行和能力运行；流式输出使用 SSE 的 <code>start/delta/done</code> 事件。</p></div>
     </div>
-    <p>默认内置 <code>builtin-echo</code>、<code>builtin-outline</code>、<code>builtin-rewrite</code> 和 <code>ainovel-cli</code>。保存 GitHub 链接或 skill manifest 不会直接执行任意仓库代码；第三方代码执行需要明确的沙箱执行器。</p>
+    <p>默认内置 <code>builtin-echo</code>、<code>builtin-outline</code>、<code>builtin-rewrite</code> 和 <code>ainovel-cli</code>。内置能力只读；用户保存的能力可以在后台编辑、启停、删除，并可直接填入测试区流式试跑或中断。保存 GitHub 链接或 skill manifest 不会直接执行任意仓库代码；第三方代码执行需要明确的沙箱执行器。</p>
 
     <h2>自定义文件或链接要求</h2>
     <p>添加 GitHub 项目、远程链接或本地 skill 时，必须能被后端安全解析，并满足下面的最小契约。</p>

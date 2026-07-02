@@ -28,7 +28,7 @@ AI写作工坊是面向小说创作的开源可自定义主体应用。它可以
 - `POST /api/run`：按 `backend_id` 和 `skill_ids` 执行任务，返回 JSON；传 `params.stream=true` 时返回 SSE 事件流。
 - `POST /api/abort`：中断当前写作运行和能力运行。
 
-当前内置能力包括 `builtin-echo`、`builtin-outline`、`builtin-rewrite` 和 `ainovel-cli` 后端适配。出于安全原因，保存 GitHub 链接或 skill manifest 不会立即执行任意仓库代码；真正执行第三方代码需要后续接入明确的沙箱执行器。
+当前内置能力包括 `builtin-echo`、`builtin-outline`、`builtin-rewrite` 和 `ainovel-cli` 后端适配。内置能力只读，用户能力可编辑、启停和删除；停用能力不能被 `/api/run` 执行。出于安全原因，保存 GitHub 链接或 skill manifest 不会立即执行任意仓库代码；真正执行第三方代码需要后续接入明确的沙箱执行器。
 
 ## Web 写作工坊
 

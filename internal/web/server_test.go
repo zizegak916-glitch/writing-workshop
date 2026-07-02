@@ -118,6 +118,52 @@ func TestCapabilitiesRejectIncompleteManifest(t *testing.T) {
 	}
 }
 
+func TestCapabilitiesDefaultCannotBeDeleted(t *testing.T) {
+	_, mux := newTestServer(t)
+	req := httptest.NewRequest(http.MethodDelete, "/api/capabilities?id=builtin-rewrite", nil)
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want 400, body = %s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestDisabledCapabilityCannotRun(t *testing.T) {
+	_, mux := newTestServer(t)
+	body := bytes.NewBufferString(`{
+		"id":"disabled-skill",
+		"name":"停用能力",
+		"type":"skill",
+		"version":"1.0.0",
+		"source":"https://github.com/example/disabled-skill",
+		"license":"MIT",
+		"entry":"skill.json",
+		"output":"text",
+		"enabled":false
+	}`)
+	req := httptest.NewRequest(http.MethodPost, "/api/capabilities", body)
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("POST disabled capability status = %d, body = %s", rec.Code, rec.Body.String())
+	}
+
+	runBody := bytes.NewBufferString(`{
+		"skill_ids":["disabled-skill"],
+		"task":"echo",
+		"context":{"selection":"test"}
+	}`)
+	req = httptest.NewRequest(http.MethodPost, "/api/run", runBody)
+	rec = httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("POST run status = %d, want 400, body = %s", rec.Code, rec.Body.String())
+	}
+	if !strings.Contains(rec.Body.String(), "disabled") {
+		t.Fatalf("disabled error missing: %s", rec.Body.String())
+	}
+}
+
 func TestRunStreamsEvents(t *testing.T) {
 	_, mux := newTestServer(t)
 	runBody := bytes.NewBufferString(`{

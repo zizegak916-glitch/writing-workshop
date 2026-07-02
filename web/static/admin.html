@@ -73,6 +73,7 @@ pre{white-space:pre-wrap;background:var(--card);border:1px solid var(--border);b
     <h2>能力来源</h2>
     <p style="color:var(--muted)">写作工坊是主体；GitHub 开源项目、skill、规则包和自定义文件只是可组合的能力来源。前端选择一个后端项目或多个 skill 后，把当前项目、章节、上下文和参数传给后端，后端输出再回传前端。</p>
     <div id="capabilityList"></div>
+    <input id="capId" type="hidden">
     <div class="grid">
       <div>
         <label>名称</label>
@@ -100,7 +101,8 @@ pre{white-space:pre-wrap;background:var(--card);border:1px solid var(--border);b
       </div>
     </div>
     <label>输出类型</label><input id="capOutput" placeholder="text / json / patch / event-stream">
-    <p class="row"><button class="primary" onclick="saveCapability()">保存能力</button><span id="capMsg"></span></p>
+    <p class="row"><label style="display:flex;align-items:center;gap:6px;margin:0"><input id="capEnabled" type="checkbox" checked style="width:auto">启用</label><label style="display:flex;align-items:center;gap:6px;margin:0"><input id="capStream" type="checkbox" checked style="width:auto">支持流式</label><label style="display:flex;align-items:center;gap:6px;margin:0"><input id="capAbort" type="checkbox" checked style="width:auto">支持中断</label></p>
+    <p class="row"><button class="primary" onclick="saveCapability()">保存能力</button><button class="danger" onclick="resetCapabilityForm()">清空表单</button><span id="capMsg"></span></p>
     <label>接入要求</label>
     <pre>必须声明：名称、版本、来源、许可证、入口、输入 schema、输出类型、是否支持流式输出、是否支持取消、权限边界。
 能力应面向通用写作任务，不能绑定某个单一小说或私有项目。</pre>
@@ -111,6 +113,7 @@ pre{white-space:pre-wrap;background:var(--card);border:1px solid var(--border);b
     <label>Skill IDs（逗号分隔）</label><input id="runSkills" value="builtin-rewrite">
     <label>任务</label><input id="runTask" value="rewrite">
     <label>提示词 / 选中文本</label><textarea id="testPrompt">请把这句话改写得更有画面感：雨落在窗边。</textarea>
+    <p class="row"><label style="display:flex;align-items:center;gap:6px;margin:0"><input id="runStream" type="checkbox" checked style="width:auto">流式回传</label><label style="display:flex;align-items:center;gap:6px;margin:0"><input id="runUseAI" type="checkbox" style="width:auto">改写时调用 AI</label></p>
     <p class="row"><button class="primary" onclick="testRun()">执行能力</button><button class="danger" onclick="abortRun()">中断</button><button class="primary" onclick="testAI()">模型直连测试</button></p>
     <pre id="testResult"></pre>
   </section>
@@ -133,10 +136,16 @@ async function loadRules(){const d=await api('/api/rules');rulesRaw.value=d.cust
 async function saveRules(){await api('/api/rules',{method:'POST',body:JSON.stringify({raw:rulesRaw.value})});loadRules()}
 async function deleteRules(){await api('/api/rules',{method:'DELETE'});loadRules()}
 async function testAI(){testResult.textContent='请求中...';try{const d=await api('/api/ai',{method:'POST',body:JSON.stringify({message:testPrompt.value})});testResult.textContent=d.choices?.[0]?.message?.content||JSON.stringify(d,null,2)}catch(e){testResult.textContent=e.message}}
-async function loadCapabilities(){const d=await api('/api/capabilities');capabilityList.innerHTML=(d.capabilities||[]).map(c=>`<div class="list-item"><b>${c.name}</b> <small>${c.id} · ${c.type} · ${c.version}</small><br><small>${c.source}</small></div>`).join('')||'<p style="color:var(--muted)">暂无能力</p>'}
-async function saveCapability(){try{const d=await api('/api/capabilities',{method:'POST',body:JSON.stringify({name:capName.value,type:capType.value,version:capVersion.value,source:capSource.value,license:capLicense.value,entry:capEntry.value,output:capOutput.value,supports_stream:true,supports_abort:true,enabled:true})});capMsg.textContent='已保存 '+d.capability.id;loadCapabilities()}catch(e){capMsg.textContent=e.message}}
-async function testRun(){testResult.textContent='执行中...';try{const d=await api('/api/run',{method:'POST',body:JSON.stringify({backend_id:runBackend.value,skill_ids:runSkills.value.split(',').map(s=>s.trim()).filter(Boolean),task:runTask.value,context:{selection:testPrompt.value},params:{stream:false}})});testResult.textContent=d.output||JSON.stringify(d,null,2)}catch(e){testResult.textContent=e.message}}
-async function abortRun(){try{const d=await api('/api/abort',{method:'POST'});testResult.textContent='已发送中断：'+JSON.stringify(d)}catch(e){testResult.textContent=e.message}}
+let capabilityCache=[];let runAbortController=null;
+async function loadCapabilities(){const d=await api('/api/capabilities');capabilityCache=d.capabilities||[];capabilityList.innerHTML=capabilityCache.map(c=>`<div class="list-item"><b>${c.name}</b> <small>${c.id} · ${c.type} · ${c.version} · ${c.enabled?'启用':'停用'}${c.read_only?' · 内置':''}</small><br><small>${c.source}</small><p class="row" style="margin:8px 0 0"><button class="primary" onclick="useCapability('${c.id}')">用于测试</button>${c.read_only?'':`<button class="primary" onclick="editCapability('${c.id}')">编辑</button><button class="danger" onclick="deleteCapability('${c.id}')">删除</button>`}</p></div>`).join('')||'<p style="color:var(--muted)">暂无能力</p>'}
+function editCapability(id){const c=capabilityCache.find(x=>x.id===id);if(!c)return;capId.value=c.id||'';capName.value=c.name||'';capType.value=c.type||'skill';capVersion.value=c.version||'';capLicense.value=c.license||'';capSource.value=c.source||'';capEntry.value=c.entry||'';capOutput.value=c.output||'';capEnabled.checked=!!c.enabled;capStream.checked=!!c.supports_stream;capAbort.checked=!!c.supports_abort;capMsg.textContent='正在编辑 '+id}
+function resetCapabilityForm(){capId.value='';capName.value='';capType.value='skill';capVersion.value='';capLicense.value='';capSource.value='';capEntry.value='';capOutput.value='';capEnabled.checked=true;capStream.checked=true;capAbort.checked=true;capMsg.textContent=''}
+function useCapability(id){const c=capabilityCache.find(x=>x.id===id);if(!c)return;if(c.type==='backend'||c.type==='project'){runBackend.value=c.id}else{const ids=runSkills.value.split(',').map(s=>s.trim()).filter(Boolean);if(!ids.includes(c.id))ids.push(c.id);runSkills.value=ids.join(',')}testResult.textContent='已选择 '+c.name}
+async function saveCapability(){try{const body={id:capId.value,name:capName.value,type:capType.value,version:capVersion.value,source:capSource.value,license:capLicense.value,entry:capEntry.value,output:capOutput.value,supports_stream:capStream.checked,supports_abort:capAbort.checked,enabled:capEnabled.checked};const d=await api('/api/capabilities',{method:'POST',body:JSON.stringify(body)});capMsg.textContent='已保存 '+d.capability.id;resetCapabilityForm();loadCapabilities()}catch(e){capMsg.textContent=e.message}}
+async function deleteCapability(id){if(!confirm('删除能力 '+id+'？'))return;try{await api('/api/capabilities?id='+encodeURIComponent(id),{method:'DELETE'});loadCapabilities()}catch(e){capMsg.textContent=e.message}}
+async function testRun(){if(runAbortController)runAbortController.abort();runAbortController=new AbortController();const body={backend_id:runBackend.value,skill_ids:runSkills.value.split(',').map(s=>s.trim()).filter(Boolean),task:runTask.value,context:{selection:testPrompt.value},params:{stream:runStream.checked,use_ai:runUseAI.checked}};testResult.textContent='执行中...\n';try{if(runStream.checked){const r=await fetch('/api/run',{method:'POST',headers:{'Content-Type':'application/json','Accept':'text/event-stream'},body:JSON.stringify(body),signal:runAbortController.signal});if(!r.ok)throw new Error('HTTP '+r.status);const reader=r.body.getReader();const dec=new TextDecoder();while(true){const {value,done}=await reader.read();if(done)break;appendRunStream(dec.decode(value,{stream:true}))}}else{const d=await api('/api/run',{method:'POST',body:JSON.stringify(body),signal:runAbortController.signal});testResult.textContent=d.output||JSON.stringify(d,null,2)}}catch(e){testResult.textContent+='\n'+(e.name==='AbortError'?'前端已中断':e.message)}finally{runAbortController=null}}
+function appendRunStream(chunk){chunk.split('\n').forEach(line=>{if(line.startsWith('data: ')){try{const d=JSON.parse(line.slice(6));if(d.text)testResult.textContent+=d.text;if(d.error)testResult.textContent+='\n错误：'+d.error}catch{}}})}
+async function abortRun(){try{if(runAbortController)runAbortController.abort();const d=await api('/api/abort',{method:'POST'});testResult.textContent+='\n已发送中断：'+JSON.stringify(d)}catch(e){testResult.textContent=e.message}}
 const isPages = location.hostname.endsWith('github.io');
 if(isPages){
   apiStatus.textContent='Pages 静态预览';
