@@ -10,26 +10,34 @@
     *{box-sizing:border-box} body{margin:0;font-family:Inter,"Noto Sans SC","Microsoft YaHei",system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.7}
     header{position:sticky;top:0;background:color-mix(in srgb,var(--bg) 90%,transparent);backdrop-filter:blur(16px);border-bottom:1px solid var(--border)}
     .wrap{max-width:960px;margin:0 auto;padding:0 24px}.nav{height:64px;display:flex;align-items:center;justify-content:space-between}.logo{font-weight:800;color:var(--text);text-decoration:none}.nav a{color:var(--muted);text-decoration:none;margin-left:20px}.nav a:hover{color:var(--primary)}
-    main{padding:56px 0 80px} h1{font-size:42px;line-height:1.15;margin:0 0 12px} h2{margin-top:40px;font-size:24px} p{color:var(--muted)} .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;margin-top:24px}.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px}.card h3{margin:0 0 8px}.card p{margin:0} code{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:2px 6px} pre{overflow:auto;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px} .btn{display:inline-block;margin-top:14px;background:var(--primary);color:#fff;text-decoration:none;padding:10px 16px;border-radius:10px;font-weight:700}
+    main{padding:56px 0 80px} h1{font-size:42px;line-height:1.15;margin:0 0 12px} h2{margin-top:40px;font-size:24px} p{color:var(--muted)} .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;margin-top:24px}.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px}.card h3{margin:0 0 8px}.card p{margin:0}.note{background:var(--surface);border:1px solid var(--border);border-left:4px solid var(--primary);border-radius:12px;padding:16px;margin:22px 0;color:var(--muted)} code{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:2px 6px} pre{overflow:auto;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px} .btn{display:inline-block;margin-top:14px;background:var(--primary);color:#fff;text-decoration:none;padding:10px 16px;border-radius:10px;font-weight:700}
   </style>
 </head>
 <body>
   <header><div class="wrap nav"><a class="logo" href="index.html">AI写作工坊</a><nav><a href="app.html">主应用</a><a href="admin.html">管理后台</a><a href="about.html">关于</a></nav></div></header>
   <main class="wrap">
     <h1>使用文档</h1>
-    <p>AI写作工坊现在由 ainovel-cli 的 Go 后端提供 API，并通过 GitHub Pages 发布静态前端。</p>
+    <p>AI写作工坊是开源可自定义项目：GitHub Pages 发布静态前端，ainovel-cli 的 Go 服务提供可选后端 API。</p>
     <a class="btn" href="app.html">打开写作工坊</a>
+    <div class="note">当前 Pages 地址没有常驻后端。你可以浏览界面和文档；真实 AI 调用、配置保存、项目同步和规则管理，需要运行本地后端或部署自己的 API 服务。</div>
 
     <h2>快速开始</h2>
     <pre><code>go build -o ainovel-cli ./cmd/ainovel-cli
 ./ainovel-cli serve --port 8080</code></pre>
-    <p>本地服务启动后访问 <code>http://127.0.0.1:8080/app.html</code>。Pages 静态版可浏览界面，真实 AI 调用需要本地 Go 后端或已部署的 API 服务。</p>
+    <p>本地服务启动后访问 <code>http://127.0.0.1:8080/app.html</code> 或 <code>http://127.0.0.1:8080/admin.html</code>。此时前端会通过同源 <code>/api/</code> 端点连接 Go 后端。</p>
 
     <h2>核心入口</h2>
     <div class="grid">
       <div class="card"><h3>写作工坊</h3><p><a href="app.html">app.html</a>，用于项目、章节、角色、AI 辅助写作。</p></div>
-      <div class="card"><h3>管理后台</h3><p><a href="admin.html">admin.html</a>，用于配置 provider、model、API key 和规则包。</p></div>
+      <div class="card"><h3>管理后台</h3><p><a href="admin.html">admin.html</a>，用于配置 provider、model、API key 和项目规则。</p></div>
       <div class="card"><h3>API</h3><p>后端端点以 <code>/api/</code> 开头，主要包括 <code>/api/ai</code>、<code>/api/config</code>、<code>/api/rules</code>。</p></div>
+    </div>
+
+    <h2>开源自定义</h2>
+    <div class="grid">
+      <div class="card"><h3>模型供应商</h3><p>在后台或配置文件中修改 provider、model、base URL，也可以通过环境变量注入 API key。</p></div>
+      <div class="card"><h3>项目规则</h3><p>通过 <code>/api/rules</code> 管理写作偏好、风格要求和项目约束，规则会落到本地项目目录。</p></div>
+      <div class="card"><h3>前端页面</h3><p>静态文件位于 <code>web/static/</code>，fork 后可以直接替换文案、样式和入口页面。</p></div>
     </div>
 
     <h2>API Key 配置</h2>

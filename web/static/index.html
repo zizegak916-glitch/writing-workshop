@@ -197,6 +197,46 @@
     }
     .stat-label { font-size: 13px; color: var(--text-3); margin-top: 4px; }
 
+    /* ===== RUNTIME MODES ===== */
+    .runtime {
+      padding: 60px 0;
+      background: var(--bg-alt);
+    }
+    .runtime-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px;
+      margin-top: 30px;
+    }
+    .runtime-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+    }
+    .runtime-kicker {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: 12px; font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 12px;
+    }
+    .runtime-card h3 { font-size: 18px; margin-bottom: 10px; }
+    .runtime-card p { color: var(--text-2); font-size: 14px; line-height: 1.75; }
+    .endpoint-list {
+      display: grid; gap: 8px; margin-top: 16px;
+    }
+    .endpoint {
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      padding: 9px 10px;
+      border-radius: 8px;
+      background: var(--bg-alt);
+      color: var(--text-2);
+      font-size: 13px;
+    }
+    .endpoint code {
+      color: var(--text);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 12px;
+    }
+
     /* ===== FEATURES ===== */
     .features { padding: 60px 0; }
     .section-label {
@@ -357,6 +397,7 @@
       .mobile-toggle { display: block; }
       nav { display: none; }
       .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .runtime-grid { grid-template-columns: 1fr; }
       .feat-grid { grid-template-columns: 1fr; }
       .uc-grid { grid-template-columns: repeat(2, 1fr); }
       .star-box { flex-direction: column; text-align: center; }
@@ -376,6 +417,7 @@
         写作工坊
       </a>
       <nav>
+        <a href="#runtime">运行模式</a>
         <a href="#features">功能</a>
         <a href="#use-cases">场景</a>
         <a href="docs.html">文档</a>
@@ -388,6 +430,7 @@
   <div id="mobileMenu" class="mobile-menu" onclick="if(event.target===this)this.classList.remove('open')">
     <button class="mobile-close" onclick="document.getElementById('mobileMenu').classList.remove('open')">&times;</button>
     <div class="mobile-menu-card">
+      <a href="#runtime" onclick="document.getElementById('mobileMenu').classList.remove('open')">运行模式</a>
       <a href="#features" onclick="document.getElementById('mobileMenu').classList.remove('open')">功能</a>
       <a href="#use-cases" onclick="document.getElementById('mobileMenu').classList.remove('open')">场景</a>
       <a href="docs.html">文档</a>
@@ -401,7 +444,7 @@
     <div class="wrap">
       <div class="hero-badge"><span class="dot"></span> 免费开源 · 无需注册</div>
       <h1>用 AI 解锁<br><span class="gradient">创作超能力</span></h1>
-      <p class="hero-sub">智能续写、人物管理、大纲组织、记忆系统——一站式小说创作工具，数据存本地</p>
+      <p class="hero-sub">静态前端可直接预览，连接 ainovel-cli Go 后端后启用 AI、配置、项目与规则管理</p>
       <div class="hero-btns">
         <a href="app.html" class="btn btn-primary btn-lg">开始创作 →</a>
         <a href="#features" class="btn btn-ghost btn-lg">了解更多</a>
@@ -436,6 +479,45 @@
         <div class="stat"><div class="stat-num">520万</div><div class="stat-label">AI辅助生成字数</div></div>
         <div class="stat"><div class="stat-num">4.8/5</div><div class="stat-label">用户满意度</div></div>
         <div class="stat"><div class="stat-num">0</div><div class="stat-label">数据泄露事件</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Runtime Modes -->
+  <section class="runtime" id="runtime">
+    <div class="wrap reveal">
+      <div class="section-label">Runtime</div>
+      <div class="section-title">前端可视化，后端按需接入</div>
+      <div class="section-sub">GitHub Pages 负责展示和静态编辑；本地或自部署 Go 服务负责真实 API 能力</div>
+      <div class="runtime-grid">
+        <div class="runtime-card">
+          <div class="runtime-kicker">01 · Pages</div>
+          <h3>静态预览</h3>
+          <p>当前 Pages 版本可以打开首页、写作界面、文档和后台界面。没有后端时，AI 请求、项目同步和配置保存不会执行真实服务端操作。</p>
+          <div class="endpoint-list">
+            <div class="endpoint"><span>可访问</span><code>app.html</code></div>
+            <div class="endpoint"><span>可访问</span><code>admin.html</code></div>
+          </div>
+        </div>
+        <div class="runtime-card">
+          <div class="runtime-kicker">02 · Go Backend</div>
+          <h3>接入后端</h3>
+          <p>运行 <code>./ainovel-cli serve --port 8080</code> 后，通过同一套前端调用后端 API，浏览器不直接暴露厂商密钥。</p>
+          <div class="endpoint-list">
+            <div class="endpoint"><span>AI 代理</span><code>/api/ai</code></div>
+            <div class="endpoint"><span>模型配置</span><code>/api/config</code></div>
+            <div class="endpoint"><span>项目数据</span><code>/api/projects</code></div>
+          </div>
+        </div>
+        <div class="runtime-card">
+          <div class="runtime-kicker">03 · Open Source</div>
+          <h3>开源自定义</h3>
+          <p>可以自定义 provider、model、base URL、环境变量、规则包和页面文案。适合 fork 后部署自己的写作工坊。</p>
+          <div class="endpoint-list">
+            <div class="endpoint"><span>规则管理</span><code>/api/rules</code></div>
+            <div class="endpoint"><span>角色管理</span><code>/api/characters</code></div>
+          </div>
+        </div>
       </div>
     </div>
   </section>

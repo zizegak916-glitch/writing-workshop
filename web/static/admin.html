@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ainovel-cli 管理后台</title>
 <style>
-:root{--bg:#0b0c0f;--panel:#15161a;--card:#1b1d22;--border:rgba(255,255,255,.08);--text:#eceef3;--muted:#8f96a3;--accent:#5e6ad2;--red:#f87171;--green:#34d399}
+:root{--bg:#0b0c0f;--panel:#15161a;--card:#1b1d22;--border:rgba(255,255,255,.08);--text:#eceef3;--muted:#8f96a3;--accent:#5e6ad2;--red:#f87171;--green:#34d399;--amber:#fbbf24}
 body.light{--bg:#f4f6fa;--panel:#fff;--card:#f8f9fc;--border:#dfe3ec;--text:#111827;--muted:#667085}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 Inter,"Noto Sans SC","Microsoft YaHei",system-ui,sans-serif}
 header{height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;border-bottom:1px solid var(--border);background:var(--panel);position:sticky;top:0;z-index:2}
@@ -15,11 +15,13 @@ main{padding:18px;max-width:1100px}.panel{display:none}.panel.active{display:blo
 label{display:block;color:var(--muted);font-size:12px;margin:10px 0 6px}input,select,textarea{width:100%;background:var(--card);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px;font:inherit}textarea{min-height:150px;resize:vertical}
 button.primary{background:var(--accent);border:0;color:#fff;border-radius:8px;padding:10px 14px;cursor:pointer}button.danger{background:transparent;border:1px solid var(--red);color:var(--red);border-radius:8px;padding:9px 12px;cursor:pointer}
 pre{white-space:pre-wrap;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px;max-height:360px;overflow:auto}.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.list-item{padding:10px;border-bottom:1px solid var(--border)}
+.notice{border:1px solid color-mix(in srgb,var(--amber) 55%,transparent);background:color-mix(in srgb,var(--amber) 12%,var(--panel));border-radius:8px;padding:12px 14px;margin-bottom:14px;color:var(--text)}
+.notice b{color:var(--amber)}.notice code{background:var(--card);border:1px solid var(--border);border-radius:6px;padding:2px 5px}.status{font-size:12px;color:var(--muted)}
 @media(max-width:760px){.wrap{grid-template-columns:1fr}nav{display:flex;overflow:auto;border-right:0;border-bottom:1px solid var(--border)}.tab{white-space:nowrap}.grid{grid-template-columns:1fr}main{padding:12px}}
 </style>
 </head>
 <body>
-<header><h1>ainovel-cli 管理后台</h1><div class="row"><a style="color:var(--muted)" href="/app.html">写作工坊</a><button class="primary" onclick="document.body.classList.toggle('light')">主题</button></div></header>
+<header><h1>ainovel-cli 管理后台</h1><div class="row"><span id="apiStatus" class="status">检测后端中...</span><a style="color:var(--muted)" href="app.html">写作工坊</a><button class="primary" onclick="document.body.classList.toggle('light')">主题</button></div></header>
 <div class="wrap">
 <nav>
   <button class="tab active" onclick="showTab('config',this)">配置</button>
@@ -29,6 +31,7 @@ pre{white-space:pre-wrap;background:var(--card);border:1px solid var(--border);b
   <button class="tab" onclick="showTab('test',this)">API 测试</button>
 </nav>
 <main>
+  <div id="runtimeNotice" class="notice" hidden></div>
   <section id="config" class="panel active card">
     <h2>配置编辑</h2>
     <div class="grid">
@@ -76,6 +79,7 @@ pre{white-space:pre-wrap;background:var(--card);border:1px solid var(--border);b
 <script>
 async function api(url,opt={}){const r=await fetch(url,{headers:{'Content-Type':'application/json',...(opt.headers||{})},...opt});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||('HTTP '+r.status));return d}
 function showTab(id,btn){document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));document.getElementById(id).classList.add('active');btn.classList.add('active')}
+function showRuntimeNotice(message){runtimeNotice.hidden=false;runtimeNotice.innerHTML=message}
 async function loadAll(){await Promise.all([loadConfig(),loadProjects(),loadChars(),loadRules()])}
 async function loadConfig(){const d=await api('/api/config');const c=d.config||d;provider.value=c.provider||'';model.value=c.model||'';const pc=(c.providers||{})[c.provider]||{};ptype.value=pc.type||'';baseUrl.value=pc.base_url||''}
 async function saveConfig(){try{await api('/api/config',{method:'POST',body:JSON.stringify({provider:provider.value,model:model.value,type:ptype.value,base_url:baseUrl.value,api_key:apiKey.value})});configMsg.textContent='已保存'}catch(e){configMsg.textContent=e.message}}
@@ -89,7 +93,16 @@ async function loadRules(){const d=await api('/api/rules');rulesRaw.value=d.cust
 async function saveRules(){await api('/api/rules',{method:'POST',body:JSON.stringify({raw:rulesRaw.value})});loadRules()}
 async function deleteRules(){await api('/api/rules',{method:'DELETE'});loadRules()}
 async function testAI(){testResult.textContent='请求中...';try{const d=await api('/api/ai',{method:'POST',body:JSON.stringify({message:testPrompt.value})});testResult.textContent=d.choices?.[0]?.message?.content||JSON.stringify(d,null,2)}catch(e){testResult.textContent=e.message}}
-loadAll().catch(e=>alert(e.message));
+const isPages = location.hostname.endsWith('github.io');
+if(isPages){
+  apiStatus.textContent='Pages 静态预览';
+  showRuntimeNotice('<b>当前没有连接后端。</b> GitHub Pages 只发布静态前端，配置保存、项目同步、规则写入和 AI 测试需要运行 <code>./ainovel-cli serve --port 8080</code> 后访问本地服务。');
+}else{
+  loadAll().then(()=>{apiStatus.textContent='后端已连接'}).catch(e=>{
+    apiStatus.textContent='后端未连接';
+    showRuntimeNotice('<b>后端 API 不可用。</b> 请确认 ainovel-cli 服务已启动，并通过服务地址打开本页面。错误：<code>'+String(e.message).replace(/[<>&]/g,s=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[s]))+'</code>');
+  });
+}
 </script>
 </body>
 </html>

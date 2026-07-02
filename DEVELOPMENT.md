@@ -26,7 +26,7 @@ GOCACHE=/tmp/go-cache GOMODCACHE=/tmp/gomodcache go build ./cmd/ainovel-cli
 - `/admin` 使用 `web/static/admin.html`。
 - 前端 AI 调用必须走 `/api/ai`，浏览器不直接访问厂商 API。
 - 项目、章节、角色写入会同步到 `/api/projects`、`/api/chapters`、`/api/characters`。
-- 技能/规则包使用 `/api/rules`，项目级规则落盘到 `.ainovel/rules/web.rules.md`。
+- 规则包使用 `/api/rules`，项目级规则落盘到 `.ainovel/rules/web.rules.md`。
 
 ## 后端约定
 
