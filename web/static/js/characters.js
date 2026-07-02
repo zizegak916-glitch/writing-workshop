@@ -184,7 +184,7 @@ async function deleteCharacter(id) {
 
 // ═══ AI Character Generation ═══
 async function aiGenerateCharacter() {
-  if (!S.apiConf || !S.apiConf.key) {
+  if (!aiHasConfig(S.apiConfig)) {
     showToast('✕', t('toast-no-api'));
     return;
   }
@@ -223,7 +223,7 @@ async function aiGenerateCharacter() {
   "relations": "人际关系"
 }`;
 
-    const result = await callAI(prompt, S.apiConf, systemPrompt);
+    const result = await callAI(prompt, S.apiConfig, systemPrompt);
 
     // Parse JSON
     let charData;
@@ -267,7 +267,7 @@ async function checkCharacterConsistency() {
     return;
   }
 
-  if (!S.apiConf || !S.apiConf.key) {
+  if (!aiHasConfig(S.apiConfig)) {
     showToast('✕', t('toast-no-api'));
     return;
   }
@@ -300,7 +300,7 @@ ${charInfo}
 
 如果发现问题，请指出具体位置和原因。如果一切正常，则说明"未发现明显的人物一致性问题"。`;
 
-    const result = await callAI('请检查以下文本的人物一致性：\n\n' + content, S.apiConf, systemPrompt);
+    const result = await callAI('请检查以下文本的人物一致性：\n\n' + content, S.apiConfig, systemPrompt);
 
     // Show result in AI panel
     document.getElementById('arpText').textContent = result;

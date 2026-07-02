@@ -34,7 +34,7 @@ function getContextLimit(model){
 }
 function updateContextBar(){
   const ac=S.apiConfig;
-  if(!ac.key)return;
+  if(!aiHasConfig(ac))return;
   const ed=document.getElementById('mainEditor');
   const sel=ed.value.slice(ed.selectionStart,ed.selectionEnd).trim();
   const content=sel||ed.value.trim().slice(-1000);

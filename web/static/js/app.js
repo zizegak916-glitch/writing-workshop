@@ -4,10 +4,10 @@ function showApp(){document.getElementById('lockScreen').style.display='none';do
 function clearPwd(){if(confirm('确定重置？将清除所有数据。')){localStorage.clear();indexedDB.deleteDatabase(DB_NAME);location.reload();}}
 function lockApp(){document.getElementById('lockScreen').style.display='flex';document.getElementById('app').classList.remove('visible');document.getElementById('lockInput').value='';}
 
-// Boot: show lock only if no password set yet
-(function(){document.getElementById('lockInput').addEventListener('keydown',e=>{if(e.key==='Enter')handleLock();});if(!localStorage.getItem('ww_pwd_hash')){document.getElementById('lockScreen').style.display='flex';document.getElementById('lockSub').textContent=t('lock-set');document.getElementById('lockBtn').textContent=t('lock-btn-set');document.getElementById('lockHint').innerHTML='';}else{showApp();}})();
+// Boot after all script modules have loaded.
+function bootApp(){document.getElementById('lockInput').addEventListener('keydown',e=>{if(e.key==='Enter')handleLock();});if(!localStorage.getItem('ww_pwd_hash')){document.getElementById('lockScreen').style.display='flex';document.getElementById('lockSub').textContent=t('lock-set');document.getElementById('lockBtn').textContent=t('lock-btn-set');document.getElementById('lockHint').innerHTML='';}else{showApp();}}
 
 
 // ═══ Init ═══
 async function initApp(){await openDB();renderAiModeGrid();renderMultiSlots();await loadProjects();await loadMemories();renderHistory();setInterval(()=>{if(S.autoSave&&S.unsaved)saveDoc();},30000);const ed=document.getElementById('mainEditor');ed.addEventListener('input',onEditorInput);ed.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='s'){e.preventDefault();saveDoc();}});document.getElementById('focusEditor').addEventListener('input',()=>{document.getElementById('focusInfo').textContent=countWords(document.getElementById('focusEditor').value)+' 字 · Esc 退出';});document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeFocus();closeAiResult();}});if(S.projects.length>0)await loadProject(S.projects[0].id);updateAllStats();}
-document.addEventListener('DOMContentLoaded',()=>{/* lock handled in IIFE above */});
+document.addEventListener('DOMContentLoaded',bootApp);

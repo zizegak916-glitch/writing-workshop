@@ -105,7 +105,7 @@ function drawAiRadarChart(scores) {
 
 // ═══ AI味深度分析（增强版） ═══
 async function deepAiCheck() {
-  if (!S.apiConfig || !S.apiConfig.key) {
+  if (!aiHasConfig(S.apiConfig)) {
     showToast('✕', t('toast-no-api'));
     return;
   }
@@ -260,7 +260,7 @@ function closeAiCheckResult() {
 let reduceAiHistory = [];
 
 async function smartReduceAi(intensity = 'medium') {
-  if (!S.apiConfig || !S.apiConfig.key) {
+  if (!aiHasConfig(S.apiConfig)) {
     showToast('✕', t('toast-no-api'));
     return;
   }
@@ -379,7 +379,7 @@ function showReduceAiHistory() {
 
 // ═══ AI续写建议（三个方向） ═══
 async function aiSuggestContinuations() {
-  if (!S.apiConfig || !S.apiConfig.key) {
+  if (!aiHasConfig(S.apiConfig)) {
     showToast('✕', t('toast-no-api'));
     return;
   }

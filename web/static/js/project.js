@@ -282,7 +282,7 @@ async function autoAnalyzeImportedProject(projectId){
   const source=collectProjectText(proj);if(!source.trim())return;
   showToast('⊕',t('toast-import-scan'));
   let analysis=null;
-  if(S.apiConfig.key){
+  if(aiHasConfig(S.apiConfig)){
     try{
       const prompt='请扫描以下导入的写作项目内容，识别并补全项目结构。只输出严格 JSON，不要 Markdown。JSON 格式：{"outlines":[{"title":"","content":""}],"characters":[{"name":"","role":"","personality":"","background":"","appearance":"","skills":""}],"chapters":[{"title":"","summary":""}]}。如果项目已经有章节/人物/大纲，也请根据内容识别可能缺失的条目，避免重复。\n\n'+source;
       analysis=parseAiImportAnalysis(await callAI(prompt,S.apiConfig,'你是写作项目导入分析助手，负责从文本中提取大纲、人物和章节结构。'));
