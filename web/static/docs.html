@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>文档 - AI写作工坊</title>
+  <style>
+    :root{--bg:#fff;--surface:#f8fafc;--text:#0f172a;--muted:#64748b;--border:#e2e8f0;--primary:#6366f1}
+    @media(prefers-color-scheme:dark){:root{--bg:#0c0e14;--surface:#151821;--text:#e8eaed;--muted:#9ba1b0;--border:rgba(255,255,255,.08);--primary:#818cf8}}
+    *{box-sizing:border-box} body{margin:0;font-family:Inter,"Noto Sans SC","Microsoft YaHei",system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.7}
+    header{position:sticky;top:0;background:color-mix(in srgb,var(--bg) 90%,transparent);backdrop-filter:blur(16px);border-bottom:1px solid var(--border)}
+    .wrap{max-width:960px;margin:0 auto;padding:0 24px}.nav{height:64px;display:flex;align-items:center;justify-content:space-between}.logo{font-weight:800;color:var(--text);text-decoration:none}.nav a{color:var(--muted);text-decoration:none;margin-left:20px}.nav a:hover{color:var(--primary)}
+    main{padding:56px 0 80px} h1{font-size:42px;line-height:1.15;margin:0 0 12px} h2{margin-top:40px;font-size:24px} p{color:var(--muted)} .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;margin-top:24px}.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px}.card h3{margin:0 0 8px}.card p{margin:0} code{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:2px 6px} pre{overflow:auto;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px} .btn{display:inline-block;margin-top:14px;background:var(--primary);color:#fff;text-decoration:none;padding:10px 16px;border-radius:10px;font-weight:700}
+  </style>
+</head>
+<body>
+  <header><div class="wrap nav"><a class="logo" href="index.html">AI写作工坊</a><nav><a href="app.html">主应用</a><a href="admin.html">管理后台</a><a href="about.html">关于</a></nav></div></header>
+  <main class="wrap">
+    <h1>使用文档</h1>
+    <p>AI写作工坊现在由 ainovel-cli 的 Go 后端提供 API，并通过 GitHub Pages 发布静态前端。</p>
+    <a class="btn" href="app.html">打开写作工坊</a>
+
+    <h2>快速开始</h2>
+    <pre><code>go build -o ainovel-cli ./cmd/ainovel-cli
+./ainovel-cli serve --port 8080</code></pre>
+    <p>本地服务启动后访问 <code>http://127.0.0.1:8080/app.html</code>。Pages 静态版可浏览界面，真实 AI 调用需要本地 Go 后端或已部署的 API 服务。</p>
+
+    <h2>核心入口</h2>
+    <div class="grid">
+      <div class="card"><h3>写作工坊</h3><p><a href="app.html">app.html</a>，用于项目、章节、角色、AI 辅助写作。</p></div>
+      <div class="card"><h3>管理后台</h3><p><a href="admin.html">admin.html</a>，用于配置 provider、model、API key 和规则包。</p></div>
+      <div class="card"><h3>API</h3><p>后端端点以 <code>/api/</code> 开头，主要包括 <code>/api/ai</code>、<code>/api/config</code>、<code>/api/rules</code>。</p></div>
+    </div>
+
+    <h2>API Key 配置</h2>
+    <p>推荐在管理后台保存 provider 配置，或使用环境变量，例如 <code>AINOVEL_OPENROUTER_API_KEY</code>、<code>OPENROUTER_API_KEY</code>、<code>OPENAI_API_KEY</code>。</p>
+
+    <h2>更多资料</h2>
+    <p>完整开发文档在 GitHub 仓库中维护：<a href="https://github.com/zizegak916-glitch/writing-workshop/blob/main/API.md">API.md</a>、<a href="https://github.com/zizegak916-glitch/writing-workshop/blob/main/CONFIG.md">CONFIG.md</a>、<a href="https://github.com/zizegak916-glitch/writing-workshop/blob/main/DEVELOPMENT.md">DEVELOPMENT.md</a>。</p>
+  </main>
+</body>
+</html>
