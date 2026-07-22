@@ -131,6 +131,10 @@
             <button class="workflow-ghost" type="button" onclick="workflowClearSkills()">清空</button>
           </div>
           <div class="workflow-cap-list" id="workflowCapabilityList"><div class="workflow-muted">正在读取能力清单…</div></div>
+          <div class="workflow-prompt-skill-box">
+            <div><strong>内置 Prompt Skill</strong><span data-prompt-skill-summary>32 个写作功能 · 请求时隐形使用 · 保存在此浏览器</span></div>
+            <button class="workflow-ghost" type="button" onclick="wwOpenPromptSkillManager(typeof S !== 'undefined' ? S.aiMode : '')">查看与修改</button>
+          </div>
         </section>
 
         <section class="workflow-card">
@@ -233,6 +237,7 @@
 
     WF.mounted = true;
     refreshContext();
+    window.wwRefreshPromptSkillSummary?.();
   }
 
   async function activate() {
@@ -747,6 +752,7 @@
     refreshContext();
     loadCapabilities();
     renderHistory();
+    window.wwRefreshPromptSkillSummary?.();
   }
 
   function openMobile() {

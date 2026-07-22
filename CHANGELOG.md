@@ -8,8 +8,9 @@ All notable Writing Workshop changes are recorded here. The project follows Sema
 
 - Added persistent skill-pack and category APIs, three built-in multi-skill presets, and three new writing skills for continuity, character voice and scene pacing.
 - Added visible multi-Skill selection, pack application, category filtering and a static catalog preview that does not pretend to execute without a backend.
+- Added 32 practical browser-local Prompt Skills for every AI mode and quick tool, with hidden request injection, searchable editing, per-skill reset, standalone import/export and project-backup restore.
 - Added browser-local project search, rename, duplicate, category assignment, per-project export and confirmed cascade deletion.
-- Added custom memory categories, a version-2 project export containing memories, and memory import compatibility.
+- Added custom memory categories, a version-3 project export containing memories and Prompt Skill overrides, plus backward-compatible import.
 - Added a hand-drawn repository-native SVG app icon across the workbench, product pages and console.
 - Replaced the generic brain AI entry and all 30 text/Emoji capability glyphs with a repository-native SVG icon family for desktop and mobile.
 - Removed the nonfunctional URL-import control and replaced the obsolete contact link with verified Linux DO user `The_Fo0l`.

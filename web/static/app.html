@@ -12,6 +12,7 @@
 <link rel="icon" href="icons/app-icon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="css/workflows.css">
 <link rel="stylesheet" href="css/product-extensions.css">
+<link rel="stylesheet" href="css/prompt-skills.css">
 <style>
 /* ============================================================
    Writing Workshop — Linear-Inspired Design System
@@ -5106,6 +5107,7 @@ body.light .char-role {
 </div></div>
 <div class="toast" id="toast"><span id="toastIcon">✓</span><span id="toastMsg">已保存</span></div>
 <script src="js/ai-mode-icons.js"></script>
+<script src="js/prompt-skills.js"></script>
 <script>
 // ═══ IndexedDB ═══
 const DB_NAME='WritingWorkshop',DB_VER=3;let db;
@@ -5217,7 +5219,7 @@ function updateContextBar(){
   const content=sel||ed.value.trim().slice(-1000);
   const extra=document.getElementById('aiPrompt')?.value.trim()||'';
   const md=AI_MODES[S.aiMode]||{p:''};
-  let fullPrompt=md.p+'\n\n'+content;
+  let fullPrompt=(typeof wwPromptText==='function'?wwPromptText(S.aiMode):md.p)+'\n\n'+content;
   if(S.proj)fullPrompt+='\n\n'+buildCtx();
   if(extra)fullPrompt+='\n\n'+extra;
   const memCtx=buildMemoryContext();
@@ -7391,7 +7393,7 @@ async function loadProjects(){S.projects=await dbAll('projects');S.projects.sort
 async function loadProject(id){const p=await dbGet('projects',id);if(!p)return;const [os,cs,chs]=await Promise.all([dbByIndex('outlines','project_id',id),dbByIndex('characters','project_id',id),dbByIndex('chapters','project_id',id)]);os.sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));chs.sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));S.proj={project:p,outlines:os,characters:cs,chapters:chs};S.active=null;S.wordGoal=p.goal||2000;document.getElementById('currentProjectName').textContent=p.name;document.querySelector('.project-selector')?.setAttribute('title',p.name);renderOutlineList();renderChapterList();renderCharList();if(chs.length>0)loadChapterContent(chs[0].id);else if(os.length>0)loadOutlineContent(os[0].id);else{document.getElementById('mainEditor').value='';document.getElementById('chapterTitle').value='';}onEditorInput();showToast('📁',p.name);}
 async function createProject(){const name=document.getElementById('newProjectName').value.trim();if(!name){showToast('✕',t('toast-enter-name'));return;}const g=[...document.querySelectorAll('#genreGrid .genre-chip.on')].map(e=>e.textContent),now=Date.now();const id=await dbPut('projects',{name,genre:g[0]||t('genre-uncategorized'),description:document.getElementById('newProjectDesc').value.trim(),world_setting:document.getElementById('newProjectWorld').value.trim(),goal:parseInt(document.getElementById('dailyGoal').value)||2000,created_at:now,updated_at:now});await dbPut('outlines',{project_id:id,title:t('default-chapter-title'),content:'',sort_order:0,created_at:now});closeModal('newProjectModal');await loadProjects();await loadProject(id);showToast('📁',t('toast-created')+': '+name);document.getElementById('newProjectName').value='';}
 function renderProjectList(){const el=document.getElementById('projectList');if(!S.projects.length){el.innerHTML='<div style="text-align:center;padding:30px;color:var(--text-muted)">'+t('ps-none')+'</div>';return;}el.innerHTML=S.projects.map(p=>'<div class="project-list-item" onclick="loadProject('+Number(p.id)+');closeModal(\'projectModal\')"><div class="pli-name">'+escapeHtml(p.name)+'</div><div class="pli-meta">'+escapeHtml(p.genre)+' · '+new Date(p.created_at).toLocaleDateString(currentLang)+'</div></div>').join('');}
-function exportProject(){if(!S.proj)return showToast('✕',t('toast-no-proj'));const d={version:1,project:S.proj.project,outlines:S.proj.outlines,characters:S.proj.characters,chapters:S.proj.chapters};const b=new Blob([JSON.stringify(d,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=(S.proj.project.name||t('default-doc-title'))+'.json';a.click();showToast('↓',t('toast-exported'));}
+function exportProject(){if(!S.proj)return showToast('✕',t('toast-no-proj'));const d={version:3,project:S.proj.project,outlines:S.proj.outlines,characters:S.proj.characters,chapters:S.proj.chapters,memories:S.aiMemories.filter(m=>m.project_id===S.proj.project.id),prompt_skills:window.wwPromptSkillsExport?.()||null};const b=new Blob([JSON.stringify(d,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=(S.proj.project.name||t('default-doc-title'))+'.json';a.click();showToast('↓',t('toast-exported'));}
 function cloneWithoutId(v){const x={...(v||{})};delete x.id;return x;}
 // ═══ DOCX Parser (minimal ZIP XML extraction) ═══
 async function parseDocx(arrayBuffer) {
@@ -7558,6 +7560,10 @@ async function importProject(e) {
       if (d.characters) for (const c of d.characters) await dbPut('characters', { ...cloneWithoutId(c), project_id: id });
       if (d.chapters) for (const c of d.chapters) await dbPut('chapters', { ...cloneWithoutId(c), project_id: id, word_count: c.word_count || countWords(c.content || '') });
       if (d.memories) for (const m of d.memories) await dbPut('aiMemories', { ...cloneWithoutId(m), project_id: id });
+      if (d.prompt_skills && window.wwPromptSkillsImport) {
+        try { window.wwPromptSkillsImport(d.prompt_skills, { merge: true, silent: true }); }
+        catch (promptError) { console.warn('Prompt Skill import skipped:', promptError); }
+      }
       await loadProjects();
       await loadProject(id);
       showToast('↓', t('toast-imported'));
@@ -8176,7 +8182,7 @@ function loadApiUI(){const c=S.apiConfig;if(c.provider){const el=document.queryS
 
 
 // ═══ AI Generate ═══
-async function doGenerate(){const ac=S.apiConfig;if(!aiHasConfig(ac)){showToast('⚙',t('toast-no-api'));openModal('apiModal');return;}const ed=document.getElementById('mainEditor'),sel=ed.value.slice(ed.selectionStart,ed.selectionEnd).trim(),full=ed.value.trim(),extra=document.getElementById('aiPrompt').value.trim(),content=sel||full.slice(-1000);if(!content&&!extra){showToast('✎',t('toast-no-content'));return;}const lm={short:'100字以内',mid:'200-300字',long:'400-600字',xl:'800字以上'},tm={low:'保持严谨',mid:'适度创意',high:'大胆想象'};const md=AI_MODES[S.aiMode]||{p:'请处理以下内容：'};let prompt=md.p+'\n\n'+content+'\n\n【输出要求】'+lm[S.aiLen]+'。'+tm[S.aiTemp]+'。';if(S.proj)prompt+='\n\n【项目信息】\n'+buildCtx();if(extra)prompt+='\n\n【额外指令】'+extra;let sysPrompt='你是一位专业的中文写作助手。';const memCtx=buildMemoryContext();if(memCtx)sysPrompt+='\n\n'+memCtx;const btn=document.getElementById('generateBtn');btn.classList.add('loading');document.getElementById('generateBtnIcon').innerHTML='<div class="spinner"></div>';document.getElementById('generateBtnText').textContent=t('ap-gen-ing');try{showStreamingResult('arpText');const arpEl=document.getElementById('arpText');document.getElementById('arpMode').textContent=S.aiMode;document.getElementById('aiResultPopup').classList.add('show');let fullResult='';await callAIStream(prompt,ac,sysPrompt,(chunk)=>{fullResult+=chunk;arpEl.textContent=fullResult;});S.lastArpResult=fullResult;addHistory(S.aiMode,fullResult);}catch(e){showToast('✕',e.message||'请求失败');}finally{hideStreamingCursor();btn.classList.remove('loading');document.getElementById('generateBtnIcon').textContent='★';document.getElementById('generateBtnText').textContent=t('ap-gen');}}
+async function doGenerate(){const ac=S.apiConfig;if(!aiHasConfig(ac)){showToast('⚙',t('toast-no-api'));openModal('apiModal');return;}const ed=document.getElementById('mainEditor'),sel=ed.value.slice(ed.selectionStart,ed.selectionEnd).trim(),full=ed.value.trim(),extra=document.getElementById('aiPrompt').value.trim(),content=sel||full.slice(-1000);if(!content&&!extra){showToast('✎',t('toast-no-content'));return;}const lm={short:'100字以内',mid:'200-300字',long:'400-600字',xl:'800字以上'},tm={low:'保持严谨',mid:'适度创意',high:'大胆想象'};const md=AI_MODES[S.aiMode]||{p:'请处理以下内容：'};let prompt=(typeof wwPromptText==='function'?wwPromptText(S.aiMode):md.p)+'\n\n'+content+'\n\n【输出要求】'+lm[S.aiLen]+'。'+tm[S.aiTemp]+'。';if(S.proj)prompt+='\n\n【项目信息】\n'+buildCtx();if(extra)prompt+='\n\n【额外指令】'+extra;let sysPrompt='你是一位专业的中文写作助手。';const memCtx=buildMemoryContext();if(memCtx)sysPrompt+='\n\n'+memCtx;const btn=document.getElementById('generateBtn');btn.classList.add('loading');document.getElementById('generateBtnIcon').innerHTML='<div class="spinner"></div>';document.getElementById('generateBtnText').textContent=t('ap-gen-ing');try{showStreamingResult('arpText');const arpEl=document.getElementById('arpText');document.getElementById('arpMode').textContent=S.aiMode;document.getElementById('aiResultPopup').classList.add('show');let fullResult='';await callAIStream(prompt,ac,sysPrompt,(chunk)=>{fullResult+=chunk;arpEl.textContent=fullResult;});S.lastArpResult=fullResult;addHistory(S.aiMode,fullResult);}catch(e){showToast('✕',e.message||'请求失败');}finally{hideStreamingCursor();btn.classList.remove('loading');document.getElementById('generateBtnIcon').textContent='★';document.getElementById('generateBtnText').textContent=t('ap-gen');}}
 function arpAction(t){const text=S.lastArpResult,ed=document.getElementById('mainEditor');if(t==='replace'){const s=ed.selectionStart,e=ed.selectionEnd;if(s!==e)ed.value=ed.value.slice(0,s)+text+ed.value.slice(e);else ed.value=text;showToast('✓','已替换');}else if(t==='append'){ed.value+='\n\n'+text;showToast('✓','已追加');}else if(t==='insert'){const p=ed.selectionStart;ed.value=ed.value.slice(0,p)+text+ed.value.slice(p);showToast('✓','已插入');}else if(t==='copy'){navigator.clipboard.writeText(text).then(()=>showToast('✓',t('toast-copied')));return;}onEditorInput();closeAiResult();}
 function closeAiResult(){document.getElementById('aiResultPopup').classList.remove('show');}
 
@@ -8257,7 +8263,7 @@ async function doMultiGenerate(){
   const lm={short:'100字以内',mid:'200-300字',long:'400-600字',xl:'800字以上'};
   const tm={low:'保持严谨',mid:'适度创意',high:'大胆想象'};
   const md=AI_MODES[S.aiMode]||{p:'请处理以下内容：'};
-  let prompt=md.p+'\n\n'+content+'\n\n【输出要求】'+(lm[S.aiLen]||'400-600字')+'。'+(tm[S.aiTemp]||'适度创意')+'。';
+  let prompt=(typeof wwPromptText==='function'?wwPromptText(S.aiMode):md.p)+'\n\n'+content+'\n\n【输出要求】'+(lm[S.aiLen]||'400-600字')+'。'+(tm[S.aiTemp]||'适度创意')+'。';
   if(S.proj)prompt+='\n\n【项目信息】\n'+buildCtx();
   const extra=document.getElementById('aiPrompt')?.value?.trim();
   if(extra)prompt+='\n\n【额外指令】'+extra;
@@ -8421,7 +8427,7 @@ async function doMultiGenerateMobile(){
   const lm={short:'100字以内',mid:'200-300字',long:'400-600字',xl:'800字以上'};
   const tm={low:'保持严谨',mid:'适度创意',high:'大胆想象'};
   const md=AI_MODES[S.aiMode]||{p:'请处理以下内容：'};
-  let prompt=md.p+'\n\n'+content+'\n\n【输出要求】'+(lm[S.aiLen]||'400-600字')+'。'+(tm[S.aiTemp]||'适度创意')+'。';
+  let prompt=(typeof wwPromptText==='function'?wwPromptText(S.aiMode):md.p)+'\n\n'+content+'\n\n【输出要求】'+(lm[S.aiLen]||'400-600字')+'。'+(tm[S.aiTemp]||'适度创意')+'。';
   if(S.proj)prompt+='\n\n【项目信息】\n'+buildCtx();
   const extra=document.getElementById('mpAiPrompt')?.value?.trim();
   if(extra)prompt+='\n\n【额外指令】'+extra;
@@ -9886,7 +9892,7 @@ async function aiProofread(){
   setLoading('aiBtnProof',true);
   try{
     const ctx=S.proj?buildCtx()+'\n\n':'';
-    const prompt='你是一位专业的中文校对编辑。请仔细检查以下文字中的错别字、语病、标点错误和不通顺的句子。\n\n请按以下格式输出：\n1. 先列出所有发现的问题（编号列出，标注原文和修正）\n2. 然后输出一段"修正后全文"，直接给出修正后的完整文字\n\n如果文字没有问题，请直接回复"✅ 未发现错误"。\n\n'+ctx+'原文：\n'+text;
+    const prompt=wwPromptText('校对')+'\n\n'+ctx+'【原文】\n'+text;
     const result=await callAI(prompt,S.apiConfig);
     // Check if it contains corrected text
     const correctedMatch=result.match(/修正后全文[：:]\s*([\s\S]*)/);
@@ -9908,7 +9914,7 @@ async function aiAutoTitle(){
   setLoading('aiBtnTitle',true);
   try{
     const ctx=S.proj?buildCtx()+'\n\n':'';
-    const prompt='你是一位资深编辑。请根据以下文字内容，生成5个吸引人的章节标题。要求：\n1. 每个标题简洁有力（不超过15字）\n2. 风格多样（有悬念型、诗意型、直白型等）\n3. 能概括核心内容或吸引读者\n\n请用编号列出，每行一个标题。\n\n'+ctx+'内容：\n'+text.slice(0,2000);
+    const prompt=wwPromptText('标题')+'\n\n'+ctx+'【内容】\n'+text.slice(0,2000);
     const result=await callAI(prompt,S.apiConfig);
     showAiQuickResult('◇ 标题建议（点击"应用"使用第一个标题）',result,'title');
     // Extract first title for apply
@@ -9930,7 +9936,7 @@ async function aiInspiration(){
     const ctx=S.proj?buildCtx()+'\n\n':'';
     const selectedText=text.slice(document.getElementById('mainEditor').selectionStart,document.getElementById('mainEditor').selectionEnd).trim();
     const content=selectedText||text.slice(-800);
-    const prompt='你是一位创意写作顾问。根据以下内容，提供3-5条创作灵感和建议，包括：\n1. 情节发展方向\n2. 人物互动建议\n3. 场景/氛围增强\n4. 可以添加的细节\n\n每条建议简洁具体，能直接用于写作。用emoji标注类型。\n\n'+ctx+(title?'当前标题：'+title+'\n':'')+'内容：\n'+(content||'（空文档，请提供通用创作灵感）');
+    const prompt=wwPromptText('实时灵感')+'\n\n'+ctx+(title?'【当前标题】'+title+'\n':'')+'【当前断点】\n'+(content||'（空文档，请先给出可确认的开篇方向）');
     const result=await callAI(prompt,S.apiConfig);
     showAiQuickResult('◆ 实时灵感',result,'inspire');
   }catch(e){showToast('✕',e.message||'获取灵感失败');}
@@ -9947,7 +9953,7 @@ async function aiResearch(){
   try{
     const ctx=S.proj?buildCtx()+'\n\n':'';
     const content=selectedText||text.slice(-500);
-    const prompt='你是一位知识渊博的研究助手。根据以下写作内容，提供相关的背景知识和参考资料，帮助作者丰富内容。包括：\n1. 相关的历史/文化/科学背景\n2. 可参考的经典作品或案例\n3. 专业术语解释\n4. 细节描写的素材建议\n\n请分点列出，简洁实用。\n\n'+ctx+(title?'当前标题：'+title+'\n':'')+'内容/关键词：\n'+(content||'请提供通用写作参考资料');
+    const prompt=wwPromptText('资料搜索')+'\n\n'+ctx+(title?'【当前标题】'+title+'\n':'')+'【内容或关键词】\n'+(content||'请先列出需要作者补充的研究主题');
     const result=await callAI(prompt,S.apiConfig);
     showAiQuickResult('⊕ 资料搜索结果',result,'research');
   }catch(e){showToast('✕',e.message||'搜索失败');}
@@ -9966,11 +9972,11 @@ async function aiHumanize(){
   try{
     const ctx=S.proj?buildCtx()+'\n\n':'';
     const levelPrompts={
-      light:'你是一位资深的中文作家。请对以下文字做轻微调整以降低AI检测率。仅修改最明显的AI特征句式，保留95%以上的原文风格和用词。输出完整的重写后全文，不要输出分析。',
-      medium:'你是一位资深的中文作家。请将以下文字重写为自然的人类写作风格，降低AI检测率。具体要求：\n\n1. 使用口语化、不规则的句式，加入个人语气\n2. 偶尔用短句或碎片化表达打破完美节奏\n3. 避免过度排比、对仗和华丽辞藻堆砌\n4. 添加一些即兴感、犹豫感、口语化表达\n5. 可以适当加入"其实""说实话""怎么说呢"这类口语词\n6. 句子长短不一，有快有慢\n7. 保持核心内容和情节不变\n8. 输出的必须是完整的重写后全文，不要输出分析和说明',
-      heavy:'你是一位资深的中文作家。请完全重写以下文字，彻底消除AI痕迹。要求：\n\n1. 从零开始用自己的话重述，不要保留原文句式\n2. 大量使用口语化表达、方言词汇、个人风格\n3. 句子高度不规则，长短交错\n4. 加入犹豫、自问自答、跳跃性思维\n5. 可以加入适当的重复、回溯\n6. 表达要有"瑕疵感"——语法不必完美\n7. 保持核心内容和情节不变\n8. 输出的必须是完整的重写后全文'
+      light:'轻度：只处理最明显的模板句和机械衔接，尽量保留原句与原词。',
+      medium:'中度：允许重组句段和节奏，但保持作者原有正式/口语程度。',
+      heavy:'重度：允许从段落层面重新表达，但仍须严格保留事实、角色声音与信息顺序。'
     };
-    const prompt=levelPrompts[aiPresLevel]+'\n\n'+ctx+'原文：\n'+text;
+    const prompt=wwPromptText('降AI')+'\n\n【改写强度】'+levelPrompts[aiPresLevel]+'\n\n'+ctx+'【原文】\n'+text;
     const originalText=text;
     const result=await callAI(prompt,S.apiConfig);
     showAiQuickResult('◆ 降AI率结果 — 点击"应用"替换原文',result,'humanize');
@@ -9988,7 +9994,7 @@ async function aiDetect(){
   if(!text||text.length<50){showToast('✎','请先输入至少50字');return;}
   setLoading('aiBtnDetect',true);
   try{
-    const prompt='你是一位文本分析专家。请分析以下文字的AI生成特征，给出详细报告。\n\n⚠️ 重要声明：本分析结果仅供参考，不构成任何权威判定。AI检测本身存在误判率，人类写作也可能被误判为AI。\n\n请从以下维度分析，每项给出0-100的评分（越高越像AI）：\n\n1. **句式规律性** — 句子长度和结构是否过于整齐规律\n2. **词汇丰富度** — 是否过度使用某些高频AI词汇（如"此外""值得注意的是""总而言之"等）\n3. **情感自然度** — 情感表达是否过于"得体"，缺少真实的情绪波动\n4. **结构完美度** — 段落和逻辑是否过于工整，像模板输出\n5. **口语化程度** — 是否缺少口语、方言、碎片句等人类特征\n6. **重复与冗余** — 人类写作常有适度重复和冗余，AI往往过于精炼\n\n请在每项后面直接写评分数字，格式如：\n句式规律性 — 75/100\n\n最后给出：\n- 综合AI概率评估（仅供参考）\n- 3-5条具体的AI特征描述\n- 如果想让文字更像人写，建议修改哪些方面\n\n格式要求：用清晰的编号和分隔线，便于阅读。\n\n待分析文字：\n'+text.slice(0,3000);
+    const prompt=wwPromptText('查AI')+'\n\n【待分析文字】\n'+text.slice(0,3000);
     const result=await callAI(prompt,S.apiConfig);
     // Parse scores from the AI response
     const scores=parseAiScores(result);
@@ -10024,7 +10030,7 @@ function renderMpOutline(){if(!S.proj)return;const el=document.getElementById('m
 function renderMpChapter(){if(!S.proj)return;const el=document.getElementById('mpChapterList');if(!S.proj.chapters.length){el.innerHTML='<div style="text-align:center;padding:40px;color:var(--text-hint)">'+t('sb-empty-chapter')+'</div>';return;}el.innerHTML=S.proj.chapters.map(c=>'<div class="outline-item'+(S.active&&S.active.type==='chapter'&&S.active.id===c.id?' active':'')+'" onclick="loadChapterContent('+Number(c.id)+');backToEditor()"><span class="oi-icon"><svg class="ic ic-sm"><use href="#ic-chapter"/></svg></span><span class="oi-text">'+escapeHtml(c.title)+'</span><span class="oi-count">'+(c.word_count||0)+t('ps-units-2')+'</span></div>').join('');}
 function renderMpChar(){if(!S.proj)return;const el=document.getElementById('mpCharList');if(!S.proj.characters.length){el.innerHTML='<div style="text-align:center;padding:40px;color:var(--text-hint)">'+t('sb-empty-char')+'</div>';return;}el.innerHTML=S.proj.characters.map(c=>'<div class="char-card" onclick="loadCharContent('+Number(c.id)+');backToEditor()"><div class="char-name">'+escapeHtml(c.name)+'</div><span class="char-role">'+escapeHtml(c.role)+'</span><div class="char-desc">'+escapeHtml(c.personality||t('char-no-desc'))+'</div></div>').join('');}
 function renderMpAi(){const el=document.getElementById('mpAiModeGrid');if(!el||el.children.length>0)return;const g={};for(const[k,v]of Object.entries(AI_MODES)){if(!g[v.group])g[v.group]=[];g[v.group].push(k);}let h='';for(const[label,keys]of Object.entries(g)){h+='<div class="mode-group" data-mode-group="'+label+'"><div class="mode-group-title">'+t('grp-'+label)+'</div><div class="mode-grid">';for(const k of keys)h+='<button class="mode-btn'+(S.aiMode===k?' selected':'')+'" data-mode="'+k+'" onclick="selectMode(this,\''+k+'\')"><span class="micon">'+wwAiModeIcon(k)+'</span>'+t('mode-'+k)+'</button>';h+='</div></div>';}el.innerHTML=h;if(typeof renderMpMultiSlots==='function')renderMpMultiSlots();}
-async function doGenerateMobile(){const ac=S.apiConfig;if(!aiHasConfig(ac)){showToast('⚙',t('toast-no-api'));openModal('apiModal');return;}const ed=document.getElementById('mainEditor'),content=ed.value.slice(-1000)||'';const extra=document.getElementById('mpAiPrompt')?.value.trim()||'';if(!content&&!extra){showToast('✎',t('toast-no-content'));return;}const lm={short:'100字以内',mid:'200-300字',long:'400-600字',xl:'800字以上'},tm={low:'保持严谨',mid:'适度创意',high:'大胆想象'};const md=AI_MODES[S.aiMode]||{p:'请处理以下内容：'};let prompt=md.p+'\n\n'+content+'\n\n【输出要求】'+lm[S.aiLen]+'。'+tm[S.aiTemp]+'。';if(S.proj)prompt+='\n\n【项目信息】\n'+buildCtx();if(extra)prompt+='\n\n【额外指令】'+extra;let sysPrompt='你是一位专业的中文写作助手。';const memCtx=buildMemoryContext();if(memCtx)sysPrompt+='\n\n'+memCtx;const btn=document.getElementById('mpGenerateBtn');btn.classList.add('loading');btn.textContent=t('ap-gen-ing');try{const r=await callAI(prompt,ac,sysPrompt);S.lastArpResult=r;document.getElementById('arpText').textContent=r;document.getElementById('arpMode').textContent=S.aiMode;document.getElementById('aiResultPopup').classList.add('show');addHistory(S.aiMode,r);}catch(e){showToast('✕',e.message||'失败');}finally{btn.classList.remove('loading');btn.innerHTML='<span>★</span><span data-i18n="ap-gen">'+t('ap-gen')+'</span>';}}
+async function doGenerateMobile(){const ac=S.apiConfig;if(!aiHasConfig(ac)){showToast('⚙',t('toast-no-api'));openModal('apiModal');return;}const ed=document.getElementById('mainEditor'),content=ed.value.slice(-1000)||'';const extra=document.getElementById('mpAiPrompt')?.value.trim()||'';if(!content&&!extra){showToast('✎',t('toast-no-content'));return;}const lm={short:'100字以内',mid:'200-300字',long:'400-600字',xl:'800字以上'},tm={low:'保持严谨',mid:'适度创意',high:'大胆想象'};const md=AI_MODES[S.aiMode]||{p:'请处理以下内容：'};let prompt=(typeof wwPromptText==='function'?wwPromptText(S.aiMode):md.p)+'\n\n'+content+'\n\n【输出要求】'+lm[S.aiLen]+'。'+tm[S.aiTemp]+'。';if(S.proj)prompt+='\n\n【项目信息】\n'+buildCtx();if(extra)prompt+='\n\n【额外指令】'+extra;let sysPrompt='你是一位专业的中文写作助手。';const memCtx=buildMemoryContext();if(memCtx)sysPrompt+='\n\n'+memCtx;const btn=document.getElementById('mpGenerateBtn');btn.classList.add('loading');btn.textContent=t('ap-gen-ing');try{const r=await callAI(prompt,ac,sysPrompt);S.lastArpResult=r;document.getElementById('arpText').textContent=r;document.getElementById('arpMode').textContent=S.aiMode;document.getElementById('aiResultPopup').classList.add('show');addHistory(S.aiMode,r);}catch(e){showToast('✕',e.message||'失败');}finally{btn.classList.remove('loading');btn.innerHTML='<span>★</span><span data-i18n="ap-gen">'+t('ap-gen')+'</span>';}}
 
 // ═══ Cookie Consent & Privacy ═══
 function showPrivacyModal(){document.getElementById('privacyModal').classList.add('show');}

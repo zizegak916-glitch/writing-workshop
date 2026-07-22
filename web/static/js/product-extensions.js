@@ -191,7 +191,16 @@
       dbByIndex('chapters', 'project_id', id),
       dbByIndex('aiMemories', 'project_id', id)
     ]);
-    return { version: 2, exported_at: new Date().toISOString(), project, outlines, characters, chapters, memories };
+    return {
+      version: 3,
+      exported_at: new Date().toISOString(),
+      project,
+      outlines,
+      characters,
+      chapters,
+      memories,
+      prompt_skills: window.wwPromptSkillsExport?.() || null
+    };
   }
 
   async function exportProjectById(id) {
