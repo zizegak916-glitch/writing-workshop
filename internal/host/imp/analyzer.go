@@ -7,9 +7,9 @@ import (
 	"strings"
 
 	"github.com/voocel/agentcore"
-	"github.com/voocel/ainovel-cli/internal/domain"
-	"github.com/voocel/ainovel-cli/internal/store"
-	"github.com/voocel/ainovel-cli/internal/tools"
+	"github.com/zizegak916-glitch/writing-workshop/internal/domain"
+	"github.com/zizegak916-glitch/writing-workshop/internal/store"
+	"github.com/zizegak916-glitch/writing-workshop/internal/tools"
 )
 
 // validHookTypes / validStrands 与 commit_chapter schema 保持一致。

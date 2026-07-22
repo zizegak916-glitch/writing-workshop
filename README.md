@@ -40,7 +40,7 @@ curl http://127.0.0.1:8080/api/health
 需要 Go 1.25 或更高版本。
 
 ```bash
-go build -o writing-workshop ./cmd/ainovel-cli
+go build -o writing-workshop ./cmd/writing-workshop
 ./writing-workshop serve --demo --port 8080
 ```
 
@@ -95,7 +95,7 @@ go build -o writing-workshop ./cmd/ainovel-cli
 ## 项目结构
 
 ```text
-cmd/ainovel-cli/    可执行入口（发布名 writing-workshop）
+cmd/writing-workshop/  项目可执行入口
 internal/web/       同源 Web API、SSE、能力执行与数据管理
 web/static/         本地优先的写作工作台
 internal/store/     章节、大纲、人物、记忆和运行状态

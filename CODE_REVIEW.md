@@ -1,4 +1,4 @@
-# ainovel-cli Web 整合自审报告
+# Writing Workshop Web 整合自审报告
 
 生成时间：2026-06-29
 
@@ -46,7 +46,7 @@ rg -n "TODO|FIXME|HACK|stub|fetch\(['\"]https?://|axios\(|fonts\.googleapis|font
 
 ```bash
 for f in web/static/app.js web/static/js/*.js; do node --check "$f" || exit 1; done
-GOCACHE=/tmp/ainovel-gocache GOMODCACHE=/tmp/ainovel-gomodcache go build -o /tmp/ainovel-cli ./cmd/ainovel-cli
+GOCACHE=/tmp/writing-workshop-gocache GOMODCACHE=/tmp/writing-workshop-gomodcache go build -o /tmp/writing-workshop ./cmd/writing-workshop
 GOCACHE=/tmp/ainovel-gocache GOMODCACHE=/tmp/ainovel-gomodcache go vet ./...
 ```
 

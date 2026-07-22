@@ -4,7 +4,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/voocel/ainovel-cli/internal/domain"
+	"github.com/zizegak916-glitch/writing-workshop/internal/domain"
 )
 
 // RunMetaStore 管理运行元信息（模型、干预历史、规划级别等）。

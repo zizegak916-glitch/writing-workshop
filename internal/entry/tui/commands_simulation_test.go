@@ -3,7 +3,7 @@ package tui
 import (
 	"testing"
 
-	"github.com/voocel/ainovel-cli/internal/host"
+	"github.com/zizegak916-glitch/writing-workshop/internal/host"
 )
 
 func TestSimulationCommandsAreRegisteredAndNeedIdle(t *testing.T) {

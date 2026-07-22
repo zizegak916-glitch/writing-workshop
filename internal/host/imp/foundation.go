@@ -7,8 +7,8 @@ import (
 	"strings"
 
 	"github.com/voocel/agentcore"
-	"github.com/voocel/ainovel-cli/internal/domain"
-	"github.com/voocel/ainovel-cli/internal/store"
+	"github.com/zizegak916-glitch/writing-workshop/internal/domain"
+	"github.com/zizegak916-glitch/writing-workshop/internal/store"
 )
 
 // FoundationResult 是 Foundation 反推的结构化产物。

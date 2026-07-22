@@ -7,9 +7,9 @@ import (
 	"sync/atomic"
 
 	"github.com/voocel/agentcore"
-	"github.com/voocel/ainovel-cli/internal/domain"
-	"github.com/voocel/ainovel-cli/internal/host/flow"
-	"github.com/voocel/ainovel-cli/internal/store"
+	"github.com/zizegak916-glitch/writing-workshop/internal/domain"
+	"github.com/zizegak916-glitch/writing-workshop/internal/host/flow"
+	"github.com/zizegak916-glitch/writing-workshop/internal/store"
 )
 
 // StopGuard 是"物理不可停机"的最后防线。

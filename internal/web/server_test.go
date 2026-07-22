@@ -8,9 +8,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/voocel/ainovel-cli/assets"
-	"github.com/voocel/ainovel-cli/internal/bootstrap"
-	"github.com/voocel/ainovel-cli/internal/host"
+	"github.com/zizegak916-glitch/writing-workshop/assets"
+	"github.com/zizegak916-glitch/writing-workshop/internal/bootstrap"
+	"github.com/zizegak916-glitch/writing-workshop/internal/host"
 )
 
 func TestProjectsEmptyList(t *testing.T) {
@@ -120,7 +120,7 @@ func TestCapabilitiesSaveAndRun(t *testing.T) {
 	}
 
 	runBody := bytes.NewBufferString(`{
-		"backend_id":"ainovel-cli",
+		"backend_id":"writing-workshop",
 		"skill_ids":["builtin-rewrite"],
 		"task":"rewrite",
 		"context":{"selection":"雨落在窗边。"}

@@ -8,9 +8,9 @@ import (
 
 	"github.com/voocel/agentcore/schema"
 	agentcoretools "github.com/voocel/agentcore/tools"
-	"github.com/voocel/ainovel-cli/internal/domain"
-	"github.com/voocel/ainovel-cli/internal/errs"
-	"github.com/voocel/ainovel-cli/internal/store"
+	"github.com/zizegak916-glitch/writing-workshop/internal/domain"
+	"github.com/zizegak916-glitch/writing-workshop/internal/errs"
+	"github.com/zizegak916-glitch/writing-workshop/internal/store"
 )
 
 // EditChapterTool 对章节草稿做定点字符串替换，适用于打磨场景。

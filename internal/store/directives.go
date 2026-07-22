@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/voocel/ainovel-cli/internal/domain"
+	"github.com/zizegak916-glitch/writing-workshop/internal/domain"
 )
 
 // maxDirectives 是长效指令的容量上限：防止挂机数月后信封拖着一长串历史干预

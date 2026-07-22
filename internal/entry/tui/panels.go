@@ -10,8 +10,8 @@ import (
 
 	"github.com/charmbracelet/bubbles/viewport"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/voocel/ainovel-cli/internal/host"
-	"github.com/voocel/ainovel-cli/internal/utils"
+	"github.com/zizegak916-glitch/writing-workshop/internal/host"
+	"github.com/zizegak916-glitch/writing-workshop/internal/utils"
 )
 
 // renderTopBar 渲染顶部状态栏。

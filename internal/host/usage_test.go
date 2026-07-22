@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/voocel/agentcore"
-	"github.com/voocel/ainovel-cli/internal/models"
+	"github.com/zizegak916-glitch/writing-workshop/internal/models"
 )
 
 // makeUsageMsg 构造一条 OnMessage 回调能接受的消息（带 Usage）。

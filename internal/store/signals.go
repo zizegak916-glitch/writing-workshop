@@ -3,7 +3,7 @@ package store
 import (
 	"os"
 
-	"github.com/voocel/ainovel-cli/internal/domain"
+	"github.com/zizegak916-glitch/writing-workshop/internal/domain"
 )
 
 // SignalStore 管理一次性信号文件（commit/review 结果、待恢复状态）。

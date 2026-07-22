@@ -301,7 +301,7 @@
       WF.backendReady = true;
       const backends = WF.capabilities.filter(cap => cap.type === 'backend' || cap.type === 'project');
       backend.innerHTML = backends.length
-        ? backends.map(cap => `<option value="${esc(cap.id)}" ${cap.id === 'ainovel-cli' ? 'selected' : ''}>${esc(cap.name)}</option>`).join('')
+        ? backends.map(cap => `<option value="${esc(cap.id)}" ${cap.id === 'writing-workshop' ? 'selected' : ''}>${esc(cap.name)}</option>`).join('')
         : '<option value="">内置执行器</option>';
       renderCapabilities();
       setStatus('ready', '后端已连接');
@@ -309,7 +309,7 @@
     } catch (error) {
       WF.backendReady = false;
       backend.innerHTML = '<option value="">后端不可用</option>';
-      list.innerHTML = '<div class="workflow-muted">当前是静态页面或后端未启动。普通编辑仍可用；能力执行需要通过 <code>ainovel-cli serve</code> 打开本站。</div>';
+      list.innerHTML = '<div class="workflow-muted">当前是静态页面或后端未启动。普通编辑仍可用；能力执行需要通过 <code>writing-workshop serve --demo</code> 打开本站。</div>';
       setStatus('error', '后端未连接');
       document.getElementById('workflowBackendHint').innerHTML = `无法访问同源 <code>/api/capabilities</code>：${esc(error.message)}。不要把厂商 URL 填到这里绕过 CORS。`;
     }

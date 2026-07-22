@@ -15,7 +15,7 @@ COPY . .
 RUN GOOS=$TARGETOS GOARCH=$TARGETARCH \
     go build -trimpath -ldflags="-s -w" \
     -o /out/writing-workshop \
-    ./cmd/ainovel-cli
+    ./cmd/writing-workshop
 
 FROM alpine:3.22
 

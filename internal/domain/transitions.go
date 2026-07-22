@@ -3,7 +3,7 @@ package domain
 import (
 	"fmt"
 
-	"github.com/voocel/ainovel-cli/internal/errs"
+	"github.com/zizegak916-glitch/writing-workshop/internal/errs"
 )
 
 // 状态迁移规则（最小版）

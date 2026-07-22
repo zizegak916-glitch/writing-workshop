@@ -9,14 +9,14 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/voocel/ainovel-cli/assets"
-	"github.com/voocel/ainovel-cli/internal/bootstrap"
-	"github.com/voocel/ainovel-cli/internal/entry/headless"
-	"github.com/voocel/ainovel-cli/internal/entry/tui"
-	"github.com/voocel/ainovel-cli/internal/host"
-	"github.com/voocel/ainovel-cli/internal/rules"
-	buildversion "github.com/voocel/ainovel-cli/internal/version"
-	"github.com/voocel/ainovel-cli/internal/web"
+	"github.com/zizegak916-glitch/writing-workshop/assets"
+	"github.com/zizegak916-glitch/writing-workshop/internal/bootstrap"
+	"github.com/zizegak916-glitch/writing-workshop/internal/entry/headless"
+	"github.com/zizegak916-glitch/writing-workshop/internal/entry/tui"
+	"github.com/zizegak916-glitch/writing-workshop/internal/host"
+	"github.com/zizegak916-glitch/writing-workshop/internal/rules"
+	buildversion "github.com/zizegak916-glitch/writing-workshop/internal/version"
+	"github.com/zizegak916-glitch/writing-workshop/internal/web"
 )
 
 var (

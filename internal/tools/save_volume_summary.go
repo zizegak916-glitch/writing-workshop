@@ -6,8 +6,8 @@ import (
 	"fmt"
 
 	"github.com/voocel/agentcore/schema"
-	"github.com/voocel/ainovel-cli/internal/domain"
-	"github.com/voocel/ainovel-cli/internal/store"
+	"github.com/zizegak916-glitch/writing-workshop/internal/domain"
+	"github.com/zizegak916-glitch/writing-workshop/internal/store"
 )
 
 // SaveVolumeSummaryTool 保存卷级摘要，Editor 在卷结束时调用。

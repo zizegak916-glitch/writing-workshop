@@ -14,14 +14,14 @@ import (
 	corecontext "github.com/voocel/agentcore/context"
 	"github.com/voocel/agentcore/llm"
 	"github.com/voocel/agentcore/subagent"
-	"github.com/voocel/ainovel-cli/assets"
-	"github.com/voocel/ainovel-cli/internal/agents/ctxpack"
-	"github.com/voocel/ainovel-cli/internal/bootstrap"
-	"github.com/voocel/ainovel-cli/internal/domain"
-	"github.com/voocel/ainovel-cli/internal/host/reminder"
-	"github.com/voocel/ainovel-cli/internal/rules"
-	"github.com/voocel/ainovel-cli/internal/store"
-	"github.com/voocel/ainovel-cli/internal/tools"
+	"github.com/zizegak916-glitch/writing-workshop/assets"
+	"github.com/zizegak916-glitch/writing-workshop/internal/agents/ctxpack"
+	"github.com/zizegak916-glitch/writing-workshop/internal/bootstrap"
+	"github.com/zizegak916-glitch/writing-workshop/internal/domain"
+	"github.com/zizegak916-glitch/writing-workshop/internal/host/reminder"
+	"github.com/zizegak916-glitch/writing-workshop/internal/rules"
+	"github.com/zizegak916-glitch/writing-workshop/internal/store"
+	"github.com/zizegak916-glitch/writing-workshop/internal/tools"
 )
 
 // logRulesLoaded 在装配期打印规则加载实况：本书规则目录、实际读到的来源、字数检查生效值。

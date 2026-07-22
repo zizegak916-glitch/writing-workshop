@@ -4,7 +4,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/voocel/ainovel-cli/internal/domain"
+	"github.com/zizegak916-glitch/writing-workshop/internal/domain"
 )
 
 // Event 是 TUI 消费的结构化事件。

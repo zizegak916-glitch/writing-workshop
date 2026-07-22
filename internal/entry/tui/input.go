@@ -6,7 +6,7 @@ import (
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
-	"github.com/voocel/ainovel-cli/internal/host"
+	"github.com/zizegak916-glitch/writing-workshop/internal/host"
 )
 
 // renderInputBox 渲染底部输入区。

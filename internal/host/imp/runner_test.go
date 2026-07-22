@@ -11,9 +11,9 @@ import (
 	"time"
 
 	"github.com/voocel/agentcore"
-	"github.com/voocel/ainovel-cli/internal/domain"
-	"github.com/voocel/ainovel-cli/internal/store"
-	"github.com/voocel/ainovel-cli/internal/tools"
+	"github.com/zizegak916-glitch/writing-workshop/internal/domain"
+	"github.com/zizegak916-glitch/writing-workshop/internal/store"
+	"github.com/zizegak916-glitch/writing-workshop/internal/tools"
 )
 
 // scriptedLLM 按调用顺序返回不同响应：第一次 foundation envelope，之后每次 analyzer envelope。

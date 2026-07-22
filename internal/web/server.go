@@ -18,12 +18,12 @@ import (
 
 	"github.com/voocel/agentcore"
 	"github.com/voocel/agentcore/llm"
-	"github.com/voocel/ainovel-cli/internal/bootstrap"
-	"github.com/voocel/ainovel-cli/internal/domain"
-	"github.com/voocel/ainovel-cli/internal/host"
-	"github.com/voocel/ainovel-cli/internal/rules"
-	storepkg "github.com/voocel/ainovel-cli/internal/store"
-	staticfiles "github.com/voocel/ainovel-cli/web/static"
+	"github.com/zizegak916-glitch/writing-workshop/internal/bootstrap"
+	"github.com/zizegak916-glitch/writing-workshop/internal/domain"
+	"github.com/zizegak916-glitch/writing-workshop/internal/host"
+	"github.com/zizegak916-glitch/writing-workshop/internal/rules"
+	storepkg "github.com/zizegak916-glitch/writing-workshop/internal/store"
+	staticfiles "github.com/zizegak916-glitch/writing-workshop/web/static"
 )
 
 type Server struct {
@@ -544,7 +544,7 @@ func (s *Server) handleAI(w http.ResponseWriter, r *http.Request) {
 	text := resp.Message.TextContent()
 	usage := resp.Message.Usage
 	writeJSON(w, map[string]any{
-		"id":       "ainovel-cli",
+		"id":       "writing-workshop",
 		"object":   "chat.completion",
 		"provider": providerKey,
 		"model":    modelName,

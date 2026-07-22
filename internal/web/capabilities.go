@@ -419,14 +419,14 @@ func defaultCapabilities() []capabilityManifest {
 	return []capabilityManifest{
 		{
 			ID: "builtin-echo", Name: "内置回显", Type: "skill", Version: "1.0.0",
-			Source: "builtin://echo", License: "MIT", Entry: "builtin:echo", Output: "text",
+			Source: "builtin://echo", License: "Apache-2.0", Entry: "builtin:echo", Output: "text",
 			Description: "不调用模型，原样检查上下文与能力执行链路。",
 			Steps:       []string{"接收本次任务和上下文", "回传可检查的文本结果"},
 			SupportsStream: true, SupportsAbort: true, Enabled: true, ReadOnly: true,
 		},
 		{
 			ID: "builtin-outline", Name: "内置大纲拆分", Type: "skill", Version: "1.0.0",
-			Source: "builtin://outline", License: "MIT", Entry: "builtin:outline", Output: "text",
+			Source: "builtin://outline", License: "Apache-2.0", Entry: "builtin:outline", Output: "text",
 			Description:  "把输入拆成起点、推进、转折和收束四段执行骨架。",
 			Instructions: "提炼输入中的目标、冲突、关键选择与结果变化，形成可继续写作的执行大纲。",
 			Steps:        []string{"识别核心目标", "拆分冲突与场景推进", "安排关键选择和代价", "给出下一步写作任务"},
@@ -434,15 +434,15 @@ func defaultCapabilities() []capabilityManifest {
 		},
 		{
 			ID: "builtin-rewrite", Name: "内置改写链路", Type: "skill", Version: "1.0.0",
-			Source: "builtin://rewrite", License: "MIT", Entry: "builtin:rewrite", Output: "text",
+			Source: "builtin://rewrite", License: "Apache-2.0", Entry: "builtin:rewrite", Output: "text",
 			Description:  "保留原意与人物逻辑，生成可审阅的改写候选。",
 			Instructions: "改写时保留原意、人物动机和因果关系，只优化表达、节奏与画面；不要宣称已经写入正文。",
 			Steps:        []string{"读取选区与项目上下文", "识别不可改变的信息", "生成改写候选", "等待用户显式写入"},
 			SupportsStream: true, SupportsAbort: true, Enabled: true, ReadOnly: true,
 		},
 		{
-			ID: "ainovel-cli", Name: "ainovel-cli 后端适配", Type: "backend", Version: "upstream",
-			Source: "https://github.com/voocel/ainovel-cli", License: "Upstream", Entry: "/api/*", Output: "json/event-stream",
+			ID: "writing-workshop", Name: "Writing Workshop 本地后端", Type: "backend", Version: "0.1",
+			Source: "https://github.com/zizegak916-glitch/writing-workshop", License: "Apache-2.0", Entry: "/api/*", Output: "json/event-stream",
 			Description: "写作工坊原生支持的同源后端，用于模型调用、项目存储、流式输出与任务中断。",
 			Steps:       []string{"接收同源请求", "执行已选择能力", "流式返回候选", "接受中断信号"},
 			Permissions: []string{"读取本次显式提交的上下文", "写入后端项目数据仅限用户发起的保存操作"},

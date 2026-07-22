@@ -34,7 +34,7 @@ jobs:
         run: go vet ./...
 
       - name: Build release binary
-        run: go build -o writing-workshop ./cmd/ainovel-cli
+        run: go build -o writing-workshop ./cmd/writing-workshop
 
       - name: JavaScript syntax
         run: find web/static -name '*.js' -print0 | xargs -0 -n1 node --check

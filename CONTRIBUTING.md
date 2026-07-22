@@ -13,7 +13,7 @@ Writing Workshop 欢迎问题报告、协议讨论、测试样例和代码贡献
 ```bash
 go test ./...
 go vet ./...
-go build -o writing-workshop ./cmd/ainovel-cli
+go build -o writing-workshop ./cmd/writing-workshop
 ./writing-workshop serve --demo --port 8080
 curl http://127.0.0.1:8080/api/health
 find web/static -name '*.js' -print0 | xargs -0 -n1 node --check

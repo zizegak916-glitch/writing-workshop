@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/voocel/ainovel-cli/internal/domain"
+	"github.com/zizegak916-glitch/writing-workshop/internal/domain"
 )
 
 // StaleForeshadow 检测长期未推进的伏笔。

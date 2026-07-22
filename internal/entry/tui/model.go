@@ -10,9 +10,9 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
-	"github.com/voocel/ainovel-cli/internal/host"
-	"github.com/voocel/ainovel-cli/internal/tools"
-	"github.com/voocel/ainovel-cli/internal/utils"
+	"github.com/zizegak916-glitch/writing-workshop/internal/host"
+	"github.com/zizegak916-glitch/writing-workshop/internal/tools"
+	"github.com/zizegak916-glitch/writing-workshop/internal/utils"
 )
 
 const maxEvents = 500

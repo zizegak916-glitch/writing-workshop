@@ -3,7 +3,7 @@
 ## 本地构建
 
 ```bash
-go build -o writing-workshop ./cmd/ainovel-cli
+go build -o writing-workshop ./cmd/writing-workshop
 ./writing-workshop serve --demo --port 8080
 ```
 
@@ -19,7 +19,7 @@ go build -o writing-workshop ./cmd/ainovel-cli
 mkdir -p /tmp/go-cache /tmp/gomodcache
 GOCACHE=/tmp/go-cache GOMODCACHE=/tmp/gomodcache go test ./...
 GOCACHE=/tmp/go-cache GOMODCACHE=/tmp/gomodcache go vet ./...
-GOCACHE=/tmp/go-cache GOMODCACHE=/tmp/gomodcache go build ./cmd/ainovel-cli
+GOCACHE=/tmp/go-cache GOMODCACHE=/tmp/gomodcache go build ./cmd/writing-workshop
 ```
 
 ## Web 端约定
@@ -48,6 +48,6 @@ GOCACHE=/tmp/go-cache GOMODCACHE=/tmp/gomodcache go build ./cmd/ainovel-cli
 1. `rg -n "TODO|FIXME|HACK|mock|stub" internal web`
 2. `go test ./...`
 3. `go vet ./...`
-4. `go build ./cmd/ainovel-cli`
+4. `go build ./cmd/writing-workshop`
 5. 启动 `serve --demo` 后检查 `/api/health`，再访问 `/app.html` 和 `/admin`。
 6. 在管理后台测试 `/api/capabilities`、`/api/run` 和 `/api/ai`，确认能力保存、执行和 provider/model/key 配置有效。

@@ -5,8 +5,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/voocel/ainovel-cli/internal/domain"
-	storepkg "github.com/voocel/ainovel-cli/internal/store"
+	"github.com/zizegak916-glitch/writing-workshop/internal/domain"
+	storepkg "github.com/zizegak916-glitch/writing-workshop/internal/store"
 )
 
 // buildResumePrompt 基于事实生成 Resume 用的简短 prompt 与 UI 标签。

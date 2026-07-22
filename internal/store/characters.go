@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/voocel/ainovel-cli/internal/domain"
+	"github.com/zizegak916-glitch/writing-workshop/internal/domain"
 )
 
 // CharacterStore 管理角色档案和状态快照。

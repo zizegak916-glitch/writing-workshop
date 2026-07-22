@@ -8,8 +8,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/voocel/ainovel-cli/internal/tools"
-	"github.com/voocel/ainovel-cli/internal/utils"
+	"github.com/zizegak916-glitch/writing-workshop/internal/tools"
+	"github.com/zizegak916-glitch/writing-workshop/internal/utils"
 )
 
 type terminalAskUser struct {

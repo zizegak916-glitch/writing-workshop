@@ -6,7 +6,7 @@ import (
 	"io/fs"
 	"strings"
 
-	"github.com/voocel/ainovel-cli/internal/tools"
+	"github.com/zizegak916-glitch/writing-workshop/internal/tools"
 )
 
 //go:embed prompts/*.md

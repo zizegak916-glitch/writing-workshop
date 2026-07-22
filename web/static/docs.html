@@ -23,7 +23,7 @@
     <div class="note">当前 Pages 地址没有常驻后端。你可以浏览界面、使用本地浏览器数据和打开能力后台；真实 AI 调用、配置保存、项目同步、skill 执行和规则管理，需要运行本地后端或部署自己的 API 服务。</div>
 
     <h2>主体与能力来源</h2>
-    <p>写作工坊统一保存和调度多个能力来源：GitHub 上的优质开源项目、可组合 skill、项目规则包，以及你自己编写的通用能力。<code>ainovel-cli</code> 原版是他人维护的开源项目，本仓库不声明其原创归属；它只是可原生支持的后端项目之一。</p>
+    <p>写作工坊统一保存和调度多个能力来源：GitHub 上的优质开源项目、可组合 skill、项目规则包，以及你自己编写的通用能力。项目拥有独立的 Go 模块、命令入口和同源后端；底层写作引擎的上游来源与许可证保留在仓库文档中。</p>
 
     <h2>执行链路</h2>
     <div class="grid">
@@ -49,7 +49,7 @@
       <div class="card"><h3>执行能力</h3><p><code>POST /api/run</code> 已可用，支持 <code>backend_id</code>、<code>skill_ids</code>、任务、上下文和参数。</p></div>
       <div class="card"><h3>中断运行</h3><p><code>POST /api/abort</code> 会同时中断写作运行和能力运行；流式输出使用 SSE 的 <code>start/delta/done</code> 事件。</p></div>
     </div>
-    <p>默认内置 <code>builtin-echo</code>、<code>builtin-outline</code>、<code>builtin-rewrite</code> 和 <code>ainovel-cli</code>。内置能力只读；用户保存的能力可以在后台编辑说明、执行要求、可见步骤和权限边界，也可以启停、删除、流式试跑或中断。选中的 prompt/skill 执行要求会进入本次模型请求；保存 GitHub 链接或 skill manifest 本身不会执行任意仓库代码，第三方代码执行仍需要明确的沙箱执行器。</p>
+    <p>默认内置 <code>builtin-echo</code>、<code>builtin-outline</code>、<code>builtin-rewrite</code> 和 <code>writing-workshop</code>。内置能力只读；用户保存的能力可以在后台编辑说明、执行要求、可见步骤和权限边界，也可以启停、删除、流式试跑或中断。选中的 prompt/skill 执行要求会进入本次模型请求；保存 GitHub 链接或 skill manifest 本身不会执行任意仓库代码，第三方代码执行仍需要明确的沙箱执行器。</p>
 
     <h2>自定义文件或链接要求</h2>
     <p>添加 GitHub 项目、远程链接或本地 skill 时，必须能被后端安全解析，并满足下面的最小契约。</p>
@@ -62,9 +62,9 @@
       <div class="card"><h3>可审计</h3><p>保存原始链接、版本、摘要和启用状态，方便用户知道当前前端传给后端的能力组合。</p></div>
     </div>
 
-    <h2>ainovel-cli 后端示例</h2>
-    <pre><code>go build -o ainovel-cli ./cmd/ainovel-cli
-./ainovel-cli serve --port 8080</code></pre>
+    <h2>Writing Workshop 本地后端</h2>
+    <pre><code>go build -o writing-workshop ./cmd/writing-workshop
+./writing-workshop serve --demo --port 8080</code></pre>
     <p>使用该后端示例时，本地服务启动后访问 <code>http://127.0.0.1:8080/app.html</code> 或 <code>http://127.0.0.1:8080/admin.html</code>。此时前端会通过同源 <code>/api/</code> 端点连接后端。主应用是本地游客模式；除非后续提供数据管理服务，否则不要求用户设置账号密码。</p>
 
     <h2>核心入口</h2>

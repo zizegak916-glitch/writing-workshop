@@ -3,7 +3,7 @@ package store
 import (
 	"testing"
 
-	"github.com/voocel/ainovel-cli/internal/domain"
+	"github.com/zizegak916-glitch/writing-workshop/internal/domain"
 )
 
 func TestSetFlow(t *testing.T) {

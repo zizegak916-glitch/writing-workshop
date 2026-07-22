@@ -9,7 +9,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
-	"github.com/voocel/ainovel-cli/internal/diag"
+	"github.com/zizegak916-glitch/writing-workshop/internal/diag"
 )
 
 type reportState struct {

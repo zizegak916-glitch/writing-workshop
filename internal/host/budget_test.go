@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/voocel/agentcore"
-	"github.com/voocel/ainovel-cli/internal/bootstrap"
+	"github.com/zizegak916-glitch/writing-workshop/internal/bootstrap"
 )
 
 type budgetRecorder struct {

@@ -1,4 +1,4 @@
-module github.com/voocel/ainovel-cli
+module github.com/zizegak916-glitch/writing-workshop
 
 go 1.25.5
 

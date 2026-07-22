@@ -6,7 +6,7 @@ import (
 
 	"github.com/voocel/agentcore"
 	corecontext "github.com/voocel/agentcore/context"
-	"github.com/voocel/ainovel-cli/internal/store"
+	"github.com/zizegak916-glitch/writing-workshop/internal/store"
 )
 
 const storeSummaryStrategyName = "store_summary"

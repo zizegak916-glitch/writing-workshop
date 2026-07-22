@@ -7,7 +7,7 @@ before:
 
 builds:
   - id: writing-workshop
-    main: ./cmd/ainovel-cli
+    main: ./cmd/writing-workshop
     binary: writing-workshop
     env:
       - CGO_ENABLED=0

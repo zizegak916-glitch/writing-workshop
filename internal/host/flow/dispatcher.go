@@ -7,7 +7,7 @@ import (
 	"sync/atomic"
 
 	"github.com/voocel/agentcore"
-	storepkg "github.com/voocel/ainovel-cli/internal/store"
+	storepkg "github.com/zizegak916-glitch/writing-workshop/internal/store"
 )
 
 // Dispatcher 在子代理返回的同步工具边界计算路由并下达 Host 指令。
