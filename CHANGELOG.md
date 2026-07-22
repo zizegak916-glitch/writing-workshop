@@ -6,6 +6,9 @@ All notable Writing Workshop changes are recorded here. The project follows Sema
 
 ### 2026-07-23 documentation and quality pass
 
+- Rebuilt the desktop AI request area as a persistent panel dock so the extra instruction, context budget and generate action remain visible while the 30-capability catalog scrolls independently.
+- Made context estimation work before API configuration, added explicit token/limit/percentage/model labels, synchronized desktop and mobile meters, and separated estimates from the previous request's actual usage.
+- Extended the static product contract to guard the request-dock structure, unique responsive meter nodes, workflow-tab coordination and the API-independent estimate boundary.
 - Added a repository-wide update timeline and machine-readable release-evidence ledger linking product events to commits, CI, Pages deployments and public checks.
 - Synchronized the current README, user guide, API, configuration, development, contribution, security, capability, UI, review and application documents; historical engine documents now point back to the current timeline.
 - Tightened the built-in “查AI” Prompt Skill to the six fields the parser actually consumes, and stopped rendering a radar chart when any required score is missing instead of inventing a neutral score.

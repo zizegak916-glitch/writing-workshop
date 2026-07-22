@@ -21,6 +21,8 @@ GitHub Pages 正式在线版与后端增强模式有明确运行时边界。Page
 | 中 | UI 已允许多个 Skill，但缺少组合预设和分类筛选 | 增加选中数量、分类过滤、清空和三个内置技能包；隐藏分类中的选择不会丢失 | `web/static/js/workflows.js` |
 | 中 | 技能包和自定义分类没有后端事实层 | 新增 `.ainovel/skill-packs.json`、`.ainovel/categories.json` 与 CRUD；校验只读项、重复 ID 和未知 Skill | `internal/web/catalog.go`、`internal/web/server_test.go` |
 | 中 | 项目 JSON 导出未包含记忆与浏览器 Prompt Skill 覆盖值 | 项目包升级为版本 3，导出和导入 `memories` 与 `prompt_skill_overrides`；旧版本继续兼容 | `web/static/js/product-extensions.js`、`web/static/app.html`、`web/static/js/prompt-skills.js` |
+| 中 | 桌面“上下文用量”和生成按钮排在全部 30 个能力卡之后，常见屏幕首次打开看不到；功能目录与请求操作共用一个滚动层 | 将补充指令、上下文预算和生成按钮移入 AI 面板固定请求栏；能力目录单独滚动；切换标签时同步显示状态，并为低高度桌面压缩而不隐藏关键信息 | `web/static/app.html`、`web/static/css/product-extensions.css`、`web/static/js/workflows.js` |
+| 中 | `updateContextBar()` 在没有 API 配置时提前返回，Pages 正式在线版显示“-”，把本地可完成的估算错误绑定到模型连接 | 上下文估算改为始终可用，显示 token / 上限 / 百分比；桌面与手机共用状态，服务端返回 usage 后再显示实际输入输出 | `web/static/app.html`、`web/static/app.js`、`web/static/js/state.js`、`web/static/js/ai.js` |
 | 低 | URL 导入按钮只显示“即将推出” | 从当前入口和旧静态片段删除，不再展示不存在的能力 | `web/static/app.html`、`web/static/parts/body.html` |
 | 低 | 联系方式失效且多个页面品牌图标不一致 | 联系统一指向已校验的 `https://linux.do/u/The_Fo0l`；新 SVG 作为 favicon、品牌与顶栏图标 | `web/static/icons/app-icon.svg`、公开 HTML 页面 |
 | 低 | AI 底栏仍沿用大脑图标，30 个能力卡用字符或 Emoji 充当图标 | 新增 AI 工作台符号和 30 个一对一 SVG；脑形只留给“记忆”；桌面和手机共用同一映射 | `web/static/icons/ai-mode-icons.svg`、`web/static/js/ai-mode-icons.js` |
@@ -48,6 +50,7 @@ app.html / admin.html 内联脚本语法解析
 git diff --check
 公开 HTML 本地 href/src 目标检查
 失效联系方式与占位 URL 导入全文扫描
+固定请求栏、桌面/手机预算节点唯一性和“估算不依赖 API”静态契约
 ```
 
 当前容器没有 Go 与 Docker 可执行文件，因此本记录不伪造本地 Go 测试结果。完整服务端验证由 GitHub Actions 执行。
@@ -84,6 +87,7 @@ git diff --check
 - `AI_MODES` 中仍保存一组旧内联 `p` 提示词，实际请求优先读取 Prompt Skill；应在兼容迁移完成后移除重复事实源。
 - 当前 CI 有 Go、JavaScript 语法与服务 smoke test，但还没有覆盖 localStorage 持久化、导入迁移和 AI 结果安全渲染的自动浏览器测试。
 - 静态产品契约现在能拦截清单和资源漂移，但它不替代真实浏览器交互；下一步应为 Prompt Skill 保存/恢复和项目 v2→v3 迁移增加无头浏览器测试。
+- 响应式 CSS 已覆盖三栏桌面、窄笔记本和手机，但 CI 仍缺少 1366×768、1024×768 与 390×844 三个视口的截图差异测试；静态契约只能确认结构存在，不能替代像素级布局验收。
 - 当前第三方 capability 只登记 manifest；远程代码型 Skill 沙箱尚未实现，不能宣称“粘贴链接即可运行”。
 - 浏览器分类与后端分类有意分开存储，目前没有双向同步；这是明确边界，但未来可增加显式导入/导出，而不是后台静默合并。
 - 2026-07-22 17:04:25 UTC 的 GitHub API 快照是 1 Star、0 Fork、0 Open Issue、0 Subscriber；没有可验证 Release 下载量、独立用户或外部贡献证据。申请前必须刷新，不能把功能数量替代生态影响。

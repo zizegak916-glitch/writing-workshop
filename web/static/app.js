@@ -50,12 +50,15 @@ function getContextLimit(model){
   return 200000;
 }
 function updateContextBar(){
-  const ac=S.apiConfig;
-  if(!aiHasConfig(ac))return;
+  const ac=S.apiConfig||{};
   const ed=document.getElementById('mainEditor');
+  if(!ed)return;
   const sel=ed.value.slice(ed.selectionStart,ed.selectionEnd).trim();
   const content=sel||ed.value.trim().slice(-1000);
-  const extra=document.getElementById('aiPrompt')?.value.trim()||'';
+  const desktopExtra=document.getElementById('aiPrompt')?.value.trim()||'';
+  const mobileExtra=document.getElementById('mpAiPrompt')?.value.trim()||'';
+  const isMobile=window.matchMedia?.('(max-width: 560px)').matches;
+  const extra=(isMobile?mobileExtra:desktopExtra)||(isMobile?desktopExtra:mobileExtra);
   const md=AI_MODES[S.aiMode]||{p:''};
   let fullPrompt=(typeof wwPromptText==='function'?wwPromptText(S.aiMode):md.p)+'\n\n'+content;
   if(S.proj)fullPrompt+='\n\n'+buildCtx();
@@ -64,23 +67,23 @@ function updateContextBar(){
   if(memCtx)fullPrompt+='\n\n'+memCtx;
   const promptTokens=estimateTokens(fullPrompt);
   const limit=getContextLimit(ac.model||'');
-  const pct=Math.min(100,Math.round(promptTokens/limit*100));
-  const bar=document.getElementById('ctxBar');
-  const txt=document.getElementById('ctxText');
-  if(bar){
-    bar.style.width=pct+'%';
-    if(pct>80){bar.style.background='var(--red)';}
-    else if(pct>50){bar.style.background='var(--gold)';}
-    else{bar.style.background='var(--accent)';}
-  }
-  if(txt){
-    const kStr=promptTokens>1000?(promptTokens/1000).toFixed(1)+'k':promptTokens;
-    const lStr=limit>1000?(limit/1000).toFixed(0)+'k':limit;
-    txt.textContent=kStr+'/'+lStr+' tokens';
-    if(pct>80)txt.style.color='var(--red)';
-    else if(pct>50)txt.style.color='var(--gold)';
-    else txt.style.color='var(--text-muted)';
-  }
+  const pctRaw=Math.min(100,promptTokens/limit*100);
+  const pctLabel=pctRaw===0?'0%':pctRaw<1?'<1%':(pctRaw<10?pctRaw.toFixed(1):Math.round(pctRaw))+'%';
+  const kStr=promptTokens>1000?(promptTokens/1000).toFixed(1)+'k':String(promptTokens);
+  const lStr=limit>1000?(limit/1000).toFixed(0)+'k':String(limit);
+  const level=pctRaw>80?'danger':pctRaw>50?'warning':'normal';
+  const color=level==='danger'?'var(--red)':level==='warning'?'var(--gold)':'var(--accent)';
+  [
+    {bar:'ctxBar',text:'ctxText',percent:'ctxPercent',model:'ctxModel'},
+    {bar:'mpCtxBar',text:'mpCtxText',percent:'mpCtxPercent',model:'mpCtxModel'}
+  ].forEach(target=>{
+    const bar=document.getElementById(target.bar),txt=document.getElementById(target.text);
+    const percent=document.getElementById(target.percent),model=document.getElementById(target.model);
+    if(bar){bar.style.width=pctRaw+'%';bar.style.background=color;bar.classList.toggle('has-usage',promptTokens>0);const track=bar.parentElement;track?.setAttribute('aria-valuenow',pctRaw.toFixed(2));track?.setAttribute('aria-valuetext',kStr+' / '+lStr+' tokens，'+pctLabel);const meter=bar.closest('.ai-context-meter');if(meter)meter.dataset.level=level;}
+    if(txt){txt.textContent='约 '+kStr+' / '+lStr+' tokens';txt.style.color=level==='normal'?'var(--text-muted)':color;}
+    if(percent)percent.textContent=pctLabel;
+    if(model)model.textContent=(ac.model||'默认估算')+' · 上限 '+lStr;
+  });
 }
 async function sha256(t){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(t));return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join('');}
 
@@ -2199,7 +2202,7 @@ function lockApp(){showToast('i','本地游客模式无需本地锁定');showApp
 
 
 // ═══ Init ═══
-async function initApp(){await openDB();renderAiModeGrid();renderMultiSlots();await loadProjects();await loadMemories();renderHistory();setInterval(()=>{if(S.autoSave&&S.unsaved)saveDoc();},30000);const ed=document.getElementById('mainEditor');ed.addEventListener('input',onEditorInput);ed.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='s'){e.preventDefault();saveDoc();}});document.getElementById('focusEditor').addEventListener('input',()=>{document.getElementById('focusInfo').textContent=countWords(document.getElementById('focusEditor').value)+' 字 · Esc 退出';});document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeFocus();closeAiResult();}});if(S.projects.length>0)await loadProject(S.projects[0].id);updateAllStats();}
+async function initApp(){await openDB();renderAiModeGrid();renderMultiSlots();await loadProjects();await loadMemories();renderHistory();setInterval(()=>{if(S.autoSave&&S.unsaved)saveDoc();},30000);const ed=document.getElementById('mainEditor');ed.addEventListener('input',onEditorInput);ed.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='s'){e.preventDefault();saveDoc();}});document.getElementById('focusEditor').addEventListener('input',()=>{document.getElementById('focusInfo').textContent=countWords(document.getElementById('focusEditor').value)+' 字 · Esc 退出';});document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeFocus();closeAiResult();}});if(S.projects.length>0)await loadProject(S.projects[0].id);updateAllStats();updateContextBar();}
 document.addEventListener('DOMContentLoaded',()=>{/* lock handled in IIFE above */});
 
 // ═══ Editor ═══
@@ -2612,14 +2615,11 @@ async function callAIStream(prompt,conf,systemPrompt,onChunk){
 function showStreamingResult(elementId){const el=document.getElementById(elementId);if(!el)return;el.textContent='';el.classList.add('streaming-cursor');}
 function hideStreamingCursor(){const el=document.getElementById('arpText');if(el)el.classList.remove('streaming-cursor');}
 function updateUsageDisplay(usage){
-  const el=document.getElementById('ctxUsedText');
-  if(!el)return;
   const total=(usage.input||0)+(usage.output||0);
   const totalStr=total>1000?(total/1000).toFixed(1)+'k':total;
   const inStr=(usage.input||0)>1000?((usage.input||0)/1000).toFixed(1)+'k':usage.input||0;
   const outStr=(usage.output||0)>1000?((usage.output||0)/1000).toFixed(1)+'k':usage.output||0;
-  el.textContent='上次: 入'+inStr+' 出'+outStr+' = '+totalStr+' tokens';
-  el.style.display='block';
+  ['ctxUsedText','mpCtxUsedText'].forEach(id=>{const el=document.getElementById(id);if(!el)return;el.textContent='上次实际：输入 '+inStr+' · 输出 '+outStr+' · 合计 '+totalStr+' tokens';el.hidden=false;});
 }
 function buildCtx(){if(!S.proj)return'';const p=S.proj.project,a=[];a.push('作品：《'+p.name+'》');if(p.genre)a.push('类型：'+p.genre);if(p.description)a.push('简介：'+p.description);if(p.world_setting)a.push('世界观：'+p.world_setting);if(S.proj.characters.length)a.push('人物：'+S.proj.characters.map(c=>c.name+'('+c.role+')').join('、'));return a.join('\n');}
 
@@ -2889,7 +2889,7 @@ async function clearHistory(){if(!confirm('清空历史？'))return;const items=
 
 
 // ═══ AI Tabs ═══
-function switchAiTab(t,el){document.querySelectorAll('.ai-tab').forEach(x=>x.classList.remove('active'));el.classList.add('active');['modes','multi','memory','history'].forEach(x=>{document.getElementById('aiTab-'+x).style.display=x===t?'block':'none';});if(t==='memory')renderMemoryList();if(t==='multi')renderMultiSlots();}
+function switchAiTab(t,el){document.querySelectorAll('.ai-tab').forEach(x=>x.classList.remove('active'));el.classList.add('active');['modes','multi','memory','history'].forEach(x=>{document.getElementById('aiTab-'+x).style.display=x===t?'block':'none';});document.getElementById('aiRequestDock')?.classList.toggle('is-hidden',t!=='modes');if(t==='modes')updateContextBar();if(t==='memory')renderMemoryList();if(t==='multi')renderMultiSlots();}
 
 // ═══ Mobile Multi-AI ═══
 function renderMpMultiSlots(){

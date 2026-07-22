@@ -67,14 +67,11 @@ async function callAIStream(prompt,conf,systemPrompt,onChunk){
 function showStreamingResult(elementId){const el=document.getElementById(elementId);if(!el)return;el.textContent='';el.classList.add('streaming-cursor');}
 function hideStreamingCursor(){const el=document.getElementById('arpText');if(el)el.classList.remove('streaming-cursor');}
 function updateUsageDisplay(usage){
-  const el=document.getElementById('ctxUsedText');
-  if(!el)return;
   const total=(usage.input||0)+(usage.output||0);
   const totalStr=total>1000?(total/1000).toFixed(1)+'k':total;
   const inStr=(usage.input||0)>1000?((usage.input||0)/1000).toFixed(1)+'k':usage.input||0;
   const outStr=(usage.output||0)>1000?((usage.output||0)/1000).toFixed(1)+'k':usage.output||0;
-  el.textContent='上次: 入'+inStr+' 出'+outStr+' = '+totalStr+' tokens';
-  el.style.display='block';
+  ['ctxUsedText','mpCtxUsedText'].forEach(id=>{const el=document.getElementById(id);if(!el)return;el.textContent='上次实际：输入 '+inStr+' · 输出 '+outStr+' · 合计 '+totalStr+' tokens';el.hidden=false;});
 }
 function buildCtx(){if(!S.proj)return'';const p=S.proj.project,a=[];a.push('作品：《'+p.name+'》');if(p.genre)a.push('类型：'+p.genre);if(p.description)a.push('简介：'+p.description);if(p.world_setting)a.push('世界观：'+p.world_setting);if(S.proj.characters.length)a.push('人物：'+S.proj.characters.map(c=>c.name+'('+c.role+')').join('、'));return a.join('\n');}
 
@@ -344,7 +341,7 @@ async function clearHistory(){if(!confirm('清空历史？'))return;const items=
 
 
 // ═══ AI Tabs ═══
-function switchAiTab(t,el){document.querySelectorAll('.ai-tab').forEach(x=>x.classList.remove('active'));el.classList.add('active');['modes','multi','memory','history'].forEach(x=>{document.getElementById('aiTab-'+x).style.display=x===t?'block':'none';});if(t==='memory')renderMemoryList();if(t==='multi')renderMultiSlots();}
+function switchAiTab(t,el){document.querySelectorAll('.ai-tab').forEach(x=>x.classList.remove('active'));el.classList.add('active');['modes','multi','memory','history'].forEach(x=>{document.getElementById('aiTab-'+x).style.display=x===t?'block':'none';});document.getElementById('aiRequestDock')?.classList.toggle('is-hidden',t!=='modes');if(t==='modes')updateContextBar();if(t==='memory')renderMemoryList();if(t==='multi')renderMultiSlots();}
 
 // ═══ Mobile Multi-AI ═══
 function renderMpMultiSlots(){

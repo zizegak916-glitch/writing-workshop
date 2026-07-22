@@ -4880,16 +4880,6 @@ body.light .char-role {
           <div id="aiModeGrid"></div>
           <div class="param-row"><div class="param-label" data-i18n="ap-temp">创意度</div><div class="seg-ctrl"><button class="seg-btn" data-i18n="param-strict" onclick="setTemp('low',this)">严谨</button><button class="seg-btn on" data-i18n="param-balance" onclick="setTemp('mid',this)">平衡</button><button class="seg-btn" data-i18n="param-creative" onclick="setTemp('high',this)">创意</button></div></div>
           <div class="param-row"><div class="param-label" data-i18n="ap-len">输出长度</div><div class="seg-ctrl"><button class="seg-btn" data-i18n="param-short" onclick="setLen('short',this)">短</button><button class="seg-btn" data-i18n="param-medium" onclick="setLen('mid',this)">中</button><button class="seg-btn on" data-i18n="param-long" onclick="setLen('long',this)">长</button><button class="seg-btn" data-i18n="param-xlong" onclick="setLen('xl',this)">超长</button></div></div>
-          <div class="ai-prompt-area"><label data-i18n="ap-prompt">补充指令</label><textarea id="aiPrompt" data-i18n-ph="ap-prompt-ph" placeholder="可选：输入额外要求..." oninput="updateContextBar()"></textarea></div>
-          <div style="margin-bottom:10px;padding:0 2px">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-              <span style="font-size:10px;color:var(--text-hint);letter-spacing:0.5px">上下文用量</span>
-              <span id="ctxText" style="font-size:10px;color:var(--text-muted)">-</span>
-            </div>
-            <div style="width:100%;height:3px;background:var(--bg-card);border-radius:2px;overflow:hidden"><div id="ctxBar" style="height:100%;width:0%;background:var(--accent);border-radius:2px;transition:width 0.3s,background 0.3s"></div></div>
-            <div id="ctxUsedText" style="font-size:10px;color:var(--text-hint);margin-top:3px;display:none"></div>
-          </div>
-          <button class="generate-btn" id="generateBtn" onclick="doGenerate()"><span id="generateBtnIcon"><svg class="ic ic-sm"><use href="#ic-sparkles"/></svg></span><span id="generateBtnText">开始生成</span></button>
         </div>
         <div id="aiTab-multi" style="display:none"><div id="multiSlots"></div></div>
         <div id="aiTab-history" style="display:none"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><span style="font-size:12px;color:var(--text-secondary)">AI 操作记录</span><button onclick="clearHistory()" style="background:none;border:none;color:var(--text-hint);font-size:11px;cursor:pointer">清空</button></div><div id="historyList"></div></div>
@@ -4901,6 +4891,25 @@ body.light .char-role {
           <div style="font-size:10px;color:var(--text-hint);margin-bottom:8px;line-height:1.5">记忆内容会在每次AI生成时自动注入提示词，让AI了解你的剧情设定、写作风格偏好等。</div>
           <div id="memoryList"></div>
         </div>
+      </div>
+      <div class="ai-request-dock" id="aiRequestDock">
+        <div class="ai-request-dock-head">
+          <label for="aiPrompt" data-i18n="ap-prompt">补充指令</label>
+          <span>本次请求</span>
+        </div>
+        <div class="ai-prompt-area"><textarea id="aiPrompt" rows="2" data-i18n-ph="ap-prompt-ph" placeholder="可选：输入额外要求..." oninput="updateContextBar()"></textarea></div>
+        <div class="ai-context-meter" id="desktopContextMeter">
+          <div class="ai-context-summary">
+            <span class="ai-context-label">上下文预算</span>
+            <strong id="ctxText">约 0 / 200k tokens</strong>
+          </div>
+          <div class="ai-context-track" role="progressbar" aria-label="本次请求上下文用量" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+            <div class="ai-context-fill" id="ctxBar"></div>
+          </div>
+          <div class="ai-context-detail"><span id="ctxPercent">0%</span><span id="ctxModel">默认估算上限 200k</span></div>
+          <div class="ai-context-actual" id="ctxUsedText" hidden></div>
+        </div>
+        <button class="generate-btn" id="generateBtn" onclick="doGenerate()"><span id="generateBtnIcon"><svg class="ic ic-sm"><use href="#ic-sparkles"/></svg></span><span id="generateBtnText">开始生成</span></button>
       </div>
     </div>
   </div>
@@ -4924,7 +4933,13 @@ body.light .char-role {
   <div style="padding:12px"><div id="mpAiModeGrid"></div>
   <div class="param-row"><div class="param-label" data-i18n="ap-temp">创意度</div><div class="seg-ctrl"><button class="seg-btn" data-i18n="param-strict" onclick="setTemp('low',this)">严谨</button><button class="seg-btn on" data-i18n="param-balance" onclick="setTemp('mid',this)">平衡</button><button class="seg-btn" data-i18n="param-creative" onclick="setTemp('high',this)">创意</button></div></div>
   <div class="param-row"><div class="param-label" data-i18n="ap-len">输出长度</div><div class="seg-ctrl"><button class="seg-btn" data-i18n="param-short" onclick="setLen('short',this)">短</button><button class="seg-btn" data-i18n="param-medium" onclick="setLen('mid',this)">中</button><button class="seg-btn on" data-i18n="param-long" onclick="setLen('long',this)">长</button><button class="seg-btn" data-i18n="param-xlong" onclick="setLen('xl',this)">超长</button></div></div>
-  <div class="ai-prompt-area"><label data-i18n="ap-prompt">补充指令</label><textarea id="mpAiPrompt" data-i18n-ph="ap-prompt-ph" placeholder="可选：输入额外要求..."></textarea></div>
+  <div class="ai-prompt-area"><label data-i18n="ap-prompt">补充指令</label><textarea id="mpAiPrompt" data-i18n-ph="ap-prompt-ph" placeholder="可选：输入额外要求..." oninput="updateContextBar()"></textarea></div>
+  <div class="ai-context-meter ai-context-meter-mobile" id="mobileContextMeter">
+    <div class="ai-context-summary"><span class="ai-context-label">上下文预算</span><strong id="mpCtxText">约 0 / 200k tokens</strong></div>
+    <div class="ai-context-track" role="progressbar" aria-label="本次请求上下文用量" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="ai-context-fill" id="mpCtxBar"></div></div>
+    <div class="ai-context-detail"><span id="mpCtxPercent">0%</span><span id="mpCtxModel">默认估算上限 200k</span></div>
+    <div class="ai-context-actual" id="mpCtxUsedText" hidden></div>
+  </div>
   <button class="generate-btn" id="mpGenerateBtn" onclick="doGenerateMobile()"><span><svg class="ic ic-sm"><use href="#ic-sparkles"/></svg></span><span data-i18n="ap-gen">开始生成</span></button>
   <div style="margin-top:12px;border-top:1px solid var(--border);padding-top:12px">
     <div style="font-size:12px;font-weight:510;color:var(--text-secondary);margin-bottom:8px"><svg class="ic ic-sm" style="vertical-align:middle"><use href="#ic-search-scan"/></svg> 多AI对比</div>
@@ -5212,12 +5227,15 @@ function getContextLimit(model){
   return 200000;
 }
 function updateContextBar(){
-  const ac=S.apiConfig;
-  if(!aiHasConfig(ac))return;
+  const ac=S.apiConfig||{};
   const ed=document.getElementById('mainEditor');
+  if(!ed)return;
   const sel=ed.value.slice(ed.selectionStart,ed.selectionEnd).trim();
   const content=sel||ed.value.trim().slice(-1000);
-  const extra=document.getElementById('aiPrompt')?.value.trim()||'';
+  const desktopExtra=document.getElementById('aiPrompt')?.value.trim()||'';
+  const mobileExtra=document.getElementById('mpAiPrompt')?.value.trim()||'';
+  const isMobile=window.matchMedia?.('(max-width: 560px)').matches;
+  const extra=(isMobile?mobileExtra:desktopExtra)||(isMobile?desktopExtra:mobileExtra);
   const md=AI_MODES[S.aiMode]||{p:''};
   let fullPrompt=(typeof wwPromptText==='function'?wwPromptText(S.aiMode):md.p)+'\n\n'+content;
   if(S.proj)fullPrompt+='\n\n'+buildCtx();
@@ -5226,23 +5244,32 @@ function updateContextBar(){
   if(memCtx)fullPrompt+='\n\n'+memCtx;
   const promptTokens=estimateTokens(fullPrompt);
   const limit=getContextLimit(ac.model||'');
-  const pct=Math.min(100,Math.round(promptTokens/limit*100));
-  const bar=document.getElementById('ctxBar');
-  const txt=document.getElementById('ctxText');
-  if(bar){
-    bar.style.width=pct+'%';
-    if(pct>80){bar.style.background='var(--red)';}
-    else if(pct>50){bar.style.background='var(--gold)';}
-    else{bar.style.background='var(--accent)';}
-  }
-  if(txt){
-    const kStr=promptTokens>1000?(promptTokens/1000).toFixed(1)+'k':promptTokens;
-    const lStr=limit>1000?(limit/1000).toFixed(0)+'k':limit;
-    txt.textContent=kStr+'/'+lStr+' tokens';
-    if(pct>80)txt.style.color='var(--red)';
-    else if(pct>50)txt.style.color='var(--gold)';
-    else txt.style.color='var(--text-muted)';
-  }
+  const pctRaw=Math.min(100,promptTokens/limit*100);
+  const pctLabel=pctRaw===0?'0%':pctRaw<1?'<1%':(pctRaw<10?pctRaw.toFixed(1):Math.round(pctRaw))+'%';
+  const kStr=promptTokens>1000?(promptTokens/1000).toFixed(1)+'k':String(promptTokens);
+  const lStr=limit>1000?(limit/1000).toFixed(0)+'k':String(limit);
+  const level=pctRaw>80?'danger':pctRaw>50?'warning':'normal';
+  const color=level==='danger'?'var(--red)':level==='warning'?'var(--gold)':'var(--accent)';
+  [
+    {bar:'ctxBar',text:'ctxText',percent:'ctxPercent',model:'ctxModel'},
+    {bar:'mpCtxBar',text:'mpCtxText',percent:'mpCtxPercent',model:'mpCtxModel'}
+  ].forEach(target=>{
+    const bar=document.getElementById(target.bar),txt=document.getElementById(target.text);
+    const percent=document.getElementById(target.percent),model=document.getElementById(target.model);
+    if(bar){
+      bar.style.width=pctRaw+'%';
+      bar.style.background=color;
+      bar.classList.toggle('has-usage',promptTokens>0);
+      const track=bar.parentElement;
+      track?.setAttribute('aria-valuenow',pctRaw.toFixed(2));
+      track?.setAttribute('aria-valuetext',kStr+' / '+lStr+' tokens，'+pctLabel);
+      const meter=bar.closest('.ai-context-meter');
+      if(meter)meter.dataset.level=level;
+    }
+    if(txt){txt.textContent='约 '+kStr+' / '+lStr+' tokens';txt.style.color=level==='normal'?'var(--text-muted)':color;}
+    if(percent)percent.textContent=pctLabel;
+    if(model)model.textContent=(ac.model||'默认估算')+' · 上限 '+lStr;
+  });
 }
 async function sha256(t){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(t));return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join('');}
 
@@ -7361,7 +7388,7 @@ function lockApp(){showToast('i','本地游客模式无需本地锁定');showApp
 
 
 // ═══ Init ═══
-async function initApp(){await openDB();renderAiModeGrid();renderMultiSlots();await loadProjects();await loadMemories();renderHistory();setInterval(()=>{if(S.autoSave&&S.unsaved)saveDoc();},30000);const ed=document.getElementById('mainEditor');ed.addEventListener('input',onEditorInput);ed.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='s'){e.preventDefault();saveDoc();}});document.getElementById('focusEditor').addEventListener('input',()=>{document.getElementById('focusInfo').textContent=countWords(document.getElementById('focusEditor').value)+' 字 · Esc 退出';});document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeFocus();closeAiResult();}});if(S.projects.length>0)await loadProject(S.projects[0].id);updateAllStats();}
+async function initApp(){await openDB();renderAiModeGrid();renderMultiSlots();await loadProjects();await loadMemories();renderHistory();setInterval(()=>{if(S.autoSave&&S.unsaved)saveDoc();},30000);const ed=document.getElementById('mainEditor');ed.addEventListener('input',onEditorInput);ed.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='s'){e.preventDefault();saveDoc();}});document.getElementById('focusEditor').addEventListener('input',()=>{document.getElementById('focusInfo').textContent=countWords(document.getElementById('focusEditor').value)+' 字 · Esc 退出';});document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeFocus();closeAiResult();}});if(S.projects.length>0)await loadProject(S.projects[0].id);updateAllStats();updateContextBar();}
 document.addEventListener('DOMContentLoaded',()=>{/* lock handled in IIFE above */});
 
 // ═══ Editor ═══
@@ -8099,14 +8126,15 @@ async function callAIStream(prompt,conf,systemPrompt,onChunk){
 function showStreamingResult(elementId){const el=document.getElementById(elementId);if(!el)return;el.textContent='';el.classList.add('streaming-cursor');}
 function hideStreamingCursor(){const el=document.getElementById('arpText');if(el)el.classList.remove('streaming-cursor');}
 function updateUsageDisplay(usage){
-  const el=document.getElementById('ctxUsedText');
-  if(!el)return;
   const total=(usage.input||0)+(usage.output||0);
   const totalStr=total>1000?(total/1000).toFixed(1)+'k':total;
   const inStr=(usage.input||0)>1000?((usage.input||0)/1000).toFixed(1)+'k':usage.input||0;
   const outStr=(usage.output||0)>1000?((usage.output||0)/1000).toFixed(1)+'k':usage.output||0;
-  el.textContent='上次: 入'+inStr+' 出'+outStr+' = '+totalStr+' tokens';
-  el.style.display='block';
+  ['ctxUsedText','mpCtxUsedText'].forEach(id=>{
+    const el=document.getElementById(id);if(!el)return;
+    el.textContent='上次实际：输入 '+inStr+' · 输出 '+outStr+' · 合计 '+totalStr+' tokens';
+    el.hidden=false;
+  });
 }
 function buildCtx(){if(!S.proj)return'';const p=S.proj.project,a=[];a.push('作品：《'+p.name+'》');if(p.genre)a.push('类型：'+p.genre);if(p.description)a.push('简介：'+p.description);if(p.world_setting)a.push('世界观：'+p.world_setting);if(S.proj.characters.length)a.push('人物：'+S.proj.characters.map(c=>c.name+'('+c.role+')').join('、'));return a.join('\n');}
 
@@ -8376,7 +8404,7 @@ async function clearHistory(){if(!confirm('清空历史？'))return;const items=
 
 
 // ═══ AI Tabs ═══
-function switchAiTab(t,el){document.querySelectorAll('.ai-tab').forEach(x=>x.classList.remove('active'));el.classList.add('active');['modes','multi','memory','history'].forEach(x=>{document.getElementById('aiTab-'+x).style.display=x===t?'block':'none';});if(t==='memory')renderMemoryList();if(t==='multi')renderMultiSlots();}
+function switchAiTab(t,el){document.querySelectorAll('.ai-tab').forEach(x=>x.classList.remove('active'));el.classList.add('active');['modes','multi','memory','history'].forEach(x=>{document.getElementById('aiTab-'+x).style.display=x===t?'block':'none';});document.getElementById('aiRequestDock')?.classList.toggle('is-hidden',t!=='modes');if(t==='modes')updateContextBar();if(t==='memory')renderMemoryList();if(t==='multi')renderMultiSlots();}
 
 // ═══ Mobile Multi-AI ═══
 function renderMpMultiSlots(){

@@ -37,6 +37,20 @@ const promptLookups = appHtml.match(/wwPromptText\(/g)?.length || 0;
 assert(promptLookups >= 6, `expected Prompt Skill injection in at least 6 request paths, found ${promptLookups}`);
 assert(appHtml.includes('js/ai-mode-icons.js') && appHtml.includes('js/prompt-skills.js'), 'workbench must load icon and Prompt Skill scripts');
 
+const contextLayoutIds = [
+  'aiRequestDock', 'desktopContextMeter', 'ctxText', 'ctxBar', 'ctxPercent', 'ctxModel',
+  'mobileContextMeter', 'mpCtxText', 'mpCtxBar', 'mpCtxPercent', 'mpCtxModel'
+];
+for (const id of contextLayoutIds) {
+  const matches = appHtml.match(new RegExp(`id=["']${id}["']`, 'g')) || [];
+  assert(matches.length === 1, `expected one #${id}, found ${matches.length}`);
+}
+assert(!/function updateContextBar\(\)\s*\{[\s\S]{0,160}if\(!aiHasConfig\(ac\)\)return;/.test(appHtml), 'context estimate must not require an API configuration');
+const extensionCss = read('web/static/css/product-extensions.css');
+assert(extensionCss.includes('.ai-request-dock') && extensionCss.includes('.ai-context-meter'), 'missing persistent context-dock layout styles');
+const workflowSource = read('web/static/js/workflows.js');
+assert(workflowSource.includes("getElementById('aiRequestDock')"), 'workflow tab must coordinate the persistent request dock');
+
 const htmlFiles = fs.readdirSync(path.join(root, 'web/static'))
   .filter(file => file.endsWith('.html'))
   .map(file => `web/static/${file}`);

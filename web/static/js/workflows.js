@@ -220,6 +220,7 @@
     const legacySwitch = window.switchAiTab;
     window.switchAiTab = function (name, el) {
       const workflow = document.getElementById('aiTab-workflow');
+      document.getElementById('aiRequestDock')?.classList.toggle('is-hidden', name !== 'modes');
       if (name !== 'workflow') {
         if (workflow) workflow.style.display = 'none';
         legacySwitch(name, el);
