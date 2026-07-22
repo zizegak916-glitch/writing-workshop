@@ -666,6 +666,7 @@ output/{novel_name}/
 
 ## License
 
-MIT
+Apache-2.0. The earlier copy of this page incorrectly said MIT; the repository
+`LICENSE` file and upstream repository are authoritative.
 
 本项目积极参与并认可 [linux.do 社区](https://linux.do/)。

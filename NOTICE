@@ -3,7 +3,8 @@ Writing Workshop
 This project includes and modifies code from ainovel-cli:
 https://github.com/voocel/ainovel-cli
 
-The upstream project and this derivative work are distributed under the MIT License.
+The upstream project and this derivative work are distributed under the
+Apache License, Version 2.0.
 Original copyright notices are preserved in LICENSE and source history.
 
 Writing Workshop-specific additions include the browser workshop product layer,

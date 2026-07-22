@@ -4,7 +4,7 @@
   "type": "skill",
   "version": "1.0.0",
   "source": "https://github.com/zizegak916-glitch/writing-workshop/tree/main/examples/capabilities",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "entry": "prompt:scene-pacing",
   "output": "text",
   "instructions": "保持人物动机和事件顺序。先指出节奏断点，再给出一版不扩写新事实的候选修改。",

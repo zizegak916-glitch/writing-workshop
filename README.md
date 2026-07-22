@@ -1,7 +1,7 @@
 # Writing Workshop / AI 写作工坊
 
 [![CI](https://github.com/zizegak916-glitch/writing-workshop/actions/workflows/ci.yml/badge.svg)](https://github.com/zizegak916-glitch/writing-workshop/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-black.svg)](LICENSE)
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-black.svg)](LICENSE)
 
 一个本地优先、可审计的长篇写作工作台。它把“选哪些上下文、运行哪些 Skill、结果写到哪里”变成显式操作：AI 只生成候选，作者确认后才写入正文或记忆。
 
@@ -69,7 +69,7 @@ go build -o writing-workshop ./cmd/ainovel-cli
   "type": "skill",
   "version": "1.0.0",
   "source": "https://github.com/example/scene-pacing",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "entry": "prompt:scene-pacing",
   "output": "text",
   "instructions": "保持事件顺序，只指出节奏断点并给出候选修改。",
@@ -113,4 +113,4 @@ docs/               协议、来源与设计说明
 
 ## 来源与许可证
 
-本项目的 Go 写作引擎源自 MIT 许可的 [`voocel/ainovel-cli`](https://github.com/voocel/ainovel-cli)。本仓库保留原作者版权和 MIT 许可证，并在其上开发独立的 Writing Workshop Web 产品层、能力协议、显式上下文工作流与发布设施。继承引擎的历史技术说明保存在 [docs/UPSTREAM_ENGINE.md](docs/UPSTREAM_ENGINE.md)。
+本项目的 Go 写作引擎源自 Apache-2.0 许可的 [`voocel/ainovel-cli`](https://github.com/voocel/ainovel-cli)。本仓库保留原作者版权、提交历史和 Apache-2.0 许可证，并在其上开发独立的 Writing Workshop Web 产品层、能力协议、显式上下文工作流与发布设施。继承引擎的历史技术说明保存在 [docs/UPSTREAM_ENGINE.md](docs/UPSTREAM_ENGINE.md)。
