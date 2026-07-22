@@ -1,6 +1,6 @@
 # 开发指南
 
-> 状态：现行开发指南，更新于 2026-07-22。
+> 状态：现行开发指南，更新于 2026-07-23（UTC+8）。
 
 ## 本地构建
 
@@ -22,6 +22,8 @@ mkdir -p /tmp/go-cache /tmp/gomodcache
 GOCACHE=/tmp/go-cache GOMODCACHE=/tmp/gomodcache go test ./...
 GOCACHE=/tmp/go-cache GOMODCACHE=/tmp/gomodcache go vet ./...
 GOCACHE=/tmp/go-cache GOMODCACHE=/tmp/gomodcache go build ./cmd/writing-workshop
+find web/static -name '*.js' -print0 | xargs -0 -n1 node --check
+node scripts/check-static.mjs
 ```
 
 ## Web 端约定
@@ -29,6 +31,8 @@ GOCACHE=/tmp/go-cache GOMODCACHE=/tmp/gomodcache go build ./cmd/writing-workshop
 - `app.html` 是写作工坊主入口。
 - 主界面的“流程”功能拆分在 `web/static/js/workflows.js` 与 `web/static/css/workflows.css`，由 `app.html` 显式加载；不要只修改未被入口引用的旧拆分模块。
 - 浏览器项目搜索、复制、分类、单项目导出与安全删除在 `web/static/js/product-extensions.js` 和 `web/static/css/product-extensions.css`；入口仍是 `app.html`。
+- 32 个浏览器 Prompt Skill、覆盖值校验、管理器和本地备份逻辑在 `web/static/js/prompt-skills.js`；样式在 `web/static/css/prompt-skills.css`。新增 AI 功能时必须同时补名称、提示词、功能入口和覆盖审计，不能只给 `AI_MODES` 增加按钮。
+- `web/static/js/ai-mode-icons.js` 与 `web/static/icons/ai-mode-icons.svg` 是功能图标映射和符号源；Prompt Skill 管理器也复用这套映射。
 - `web/static/icons/app-icon.svg` 是全站图标源；所有公开 HTML 页面都应保留 favicon 引用。
 - `/admin` 使用 `web/static/admin.html`。
 - 前端 AI 调用必须走 `/api/ai`，浏览器不直接访问厂商 API。
@@ -57,3 +61,5 @@ GOCACHE=/tmp/go-cache GOMODCACHE=/tmp/gomodcache go build ./cmd/writing-workshop
 4. `go build ./cmd/writing-workshop`
 5. 启动 `serve --demo` 后检查 `/api/health`，再访问 `/app.html` 和 `/admin`。
 6. 在管理后台测试 `/api/capabilities`、`/api/run` 和 `/api/ai`，确认能力保存、执行和 provider/model/key 配置有效。
+7. 运行 `node scripts/check-static.mjs`：确认 32 个 Prompt Skill、图标映射、SVG symbol、内联脚本、静态链接和证据 JSON 一致；另以浏览器测试保存、恢复、导出和导入。
+8. 影响公开行为后更新 `CHANGELOG.md`、`CODE_REVIEW.md` 和 `docs/UPDATE_TIMELINE.md`；有新的 CI/Pages 证据时同步 `docs/RELEASE_EVIDENCE.json`。

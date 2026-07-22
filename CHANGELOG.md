@@ -4,6 +4,15 @@ All notable Writing Workshop changes are recorded here. The project follows Sema
 
 ## Unreleased
 
+### 2026-07-23 documentation and quality pass
+
+- Added a repository-wide update timeline and machine-readable release-evidence ledger linking product events to commits, CI, Pages deployments and public checks.
+- Synchronized the current README, user guide, API, configuration, development, contribution, security, capability, UI, review and application documents; historical engine documents now point back to the current timeline.
+- Tightened the built-in “查AI” Prompt Skill to the six fields the parser actually consumes, and stopped rendering a radar chart when any required score is missing instead of inventing a neutral score.
+- Replaced AI-returned sentence fragments built through `innerHTML` and inline handlers with DOM-safe buttons, and corrected the AI-fragment flag check so only text actually present in the editor is marked.
+- Added distinct repository-native icons for “实时灵感” and “资料搜索” rather than reusing generic Prompt Skill glyphs.
+- Added a dependency-free static product contract to CI for Prompt Skill coverage, icon/SVG integrity, inline-script parsing, local links and release-evidence JSON.
+
 ### 2026-07-22 product update
 
 - Added persistent skill-pack and category APIs, three built-in multi-skill presets, and three new writing skills for continuity, character voice and scene pacing.

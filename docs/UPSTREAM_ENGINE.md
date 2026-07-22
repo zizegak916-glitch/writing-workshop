@@ -2,7 +2,7 @@
 
 > 本页保存仓库早期基于 `voocel/ainovel-cli` 的引擎说明，便于追溯来源与继承能力。Writing Workshop 自身的安装、产品边界和贡献指南请以仓库根目录 README 为准。
 >
-> 2026-07-22 复核：本页后半的大量命令、截图描述和目录结构属于上游历史记录。当前二进制是 `writing-workshop`，现行 API 以根目录 `API.md` 为准。
+> 2026-07-23 复核：本页后半的大量命令、截图描述和目录结构属于上游历史记录。当前二进制是 `writing-workshop`，现行产品变更以[更新时间线](UPDATE_TIMELINE.md)为准，现行 API 以根目录 `API.md` 为准。
 
 AI写作工坊是面向小说创作的开源可自定义主体应用。它已在 GitHub Pages 上以静态前端形式正式公开发布；“静态”描述托管方式，不代表临时预览或假域名。它也可以接入本地或自部署后端来启用 AI 调用、配置保存、项目同步、skill 执行和规则管理。GitHub Pages 与 OpenAI Sites 是相互独立的托管方式。
 
@@ -61,9 +61,9 @@ go build -o ainovel-cli ./cmd/ainovel-cli
 
 更多说明见：
 
-- [API.md](API.md) — Web API 端点
-- [CONFIG.md](CONFIG.md) — 配置、模型和密钥管理
-- [DEVELOPMENT.md](DEVELOPMENT.md) — 开发、构建和自检流程
+- [API.md](../API.md) — Web API 端点
+- [CONFIG.md](../CONFIG.md) — 配置、模型和密钥管理
+- [DEVELOPMENT.md](../DEVELOPMENT.md) — 开发、构建和自检流程
 
 <p align="center">
   <img src="scripts/sample.gif" alt="ainovel-cli demo" width="800">

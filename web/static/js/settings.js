@@ -352,9 +352,9 @@ function parseAiScores(text){
     // Try patterns: "句式规律性...75", "句式规律性 — 75/100", "句式规律性：75", "**句式规律性** — 75", etc.
     const re=new RegExp(label+'[^\\d]*(\\d{1,3})','i');
     const m=text.match(re);
-    scores.push(m?Math.min(100,Math.max(0,parseInt(m[1],10))):50);
+    scores.push(m?Math.min(100,Math.max(0,parseInt(m[1],10))):null);
   }
-  return scores;
+  return scores.every(Number.isFinite)?scores:null;
 }
 
 // ═══ Canvas Radar Chart ═══
@@ -432,16 +432,18 @@ function drawRadarChart(canvas,scores){
 
 // ═══ Show Detection Result with Radar ═══
 function showAiDetectionResult(scores,text){
-  aiDetectScores=scores;
-  // Draw radar chart
+  const hasScores=Array.isArray(scores)&&scores.length===6&&scores.every(Number.isFinite);
+  aiDetectScores=hasScores?scores:[];
   const canvas=document.getElementById('aiRadarCanvas');
-  drawRadarChart(canvas,scores);
-  document.getElementById('aiRadarWrap').style.display='flex';
+  const radarWrap=document.getElementById('aiRadarWrap');
+  if(hasScores){drawRadarChart(canvas,scores);radarWrap.style.display='flex';}
+  else radarWrap.style.display='none';
   // Show text result
   document.getElementById('aiQuickResultText').textContent=text;
   // Parse AI-like sentences from the text
   const sentWrap=document.getElementById('aiSentencesWrap');
-  sentWrap.innerHTML='';
+  sentWrap.replaceChildren();
+  sentWrap.style.display='none';
   const sentRe=/[「」""]?([^。！？\n]{5,60})[。！？"]/g;
   const editor=document.getElementById('mainEditor');
   const editorText=editor.value;
@@ -453,21 +455,26 @@ function showAiDetectionResult(scores,text){
     const idx=text.indexOf(m[0]);
     const prev=text.slice(Math.max(0,idx-120),idx);
     const isAIFlagged=/(过于|疑似|AI|明显|典型|像是|特征|高[分概率]|像AI)/i.test(prev.slice(-80));
-    if(isAIFragged||found.size<8){
-      if(found.has(frag))continue;
-      found.add(frag);
-    }
+    if(!editorText.includes(frag)||found.has(frag))continue;
+    if(isAIFlagged||found.size<3)found.add(frag);
   }
   if(found.size>0){
-    let html='<div class="sent-label">📌 点击句子在编辑器中定位并高亮</div>';
+    const label=document.createElement('div');
+    label.className='sent-label';
+    label.textContent='📌 点击句子在编辑器中定位并高亮';
+    sentWrap.appendChild(label);
     let idx=0;
     for(const s of found){
-      const esc=s.replace(/&/g,'&amp;').replace(/</g,'&lt;');
-      const short=esc.length>30?esc.slice(0,30)+'…':esc;
-      html+='<span class="sent-btn" data-sent-idx="'+idx+'" onclick="highlightSentInEditor(this)" title="'+esc+'">'+short+'</span>';
+      const button=document.createElement('button');
+      button.type='button';
+      button.className='sent-btn';
+      button.dataset.sentIdx=String(idx);
+      button.title=s;
+      button.textContent=s.length>30?s.slice(0,30)+'…':s;
+      button.addEventListener('click',()=>highlightSentInEditor(button));
+      sentWrap.appendChild(button);
       idx++;
     }
-    sentWrap.innerHTML=html;
     sentWrap.style.display='block';
     // Store sentences for lookup
     sentWrap.dataset.sentences=JSON.stringify([...found]);
@@ -496,9 +503,6 @@ function highlightSentInEditor(btn){
   setTimeout(()=>{btn.style.background='';btn.style.color='';},1200);
   showToast('✓','已定位句子');
 }
-
-// ═══ Sentence-sentence similarity helper ═══
-function isAIFragged(){return false;}
 
 // ═══ Diff View for Humanize ═══
 function renderDiffView(before,after){

@@ -1,6 +1,6 @@
 # 配置说明
 
-> 状态：现行产品配置，更新于 2026-07-22。`.ainovel` 仍是继承引擎兼容目录名，不代表产品仍叫 ainovel-cli。
+> 状态：现行产品配置，更新于 2026-07-23（UTC+8）。`.ainovel` 仍是继承引擎兼容目录名，不代表产品仍叫 ainovel-cli。
 
 本页说明 Writing Workshop 的模型、密钥与监听地址配置。底层 Go 引擎源自 `ainovel-cli`，但本仓库发布的可执行文件名为 `writing-workshop`。
 
@@ -25,7 +25,9 @@ Web 管理后台保存配置时写入 `~/.ainovel/config.json`。
 | `.ainovel/categories.json` | 后端自定义分类 | 与浏览器本地项目分类分开保存 |
 | `.ainovel/rules/web.rules.md` | 后台编辑的项目规则 | 参与规则合并 |
 
-工作台中的项目自定义分类保存在当前站点的 `localStorage`，项目与分类关联保存在 IndexedDB 的 project 记录。它们不会自动与后端分类文件互相覆盖；导出项目包会带上项目的 `category_ids`。
+工作台中的项目自定义分类保存在当前站点的 `localStorage`，项目与分类关联保存在 IndexedDB 的 project 记录。浏览器 Prompt Skill 覆盖值单独保存在 `localStorage` 键 `ww_prompt_skills_v1`。这些数据不会自动与后端分类或 capability 文件互相覆盖；项目 v3 备份会带上 `category_ids`、记忆和 Prompt Skill 覆盖值。
+
+浏览器存储按来源域名隔离：`github.io`、自定义域名、`127.0.0.1` 与 `localhost` 彼此不是同一份数据。迁移域名、清除站点数据或换浏览器前，先在项目操作台导出 v3 项目包，或在 Prompt Skill 管理中单独导出提示词备份。
 
 ## 最小配置
 

@@ -1,8 +1,34 @@
 # Writing Workshop 后端 API 契约
 
-> 状态：现行产品接口，更新于 2026-07-22。继承引擎的历史接口另见 `docs/UPSTREAM_ENGINE.md`。
+> 状态：现行产品接口，更新于 2026-07-23（UTC+8）。继承引擎的历史接口另见 `docs/UPSTREAM_ENGINE.md`；变更证据见 `docs/UPDATE_TIMELINE.md`。
 
 写作工坊前端通过同源 `/api/` 与本地或自部署后端通信。底层写作引擎源自 `ainovel-cli`；其他 skill 或自定义后端也可以实现同一组能力契约。
+
+## 浏览器 Prompt Skill 不属于后端 API
+
+润色、续写、人物、校对、标题、实时灵感等 32 个功能使用浏览器 Prompt Skill。默认文本来自 `web/static/js/prompt-skills.js`，用户覆盖值保存在当前域名的 `localStorage`；点击功能后，前端在调用 `/api/ai` 前组装提示词。它们不通过 `/api/capabilities` CRUD，也不会写入 `.ainovel/capabilities.json`。
+
+项目导出格式 v3 可包含：
+
+```json
+{
+  "version": 3,
+  "project": {},
+  "outlines": [],
+  "characters": [],
+  "chapters": [],
+  "memories": [],
+  "prompt_skills": {
+    "schema": "writing-workshop/prompt-skills",
+    "version": 1,
+    "overrides": {
+      "润色": {"prompt": "用户自定义提示词", "updated_at": "2026-07-22T17:00:00Z"}
+    }
+  }
+}
+```
+
+导入 v1/v2 项目仍然兼容；存在 `prompt_skills` 时只合并已知名称和合法文本，不覆盖未出现在包中的浏览器设置。浏览器 Prompt Skill 的导入导出是前端本地数据操作，不应误写成新的服务端接口。
 
 ## 健康检查
 

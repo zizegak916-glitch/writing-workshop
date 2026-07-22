@@ -1,6 +1,6 @@
 # Codex for Open Source — application working draft
 
-Updated: 2026-07-22. This remains an evidence draft, not a submission receipt or a claim of acceptance.
+Updated: 2026-07-23 (UTC+8). This remains an evidence draft, not a submission receipt or a claim of acceptance.
 
 Official form: <https://openai.com/form/codex-for-oss/>
 
@@ -30,18 +30,22 @@ API credits would fund open-source maintenance rather than hidden product usage:
 | Evidence | Public location |
 |---|---|
 | Push/PR test pipeline | `.github/workflows/ci.yml` |
-| Latest verified CI and Pages deployment | [CI 29931143163](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/29931143163), [Pages 29931143073](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/29931143073) |
+| Latest verified CI and Pages deployment | [CI 29938799142](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/29938799142), [Pages 29938799040](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/29938799040) |
 | Go tests, vet, build, JS checks and service smoke test | GitHub Actions CI |
 | Keyless runnable mode | `writing-workshop serve --demo` |
 | Docker health check | `/api/health` |
 | Capability contract | `docs/CAPABILITY_PROTOCOL.md` |
 | Multi-Skill packs and custom categories | `internal/web/catalog.go`, `internal/web/server_test.go` |
 | Browser-local project management and safe export/delete | `web/static/js/product-extensions.js` |
+| 32 editable browser Prompt Skills and v3 backup | `web/static/js/prompt-skills.js`, `web/static/css/prompt-skills.css` |
 | Documentation status and historical boundaries | `docs/README.md` |
+| Commit / CI / Pages / public-check timeline | `docs/UPDATE_TIMELINE.md`, `docs/RELEASE_EVIDENCE.json` |
 | Contribution and security process | `CONTRIBUTING.md`, `SECURITY.md`, issue templates |
 | Upstream attribution | `NOTICE`, `docs/UPSTREAM_ENGINE.md`, git history |
 
 ## Evidence still required before a strong application
+
+Point-in-time repository metrics captured from the GitHub API at `2026-07-22T17:04:25Z`: **1 star, 0 forks, 0 open issues and 0 subscribers**. This is a truthful snapshot, not evidence of broad adoption, and it must be refreshed immediately before submission.
 
 - Publish the first signed or checksummed release and verify installer assets.
 - Obtain real external usage evidence; the current repository does not yet have meaningful star, download or dependent-project numbers.

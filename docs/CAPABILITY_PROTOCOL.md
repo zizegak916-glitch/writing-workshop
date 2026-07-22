@@ -1,8 +1,17 @@
 # Writing Workshop Capability Manifest v0.2
 
-> 状态：现行产品协议，更新于 2026-07-22。v0.2 新增可选分类、标签和技能包组合，不改变 v0.1 字段语义。
+> 状态：现行产品协议，更新于 2026-07-23（UTC+8）。v0.2 新增可选分类、标签和技能包组合，不改变 v0.1 字段语义。
 
 Capability manifest 用于描述一个可组合的写作能力。它解决三件事：界面知道如何展示能力，运行器知道该传什么，作者在执行前看得到步骤和权限。
+
+## 两种 Skill 的边界
+
+| 类型 | 存储 | 触发 | 执行位置 | 适用场景 |
+|---|---|---|---|---|
+| 浏览器 Prompt Skill | 默认值在 `web/static/js/prompt-skills.js`；覆盖值在 `ww_prompt_skills_v1` | 点击模式卡或快捷工具 | 前端组装 `/api/ai` 请求前 | 润色、续写、对白、标题等固定功能 |
+| 后端 capability Skill | 内置清单或 `.ainovel/capabilities.json` | 流程中显式多选 `skill_ids` | `/api/run` | 可组合步骤、权限和后端能力 |
+
+浏览器 Prompt Skill 不是 capability manifest v0.2 的远程执行入口，不拥有文件、网络或写入权限。它只改变本次模型请求中的约束文本；项目包 v3 只导出用户覆盖值。后端 capability 仍必须通过本协议验证 ID、启用状态、步骤和权限。
 
 ## 安全模型
 
@@ -52,3 +61,4 @@ curl -X POST http://127.0.0.1:8080/api/capabilities \
 - 修改已有字段语义需要提升协议版本；新增可选字段不破坏兼容性。
 - 运行器必须拒绝停用的能力、缺失的能力和不受支持的执行入口。
 - `instructions` 是约束文本，不是获得额外权限的手段。
+- 浏览器 Prompt Skill 导入必须忽略未知名称、拒绝空文本和超长文本；合并导入不得清空包中未出现的本地覆盖值。

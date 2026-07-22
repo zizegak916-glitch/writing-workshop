@@ -1,6 +1,8 @@
 # 观测手册
 
 > 文档状态：**历史 / 继承引擎运行手册**。其中 `/diag`、`output/{novel}/meta/*` 面向长篇 Agent 引擎，不等同于当前 Web 产品的 `/api/health`、流程历史或浏览器项目管理。产品排障以 `web/static/docs.html` 和 `CODE_REVIEW.md` 为准。
+>
+> 最后状态复核：2026-07-23（UTC+8）。现行产品事件与部署证据见[更新时间线](UPDATE_TIMELINE.md)。
 
 跑长篇小说时，怎么知道各项机制是不是真的在工作？
 

@@ -9,7 +9,8 @@
     '分析': 'mode-analyze', '校对': 'mode-proofread', '节奏': 'mode-rhythm', '情感': 'mode-emotion',
     '大纲': 'mode-outline', '人物': 'mode-character', '伏笔': 'mode-foreshadow', '转折': 'mode-twist',
     '结局': 'mode-ending', '翻译': 'mode-translate', '总结': 'mode-summarize', '标题': 'mode-title',
-    '降AI': 'mode-humanize', '查AI': 'mode-detect'
+    '降AI': 'mode-humanize', '查AI': 'mode-detect',
+    '实时灵感': 'mode-inspiration', '资料搜索': 'mode-research'
   });
 
   window.WW_AI_MODE_ICON_IDS = iconIds;

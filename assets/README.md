@@ -1,6 +1,6 @@
 # assets 内容地图
 
-> 文档状态：**继承引擎资产层**，2026-07-22 复核。这里说明 Go 长篇 Agent 如何加载 prompts、references、rules 与 styles，不是 Web 工作台的 Skill 包目录。Web 能力、技能包与分类见 `internal/web/capabilities.go`、`internal/web/catalog.go` 和 `docs/CAPABILITY_PROTOCOL.md`。
+> 文档状态：**继承引擎资产层**，2026-07-23 复核。这里说明 Go 长篇 Agent 如何加载 prompts、references、rules 与 styles，不是 Web 工作台的 Skill 包目录。Web 浏览器 Prompt Skill 见 `web/static/js/prompt-skills.js`；后端能力、技能包与分类见 `internal/web/capabilities.go`、`internal/web/catalog.go` 和 `docs/CAPABILITY_PROTOCOL.md`。产品更新时间线见 `docs/UPDATE_TIMELINE.md`。
 
 给系统加"一段话 / 一篇资料 / 一条规则"之前，先查下表确定归属，再看接线方式。
 

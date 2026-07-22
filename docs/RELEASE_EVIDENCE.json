@@ -1,0 +1,67 @@
+{
+  "schema": "writing-workshop/release-evidence",
+  "version": 1,
+  "updated_at": "2026-07-22T17:04:25Z",
+  "timezone_for_timeline": "UTC+8",
+  "repository": "https://github.com/zizegak916-glitch/writing-workshop",
+  "public_pages": "https://zizegak916-glitch.github.io/writing-workshop/",
+  "default_branch": "main",
+  "license": "Apache-2.0",
+  "metrics_snapshot": {
+    "captured_at": "2026-07-22T17:04:25Z",
+    "stars": 1,
+    "forks": 0,
+    "open_issues": 0,
+    "subscribers": 0,
+    "source": "GitHub repository API"
+  },
+  "verified_releases": [
+    {
+      "commit": "3fdf36c136caf7561df964997e483ce74d8d7819",
+      "summary": "32 editable browser Prompt Skills and project bundle v3",
+      "ci_run": 29938799142,
+      "pages_run": 29938799040,
+      "ci_conclusion": "success",
+      "pages_conclusion": "success",
+      "live_checks": [
+        "Prompt Skill manager displayed 32 entries",
+        "custom prompt survived a page reload",
+        "deployed JS and CSS matched local SHA-256"
+      ],
+      "sha256": {
+        "web/static/js/prompt-skills.js": "9e0132f2a292c1ce0d9e140c7aafe704e2e594011566491683d9c26f8597691a",
+        "web/static/css/prompt-skills.css": "80149b624c5f2790d436754b3c09b05947b38e1f4e9b886575e03315dc6c64a9"
+      }
+    },
+    {
+      "commit": "e42407b3ee9d25320d0da9846523fa8562d00a18",
+      "summary": "GitHub Pages and OpenAI Sites terminology correction",
+      "ci_run": 29934579606,
+      "pages_run": 29934579651,
+      "ci_conclusion": "success",
+      "pages_conclusion": "success"
+    },
+    {
+      "commit": "93635ac4f7394eae945f88990e8a97497fac5012",
+      "summary": "Repository-native AI icons and maintainer link correction",
+      "ci_run": 29933253894,
+      "pages_run": 29933253856,
+      "ci_conclusion": "success",
+      "pages_conclusion": "success"
+    },
+    {
+      "commit": "76dddaaa7595e84f5dcfe689afa1530857289214",
+      "summary": "Skill packs, project management and product documentation",
+      "ci_run": 29931143163,
+      "pages_run": 29931143073,
+      "ci_conclusion": "success",
+      "pages_conclusion": "success"
+    }
+  ],
+  "truth_boundaries": [
+    "GitHub Pages is the formal public static deployment, not an OpenAI Sites preview.",
+    "Browser-local features are usable on Pages; model execution requires an actually available API endpoint.",
+    "Metrics are point-in-time facts and must be refreshed before an application is submitted.",
+    "This file records verified evidence and is not an acceptance or program-eligibility claim."
+  ]
+}

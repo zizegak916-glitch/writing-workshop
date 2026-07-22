@@ -20,10 +20,11 @@
       <p>开始</p><a href="#overview">在线版与后端增强</a><a href="#quickstart">60 秒启动</a><a href="#first-project">第一个项目</a>
       <p style="margin-top:20px">创作</p><a href="#workspace">工作台导航</a><a href="#workflow">AI 流程</a><a href="#import-export">导入与导出</a>
       <p style="margin-top:20px">连接</p><a href="#api">API 与模型</a><a href="#cors">CORS 说明</a><a href="#skills">Skill 与能力</a><a href="#troubleshooting">故障排查</a>
+      <p style="margin-top:20px">记录</p><a href="#timeline">更新时间线</a>
     </aside>
 
     <main class="docs-main">
-      <span class="eyebrow">Product guide · 2026-07-22</span>
+      <span class="eyebrow">Product guide · 2026-07-23</span>
       <h1>从打开页面，到完成一次安全写作。</h1>
       <p class="docs-lead">这份文档不假设你已经懂 API、Docker 或 Skill。先选择你的使用方式，再按一条完整路线跑通。</p>
 
@@ -195,14 +196,30 @@ go build -o writing-workshop ./cmd/writing-workshop
             <tr><td>模型测试 404</td><td>Base URL 或 Model 不存在</td><td>确认 URL 含正确 API 根路径与模型 ID</td></tr>
             <tr><td>浏览器报 CORS</td><td>正在直连第三方 API</td><td>改为访问同源 Go 后端，不要在 Pages 放 Key</td></tr>
             <tr><td>项目消失</td><td>浏览器站点数据被清除</td><td>导入最近的项目备份；以后定期导出</td></tr>
+            <tr><td>Prompt Skill 修改丢失</td><td>换了域名、浏览器或清除了当前 origin 的 localStorage</td><td>从 Prompt Skill 备份导入，或导入带覆盖值的项目 v3 备份</td></tr>
             <tr><td>旧候选不能替换</td><td>生成期间正文已变化</td><td>这是坐标保护；复制候选并手动确认位置</td></tr>
           </tbody>
         </table>
         <h3>仍未解决？</h3>
         <p>运行 <code>make check</code> 获取与 CI 一致的检查结果，并在 <a href="https://github.com/zizegak916-glitch/writing-workshop/issues">GitHub Issues</a> 提交复现步骤、终端错误、浏览器控制台信息和运行环境。请先删除日志中的 API Key 与作品隐私内容。</p>
       </section>
+
+      <section id="timeline">
+        <h2>更新时间线与验证痕迹</h2>
+        <p>站点不把“已经写在聊天里”当成发布完成。影响功能、数据格式或安全边界的更新，会同时留下变更记录、审查记录、提交、CI、Pages 部署与公开页复核。</p>
+        <table>
+          <thead><tr><th>日期</th><th>已验证事件</th><th>公开证据</th></tr></thead>
+          <tbody>
+            <tr><td>2026-07-23</td><td>32 个浏览器 Prompt Skill，可编辑、恢复、导入导出并随项目 v3 备份</td><td><a href="https://github.com/zizegak916-glitch/writing-workshop/commit/3fdf36c136caf7561df964997e483ce74d8d7819">commit</a> · <a href="https://github.com/zizegak916-glitch/writing-workshop/actions/runs/29938799142">CI</a> · <a href="https://github.com/zizegak916-glitch/writing-workshop/actions/runs/29938799040">Pages</a></td></tr>
+            <tr><td>2026-07-22</td><td>Pages / Sites 术语与运行边界全站纠正</td><td><a href="https://github.com/zizegak916-glitch/writing-workshop/commit/e42407b3ee9d25320d0da9846523fa8562d00a18">commit</a> · <a href="https://github.com/zizegak916-glitch/writing-workshop/actions/runs/29934579651">Pages</a></td></tr>
+            <tr><td>2026-07-22</td><td>AI 工作台与 30 个功能图标重画，维护者链接修正</td><td><a href="https://github.com/zizegak916-glitch/writing-workshop/commit/93635ac4f7394eae945f88990e8a97497fac5012">commit</a> · <a href="https://github.com/zizegak916-glitch/writing-workshop/actions/runs/29933253856">Pages</a></td></tr>
+            <tr><td>2026-07-22</td><td>多 Skill、技能包、分类与项目操作台上线</td><td><a href="https://github.com/zizegak916-glitch/writing-workshop/commit/76dddaaa7595e84f5dcfe689afa1530857289214">commit</a> · <a href="https://github.com/zizegak916-glitch/writing-workshop/actions/runs/29931143163">CI</a></td></tr>
+          </tbody>
+        </table>
+        <div class="doc-callout info"><b>完整账本：</b><a href="https://github.com/zizegak916-glitch/writing-workshop/blob/main/docs/UPDATE_TIMELINE.md">人类可读更新时间线</a>记录每次事件；<a href="https://github.com/zizegak916-glitch/writing-workshop/blob/main/docs/RELEASE_EVIDENCE.json">机器可读证据 JSON</a>保存可程序校验的运行号、结论、校验和与时间点指标。</div>
+      </section>
     </main>
   </div>
-  <footer class="site-footer"><div class="site-shell footer-row"><span>Writing Workshop 文档 · Apache-2.0</span><nav><a href="index.html">首页</a><a href="app.html">工作台</a><a href="admin.html">能力后台</a><a href="https://linux.do/u/The_Fo0l">Linux DO · The_Fo0l</a><a href="https://github.com/zizegak916-glitch/writing-workshop">GitHub</a></nav></div></footer>
+  <footer class="site-footer"><div class="site-shell footer-row"><span>Writing Workshop 文档 · Apache-2.0</span><nav><a href="index.html">首页</a><a href="app.html">工作台</a><a href="admin.html">能力后台</a><a href="#timeline">更新时间线</a><a href="https://linux.do/u/The_Fo0l">Linux DO · The_Fo0l</a><a href="https://github.com/zizegak916-glitch/writing-workshop">GitHub</a></nav></div></footer>
 </body>
 </html>

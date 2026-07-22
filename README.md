@@ -3,6 +3,8 @@
 [![CI](https://github.com/zizegak916-glitch/writing-workshop/actions/workflows/ci.yml/badge.svg)](https://github.com/zizegak916-glitch/writing-workshop/actions/workflows/ci.yml)
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-black.svg)](LICENSE)
 
+> 文档与验证证据最后同步：2026-07-23（UTC+8）。完整演进记录见 [更新时间线](docs/UPDATE_TIMELINE.md)，机器可读证据见 [RELEASE_EVIDENCE.json](docs/RELEASE_EVIDENCE.json)。
+
 一个本地优先、可审计的长篇写作工作台。它把“选哪些上下文、运行哪些 Skill、结果写到哪里”变成显式操作：AI 只生成候选，作者确认后才写入正文或记忆。
 
 它不是聊天框的换皮，也不会把整部作品在每次调用时重新发送给模型。
@@ -90,6 +92,8 @@ flowchart LR
 | `app.html` | 项目、章节、大纲、人物、记忆、分类、导入导出、多 Skill 与候选写入 |
 | `admin.html` | Provider、Model、Base URL、API Key、项目、规则、能力、技能包、分类与 API 调试 |
 | `docs.html` | 从 Pages 在线版 / 后端增强模式到 CORS、Skill 与故障排查的完整教程 |
+
+代码、文档、CI、Pages 与公开实测的对应关系见 [更新时间线](docs/UPDATE_TIMELINE.md)，避免只凭截图、文件名或聊天记录判断功能是否已经上线。
 
 视觉规范与组件约束见 [UI 设计系统](docs/UI_DESIGN_SYSTEM.md)。
 

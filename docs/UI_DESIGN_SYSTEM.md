@@ -1,6 +1,6 @@
 # Writing Workshop UI 设计系统
 
-> 状态：现行产品视觉规范，更新于 2026-07-22。
+> 状态：现行产品视觉规范，更新于 2026-07-23（UTC+8）。
 
 Writing Workshop 的界面方向是“彩色编辑部（Ink & Spectrum）”：把长篇创作看作由资料、正文、能力和决策共同组成的编辑工作，而不是把聊天框放大。
 
@@ -41,6 +41,8 @@ AI 卡片中的 30 个能力使用一对一的仓库原生线性 SVG，覆盖基
 - 能力到图标的映射：`web/static/js/ai-mode-icons.js`
 - 卡片分类色与选中态：`web/static/css/chromatic-app.css`
 
+Prompt Skill 管理器沿用紫色能力区，但采用双栏编辑布局：左侧可搜索 Skill，右侧只显示当前提示词和保存/恢复动作；移动端变为上下两段。状态必须明确写成“内置默认”或“浏览器自定义”，不能只靠颜色。实时灵感和资料搜索使用独立的原生 SVG，不再回退到通用工作台图标。
+
 ## 3. 交互原则
 
 1. **正文优先。** 中央编辑器始终是桌面最大区域；手机默认打开正文。
@@ -73,5 +75,6 @@ box-shadow: 0 12px 36px rgba(33, 43, 76, .09);
 - 落地页和文档共享：`web/static/css/chromatic-site.css`
 - 主工作台后置覆盖：`web/static/css/chromatic-app.css`
 - 能力后台：`web/static/css/chromatic-console.css`
+- Prompt Skill 管理：`web/static/css/prompt-skills.css`
 
 工作台使用后置样式层，保留原有 DOM ID、事件与数据操作，避免“重做 UI”破坏导入导出、编辑、项目管理和 AI 工作流。

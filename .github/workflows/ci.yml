@@ -39,6 +39,9 @@ jobs:
       - name: JavaScript syntax
         run: find web/static -name '*.js' -print0 | xargs -0 -n1 node --check
 
+      - name: Static product contract
+        run: node scripts/check-static.mjs
+
       - name: Offline server smoke test
         run: |
           ./writing-workshop serve --demo --host 127.0.0.1 --port 18080 > /tmp/writing-workshop.log 2>&1 &
