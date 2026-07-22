@@ -49,6 +49,13 @@ git diff --check
 - [Pages run 29931143073](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/29931143073)：静态站部署，结论 `success`。
 - 部署后从公开 URL 实测：首页可读到 Star 支持文案，`app.html` 已加载 `product-extensions.js`，多 Skill 目录、项目管理脚本和新 SVG 图标均返回 HTTP 200。
 
+本轮联系方式与 AI 图标更正已在提交 [`93635ac`](https://github.com/zizegak916-glitch/writing-workshop/commit/93635ac4f7394eae945f88990e8a97497fac5012) 上重新验证：
+
+- [CI run 29933253894](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/29933253894)：结论 `success`。
+- [Pages run 29933253856](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/29933253856)：结论 `success`。
+- 公开工作台浏览器复核：30 个能力按钮生成 30 个不同 SVG 引用，所有图标尺寸非零；AI 工作台入口使用 `mode-workshop`，大脑图标只保留给记忆功能。
+- 公开关于页复核：联系方式文字与地址均为 `The_Fo0l`，页面中不存在旧用户名 `The_o0l`。
+
 ## 仍然存在的技术债
 
 - `app.html` 仍是较大的历史单文件，仓库中也保留未被入口加载的旧拆分脚本。现行入口已在 `DEVELOPMENT.md` 标明，后续应在有端到端浏览器测试后逐步去重。
