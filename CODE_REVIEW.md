@@ -70,7 +70,12 @@ git diff --check
 - 正式站打开“流程 → 内置 Prompt Skill”可见 32 项；修改并保存后刷新，覆盖值仍存在。
 - 当时部署的 `prompt-skills.js` 与 `prompt-skills.css` SHA-256 已写入 [`docs/RELEASE_EVIDENCE.json`](docs/RELEASE_EVIDENCE.json)。
 
-本次审查中的查 AI 数据质量、安全渲染、快捷图标和文档同步修复，将在提交后把提交号、Actions 与公开复核结果回填到[更新时间线](docs/UPDATE_TIMELINE.md)，未完成前不标记为已部署。
+本次查 AI 数据质量、安全渲染、快捷图标、静态契约和文档同步修复已在提交 [`aceeb957`](https://github.com/zizegak916-glitch/writing-workshop/commit/aceeb9571f5b3a0eec835efbc05a8192e322276e) 上验证：
+
+- [CI run 29941672602](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/29941672602)：Go test / vet / build、JavaScript 语法、静态产品契约和 demo smoke test 全部成功。
+- [Pages run 29941672654](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/29941672654)：结论 `success`。
+- 正式教程显示 `Product guide · 2026-07-23` 和“更新时间线与验证痕迹”；工作台显示 `v2.4 · 2026-07-23`。
+- 正式站 Prompt JS 包含六个固定解析字段，实时灵感/资料搜索映射到独立 SVG；Prompt JS 与图标 SVG 的线上 SHA-256 和本地一致。
 
 ## 仍然存在的技术债
 

@@ -30,7 +30,7 @@ API credits would fund open-source maintenance rather than hidden product usage:
 | Evidence | Public location |
 |---|---|
 | Push/PR test pipeline | `.github/workflows/ci.yml` |
-| Latest verified CI and Pages deployment | [CI 29938799142](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/29938799142), [Pages 29938799040](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/29938799040) |
+| Latest verified CI and Pages deployment | [CI 29941672602](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/29941672602), [Pages 29941672654](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/29941672654) |
 | Go tests, vet, build, JS checks and service smoke test | GitHub Actions CI |
 | Keyless runnable mode | `writing-workshop serve --demo` |
 | Docker health check | `/api/health` |

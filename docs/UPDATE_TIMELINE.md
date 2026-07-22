@@ -1,6 +1,6 @@
 # Writing Workshop 更新时间线
 
-> 状态：现行产品事实账本。更新时间统一使用 UTC+8；提交、CI、Pages 和公开页面证据必须能相互对应。最后同步：2026-07-23 01:04 UTC+8。
+> 状态：现行产品事实账本。更新时间统一使用 UTC+8；提交、CI、Pages 和公开页面证据必须能相互对应。最后同步：2026-07-23 01:17 UTC+8。
 
 这份时间线只记录已经发生且可验证的产品事件，不用计划代替完成。详细功能说明仍以对应文档和代码为准；机器可读证据见 [`RELEASE_EVIDENCE.json`](RELEASE_EVIDENCE.json)。
 
@@ -25,7 +25,7 @@
 | 时间 | 事件 | Git 痕迹 | 验证 |
 |---|---|---|---|
 | 00:37 | 为 30 个模式卡和 2 个独立快捷工具加入 32 个实用 Prompt Skill；请求隐形注入；支持编辑、恢复、导入导出和项目 v3 备份 | [`3fdf36c`](https://github.com/zizegak916-glitch/writing-workshop/commit/3fdf36c136caf7561df964997e483ce74d8d7819) | [CI 29938799142](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/29938799142)、[Pages 29938799040](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/29938799040) 均成功；正式页显示 32 项，保存后刷新仍保留 |
-| 01:04 | 开始全量文档同步与实现审查：补时间线、机器证据、存储协议和优化记录 | 待本轮提交后回填 | 已发现并修复“查AI”字段/雷达解析漂移、缺失分数伪造 50 分、句子按钮不安全拼接和快捷 Skill 图标复用问题 |
+| 01:17 | 全量同步现行文档与历史状态页；修复“查AI”字段/雷达解析漂移、缺失分数伪造 50 分、AI 句子按钮不安全拼接和快捷 Skill 图标复用；新增静态产品契约 | [`aceeb957`](https://github.com/zizegak916-glitch/writing-workshop/commit/aceeb9571f5b3a0eec835efbc05a8192e322276e) | [CI 29941672602](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/29941672602)、[Pages 29941672654](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/29941672654) 均成功；正式页与本地校验和一致 |
 
 ## Prompt Skill 验证账
 
@@ -34,7 +34,8 @@
 | 功能覆盖 | 30 个模式卡 + 6 个快捷按钮映射到 32 个唯一 Prompt Skill；4 个快捷按钮复用同名能力 | 静态覆盖审计通过 |
 | 本地持久化 | 保存、读取、恢复默认、独立导出、合并导入 | JavaScript 状态测试通过 |
 | 正式域名交互 | “流程 → 内置 Prompt Skill → 查看与修改”可打开 32 项；修改后刷新仍显示“1 个已修改” | GitHub Pages 浏览器实测 |
-| 部署内容 | 正式站 Prompt JS/CSS 与提交内容校验和一致 | JS `9e0132f2…7691a`；CSS `80149b62…c64a9` |
+| 部署内容 | 正式站 Prompt JS、快捷图标 SVG 与提交内容校验和一致 | Prompt JS `e2f45ae2…2e3e`；图标 SVG `a6d7ac2f…e02d` |
+| 自动回归 | Skill 清单、图标映射、SVG symbol、内联脚本、静态链接和证据 JSON | 本地与 CI 的 `scripts/check-static.mjs` 均通过 |
 | 服务端边界 | Pages 是正式静态在线版；浏览器本地管理可用，模型执行仍取决于实际接入的 `/api` | README、教程、API、配置和审计文档一致 |
 
 ## 文档同步规则

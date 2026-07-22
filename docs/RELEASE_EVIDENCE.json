@@ -1,7 +1,7 @@
 {
   "schema": "writing-workshop/release-evidence",
   "version": 1,
-  "updated_at": "2026-07-22T17:04:25Z",
+  "updated_at": "2026-07-22T17:17:25Z",
   "timezone_for_timeline": "UTC+8",
   "repository": "https://github.com/zizegak916-glitch/writing-workshop",
   "public_pages": "https://zizegak916-glitch.github.io/writing-workshop/",
@@ -16,6 +16,25 @@
     "source": "GitHub repository API"
   },
   "verified_releases": [
+    {
+      "commit": "aceeb9571f5b3a0eec835efbc05a8192e322276e",
+      "summary": "Documentation timeline, safer AI review, distinct quick icons and static product contract",
+      "ci_run": 29941672602,
+      "pages_run": 29941672654,
+      "ci_conclusion": "success",
+      "pages_conclusion": "success",
+      "live_checks": [
+        "Public docs displayed the 2026-07-23 product guide and verification timeline",
+        "Workbench displayed version 2.4 dated 2026-07-23",
+        "Deployed AI-review Prompt required the exact six parser fields",
+        "Deployed quick-tool icon mapping and SVG contained distinct inspiration and research symbols",
+        "Deployed Prompt JS and icon SVG matched local SHA-256"
+      ],
+      "sha256": {
+        "web/static/js/prompt-skills.js": "e2f45ae262e8cf1ab1041d607031616e5279a810df4866d71f01ba4453462e3e",
+        "web/static/icons/ai-mode-icons.svg": "a6d7ac2f5429788cbd325d39f95e4904cb446753f98e398cd55b0e3bed35e02d"
+      }
+    },
     {
       "commit": "3fdf36c136caf7561df964997e483ce74d8d7819",
       "summary": "32 editable browser Prompt Skills and project bundle v3",
