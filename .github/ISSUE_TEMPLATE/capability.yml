@@ -1,0 +1,33 @@
+name: Capability proposal
+description: Propose a general writing capability or protocol improvement.
+title: "[Capability]: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: user_task
+    attributes:
+      label: Writer task
+      description: What concrete writing task is difficult today?
+    validations:
+      required: true
+  - type: textarea
+    id: contract
+    attributes:
+      label: Input and output contract
+      description: Describe required context, output type and failure behavior.
+    validations:
+      required: true
+  - type: textarea
+    id: permissions
+    attributes:
+      label: Minimum permissions
+      description: List file, network, environment or model access needed. Use "none" when appropriate.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance example
+      description: Provide a synthetic, non-private example that can become a regression test.
+    validations:
+      required: true
