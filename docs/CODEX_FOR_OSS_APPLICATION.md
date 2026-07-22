@@ -30,7 +30,7 @@ API credits would fund open-source maintenance rather than hidden product usage:
 | Evidence | Public location |
 |---|---|
 | Push/PR test pipeline | `.github/workflows/ci.yml` |
-| Latest verified CI and Pages deployment | [CI 29941672602](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/29941672602), [Pages 29941672654](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/29941672654) |
+| Latest verified CI and Pages deployment | [CI 29945400780](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/29945400780), [Pages 29945400654](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/29945400654) |
 | Go tests, vet, build, JS checks and service smoke test | GitHub Actions CI |
 | Keyless runnable mode | `writing-workshop serve --demo` |
 | Docker health check | `/api/health` |
@@ -38,6 +38,7 @@ API credits would fund open-source maintenance rather than hidden product usage:
 | Multi-Skill packs and custom categories | `internal/web/catalog.go`, `internal/web/server_test.go` |
 | Browser-local project management and safe export/delete | `web/static/js/product-extensions.js` |
 | 32 editable browser Prompt Skills and v3 backup | `web/static/js/prompt-skills.js`, `web/static/css/prompt-skills.css` |
+| Persistent request controls and audited context-budget display | `web/static/app.html`, `web/static/css/product-extensions.css`, `scripts/check-static.mjs` |
 | Documentation status and historical boundaries | `docs/README.md` |
 | Commit / CI / Pages / public-check timeline | `docs/UPDATE_TIMELINE.md`, `docs/RELEASE_EVIDENCE.json` |
 | Contribution and security process | `CONTRIBUTING.md`, `SECURITY.md`, issue templates |

@@ -80,6 +80,13 @@ git diff --check
 - 正式教程显示 `Product guide · 2026-07-23` 和“更新时间线与验证痕迹”；工作台显示 `v2.4 · 2026-07-23`。
 - 正式站 Prompt JS 包含六个固定解析字段，实时灵感/资料搜索映射到独立 SVG；Prompt JS 与图标 SVG 的线上 SHA-256 和本地一致。
 
+本次桌面请求栏与上下文预算修复已在提交 [`00c9883`](https://github.com/zizegak916-glitch/writing-workshop/commit/00c988300b54b3cbe8ef226202ba760587e836a3) 上验证：
+
+- [CI run 29945400780](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/29945400780)：Go test / vet / build、全部 JavaScript 语法、扩展后的静态产品契约和 demo smoke test 全部成功。
+- [Pages run 29945400654](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/29945400654)：结论 `success`。
+- 正式 Pages 返回一个桌面固定请求栏、唯一桌面/手机预算节点和新的无 API 估算逻辑；`app.html` 与请求栏 CSS 的线上 SHA-256 同本地完全一致。
+- 本轮公开复核确认部署结构与资源，不把它描述成多视口像素验收；缺少的截图差异测试继续列为技术债。
+
 ## 仍然存在的技术债
 
 - `app.html` 仍是较大的历史单文件，仓库中也保留未被入口加载的旧拆分脚本。现行入口已在 `DEVELOPMENT.md` 标明，后续应在有端到端浏览器测试后逐步去重。

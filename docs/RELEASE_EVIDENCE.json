@@ -1,7 +1,7 @@
 {
   "schema": "writing-workshop/release-evidence",
   "version": 1,
-  "updated_at": "2026-07-22T17:17:25Z",
+  "updated_at": "2026-07-22T18:09:57Z",
   "timezone_for_timeline": "UTC+8",
   "repository": "https://github.com/zizegak916-glitch/writing-workshop",
   "public_pages": "https://zizegak916-glitch.github.io/writing-workshop/",
@@ -16,6 +16,26 @@
     "source": "GitHub repository API"
   },
   "verified_releases": [
+    {
+      "commit": "00c988300b54b3cbe8ef226202ba760587e836a3",
+      "summary": "Persistent desktop AI request dock and API-independent context budget",
+      "ci_run": 29945400780,
+      "pages_run": 29945400654,
+      "ci_conclusion": "success",
+      "pages_conclusion": "success",
+      "live_checks": [
+        "Public app contained one persistent desktop request dock and separate desktop/mobile context meters",
+        "Public context estimator no longer returned early when API configuration was absent",
+        "Public app and request-dock CSS matched local SHA-256",
+        "Public app and request-dock CSS returned HTTP 200 from GitHub Pages"
+      ],
+      "sha256": {
+        "web/static/app.html": "9b461955b01311a2bc864a5ba6f20cc139455ae523054046e53cf010fb9ad679",
+        "web/static/css/product-extensions.css": "2faf2b83d637cc747bd953ea0d4b04bf9c99ab5b4f8216ad8d6b299305246af7",
+        "web/static/js/workflows.js": "6c8db168d7659094e4d3e348340f2827e8858780e770512732687f0a7a777b05",
+        "scripts/check-static.mjs": "6fa3fce6c3c9a57945c3a8e48e512913a71d02f6d443fdeb5279e84881ef74a9"
+      }
+    },
     {
       "commit": "aceeb9571f5b3a0eec835efbc05a8192e322276e",
       "summary": "Documentation timeline, safer AI review, distinct quick icons and static product contract",
