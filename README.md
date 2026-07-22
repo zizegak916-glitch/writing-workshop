@@ -152,7 +152,7 @@ docs/               协议、来源与设计说明
 
 公开任务请使用 [GitHub Issues](https://github.com/zizegak916-glitch/writing-workshop/issues)。提交代码前阅读 [CONTRIBUTING.md](CONTRIBUTING.md)。
 
-维护者社区账号：[Linux DO · The_o0l](https://linux.do/u/The_o0l)。
+维护者社区账号：[Linux DO · The_Fo0l](https://linux.do/u/The_Fo0l)。
 
 维护者可使用 `make check` 运行与 CI 对齐的本地检查。Codex for Open Source 的证据清单与申请草稿见 [docs/CODEX_FOR_OSS_APPLICATION.md](docs/CODEX_FOR_OSS_APPLICATION.md)。
 

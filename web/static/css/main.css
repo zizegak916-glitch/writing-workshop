@@ -1270,7 +1270,19 @@ body.light #lockScreen {
 }
 
 .mode-btn .micon {
-  font-size: 15px;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  font-size: 0;
+  color: var(--accent);
+  background: var(--accent-glow);
+}
+
+.mode-btn .micon .ai-mode-icon {
+  width: 20px;
+  height: 20px;
 }
 
 /* Parameter controls */

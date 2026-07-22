@@ -11,7 +11,8 @@ All notable Writing Workshop changes are recorded here. The project follows Sema
 - Added browser-local project search, rename, duplicate, category assignment, per-project export and confirmed cascade deletion.
 - Added custom memory categories, a version-2 project export containing memories, and memory import compatibility.
 - Added a hand-drawn repository-native SVG app icon across the workbench, product pages and console.
-- Removed the nonfunctional URL-import control and replaced the obsolete contact link with Linux DO user `The_o0l`.
+- Replaced the generic brain AI entry and all 30 text/Emoji capability glyphs with a repository-native SVG icon family for desktop and mobile.
+- Removed the nonfunctional URL-import control and replaced the obsolete contact link with verified Linux DO user `The_Fo0l`.
 - Added a truthful GitHub Star support panel to the landing page.
 - Updated current documentation, added a documentation status map, and labeled inherited engine documents as historical references.
 

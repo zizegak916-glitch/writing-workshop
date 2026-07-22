@@ -1,3 +1,4 @@
+<script src="js/ai-mode-icons.js"></script>
 <!-- LOCK SCREEN -->
 <div id="lockScreen">
   <div class="lock-box">
@@ -218,7 +219,7 @@
     </div>
     <div class="ai-panel">
       <div class="ai-panel-header">
-        <div class="ai-panel-title"><span class="dot-pulse"></span>AI 助手</div>
+        <div class="ai-panel-title"><svg class="ic ai-workshop-icon" aria-hidden="true"><use href="icons/ai-mode-icons.svg#mode-workshop"/></svg>AI 助手<span class="dot-pulse" title="已就绪"></span></div>
         <div class="ai-tabs">
           <button class="ai-tab active" onclick="switchAiTab('modes',this)">助手</button>
           <button class="ai-tab" onclick="switchAiTab('multi',this)">对比</button>
@@ -262,7 +263,7 @@
       <button class="btab" onclick="swMobileTab('outline',this)"><svg class="ic"><use href="#ic-outline"/></svg> 大纲</button>
       <button class="btab" onclick="swMobileTab('chapters',this)"><svg class="ic"><use href="#ic-chapter"/></svg> 章节</button>
       <button class="btab" onclick="swMobileTab('chars',this)"><svg class="ic"><use href="#ic-person"/></svg> 人物</button>
-      <button class="btab" onclick="swMobileTab('ai',this)"><svg class="ic"><use href="#ic-brain"/></svg> AI</button>
+      <button class="btab" onclick="swMobileTab('ai',this)"><svg class="ic ai-workshop-icon" aria-hidden="true"><use href="icons/ai-mode-icons.svg#mode-workshop"/></svg> AI</button>
       <button class="btab privacy-link" onclick="event.stopPropagation();showPrivacyModal()"><svg class="ic ic-sm"><use href="#ic-clipboard"/></svg> 隐私</button>
     </div>
   </nav>

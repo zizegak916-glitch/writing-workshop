@@ -19,7 +19,8 @@
 | 中 | 技能包和自定义分类没有后端事实层 | 新增 `.ainovel/skill-packs.json`、`.ainovel/categories.json` 与 CRUD；校验只读项、重复 ID 和未知 Skill | `internal/web/catalog.go`、`internal/web/server_test.go` |
 | 中 | 项目 JSON 导出未包含记忆 | 项目包升级为版本 2，导出和导入 `memories` | `web/static/js/product-extensions.js`、`web/static/app.html` |
 | 低 | URL 导入按钮只显示“即将推出” | 从当前入口和旧静态片段删除，不再展示不存在的能力 | `web/static/app.html`、`web/static/parts/body.html` |
-| 低 | 联系方式失效且多个页面品牌图标不一致 | 联系统一指向 `https://linux.do/u/The_o0l`；新 SVG 作为 favicon、品牌与顶栏图标 | `web/static/icons/app-icon.svg`、公开 HTML 页面 |
+| 低 | 联系方式失效且多个页面品牌图标不一致 | 联系统一指向已校验的 `https://linux.do/u/The_Fo0l`；新 SVG 作为 favicon、品牌与顶栏图标 | `web/static/icons/app-icon.svg`、公开 HTML 页面 |
+| 低 | AI 底栏仍沿用大脑图标，30 个能力卡用字符或 Emoji 充当图标 | 新增 AI 工作台符号和 30 个一对一 SVG；脑形只留给“记忆”；桌面和手机共用同一映射 | `web/static/icons/ai-mode-icons.svg`、`web/static/js/ai-mode-icons.js` |
 | 文档 | 现行产品说明与继承引擎历史文档混在同一目录 | 新增状态地图；历史架构、上下文、观测和重构文档增加醒目标识 | `docs/README.md` |
 
 ## 存储与删除边界

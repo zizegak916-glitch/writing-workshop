@@ -673,4 +673,4 @@ output/{novel_name}/
 Apache-2.0. The earlier copy of this page incorrectly said MIT; the repository
 `LICENSE` file and upstream repository are authoritative.
 
-维护者社区账号：[Linux DO · The_o0l](https://linux.do/u/The_o0l)。
+维护者社区账号：[Linux DO · The_Fo0l](https://linux.do/u/The_Fo0l)。
