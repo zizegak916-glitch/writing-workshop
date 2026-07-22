@@ -11,6 +11,8 @@
 
 > Pages 是静态交互预览，可以使用浏览器本地数据；模型调用、服务端配置和 Skill 执行需要启动仓库自带的同源后端。这样做是为了避免在公开网页中暴露 API Key，也从架构上避开 CORS 问题。
 
+![Writing Workshop 彩色编辑部首页](docs/images/landing-page.jpg)
+
 ## 现在能做什么
 
 - 管理项目、章节、大纲、人物卡、规则和写作记忆。
@@ -75,6 +77,8 @@ flowchart LR
 
 新版界面采用“彩色编辑部”设计：深色资料栏、暖纸张编辑器和淡紫 AI 区承担不同职责，钴蓝、珊瑚、薄荷和琥珀只用于表达动作和状态。桌面保留三栏生产布局，移动端切换为底部任务导航。
 
+![Writing Workshop 三栏写作工作台](docs/images/workbench.jpg)
+
 | 页面 | 作用 |
 |---|---|
 | `index.html` | 产品说明、运行模式和 60 秒启动入口 |
@@ -83,6 +87,10 @@ flowchart LR
 | `docs.html` | 从 Pages / 本地模式区别到 CORS、Skill 与故障排查的完整教程 |
 
 视觉规范与组件约束见 [UI 设计系统](docs/UI_DESIGN_SYSTEM.md)。
+
+后台不是装饰页：Provider、Model、Base URL、API Key、项目、角色、规则、能力来源与 API 测试都有明确入口。Pages 中显示静态预览状态，本地运行后自动连接同源 API。
+
+![Writing Workshop 能力控制台](docs/images/ability-console.jpg)
 
 ## Skill / 能力协议
 
