@@ -7,7 +7,7 @@
 
 本轮把原先分散或只有展示的能力补成了可操作闭环：多 Skill 选择已经由前端明确传递到后端；技能包和能力分类有真实 CRUD、校验、测试与磁盘记录；浏览器项目管理具备搜索、筛选、重命名、复制、分类、单项目导出和确认删除；不存在的 URL 导入入口已删除。
 
-静态 Pages 与本地后端仍是两种不同运行模式。Pages 可以使用浏览器本地项目与分类、查看 Skill 目录和选择状态，但不能执行 `/api/run` 或保存后端技能包。界面和文档都保留这一区分，不把静态选择包装成已执行。
+GitHub Pages 正式在线版与后端增强模式有明确运行时边界。Pages 是真实公开域名上的正式部署，可以使用浏览器本地项目与分类、查看 Skill 目录和选择状态；当前默认 Pages 工作流未同时部署 Go API，因此单独打开该版本时不执行 `/api/run` 或保存后端技能包。这是服务端边界，不是“预览站”与“真站”的区别，也不把 Pages 与 OpenAI Sites 混为同一托管产品。
 
 ## 本轮发现与处理
 
@@ -46,7 +46,7 @@ git diff --check
 当前容器没有 Go 与 Docker 可执行文件，因此本记录不伪造本地 Go 测试结果。完整服务端验证由 GitHub Actions 在提交 [`76dddaa`](https://github.com/zizegak916-glitch/writing-workshop/commit/76dddaaa7595e84f5dcfe689afa1530857289214) 上执行：
 
 - [CI run 29931143163](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/29931143163)：`go test ./...`、`go vet ./...`、release binary build、全部 JavaScript syntax、无密钥服务启动与 `/api/health` smoke test，结论 `success`。
-- [Pages run 29931143073](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/29931143073)：静态站部署，结论 `success`。
+- [Pages run 29931143073](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/29931143073)：正式公开在线站部署，结论 `success`。
 - 部署后从公开 URL 实测：首页可读到 Star 支持文案，`app.html` 已加载 `product-extensions.js`，多 Skill 目录、项目管理脚本和新 SVG 图标均返回 HTTP 200。
 
 本轮联系方式与 AI 图标更正已在提交 [`93635ac`](https://github.com/zizegak916-glitch/writing-workshop/commit/93635ac4f7394eae945f88990e8a97497fac5012) 上重新验证：

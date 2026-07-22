@@ -4,7 +4,7 @@
 >
 > 2026-07-22 复核：本页后半的大量命令、截图描述和目录结构属于上游历史记录。当前二进制是 `writing-workshop`，现行 API 以根目录 `API.md` 为准。
 
-AI写作工坊是面向小说创作的开源可自定义主体应用。它可以在 GitHub Pages 上作为静态前端发布，也可以接入本地或自部署后端来启用真实 AI 调用、配置保存、项目同步、skill 执行和规则管理。
+AI写作工坊是面向小说创作的开源可自定义主体应用。它已在 GitHub Pages 上以静态前端形式正式公开发布；“静态”描述托管方式，不代表临时预览或假域名。它也可以接入本地或自部署后端来启用 AI 调用、配置保存、项目同步、skill 执行和规则管理。GitHub Pages 与 OpenAI Sites 是相互独立的托管方式。
 
 ## 能力来源定位
 
@@ -55,7 +55,7 @@ go build -o ainovel-cli ./cmd/ainovel-cli
 - 管理后台：`http://127.0.0.1:8080/admin.html`
 - API：`http://127.0.0.1:8080/api/...`
 
-浏览器只请求同源 `/api/`，不直接跨域访问模型厂商 URL。GitHub Pages 可以使用本地项目编辑功能，但“流程”执行、模型调用和能力管理需要运行上述本地后端或部署兼容的同源后端。
+浏览器只请求同源 `/api/`，不直接跨域访问模型厂商 URL。GitHub Pages 正式在线版可以使用浏览器本地项目编辑功能；当前默认 Pages 部署未附带该 `/api/` 服务，因此“流程”执行、模型调用和能力管理需要另行运行本地后端或部署兼容后端。静态网页在技术上可以发起 API 请求，是否成功取决于实际接入的端点、认证与 CORS 策略。
 
 配置支持本地配置文件和环境变量。API key 可写入 `~/.ainovel/config.json`，也可使用 `AINOVEL_<PROVIDER>_API_KEY` 或 `<PROVIDER>_API_KEY`，例如 `AINOVEL_OPENROUTER_API_KEY`。
 

@@ -27,6 +27,6 @@
 
 - 当前 UI 与行为以 `web/static/app.html` 实际加载的脚本为准；未加载的旧拆分文件不能作为功能已上线的证据。
 - 当前后端接口以 `internal/web/server.go` 的路由和对应测试为准。
-- GitHub Pages 只提供静态交互；它没有常驻 Go API。工作台在 Pages 显示技能目录不等于技能已执行。
+- GitHub Pages 是当前正式公开在线版，与 OpenAI Sites 无从属关系。它以静态文件托管，浏览器本地能力可正式使用；默认部署本身没有常驻 Go API。工作台在 Pages 显示技能目录不等于技能已执行。
 - 浏览器项目分类和后端能力分类是两套明确存储：前者属于当前站点 IndexedDB/localStorage，后者属于工作目录 `.ainovel/categories.json`。
 - 历史文档继续保留，用状态标签避免把旧引擎设计误认成当前产品执行层。

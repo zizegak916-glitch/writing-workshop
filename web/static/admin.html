@@ -142,7 +142,7 @@ pre{white-space:pre-wrap;background:var(--card);border:1px solid var(--border);b
   </section>
   <section id="test" class="panel card">
     <h2>API 测试</h2>
-    <p style="color:var(--muted);margin-top:0">验证同源执行、SSE 流式返回与中断。Pages 预览不提供后端，请在本地服务中测试。</p>
+    <p style="color:var(--muted);margin-top:0">验证同源执行、SSE 流式返回与中断。默认 Pages 在线版未附带 Go API；连接兼容后端后再测试本区域。</p>
     <label>后端项目 ID</label><input id="runBackend" value="writing-workshop">
     <label>Skill IDs（逗号分隔）</label><input id="runSkills" value="builtin-rewrite">
     <label>任务</label><input id="runTask" value="rewrite">
@@ -198,8 +198,8 @@ function appendRunStream(chunk){chunk.split('\n').forEach(line=>{if(line.startsW
 async function abortRun(){try{if(runAbortController)runAbortController.abort();const d=await api('/api/abort',{method:'POST'});testResult.textContent+='\n已发送中断：'+JSON.stringify(d)}catch(e){testResult.textContent=e.message}}
 const isPages = location.hostname.endsWith('github.io');
 if(isPages){
-  apiStatus.textContent='Pages 静态预览';
-  showRuntimeNotice('<b>当前没有连接后端。</b> GitHub Pages 只发布静态前端。保存 GitHub 项目、skill、自定义能力，执行任务和实时回传结果，都需要接入本地或自部署后端。');
+  apiStatus.textContent='Pages 在线版 · 本地数据';
+  showRuntimeNotice('<b>当前是 GitHub Pages 正式在线版。</b> 公开域名与浏览器本地功能正常可用；默认 Pages 部署未附带仓库的 Go API。保存服务端 GitHub 项目、skill、自定义能力，执行任务和实时回传结果时，需要另行接入本地或自部署后端。');
 }else{
   loadAll().then(()=>{apiStatus.textContent='后端已连接'}).catch(e=>{
     apiStatus.textContent='后端未连接';

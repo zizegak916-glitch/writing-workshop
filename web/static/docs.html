@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="description" content="Writing Workshop 从静态预览、本地启动、API 配置到项目导入与 Skill 接入的完整使用教程。">
+  <meta name="description" content="Writing Workshop 从 Pages 正式在线版、后端增强模式、API 配置到项目导入与 Skill 接入的完整使用教程。">
   <meta name="theme-color" content="#fffaf1">
   <title>使用文档 · Writing Workshop</title>
   <link rel="icon" href="icons/app-icon.svg" type="image/svg+xml">
@@ -17,7 +17,7 @@
 
   <div class="site-shell docs-layout">
     <aside class="docs-sidebar" aria-label="文档目录">
-      <p>开始</p><a href="#overview">先理解两种模式</a><a href="#quickstart">60 秒启动</a><a href="#first-project">第一个项目</a>
+      <p>开始</p><a href="#overview">在线版与后端增强</a><a href="#quickstart">60 秒启动</a><a href="#first-project">第一个项目</a>
       <p style="margin-top:20px">创作</p><a href="#workspace">工作台导航</a><a href="#workflow">AI 流程</a><a href="#import-export">导入与导出</a>
       <p style="margin-top:20px">连接</p><a href="#api">API 与模型</a><a href="#cors">CORS 说明</a><a href="#skills">Skill 与能力</a><a href="#troubleshooting">故障排查</a>
     </aside>
@@ -28,16 +28,18 @@
       <p class="docs-lead">这份文档不假设你已经懂 API、Docker 或 Skill。先选择你的使用方式，再按一条完整路线跑通。</p>
 
       <section id="overview">
-        <h2>先理解：Pages 预览与本地应用不同</h2>
+        <h2>先理解：Pages 在线版与后端增强模式</h2>
         <div class="doc-grid">
-          <article class="doc-card"><h3>GitHub Pages · 看与体验</h3><p>可以打开完整界面、建立浏览器本地项目、编辑正文并体验交互。但它是静态网站，没有常驻 Go 后端，不能保存服务端配置或真正调用模型。</p></article>
-          <article class="doc-card"><h3>本地服务 · 完整生产</h3><p>运行仓库自带的 Go 服务后，页面和 API 来自同一个地址。项目同步、配置、Skill、SSE 流式输出和中断全部可用。</p></article>
+          <article class="doc-card"><h3>GitHub Pages · 正式在线版</h3><p>这是项目当前对外发布的真实 HTTPS 站点，不是临时预览。可以正式建立浏览器本地项目、编辑正文、管理分类与导入导出。数据默认保存在当前域名的 IndexedDB / localStorage。</p></article>
+          <article class="doc-card"><h3>后端增强模式</h3><p>运行仓库自带的 Go 服务，或部署兼容后端后，可增加服务端项目同步、密钥保管、Skill 执行、SSE 流式输出和中断。这是能力扩展，不是把 Pages 从“假站”变成“真站”。</p></article>
         </div>
-        <div class="doc-callout"><b>最重要的一点：</b>Pages 上的“后端未连接”不是故障。要进行真实 AI 调用，请先按下一节启动本地服务，再从 <code>127.0.0.1:8080</code> 打开页面。</div>
+        <div class="doc-callout"><b>托管方式不等于功能真假：</b>静态网页同样可以发起 API 请求；是否成功取决于实际端点、认证和 CORS。本仓库当前默认 Pages 工作流未同时部署 Go API，所以界面显示“未连接后端”仅说明服务端能力未接入。GitHub Pages 与 OpenAI Sites 是独立托管方式。</div>
       </section>
 
       <section id="quickstart">
         <h2>60 秒启动</h2>
+        <h3>路线 0：直接使用 Pages 在线版</h3>
+        <p>打开 <a href="app.html">Writing Workshop 工作台</a>，新建项目即可编辑。无需安装 Go 或 Docker。由于项目数据属于当前 <code>github.io</code> 域名的浏览器存储，请定期使用顶部导出或项目操作台下载备份。</p>
         <h3>路线 A：Docker（最省事）</h3>
         <p>需要安装 Git 与 Docker Desktop。复制下面四行命令：</p>
         <pre><code>git clone https://github.com/zizegak916-glitch/writing-workshop.git
@@ -71,7 +73,7 @@ go build -o writing-workshop ./cmd/writing-workshop
           <li>在中间编辑区写作。自动保存开启时，数据写入浏览器 IndexedDB；点击顶部保存可以立即保存。</li>
           <li>第一次重要编辑后，点击顶部下载图标导出项目备份。项目包版本 2 包含项目、章节、大纲、人物与记忆。</li>
         </ol>
-        <div class="doc-callout info"><b>本地优先：</b>静态 Pages 与本地模式都可以使用浏览器数据库。清除浏览器站点数据会删除这部分内容，因此长期项目务必定期导出。</div>
+        <div class="doc-callout info"><b>本地优先：</b>Pages 正式在线版与后端增强模式都可以使用浏览器数据库。清除浏览器站点数据会删除这部分内容，因此长期项目务必定期导出。</div>
       </section>
 
       <section id="workspace">
@@ -142,7 +144,7 @@ go build -o writing-workshop ./cmd/writing-workshop
         <p>CORS 不是“再加一个开关就能安全解决”的小错误。把 API Key 放在浏览器里，会被页面脚本、扩展或网络日志读到；不少模型服务也会拒绝来自任意网页的跨域请求。</p>
         <div class="doc-flow"><span>浏览器工作台</span><span>同源 /api</span><span>本地 Go 后端</span><span>模型服务</span><span>候选返回</span></div>
         <p>Writing Workshop 采用同源桥接：浏览器只访问自己的 <code>/api/</code>；后端读取密钥并请求模型，再把结果流式传回。这样既绕开浏览器跨域限制，也不向前端暴露密钥。</p>
-        <div class="doc-callout"><b>不要：</b>在 GitHub Pages、仓库 JavaScript、公开环境变量或可下载配置中写入真实 API Key。Pages 只用于静态展示。</div>
+        <div class="doc-callout"><b>不要：</b>在 GitHub Pages 前端文件、仓库 JavaScript、公开环境变量或可下载配置中写入真实 API Key。Pages 是正式在线站；正因为它真实公开，才更不应将密钥打包进前端。</div>
       </section>
 
       <section id="skills">
@@ -176,7 +178,7 @@ go build -o writing-workshop ./cmd/writing-workshop
         <table>
           <thead><tr><th>现象</th><th>原因</th><th>处理</th></tr></thead>
           <tbody>
-            <tr><td>Pages 显示“后端未连接”</td><td>静态站没有 API 服务</td><td>启动 Docker，从 127.0.0.1 打开</td></tr>
+            <tr><td>Pages 显示“当前未连接后端”</td><td>公开域名正常；只是默认 Pages 部署没有同时运行 Go API</td><td>浏览器本地功能可继续使用；需要服务端能力时再启动或部署兼容后端</td></tr>
             <tr><td>模型测试 401</td><td>Key 无效或未加载</td><td>检查环境变量/后台配置并重启服务</td></tr>
             <tr><td>模型测试 404</td><td>Base URL 或 Model 不存在</td><td>确认 URL 含正确 API 根路径与模型 ID</td></tr>
             <tr><td>浏览器报 CORS</td><td>正在直连第三方 API</td><td>改为访问同源 Go 后端，不要在 Pages 放 Key</td></tr>

@@ -7,9 +7,11 @@
 
 它不是聊天框的换皮，也不会把整部作品在每次调用时重新发送给模型。
 
-**在线体验：** [GitHub Pages](https://zizegak916-glitch.github.io/writing-workshop/) · [完整使用文档](https://zizegak916-glitch.github.io/writing-workshop/docs.html) · [能力后台](https://zizegak916-glitch.github.io/writing-workshop/admin.html)
+**正式在线版：** [GitHub Pages](https://zizegak916-glitch.github.io/writing-workshop/) · [完整使用文档](https://zizegak916-glitch.github.io/writing-workshop/docs.html) · [能力后台](https://zizegak916-glitch.github.io/writing-workshop/admin.html)
 
-> Pages 是静态交互预览，可以使用浏览器本地数据；模型调用、服务端配置和 Skill 执行需要启动仓库自带的同源后端。这样做是为了避免在公开网页中暴露 API Key，也从架构上避开 CORS 问题。
+> GitHub Pages 是本项目当前正式发布的公开在线站点，`github.io` 是真实可访问的 HTTPS 域名，不是临时预览。它采用静态托管，但浏览器本地项目、编辑、分类、导入导出等功能均可正式使用。当前默认部署不附带常驻 Go API；需要密钥托管、服务端同步或 Skill 执行时，再连接本地或自部署的兼容后端。静态托管本身并不禁止 API 调用，能否调用取决于站点是否接入了可用且安全的 API 端点。
+
+> GitHub Pages 与 OpenAI Sites 是彼此独立的托管方式。本仓库当前公开地址由 GitHub Pages 发布，不把 Pages 写成 Sites 的预览层或降级版。
 
 ![Writing Workshop 彩色编辑部首页](docs/images/landing-page.jpg)
 
@@ -86,11 +88,11 @@ flowchart LR
 | `index.html` | 产品说明、运行模式和 60 秒启动入口 |
 | `app.html` | 项目、章节、大纲、人物、记忆、分类、导入导出、多 Skill 与候选写入 |
 | `admin.html` | Provider、Model、Base URL、API Key、项目、规则、能力、技能包、分类与 API 调试 |
-| `docs.html` | 从 Pages / 本地模式区别到 CORS、Skill 与故障排查的完整教程 |
+| `docs.html` | 从 Pages 在线版 / 后端增强模式到 CORS、Skill 与故障排查的完整教程 |
 
 视觉规范与组件约束见 [UI 设计系统](docs/UI_DESIGN_SYSTEM.md)。
 
-后台不是装饰页：Provider、Model、Base URL、API Key、项目、角色、规则、能力来源与 API 测试都有明确入口。Pages 中显示静态预览状态，本地运行后自动连接同源 API。
+后台不是装饰页：Provider、Model、Base URL、API Key、项目、角色、规则、能力来源与 API 测试都有明确入口。Pages 中显示“在线版 · 浏览器本地数据”；连接同源或自部署 API 后，再启用对应的服务端能力。
 
 ![Writing Workshop 能力控制台](docs/images/ability-console.jpg)
 

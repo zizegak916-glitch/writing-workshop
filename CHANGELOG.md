@@ -13,6 +13,7 @@ All notable Writing Workshop changes are recorded here. The project follows Sema
 - Added a hand-drawn repository-native SVG app icon across the workbench, product pages and console.
 - Replaced the generic brain AI entry and all 30 text/Emoji capability glyphs with a repository-native SVG icon family for desktop and mobile.
 - Removed the nonfunctional URL-import control and replaced the obsolete contact link with verified Linux DO user `The_Fo0l`.
+- Corrected product terminology across the UI and documentation: GitHub Pages is the formal public online deployment, not a preview or a Sites layer; the optional backend is described separately as a server-side capability extension.
 - Added a truthful GitHub Star support panel to the landing page.
 - Updated current documentation, added a documentation status map, and labeled inherited engine documents as historical references.
 
