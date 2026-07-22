@@ -3,8 +3,10 @@ package main
 import (
 	"context"
 	"fmt"
+	"net"
 	"os"
 	"os/signal"
+	"strconv"
 	"strings"
 
 	"github.com/voocel/ainovel-cli/assets"
@@ -44,8 +46,12 @@ func main() {
 	}
 	headlessMode = opts.Headless
 
-	// 首次引导
+	// 首次引导。Web demo 可无密钥启动；一旦用户保存了配置，后续启动自动加载它。
 	if bootstrap.NeedsSetup(opts.ConfigPath) {
+		if opts.Demo {
+			runWithConfig(bootstrap.DemoConfig(), opts, args)
+			return
+		}
 		if opts.Headless {
 			die("error: headless 模式不支持首次引导，请先运行一次 TUI 完成配置")
 		}
@@ -107,7 +113,7 @@ func runWithConfig(cfg bootstrap.Config, opts cliOptions, args []string) {
 			die("web: %v", err)
 		}
 		defer h.Close()
-		addr := fmt.Sprintf("127.0.0.1:%d", opts.Port)
+		addr := net.JoinHostPort(opts.Host, strconv.Itoa(opts.Port))
 		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 		defer stop()
 		if err := web.NewServer(h, addr).ListenAndServe(ctx); err != nil {
@@ -142,6 +148,9 @@ type cliOptions struct {
 	Update        bool
 	UpdateVersion string
 	Serve         bool
+	Demo          bool
+	Host          string
+	HostSet       bool
 	Port          int
 }
 
@@ -149,6 +158,7 @@ type cliOptions struct {
 func parseCLIOptions(argv []string) (cliOptions, []string, error) {
 	var opts cliOptions
 	opts.Port = 8080
+	opts.Host = "127.0.0.1"
 	var args []string
 	for i := 0; i < len(argv); i++ {
 		switch argv[i] {
@@ -159,6 +169,18 @@ func parseCLIOptions(argv []string) (cliOptions, []string, error) {
 			opts.Serve = true
 		case "--serve":
 			opts.Serve = true
+		case "--demo":
+			opts.Demo = true
+		case "--host":
+			if i+1 >= len(argv) {
+				return opts, nil, fmt.Errorf("--host 缺少值")
+			}
+			opts.Host = strings.TrimSpace(argv[i+1])
+			if opts.Host == "" || strings.ContainsAny(opts.Host, "\r\n\x00") {
+				return opts, nil, fmt.Errorf("--host 不是有效的监听地址")
+			}
+			opts.HostSet = true
+			i++
 		case "--port":
 			if i+1 >= len(argv) {
 				return opts, nil, fmt.Errorf("--port 缺少值")
@@ -218,14 +240,20 @@ func parseCLIOptions(argv []string) (cliOptions, []string, error) {
 	if opts.Prompt != "" && opts.PromptFile != "" {
 		return opts, nil, fmt.Errorf("--prompt 和 --prompt-file 不能同时使用")
 	}
-	if opts.Version && (opts.Update || opts.ConfigPath != "" || opts.Headless || opts.Prompt != "" || opts.PromptFile != "" || opts.Serve || len(args) > 0) {
+	if opts.Version && (opts.Update || opts.ConfigPath != "" || opts.Headless || opts.Prompt != "" || opts.PromptFile != "" || opts.Serve || opts.Demo || opts.HostSet || len(args) > 0) {
 		return opts, nil, fmt.Errorf("version 不能与其他启动参数混用")
 	}
-	if opts.Update && (opts.ConfigPath != "" || opts.Headless || opts.Prompt != "" || opts.PromptFile != "" || opts.Serve || len(args) > 0) {
+	if opts.Update && (opts.ConfigPath != "" || opts.Headless || opts.Prompt != "" || opts.PromptFile != "" || opts.Serve || opts.Demo || opts.HostSet || len(args) > 0) {
 		return opts, nil, fmt.Errorf("update 不能与其他启动参数混用")
 	}
 	if opts.Serve && (opts.Headless || opts.Prompt != "" || opts.PromptFile != "" || len(args) > 0) {
 		return opts, nil, fmt.Errorf("serve 不能与 --headless/--prompt/位置参数混用")
+	}
+	if opts.Demo && !opts.Serve {
+		return opts, nil, fmt.Errorf("--demo 只能与 serve 一起使用")
+	}
+	if opts.HostSet && !opts.Serve {
+		return opts, nil, fmt.Errorf("--host 只能与 serve 一起使用")
 	}
 	return opts, args, nil
 }
@@ -241,8 +269,8 @@ func versionInfo() buildversion.Info {
 func runSelfUpdate(target string) error {
 	info := versionInfo()
 	result, err := buildversion.Update(context.Background(), buildversion.UpdateOptions{
-		Repo:           "voocel/ainovel-cli",
-		BinaryName:     "ainovel-cli",
+		Repo:           "zizegak916-glitch/writing-workshop",
+		BinaryName:     "writing-workshop",
 		TargetVersion:  target,
 		CurrentVersion: info.Version,
 	})
@@ -250,10 +278,10 @@ func runSelfUpdate(target string) error {
 		return err
 	}
 	if !result.Updated {
-		fmt.Printf("ainovel-cli 已是最新版本 %s\n", result.Version)
+		fmt.Printf("writing-workshop 已是最新版本 %s\n", result.Version)
 		return nil
 	}
-	fmt.Printf("ainovel-cli 已更新到 %s\n", result.Version)
+	fmt.Printf("writing-workshop 已更新到 %s\n", result.Version)
 	fmt.Printf("安装位置：%s\n", result.Path)
 	return nil
 }

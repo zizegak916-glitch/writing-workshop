@@ -1,669 +1,116 @@
-# AI写作工坊
+# Writing Workshop / AI 写作工坊
 
-AI写作工坊是面向小说创作的开源可自定义主体应用。它可以在 GitHub Pages 上作为静态前端发布，也可以接入本地或自部署后端来启用真实 AI 调用、配置保存、项目同步、skill 执行和规则管理。
+[![CI](https://github.com/zizegak916-glitch/writing-workshop/actions/workflows/ci.yml/badge.svg)](https://github.com/zizegak916-glitch/writing-workshop/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-black.svg)](LICENSE)
 
-## 能力来源定位
+一个本地优先、可审计的长篇写作工作台。它把“选哪些上下文、运行哪些 Skill、结果写到哪里”变成显式操作：AI 只生成候选，作者确认后才写入正文或记忆。
 
-写作工坊可以保存来自 GitHub 的优质开源项目、skill、规则包和你自己编写的通用能力文件。创作时，前端选择一个后端项目或多个 skill，把项目、章节、角色、上下文和参数传给后端；后端执行后把文本、JSON、补丁或事件流直接回传到前端，前端可以随时中断长任务。
+它不是聊天框的换皮，也不会把整部作品在每次调用时重新发送给模型。
 
-主应用默认以本地游客模式打开，不要求设置密码；数据默认留在浏览器本地或你运行的本地/自部署后端工作目录中。除非后续提供数据管理服务，否则不把本地使用包装成账号体系。
+## 现在能做什么
 
-`ainovel-cli` 原版是他人维护的开源项目，原始上游为 [`voocel/ainovel-cli`](https://github.com/voocel/ainovel-cli)。本仓库不声明其原创归属，只把它作为 AI写作工坊可原生支持的后端项目之一。
+- 管理项目、章节、大纲、人物卡、规则和写作记忆。
+- 为一次任务显式选择正文、项目、大纲、人物与记忆，实时查看字符和 token 估算。
+- 组合后端与 Skill 执行任务；支持 SSE 流式结果和中断。
+- 候选结果与正文分离；替换、插入、追加、写入记忆均需独立确认。
+- 保存写入前快照和流程历史，避免 AI 输出静默覆盖创作内容。
+- 在无 API Key 模式下运行本地链路测试和大纲拆分；需要模型时再配置 OpenAI 兼容服务、OpenRouter、Ollama 等后端。
 
-## 自定义接入要求
+## 60 秒启动
 
-自定义 GitHub 项目、远程链接或本地 skill 必须能被后端安全解析，并至少声明：
-
-- 名称、版本、来源链接或文件路径、作者和许可证。
-- 可执行入口或提示词入口，例如命令、HTTP endpoint、脚本路径、prompt 模板或规则文件路径。
-- 输入 schema、输出类型、错误格式、是否支持流式输出、是否支持取消。
-- 权限边界，包括文件访问、网络访问、环境变量和密钥需求。
-- 通用适用范围。能力应面向写作、分析、导入、规划、改写等通用任务，不能绑定某个单一小说或私有项目。
-
-## 已实现的能力 API
-
-后端已经提供通用能力链路，供所有使用者和二开者接入：
-
-- `GET /api/capabilities`：列出内置能力和已保存能力。
-- `POST /api/capabilities`：保存 GitHub 项目、远程 manifest 或本地 skill 清单。数据落盘到当前工作目录的 `.ainovel/capabilities.json`。
-- `DELETE /api/capabilities?id=...`：删除用户保存的能力。
-- `POST /api/run`：按 `backend_id` 和 `skill_ids` 执行任务，返回 JSON；传 `params.stream=true` 时返回 SSE 事件流。
-- `POST /api/abort`：中断当前写作运行和能力运行。
-
-当前内置能力包括 `builtin-echo`、`builtin-outline`、`builtin-rewrite` 和 `ainovel-cli` 后端适配。内置能力只读，用户能力可编辑、启停和删除；停用能力不能被 `/api/run` 执行。出于安全原因，保存 GitHub 链接或 skill manifest 不会立即执行任意仓库代码；真正执行第三方代码需要后续接入明确的沙箱执行器。
-
-## Web 写作工坊
-
-当前仓库保留了一个 `ainovel-cli` 后端适配示例。静态资源可以通过 `go:embed` 打包进单个二进制，不依赖外部 CDN。启动后即可在浏览器中编辑项目、章节、角色、规则包，并通过后端代理真实 LLM API。
-
-主界面的 AI 面板包含“流程”页：用户可以显式选择当前正文、项目设定、大纲、人物卡和记忆组成上下文包，查看估算 token，再组合后端与 skill 执行。结果先进入候选区，不会自动修改正文；写入正文与整理为记忆是两个独立确认动作。流程历史保留完整候选和写入前快照，支持重新查看与恢复。
+### Docker（推荐）
 
 ```bash
-go build -o ainovel-cli ./cmd/ainovel-cli
-./ainovel-cli serve --port 8080
+git clone https://github.com/zizegak916-glitch/writing-workshop.git
+cd writing-workshop
+docker compose up --build
 ```
 
-访问地址：
+打开 <http://127.0.0.1:8080/app.html>。首次以无密钥 demo 模式启动；可在管理页配置模型。配置保存后，容器重启会自动加载它。
 
-- 写作工坊：`http://127.0.0.1:8080/app.html`
-- 管理后台：`http://127.0.0.1:8080/admin.html`
-- API：`http://127.0.0.1:8080/api/...`
-
-浏览器只请求同源 `/api/`，不直接跨域访问模型厂商 URL。GitHub Pages 可以使用本地项目编辑功能，但“流程”执行、模型调用和能力管理需要运行上述本地后端或部署兼容的同源后端。
-
-配置支持本地配置文件和环境变量。API key 可写入 `~/.ainovel/config.json`，也可使用 `AINOVEL_<PROVIDER>_API_KEY` 或 `<PROVIDER>_API_KEY`，例如 `AINOVEL_OPENROUTER_API_KEY`。
-
-更多说明见：
-
-- [API.md](API.md) — Web API 端点
-- [CONFIG.md](CONFIG.md) — 配置、模型和密钥管理
-- [DEVELOPMENT.md](DEVELOPMENT.md) — 开发、构建和自检流程
-
-<p align="center">
-  <img src="scripts/sample.gif" alt="ainovel-cli demo" width="800">
-  <img src="scripts/novel.png" alt="ainovel-cli bg" width="800">
-</p>
-
-## ainovel-cli 后端示例特性
-
-以下能力来自 `ainovel-cli` 后端示例及其上游项目，本仓库仅做前端集成和原生适配说明。
-
-- **多智能体协作** — Coordinator 在一次长循环中调度 Architect / Writer / Editor 三个子代理，自主决策创作流程
-- **LLM 驱动长循环** — 一次 Prompt 写完整本书，Host 不介入调度。越简单越稳定，拒绝复杂编排
-- **Step 级断点恢复** — 每个工具执行成功后写入 checkpoint，崩溃后精确到 plan/draft/check/commit 步骤级恢复
-- **卷弧双层滚动规划** — 长篇不再一次性规划全部章节。初始只规划前 2 卷弧骨架 + 第 1 弧详细章节，后续弧/卷在写作推进到时再由 Architect 展开，每次展开都参考前文摘要和角色状态，远期规划不空洞
-- **相关章节智能推荐** — 每章写作时从伏笔、角色出场、状态变化、关系四个维度自动推荐相关历史章节，配合下一章预告，确保 500+ 章长篇的连续性
-- **自适应上下文策略** — 根据总章节数自动切换全量 / 滑窗 / 分层摘要，支持 500+ 章长篇
-- **七维质量评审** — Editor 从设定一致性、角色行为、节奏、叙事连贯、伏笔、钩子、审美品质七个维度评审，审美维度细分描写质感/叙事手法/对话区分度/用词质量/情感打动力五项，每项必须引用原文举证
-- **用户实时干预** — 写作过程中随时在输入框注入修改意见（无需暂停），系统自动评估影响范围并重写受影响章节
-- **统一 TUI 入口** — 交互界面实时观察进度，也支持携带一句需求直接启动
-- **多 LLM 支持** — OpenRouter / Anthropic / Gemini / OpenAI 等等随意切换
-
-## ainovel-cli 后端示例架构
-
-核心设计：**LLM 驱动，Host 服务**。Coordinator 在一次 Run 中自主决策整本书的创作流程，Host 只做启动、恢复和事件观察。
-
-```
-┌─────────────────────────────────────────────────┐
-│                Host（薄外壳）                     │
-│           启动 / 恢复 / 观察 / 干预注入            │
-└──────────────────────┬──────────────────────────┘
-                       │ 一次 Prompt
-┌──────────────────────▼──────────────────────────┐
-│              Coordinator（LLM 长循环）            │
-│    读 novel_context → 调子代理 → 读结果 → 继续     │
-└────┬──────────┬──────────┬──────────────────────┘
-     │          │          │
- ┌───▼────┐ ┌───▼───┐ ┌────▼────┐
- │Architect│ │Writer │ │ Editor  │
- └───┬────┘ └───┬───┘ └────┬────┘
-     └──────────┼──────────┘
-                │ 工具调用（IO + checkpoint）
-┌───────────────▼─────────────────────────────────┐
-│                   Store                         │
-│  Progress / Checkpoint / Outline / Drafts / ... │
-└─────────────────────────────────────────────────┘
-```
-
-- **Host** — 启动 Coordinator、崩溃恢复、事件投影给 TUI。不做任何调度决策
-- **Coordinator** — 唯一的决策者，在一次 Run 里驱动规划→写作→评审→总结的完整流程
-- **SubAgents** — Architect / Writer / Editor 各自独立 context，通过 Store 中的工件协作
-- **Tools** — 原子 IO + checkpoint 写入，只返事实 JSON，不夹带指令
-
-### 智能体职责
-
-| 智能体 | 职责 | 工具 |
-|--------|------|------|
-| **Coordinator** | 调度全局，处理评审裁定和用户干预 | `subagent` `novel_context` |
-| **Architect** | 生成前提、大纲、角色档案、世界规则 | `novel_context` `save_foundation` |
-| **Writer** | 自主完成一章的构思、写作、自审和提交 | `novel_context` `read_chapter` `plan_chapter` `draft_chapter` `check_consistency` `commit_chapter` |
-| **Editor** | 阅读原文，从结构和审美两个层面审阅 | `novel_context` `read_chapter` `save_review` `save_arc_summary` `save_volume_summary` |
-
-### 写作流程
-
-```
-用户需求 → Architect 规划骨架 + 首弧章节 → Writer 逐章写作 → Editor 弧级评审
-                                                  ↑                   │
-                                                  ├── 重写/打磨 ◄──────┘
-                                                  │
-                                           Architect 展开下一弧/卷
-                                          （参考前文摘要+角色快照）
-```
-
-Writer 按固定顺序完成每章（写作内容完全自主，工具调用顺序严格）：
-
-1. `novel_context` — 加载上下文（前情摘要、伏笔、角色状态、风格规则、相关章节推荐）
-2. `read_chapter` — 回读前文找回语气和节奏
-3. `plan_chapter` — 构思本章目标、冲突、情绪弧线
-4. `draft_chapter` — 写入整章正文
-5. `check_consistency` — 对照状态数据检查一致性（必须在 draft 之后）
-6. `commit_chapter` — 提交终稿，返回事实字段（`arc_end_reached` / `next_chapter` 等），下一步由 Reminder 驱动
-
-### 状态迁移规则
-
-系统内部把运行状态拆成两层：
-
-- **Phase** — 大阶段，表示作品目前处于设定期、写作期还是已完成
-- **Flow** — 当前活跃流程，表示系统此刻是在正常写作、审阅、重写、打磨还是处理用户干预
-
-#### Phase
-
-`Phase` 采用“只前进不回退”的规则：
-
-```text
-init -> premise -> outline -> writing -> complete
-  \-------> outline ------^
-  \--------------> writing
-```
-
-含义：
-
-- `init` — 任务已创建，尚未形成稳定设定
-- `premise` — 已保存故事前提
-- `outline` — 已保存大纲，可以进入正式写作
-- `writing` — 已进入章节创作期
-- `complete` — 全书流程结束
-
-规则说明：
-
-- 允许同态更新，例如 `writing -> writing`
-- 允许前进，例如 `outline -> writing`
-- 不允许回退，例如 `writing -> premise`、`complete -> writing`
-
-#### Flow
-
-`Flow` 只描述写作期内的活跃流程，允许在几个工作流之间切换：
-
-```text
-writing   -> reviewing / rewriting / polishing / steering / writing
-reviewing -> writing / rewriting / polishing / steering / reviewing
-rewriting -> writing / steering / rewriting
-polishing -> writing / steering / polishing
-steering  -> writing / reviewing / rewriting / polishing / steering
-```
-
-含义：
-
-- `writing` — 正常推进下一章
-- `reviewing` — Editor 正在评审
-- `rewriting` — 处理必须重写的章节
-- `polishing` — 处理只需打磨的章节
-- `steering` — 正在评估并处理用户干预
-
-规则说明：
-
-- 允许 `writing -> reviewing`，例如章节提交后触发评审
-- 允许 `reviewing -> rewriting/polishing/writing`，由评审结果决定
-- 允许 `steering -> writing/reviewing/rewriting/polishing`，由干预影响范围决定
-- 不允许明显反常的跳转，例如 `rewriting -> reviewing`
-
-这些规则现在由代码中的轻量校验统一约束，避免状态回退或跳到不合理的流程分支。
-
-### 长篇滚动规划
-
-传统方案一次规划所有章节，300+ 章时大纲空洞、节奏像赶进度。本系统采用**指南针 + 视野滚动规划**，模拟网文作者的真实创作流程：
-
-```
-初始规划                     弧结束时                      卷结束时
-┌────────────────────┐    ┌─────────────────────┐    ┌─────────────────────┐
-│ 终局方向（指南针）    │    │ Editor 弧级评审      │    │ Editor 卷级评审       │
-│ 起步 2 卷，后续按需   │    │ 弧摘要 + 角色快照     │    │ 卷摘要               │
-│ 第1弧详细章节        │ →  │ Architect 展开下一弧  │ →  │ Architect 自主创建   │
-│ 角色 + 世界观        │    │ Writer 继续写作      │    │ 下一卷 + 更新指南针    │
-└────────────────────┘    └─────────────────────┘    └─────────────────────┘
-```
-
-- **指南针（Compass）** — 终局方向 + 活跃长线 + 规模估计，每次卷边界由 Architect 更新，故事方向可随创作演化
-- **按需生成** — 当前卷写完后，Architect 根据已写内容自主创建下一卷。初始规划生成 2 卷作为起步，后续卷按需生成
-- **骨架弧** — 只有 goal + 预估章数，到达时再展开详细章节
-- **渐进细化** — 每次展开都参考前文摘要、角色快照、风格规则，越往后写越精确
-- **通用节奏模板** — 成长突破弧 / 竞技对抗弧 / 探索发现弧 / 恩怨冲突弧 / 日常过渡弧，每种弧型有参考密度和适用题材映射
-
-### 长篇上下文管理
-
-500+ 章小说采用三级摘要 + 四级压缩管线 + 智能推荐：
-
-```
-卷（Volume）→ 卷摘要
-└── 弧（Arc）→ 弧摘要 + 角色快照 + 风格规则
-    └── 章（Chapter）→ 章摘要（滑窗最近3章）
-```
-
-- **分层摘要** — 近处用章摘要，中距离用弧摘要，远处用卷摘要，层层压缩不丢信息
-- **相关章节推荐** — 每章写作时从伏笔、角色出场、状态变化、关系四个维度反查历史章节，推荐 Writer 按需回读
-- **下一章预告** — 加载下一章大纲，帮 Writer 设计章末钩子和伏笔衔接
-- **弧边界检测** — 自动识别弧/卷结束，触发评审、摘要生成和下一弧/卷展开
-
-#### 上下文压缩管线
-
-当对话超出模型上下文窗口时，按代价从低到高逐级压缩：
-
-```
-ToolResultMicrocompact → LightTrim → StoreSummaryCompact → FullSummary
-     清理旧工具结果        截断长文本      store 零 LLM 压缩      LLM 摘要兜底
-```
-
-- **StoreSummaryCompact** — Writer 专用，用 store 中已有的章节摘要、角色快照、伏笔台账直接替换旧消息，零 LLM 开销
-- **FullSummary 小说定制** — Writer 使用面向叙事连续性的摘要提示词，明确要求保留角色状态、伏笔线索、审稿待修项、风格锚点
-- **压缩后恢复包** — FullSummary 后自动注入当前章节计划、大纲和角色快照，防止 Writer 压缩后"失忆"
-- **熔断器** — 压缩连续失败时自动跳过并显式告警，采用半开模式，下轮自动重试
-- **CJK Token 估算** — 中文 `runes × 1.5`，不会因为 `bytes/4` 低估而导致压缩触发滞后
-- **TUI 健康度渐变** — 上下文占用绿(<70%)→黄(70-85%)→红(>85%)实时展示
-
-## ainovel-cli 后端示例快速开始
+健康检查：
 
 ```bash
-# 一键安装（macOS / Linux，无需 Go）
-curl -fsSL https://raw.githubusercontent.com/voocel/ainovel-cli/main/scripts/install.sh | sh
-
-# 安装指定版本
-curl -fsSL https://raw.githubusercontent.com/voocel/ainovel-cli/main/scripts/install.sh | sh -s -- v1.2.3
-
-# 或通过 Go 安装
-go install github.com/voocel/ainovel-cli/cmd/ainovel-cli@latest
-
-# 查看版本 / 更新到最新版本
-ainovel-cli --version
-ainovel-cli update
-
-# 首次运行，自动进入引导流程（选择 Provider → 输入 API Key → Base URL → 模型名）
-ainovel-cli
+curl http://127.0.0.1:8080/api/health
+# {"mode":"demo","status":"ok"}
 ```
 
-> Windows 或手动安装：前往 [Releases](https://github.com/voocel/ainovel-cli/releases/latest) 下载对应平台的包。
+### 从源码运行
 
-### Docker
-
-Docker 镜像适合在服务器/NAS 上运行 headless 长任务，也可以用 `-it` 进入 TUI。配置和作品目录建议挂载到宿主机：
+需要 Go 1.25 或更高版本。
 
 ```bash
-mkdir -p config workspace
-
-# TUI
-docker run --rm -it \
-  -v "$PWD/config:/root/.ainovel" \
-  -v "$PWD/workspace:/workspace" \
-  ghcr.io/voocel/ainovel-cli:latest
-
-# Headless
-docker run --rm \
-  -v "$PWD/config:/root/.ainovel" \
-  -v "$PWD/workspace:/workspace" \
-  ghcr.io/voocel/ainovel-cli:latest \
-  --headless --prompt "写一本东方玄幻长篇，主角从边陲小城起步"
+go build -o writing-workshop ./cmd/ainovel-cli
+./writing-workshop serve --demo --port 8080
 ```
 
-也可以用 Compose：
+若需局域网或容器访问，显式增加 `--host 0.0.0.0`。默认只监听 `127.0.0.1`，避免意外暴露本地作品和密钥配置。
 
-```bash
-docker compose run --rm ainovel
-docker compose run --rm ainovel --headless --prompt "写一本悬疑短篇"
-```
+## 核心闭环
 
-进入 TUI 后，启动阶段支持两种前置交互：
+1. 在编辑器中打开正文或选择一段文字。
+2. 在“流程”页选择本次任务、上下文和 Skill。
+3. 先查看将发送的上下文规模，再运行任务。
+4. 输出进入候选区，不会自动修改作品。
+5. 作者选择替换、插入、追加，或另行确认为记忆。
+6. 写入前状态保存在流程历史中，可回看和恢复。
 
-- `快速开始`：一句话直接进入创作
-- `共创规划`：与 AI 多轮对话澄清需求，**右侧实时同步整理出的创作指令草稿**；AI 每轮主动提供 1-3 条引导建议，按数字键一键填入输入框，按 `Ctrl+S` 进入正式创作
+这个闭环是 Writing Workshop 与继承引擎能力之间的产品边界：引擎可以生成，工作台负责上下文控制、权限可见、结果确认和创作数据管理。
 
-两种模式最终都会收敛为同一份创作指令，再进入同一套创作引擎。
+## Skill / 能力协议
 
-### 管理多本小说
+能力清单不是任意远程代码执行入口。仓库当前只登记、校验和组合 manifest；第三方代码必须经过未来的沙箱执行器才允许运行。
 
-每本小说绑定到启动目录，产物落在 `{cwd}/output/novel/`。换目录启动 = 换一本，`cd` 回去启动 = 自动从最近 checkpoint 恢复。配置 `~/.ainovel/config.json` 全局共享，无需复制。
+最小 manifest：
 
-### 配置文件
-
-首次运行时自动引导生成配置文件 `~/.ainovel/config.json`，后续可直接编辑该文件调整设置。删除配置文件后重新运行会再次进入引导流程。
-
-也可以手动创建配置文件，参考 `~/.ainovel/config.example.jsonc`（引导时自动生成）。
-
-```jsonc
+```json
 {
-  "provider": "openrouter",
-  "model": "google/gemini-2.5-flash",
-  "providers": {
-    "openrouter": {
-      "api_key": "sk-or-v1-xxx",
-      "base_url": "https://openrouter.ai/api/v1",
-      "models": ["google/gemini-2.5-flash", "google/gemini-2.5-pro"],
-      "extra": {
-        "user_agent": "my-client/1.0",
-        "headers": { "X-Custom-Client": "my-client" }
-      }
-    }
-  },
-  "style": "default"
+  "name": "场景节奏检查",
+  "type": "skill",
+  "version": "1.0.0",
+  "source": "https://github.com/example/scene-pacing",
+  "license": "MIT",
+  "entry": "prompt:scene-pacing",
+  "output": "text",
+  "instructions": "保持事件顺序，只指出节奏断点并给出候选修改。",
+  "steps": ["读取显式上下文包", "检查场景节奏", "返回候选文本"],
+  "permissions": ["context:read"],
+  "supports_stream": true,
+  "supports_abort": true,
+  "enabled": true
 }
 ```
 
-#### 配置文件查找顺序（后者覆盖前者）
+完整字段和 API 示例见 [能力协议](docs/CAPABILITY_PROTOCOL.md) 与 [API 文档](API.md)。
 
-1. `~/.ainovel/config.json` — 全局配置
-2. `./.ainovel/config.json` — 项目级覆盖（可选）
-3. `--config path/to/config.json` — 命令行指定
+## 数据与安全边界
 
-> 项目级 `.ainovel/` 是全局 `~/.ainovel/` 的镜像：同样的结构、只是根目录从家目录换成当前项目。配置放 `./.ainovel/config.json`，写作规则放 `./.ainovel/rules/*.md`（详见下文「去 AI 味与自定义规则」）。该目录含密钥，已默认加入 `.gitignore`。
+- 项目数据默认写入本地输出目录；浏览器使用同源 `/api/`，不直连模型厂商，从根源上避开 CORS 密钥暴露。
+- 默认监听回环地址；如使用 `0.0.0.0`，请只在可信网络或反向代理鉴权后开放。
+- API Key 可使用环境变量，不必写入仓库；配置读取时会对外隐藏密钥。
+- 保存 GitHub URL 不等于执行仓库代码。
 
-覆盖规则说明：
+详见 [配置指南](CONFIG.md) 与 [安全策略](SECURITY.md)。
 
-- 标量字段按后者覆盖前者，例如 `provider`、`model`、`style`
-- `providers` 和 `roles` 按 key 合并，同名项内部按字段覆盖
-- 未填写的字段会继承上层配置，例如项目级配置只写 `base_url` 时会保留全局配置中的 `api_key`
-- 当前不支持用空字符串显式清空上层已有值；如需清空，请直接编辑更高优先级的配置文件
-
-> ⚠️ `provider`（以及 `roles.*.provider`）的值是 `providers` 里的 **key 名**——一根指针，不是协议名。项目级若把 `provider` 切到一个全局 `providers` 里不存在的账号，必须在项目级同时补上该账号的凭证（`api_key` / `base_url`），否则启动会报“未配置凭证”。
-
-`providers.<name>.models` 为可选字段，用于声明该 provider 下允许在 TUI `/model` 面板中切换的模型列表；如果未配置，系统会回退为当前配置文件里已经出现过的该 provider 模型。
-
-`providers.<name>.extra` 为 provider 级配置，会传给底层 HTTP 客户端，适合配置 `user_agent`、`headers`、`anthropic_beta` 等代理识别字段；`providers.<name>.extra_body` 才是请求体扩展参数，两者不要混用。
-
-## ainovel-cli 后端示例诊断报告
-
-在 TUI 中输入 `/diag` 可对当前小说的 output 产物进行诊断分析，产出可执行的发现和改进建议。
-
-诊断覆盖四个维度：
-
-- **流程** — 改写循环卡顿、未消费的转向指令、阶段/流程状态异常、章节跳号
-- **质量** — 评审维度持续低分、合同履约率、改写率、章节字数异常
-- **规划** — 伏笔停滞、指南针过时、大纲耗尽、摘要缺失
-- **上下文** — 角色消失、时间线缺口、关系数据停滞
-
-每条发现包含：问题描述、数据证据、改进建议（指向具体的 prompt/flow/config）。
-
-`/diag` 同时会写出一份**已脱敏**的 `meta/diag-export.md`（移除小说正文，仅保留工具调用、错误串、重复次数等行为骨架）。遇到死循环 / 中断类问题，把它贴到 GitHub issue 即可，方便维护者在拿不到本地数据的情况下定位。
-
-## ainovel-cli 后端示例仿写画像
-
-把参考文章放到当前启动目录的 `simulate/` 文件夹中，然后在 TUI 输入 `/simulate`。系统会递归读取 `.txt`、`.md`、`.markdown` 文件，用 architect 模型分析语料，并写入：
+## 项目结构
 
 ```text
-output/novel/meta/simulation_profile.json
+cmd/ainovel-cli/    可执行入口（发布名 writing-workshop）
+internal/web/       同源 Web API、SSE、能力执行与数据管理
+web/static/         本地优先的写作工作台
+internal/store/     章节、大纲、人物、记忆和运行状态
+examples/           可复用能力 manifest
+docs/               协议、来源与设计说明
 ```
 
-再次运行 `/simulate` 时，会按 `relative_path + sha256` 跳过未变化文件；如果没有新增或变更内容，会提示“画像已是最新”并且不会调用 LLM。若已有画像且 `simulate/` 中出现新增或修改文章，系统会在原画像基础上继续合成。
+## 路线图
 
-也可以导入之前生成的画像，避免重复分析同一批文章：
+- `v0.1`：无密钥启动、显式上下文包、候选确认、Skill manifest、CI 与跨平台发布。
+- `v0.2`：项目导入/导出包、可复现的端到端浏览器测试、能力版本锁定。
+- `v0.3`：最小权限的本地 Skill 沙箱与增量资料摄取。
 
-```text
-/simulate
-/importsim ./profile.json
-```
+公开任务请使用 [GitHub Issues](https://github.com/zizegak916-glitch/writing-workshop/issues)。提交代码前阅读 [CONTRIBUTING.md](CONTRIBUTING.md)。
 
-`/importsim` 只接受本功能生成的 `simulation_profile.v1` JSON，并按语料指纹合并，重复来源会跳过。只导入可信来源的画像文件；导入内容会成为后续 Agent 的上下文参考。画像会以 compact 形式注入 `novel_context`，Coordinator、Architect、Writer、Editor 都能读取；各 Agent 只借鉴结构、节奏、钩子和吸引读者手法，不复制原文表达或专有设定。
+## 来源与许可证
 
-## ainovel-cli 后端示例导入
-
-在 TUI 中输入 `/import <文件路径>` 可把一本已有的小说反推导入：先按章切分，再用 LLM 反推出前提 / 角色 / 世界观 / 分层大纲 / 指南针，逐章落盘。原文作为第一卷落成可续写的连载，导入完成后会**自动接力续写**——Coordinator 在第一卷末做评审/摘要、追加新卷，从下一章继续。
-
-```
-/import ~/我的小说.txt              # 从头导入并反推 foundation
-/import ~/我的小说.txt from=50      # 从第 50 章接着导入（跳过反推）
-```
-
-**章节切分规则**：自动识别这些标题格式（行首，可带 `#`/`##` Markdown 前缀、`【】`/`〖〗` 包裹、全角空格，兼容 GBK/BOM 编码）：
-
-- 中文编号：`第一章` `第3回` `第十话` `第二卷` `第五节` `第二幕`、独立 `卷一`，数字支持大写（`第壹章`），可带副标题（`第三章：决战`）
-- 中文特殊单元：`序章` `楔子` `引子` `前言` `尾声` `终章` `后记` `番外` `外传`
-- 英文：`Chapter 1` `Chapter II`、`Prologue` `Epilogue`，可带副标题（`Chapter 1: The Beginning`）
-
-若提示**"未识别到任何章节"**，请确认文件确为分章小说文本（章节标题独占一行、位于行首）。
-
-> 导入是确定性回放，不经过 Coordinator；原文会逐字落盘为已完成章节，因此适合"续写同一本书"。如果只想借鉴设定做全新创作，请用普通方式起一本新书、在需求里描述想要的风格设定。
-
-## ainovel-cli 后端示例导出
-
-在 TUI 中输入 `/export` 可把已完成的章节合并导出，默认 TXT，写到 `{novelDir}/{NovelName}.txt`。导出是只读操作，写作中途也可以随时拿"现阶段成品"，不影响 Coordinator 运行。
-
-格式由**输出路径后缀**决定（`.txt` / `.epub`）：
-
-```text
-/export                            # 默认 TXT，{novelDir}/{NovelName}.txt
-/export ~/光斑.txt                  # 后缀 .txt → TXT
-/export ~/光斑.epub                 # 后缀 .epub → EPUB（Apple Books / 微信读书 / Kindle 转换器可读）
-/export from=10 to=30 --overwrite  # 章节区间 + 覆盖
-/export from=10 ~/x.epub --overwrite
-```
-
-- **TXT** — `《书名》` → 卷分隔 → 章节正文（长篇分层模式自动加卷分隔）。两类内部数据**不进导出**：premise（创作蓝图，含目标读者 / 写作禁区等后台信息，写给作者与引擎看的）、弧分隔（读者视角下弧是过细的内部结构）。导出器统一生成"第 N 章 标题"，正文里 writer 自带的重复标题（`# 第N章…` 或 `# 章节名`）会被剥掉。
-- **EPUB** — EPUB 3 标准容器，含封面页、目录、按章拆分的 XHTML，标识符基于内容稳定派生（重导出同一本书阅读器识别为更新版本）。不带封面图。
-
-范围内未完成的章节会跳过并显示在结果里，不算错误。
-
-#### 按角色使用不同模型
-
-通过 `roles` 字段为不同智能体分配不同的模型，未配置的角色使用默认模型：
-
-```jsonc
-{
-  "provider": "openrouter",
-  "model": "google/gemini-2.5-flash",
-  "providers": {
-    "openrouter": { "api_key": "sk-or-v1-xxx", "base_url": "https://openrouter.ai/api/v1" },
-    "anthropic": { "api_key": "sk-ant-xxx" }
-  },
-  "roles": {
-    "writer": { "provider": "anthropic", "model": "claude-sonnet-4" },
-    "architect": { "provider": "openrouter", "model": "google/gemini-2.5-pro" }
-  }
-}
-```
-
-可配置的角色：`coordinator` / `architect` / `writer` / `editor`
-
-#### 自定义代理
-
-选择任意 Provider 后填写代理地址即可，或使用 Custom Proxy 并指定 API 协议类型。自定义代理的 `api_key` 可选；如果你的代理不需要认证，可以省略：
-
-```jsonc
-{
-  "provider": "my-proxy",
-  "model": "gpt-4o",
-  "providers": {
-    "my-proxy": {
-      "type": "openai",
-      "base_url": "https://proxy.example.com/v1",
-      "extra": {
-        "user_agent": "my-client/1.0",
-        "headers": { "X-Custom-Client": "my-client" }
-      }
-    }
-  }
-}
-```
-
-支持的 Provider：`openrouter` / `anthropic` / `gemini` / `openai` / `deepseek` / `qwen` / `glm` / `grok` / `ollama` / `bedrock` 及任意自定义代理。
-
-如果代理是 Anthropic 协议，并要求客户端识别字段，`type` 应设为 `anthropic`，`anthropic_beta` 放在 `extra` 顶层，Stainless 等 HTTP 头放在 `extra.headers` 中：
-
-```jsonc
-{
-  "provider": "claude-proxy",
-  "model": "claude-sonnet-4-6",
-  "providers": {
-    "claude-proxy": {
-      "type": "anthropic",
-      "api_key": "sk-xxx",
-      "base_url": "https://proxy.example.com",
-      "extra": {
-        "user_agent": "claude-code/2.1.183",
-        "anthropic_beta": "claude-code-20250219",
-        "headers": {
-          "X-Stainless-Lang": "js",
-          "X-Stainless-Package-Version": "0.94.0",
-          "X-Stainless-Runtime": "node"
-        }
-      }
-    }
-  }
-}
-```
-
-关于 `api_key`：
-
-- `openrouter` / `anthropic` / `gemini` / `openai` / `deepseek` / `qwen` / `glm` / `grok` 这类托管接口通常需要填写 `api_key`
-- `ollama` 和 `bedrock` 允许不填 `api_key`；Bedrock 需在 `extra` 中配置 `region`、`access_key_id`、`secret_access_key`（可选 `session_token`）
-- 显式指定了 `type` 的自定义代理允许不填 `api_key`
-
-例如本地 `ollama` 配置：
-
-```jsonc
-{
-  "provider": "ollama",
-  "model": "qwen3:latest",
-  "providers": {
-    "ollama": {
-      "base_url": "http://localhost:11434/v1"
-    }
-  }
-}
-```
-
-### 写作风格
-
-通过配置文件的 `style` 字段切换：
-
-- `default` — 通用风格
-- `suspense` — 悬疑推理
-- `fantasy` — 奇幻仙侠
-- `romance` — 言情
-
-### 去 AI 味与自定义规则
-
-内置一份去 AI 味基线（`assets/` 下，出厂默认）：机械黑名单 `rules/default.md`（套句 / 疲劳词，commit 时确定性检查）+ 语义判据 `references/anti-ai-tone.md`（注入 writer / editor 规避与举证）。
-
-想叠加自己的偏好**无需改源码**：在 `~/.ainovel/rules/` 目录（全局，放任意 `.md`，按文件名字典序合并）或 `./.ainovel/rules/` 目录（本书，同样放任意 `.md`，与全局同形态）里，**用大白话写偏好即可**（如「主角别写成圣母」「多用身体感知」），editor 会按语义审阅——零格式、零 YAML。想要「字数 / 禁词」这类硬性确定检查，再**可选地**在文件顶部加一段 front matter。就近覆盖、与内置基线叠加生效；完整字段见 [`rules.md.example`](rules.md.example)。
-
-## ainovel-cli 后端示例输出结构
-
-所有创作数据（章节、大纲、角色、进度等）保存在output目录中。中断后重新运行会自动从上次进度续写。删除output目录将重新开始创作。
-
-```
-output/{novel_name}/
-├── chapters/           # 终稿（Markdown）
-│   ├── 01.md
-│   └── ...
-├── summaries/          # 章节摘要（JSON）
-├── drafts/             # 章节草稿
-├── reviews/            # 评审报告
-├── meta/
-│   ├── premise.md      # 故事前提
-│   ├── outline.json    # 扁平章节大纲（仅含已展开的章节）
-│   ├── layered_outline.json # 分层大纲（当前卷 + 预览卷，长篇模式）
-│   ├── compass.json   # 终局方向指南针（长篇模式）
-│   ├── characters.json # 角色档案
-│   ├── world_rules.json# 世界规则
-│   ├── progress.json   # 进度状态
-│   ├── timeline.json   # 时间线
-│   ├── foreshadow.json # 伏笔台账
-│   ├── state_changes.json # 角色状态变化记录
-│   ├── style_rules.json# 写作风格规则（弧边界时提炼）
-│   ├── snapshots/      # 角色状态快照（长篇）
-│   ├── checkpoints.jsonl # Step 级 checkpoint（每个工具成功后追加）
-│   ├── characters.md   # 角色档案（可读版）
-│   └── world_rules.md  # 世界规则（可读版）
-```
-
-## ainovel-cli 后端示例断点恢复
-
-写一部长篇小说可能需要数小时甚至数天，中途崩溃、断网、Ctrl+C 都是常见情况。系统在**同一目录再次运行时自动恢复**，无需手动操作。
-
-### 恢复场景
-
-| 中断时机 | 恢复行为 |
-|---|---|
-| 规划阶段（正在构建世界观/大纲） | 检查已保存的设定，自动补全缺失项 |
-| 某章正在写作（有草稿未提交） | 从该章续写，读取已有草稿继续 |
-| 审阅进行中 | 重新触发 Editor 评审 |
-| 重写/打磨队列未清空 | 继续处理待重写的章节 |
-| 弧/卷展开中断（评审完但下一弧未展开） | 自动检测骨架弧/卷，触发 Architect 展开 |
-| 用户干预未完成 | 重新注入上次的干预指令 |
-| 正常写作中断 | 从下一章继续 |
-
-### 工作原理
-
-所有创作产物持久化在 `output/` 目录。每个工具执行成功后写入 checkpoint (`meta/checkpoints.jsonl`)。重启时：
-
-1. 读取 `progress.json` + 最近 checkpoint + 待处理信号
-2. 精确到 step 级生成恢复指令（如"第 7 章 draft 已落盘，请继续 check_consistency"）
-3. 一次 `Prompt` 启动 Coordinator，进入长循环继续创作
-
-> 文件写入使用 temp + fsync + rename 原子操作，即使在写入过程中断电也不会损坏已有数据。
-
-## ainovel-cli 后端示例实时干预（Steer）
-
-创作过程中可以随时通过输入框注入修改意见，**不需要暂停或重启**。
-
-### TUI 模式
-
-创作启动后，底部输入框自动切换为干预模式：
-
-```
-❯ 把感情线提前到第4章，增加男女主的对手戏
-```
-
-输入后按 Enter，系统自动：
-1. 记录干预指令到 `run.json`（崩溃恢复用）
-2. 注入到正在运行的 Coordinator
-3. Coordinator 评估影响范围，决定是修改设定、重写已有章节，还是在后续章节调整
-
-### 干预示例
-
-| 干预指令 | 系统可能的响应 |
-|---|---|
-| "主角改成女性" | 修改角色设定，评估已写章节是否需要重写 |
-| "把感情线提前到第4章" | 调整大纲，可能重写第4章及后续 |
-| "加入一个反派角色" | 更新角色档案和世界规则，在后续章节引入 |
-| "节奏太慢了，加快推进" | 调整后续章节的大纲密度 |
-
-## ainovel-cli 后端示例设计理念
-
-> **把复杂度从代码搬到模型里。** 代码越少，能坏的地方越少。决策权交给更擅长做决策的角色。
-
-### LLM 驱动，越简单越稳定
-
-- **决策权归 LLM** — 流程决策全部由 Coordinator 自主判断，Host 不介入。工具失败时返回结构化错误，由 LLM 自行决定重试或调整策略
-- **工具只返事实** — 原子 IO + checkpoint 写入，返回值是 JSON 事实字段（`final_verdict` / `pending_rewrites` / `arc_end_reached`），不夹带任何指令字符串
-- **Reminder 驱动每轮** — Host 在每轮 LLM 调用前读事实层，运行纯函数 generator 生成 `<system-reminder>` 注入，指令不进持久历史、每轮从事实重算
-- **StopGuard 物理守门** — `Phase ≠ Complete` 时 Coordinator 物理上不可 `end_turn`，连续阻拦超限才升级终止
-- **拒绝复杂编排** — 没有 task queue、没有 scheduler、没有 policy engine。Coordinator 的一次 Run 就是唯一的控制流
-- **模型越强收益越大** — 架构把决策权留在 prompt 和工具语义里，模型升级后直接吃到收益，Host 一行不用改
-
-### 全自动闭环
-
-一句话输入，完整小说输出：
-
-```
-“写一部悬疑小说” → 构建世界观 → 设计角色 → 规划大纲
-                → 逐章写作 → 质量评审 → 自动重写
-                → 弧级摘要 → 角色快照 → 完整成书
-```
-
-- **Coordinator 自主调度** — 在一次长循环里读事实层 + Reminder 决定下一步，无需 Host 干预
-- **Writer 自主创作** — 每章独立完成 plan → draft → check → commit 的完整闭环
-- **Editor 自主评审** — 跨章节分析结构问题，输出裁定及影响范围
-- **Architect 自主构建** — 从一句话需求推导出完整设定，弧/卷边界时自主展开后续规划
-- **自动伏笔管理** — 埋设、推进、回收全程由 Agent 自行追踪
-- **自动节奏调控** — 追踪叙事线和钩子类型历史，避免连续章节结构雷同
-
-### 事实与指令解耦
-
-工具只返事实，指令由 Reminder 每轮从事实层重算：
-
-- `commit_chapter` / `save_review` 返回结构化事实（`final_verdict` / `pending_rewrites` / `arc_end_reached` / `next_chapter`），不夹带任何 `[系统]` 字符串
-- `internal/host/reminder/` 下的纯函数 generator 读 `Progress` + `Outline`，每轮 pre-turn 生成 `<system-reminder>`：`flow`（当前该做什么 / 弧末刹车）/ `queue_guard`（队列未清禁止新章）/ `book_complete`（全书完成才放行）。物理兜底由 `StopGuard` 在 `phase≠Complete` 时拒绝 `end_turn` 承担
-- Reminder 只存活一轮，不进历史、不参与压缩；规则有单元测试，退化可被回归捕获
-
-这样指令不会被链式调用吞掉，也不会在工具产物里漂移。改 bug 只需加一个 generator + 一个测试。
-
-## ainovel-cli 后端示例技术栈
-
-- **Go 1.25** — 主语言
-- **[agentcore](https://github.com/voocel/agentcore)** — 极简 Agent 内核（tool-calling + streaming）
-- **[litellm](https://github.com/voocel/litellm)** — 统一 LLM 接口适配
-- **[Bubble Tea](https://github.com/charmbracelet/bubbletea)** — 终端 TUI 框架
-
-## License
-
-MIT
-
-本项目积极参与并认可 [linux.do 社区](https://linux.do/)。
+本项目的 Go 写作引擎源自 MIT 许可的 [`voocel/ainovel-cli`](https://github.com/voocel/ainovel-cli)。本仓库保留原作者版权和 MIT 许可证，并在其上开发独立的 Writing Workshop Web 产品层、能力协议、显式上下文工作流与发布设施。继承引擎的历史技术说明保存在 [docs/UPSTREAM_ENGINE.md](docs/UPSTREAM_ENGINE.md)。

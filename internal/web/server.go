@@ -8,6 +8,7 @@ import (
 	"io/fs"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -77,6 +78,7 @@ func (s *Server) routes(mux *http.ServeMux) {
 	sub, _ := fs.Sub(staticfiles.Files, ".")
 	mux.Handle("/", http.FileServer(http.FS(sub)))
 	mux.HandleFunc("GET /admin", s.handleAdmin)
+	mux.HandleFunc("GET /api/health", s.handleHealth)
 	mux.HandleFunc("GET /api/events", s.handleEvents)
 	mux.HandleFunc("GET /api/dashboard", s.handleDashboard)
 	mux.HandleFunc("GET /api/agents/status", s.handleAgents)
@@ -114,6 +116,18 @@ func (s *Server) routes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/models", s.handleModels)
 	mux.HandleFunc("POST /api/models/switch", s.handleSwitchModel)
 	mux.HandleFunc("POST /api/style/check", s.handleStyleCheck)
+}
+
+func (s *Server) handleHealth(w http.ResponseWriter, _ *http.Request) {
+	cfg := s.host.Config()
+	mode := "configured"
+	if cfg.Provider == "ollama" && cfg.ModelName == "offline-demo" {
+		mode = "demo"
+	}
+	writeJSON(w, map[string]any{
+		"status": "ok",
+		"mode":   mode,
+	})
 }
 
 func (s *Server) handleAdmin(w http.ResponseWriter, r *http.Request) {
@@ -1144,15 +1158,36 @@ func httpError(w http.ResponseWriter, err error, status int) {
 
 func cors(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With")
+		origin := strings.TrimSpace(r.Header.Get("Origin"))
+		if origin != "" {
+			if !originAllowed(origin, r.Host, os.Getenv("WRITING_WORKSHOP_ALLOWED_ORIGINS")) {
+				httpError(w, fmt.Errorf("cross-origin request rejected"), http.StatusForbidden)
+				return
+			}
+			w.Header().Set("Access-Control-Allow-Origin", origin)
+			w.Header().Set("Vary", "Origin")
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With")
+		}
 		if r.Method == http.MethodOptions {
 			w.WriteHeader(http.StatusNoContent)
 			return
 		}
 		next.ServeHTTP(w, r)
 	})
+}
+
+func originAllowed(origin, requestHost, configured string) bool {
+	parsed, err := url.Parse(origin)
+	if err == nil && (parsed.Scheme == "http" || parsed.Scheme == "https") && strings.EqualFold(parsed.Host, requestHost) {
+		return true
+	}
+	for _, allowed := range strings.Split(configured, ",") {
+		if strings.EqualFold(strings.TrimSpace(allowed), origin) {
+			return true
+		}
+	}
+	return false
 }
 
 type sseHub struct {

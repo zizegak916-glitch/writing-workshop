@@ -1,6 +1,6 @@
 # 配置说明
 
-本页说明 AI写作工坊接入 `ainovel-cli` 后端适配示例时的配置方式。`ainovel-cli` 原版是他人维护的开源项目，在本仓库中仅作为可原生支持的后端项目之一；模型与密钥由该后端的本地配置文件和环境变量管理。
+本页说明 Writing Workshop 的模型、密钥与监听地址配置。底层 Go 引擎源自 `ainovel-cli`，但本仓库发布的可执行文件名为 `writing-workshop`。
 
 ## 配置位置
 
@@ -31,6 +31,16 @@ Web 管理后台保存配置时写入 `~/.ainovel/config.json`。
   "style": "default"
 }
 ```
+
+## 无密钥 demo
+
+首次运行可不创建配置文件：
+
+```bash
+writing-workshop serve --demo --port 8080
+```
+
+demo 模式使用一个不会主动联网的本地占位模型配置。`builtin-echo` 与 `builtin-outline` 可直接运行；AI 生成类任务在配置真实模型前会明确失败，不会伪造结果。管理后台保存真实配置后，下一次启动会自动加载该配置。
 
 ## 环境变量
 
@@ -64,10 +74,20 @@ Ollama/OpenAI 兼容本地服务可不配置 API key：
 ## Web 启动
 
 ```bash
-./ainovel-cli serve --port 8080
+writing-workshop serve --demo --port 8080
 ```
 
 - 写作工坊：`/app.html`
 - 管理后台：`/admin.html`
+- 健康检查：`/api/health`
 - 所有静态资源由 Go embed 提供。
 - 规则包保存到当前项目输出目录 `.ainovel/rules/web.rules.md`。
+
+服务默认只监听 `127.0.0.1`。Docker 或受控局域网部署时使用 `--host 0.0.0.0`；不要在没有鉴权和 TLS 的情况下直接暴露到公网。
+
+前端与 API 默认同源。确实需要分离部署时，显式列出允许的来源（逗号分隔），服务不会使用通配符 CORS：
+
+```bash
+export WRITING_WORKSHOP_ALLOWED_ORIGINS=https://writer.example,https://preview.example
+writing-workshop serve --host 0.0.0.0 --port 8080
+```

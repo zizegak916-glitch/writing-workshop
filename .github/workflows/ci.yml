@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Go tests
+        run: go test ./...
+
+      - name: Go vet
+        run: go vet ./...
+
+      - name: Build release binary
+        run: go build -o writing-workshop ./cmd/ainovel-cli
+
+      - name: JavaScript syntax
+        run: find web/static -name '*.js' -print0 | xargs -0 -n1 node --check
+
+      - name: Offline server smoke test
+        run: |
+          ./writing-workshop serve --demo --host 127.0.0.1 --port 18080 > /tmp/writing-workshop.log 2>&1 &
+          pid=$!
+          trap 'kill "$pid" 2>/dev/null || true' EXIT
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:18080/api/health > /tmp/health.json; then
+              grep -q '"status":"ok"' /tmp/health.json
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/writing-workshop.log
+          exit 1

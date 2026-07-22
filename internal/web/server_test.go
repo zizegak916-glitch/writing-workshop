@@ -46,8 +46,44 @@ func TestProjectsEmptyList(t *testing.T) {
 	if got := strings.TrimSpace(rec.Body.String()); got != "[]" {
 		t.Fatalf("body = %s, want []", got)
 	}
-	if got := rec.Header().Get("Access-Control-Allow-Origin"); got != "*" {
-		t.Fatalf("CORS header = %q, want *", got)
+	if got := rec.Header().Get("Access-Control-Allow-Origin"); got != "" {
+		t.Fatalf("same-origin request must not need CORS header, got %q", got)
+	}
+}
+
+func TestCORSAllowsExplicitOrigin(t *testing.T) {
+	_, mux := newTestServer(t)
+	t.Setenv("WRITING_WORKSHOP_ALLOWED_ORIGINS", "https://writer.example")
+	req := httptest.NewRequest(http.MethodGet, "/api/health", nil)
+	req.Header.Set("Origin", "https://writer.example")
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK || rec.Header().Get("Access-Control-Allow-Origin") != "https://writer.example" {
+		t.Fatalf("status=%d origin=%q body=%s", rec.Code, rec.Header().Get("Access-Control-Allow-Origin"), rec.Body.String())
+	}
+}
+
+func TestCORSRejectsUnknownOrigin(t *testing.T) {
+	_, mux := newTestServer(t)
+	req := httptest.NewRequest(http.MethodPost, "/api/projects", bytes.NewBufferString(`{"name":"blocked"}`))
+	req.Header.Set("Origin", "https://attacker.example")
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("status=%d, want 403, body=%s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestHealth(t *testing.T) {
+	_, mux := newTestServer(t)
+	req := httptest.NewRequest(http.MethodGet, "/api/health", nil)
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status = %d, body = %s", rec.Code, rec.Body.String())
+	}
+	if !strings.Contains(rec.Body.String(), `"status":"ok"`) {
+		t.Fatalf("unexpected health response: %s", rec.Body.String())
 	}
 }
 

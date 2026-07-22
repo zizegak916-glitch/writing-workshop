@@ -14,7 +14,7 @@ COPY . .
 
 RUN GOOS=$TARGETOS GOARCH=$TARGETARCH \
     go build -trimpath -ldflags="-s -w" \
-    -o /out/ainovel-cli \
+    -o /out/writing-workshop \
     ./cmd/ainovel-cli
 
 FROM alpine:3.22
@@ -25,6 +25,12 @@ RUN apk add --no-cache \
 
 WORKDIR /workspace
 
-COPY --from=builder /out/ainovel-cli /usr/local/bin/ainovel-cli
+COPY --from=builder /out/writing-workshop /usr/local/bin/writing-workshop
 
-ENTRYPOINT ["ainovel-cli"]
+EXPOSE 8080
+
+HEALTHCHECK --interval=10s --timeout=3s --retries=5 \
+  CMD wget -qO- http://127.0.0.1:8080/api/health || exit 1
+
+ENTRYPOINT ["writing-workshop"]
+CMD ["serve", "--demo", "--host", "0.0.0.0", "--port", "8080"]

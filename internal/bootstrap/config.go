@@ -334,6 +334,26 @@ func (c *Config) FillDefaults() {
 	}
 }
 
+// DemoConfig returns a valid, keyless configuration for the browser workshop.
+// The Ollama endpoint is only contacted when a user explicitly runs an AI task;
+// local capabilities (echo and outline) remain available without Ollama.
+func DemoConfig() Config {
+	disabled := false
+	return Config{
+		Provider:  "ollama",
+		ModelName: "offline-demo",
+		Providers: map[string]ProviderConfig{
+			"ollama": {
+				Type:    "openai",
+				BaseURL: "http://127.0.0.1:11434/v1",
+				Models:  []string{"offline-demo"},
+			},
+		Roles:  map[string]RoleConfig{},
+		Style:  "default",
+		Notify: NotifyConfig{Enabled: &disabled},
+	}
+}
+
 // ContextWindowSource 标记窗口取值的来源，供日志/诊断使用。
 type ContextWindowSource string
 

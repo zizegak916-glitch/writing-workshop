@@ -1,0 +1,20 @@
+{
+  "id": "example-scene-pacing",
+  "name": "场景节奏检查",
+  "type": "skill",
+  "version": "1.0.0",
+  "source": "https://github.com/zizegak916-glitch/writing-workshop/tree/main/examples/capabilities",
+  "license": "MIT",
+  "entry": "prompt:scene-pacing",
+  "output": "text",
+  "instructions": "保持人物动机和事件顺序。先指出节奏断点，再给出一版不扩写新事实的候选修改。",
+  "steps": [
+    "读取作者显式选择的上下文包",
+    "标记信息重复、跳步与张力断点",
+    "返回诊断与候选文本，不自动写入正文"
+  ],
+  "permissions": ["context:read"],
+  "supports_stream": true,
+  "supports_abort": true,
+  "enabled": true
+}

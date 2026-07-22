@@ -1,10 +1,17 @@
 services:
-  ainovel:
-    image: ghcr.io/voocel/ainovel-cli:latest
+  writing-workshop:
+    image: ghcr.io/zizegak916-glitch/writing-workshop:latest
     build:
       context: .
+    command: ["serve", "--demo", "--host", "0.0.0.0", "--port", "8080"]
+    ports:
+      - "8080:8080"
     volumes:
       - ./config:/root/.ainovel
-      - ./workspace:/workspace
-    stdin_open: true
-    tty: true
+      - ./workspace:/workspace/output
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/api/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 5

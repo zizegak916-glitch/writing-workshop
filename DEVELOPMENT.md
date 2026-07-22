@@ -3,13 +3,13 @@
 ## 本地构建
 
 ```bash
-go build -o ainovel-cli ./cmd/ainovel-cli
-./ainovel-cli serve --port 8080
+go build -o writing-workshop ./cmd/ainovel-cli
+./writing-workshop serve --demo --port 8080
 ```
 
 当前仓库的 Web 前端位于 `web/static/`，由 `web/static/static.go` 通过 `go:embed` 打包。
 
-写作工坊是主体应用。GitHub 开源项目、skill、规则包和自定义能力都只是可保存、可组合、可执行的能力来源。`ainovel-cli` 原版是他人维护的开源项目；当前仓库仅把它作为 AI写作工坊可原生支持的后端项目之一。新增后端适配时应保持 `/api/` 契约稳定。
+写作工坊是主体应用。GitHub 开源项目、skill、规则包和自定义能力都只是可保存、可组合、可执行的能力来源。底层 Go 引擎源自 `ainovel-cli`；新增后端适配时应保持 `/api/` 契约稳定。
 
 ## 常用验证
 
@@ -49,5 +49,5 @@ GOCACHE=/tmp/go-cache GOMODCACHE=/tmp/gomodcache go build ./cmd/ainovel-cli
 2. `go test ./...`
 3. `go vet ./...`
 4. `go build ./cmd/ainovel-cli`
-5. 启动 `serve` 后访问 `/app.html` 和 `/admin`。
+5. 启动 `serve --demo` 后检查 `/api/health`，再访问 `/app.html` 和 `/admin`。
 6. 在管理后台测试 `/api/capabilities`、`/api/run` 和 `/api/ai`，确认能力保存、执行和 provider/model/key 配置有效。
