@@ -42,7 +42,11 @@ git diff --check
 失效联系方式与占位 URL 导入全文扫描
 ```
 
-当前容器没有 Go 与 Docker 可执行文件，因此本记录不伪造本地 Go 测试结果。Go 单测、vet、release build 和离线服务 smoke test 由推送后的 GitHub Actions 执行；通过后应把对应 commit 和 run URL 追加到本节。
+当前容器没有 Go 与 Docker 可执行文件，因此本记录不伪造本地 Go 测试结果。完整服务端验证由 GitHub Actions 在提交 [`76dddaa`](https://github.com/zizegak916-glitch/writing-workshop/commit/76dddaaa7595e84f5dcfe689afa1530857289214) 上执行：
+
+- [CI run 29931143163](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/29931143163)：`go test ./...`、`go vet ./...`、release binary build、全部 JavaScript syntax、无密钥服务启动与 `/api/health` smoke test，结论 `success`。
+- [Pages run 29931143073](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/29931143073)：静态站部署，结论 `success`。
+- 部署后从公开 URL 实测：首页可读到 Star 支持文案，`app.html` 已加载 `product-extensions.js`，多 Skill 目录、项目管理脚本和新 SVG 图标均返回 HTTP 200。
 
 ## 仍然存在的技术债
 
