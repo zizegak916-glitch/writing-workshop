@@ -3,6 +3,8 @@
 
   const WF = {
     capabilities: [],
+    skillPacks: [],
+    categories: [],
     candidate: '',
     candidateHistoryId: null,
     runSnapshot: null,
@@ -19,6 +21,30 @@
     characters: '人物卡',
     memories: '记忆'
   };
+
+  const FALLBACK_CATEGORIES = [
+    { id: 'planning', name: '规划', color: '#3155D9' },
+    { id: 'drafting', name: '写作', color: '#7BD8B2' },
+    { id: 'revision', name: '修订', color: '#F26B5B' },
+    { id: 'continuity', name: '连续性', color: '#A98DE8' },
+    { id: 'research', name: '资料', color: '#F2B544' },
+    { id: 'utility', name: '工具', color: '#8FC7EF' }
+  ];
+
+  const FALLBACK_CAPABILITIES = [
+    { id: 'writing-workshop', name: 'Writing Workshop', type: 'backend', version: 'local', category: 'utility', entry: 'builtin:writing-workshop', output: 'text', enabled: true },
+    { id: 'builtin-outline', name: '大纲拆分', type: 'skill', version: '1.0.0', category: 'planning', entry: 'builtin:outline', description: '把材料拆成可执行的大纲候选。', instructions: '根据输入建立清晰的事件顺序和章节节点。', steps: ['读取显式上下文', '拆分事件与章节节点', '输出候选大纲'], permissions: ['只读取本次显式上下文'], enabled: true },
+    { id: 'builtin-rewrite', name: '通用改写', type: 'skill', version: '1.0.0', category: 'revision', entry: 'builtin:rewrite', description: '在保留原意的前提下生成改写候选。', instructions: '保持事实与人物意图，只优化表达。', steps: ['读取选区', '保留语义改写', '输出候选'], permissions: ['不自动写入正文'], enabled: true },
+    { id: 'builtin-continuity', name: '连续性校准', type: 'skill', version: '1.0.0', category: 'continuity', entry: 'builtin:continuity', description: '检查事实、时间、动机和因果链。', instructions: '指出冲突并给出最小修改建议，不擅自补设定。', steps: ['提取事实约束', '核对时间与因果', '列出冲突和修复候选'], permissions: ['不覆盖原始设定'], enabled: true },
+    { id: 'builtin-character-voice', name: '角色声音', type: 'skill', version: '1.0.0', category: 'drafting', entry: 'builtin:character-voice', description: '校准对白、行动与角色动机。', instructions: '保持角色既有经历、措辞习惯和信息边界。', steps: ['读取人物卡', '核对动机与知情范围', '生成角色一致候选'], permissions: ['不创造未经确认的角色事实'], enabled: true },
+    { id: 'builtin-scene-pacing', name: '场景节奏', type: 'skill', version: '1.0.0', category: 'revision', entry: 'builtin:scene-pacing', description: '诊断场景推进、停顿和信息释放。', instructions: '不改变关键事件顺序，调整段落张力与节奏。', steps: ['标记场景节拍', '检查张弛与信息密度', '输出节奏修改候选'], permissions: ['不删除关键情节'], enabled: true }
+  ];
+
+  const FALLBACK_PACKS = [
+    { id: 'longform-planning', name: '长篇规划校准', description: '大纲、连续性与角色声音。', category: 'planning', skill_ids: ['builtin-outline', 'builtin-continuity', 'builtin-character-voice'], enabled: true },
+    { id: 'chapter-revision', name: '章节修订', description: '改写、场景节奏与连续性。', category: 'revision', skill_ids: ['builtin-rewrite', 'builtin-scene-pacing', 'builtin-continuity'], enabled: true },
+    { id: 'character-dialogue', name: '角色与对白', description: '角色声音与连续性联合检查。', category: 'drafting', skill_ids: ['builtin-character-voice', 'builtin-continuity'], enabled: true }
+  ];
 
   function esc(value) {
     return String(value == null ? '' : value).replace(/[&<>'"]/g, c => ({
@@ -97,6 +123,12 @@
               <div class="workflow-muted">步骤与权限保持可见</div>
             </div>
             <a class="workflow-ghost" style="text-decoration:none" href="admin.html">管理</a>
+          </div>
+          <div class="workflow-pack-list" id="workflowPackList"><div class="workflow-muted">正在读取技能包…</div></div>
+          <div class="workflow-skill-tools">
+            <select class="workflow-select" id="workflowSkillCategory" onchange="workflowFilterSkills()"><option value="">全部分类</option></select>
+            <span class="workflow-selected" id="workflowSelectedSkills">已选 0 项</span>
+            <button class="workflow-ghost" type="button" onclick="workflowClearSkills()">清空</button>
           </div>
           <div class="workflow-cap-list" id="workflowCapabilityList"><div class="workflow-muted">正在读取能力清单…</div></div>
         </section>
@@ -294,34 +326,73 @@
     const backend = document.getElementById('workflowBackend');
     if (!list || !backend) return;
     try {
-      const response = await fetch('/api/capabilities', { headers: { Accept: 'application/json' } });
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`);
+      const [capResponse, packResponse, categoryResponse] = await Promise.all([
+        fetch('/api/capabilities', { headers: { Accept: 'application/json' } }),
+        fetch('/api/skill-packs', { headers: { Accept: 'application/json' } }),
+        fetch('/api/categories', { headers: { Accept: 'application/json' } })
+      ]);
+      const [data, packData, categoryData] = await Promise.all([
+        capResponse.json().catch(() => ({})),
+        packResponse.json().catch(() => ({})),
+        categoryResponse.json().catch(() => ({}))
+      ]);
+      if (!capResponse.ok) throw new Error(data.error || `HTTP ${capResponse.status}`);
       WF.capabilities = (data.capabilities || []).filter(cap => cap.enabled);
+      WF.skillPacks = packResponse.ok ? (packData.packs || []).filter(pack => pack.enabled) : FALLBACK_PACKS;
+      WF.categories = categoryResponse.ok ? (categoryData.categories || []) : FALLBACK_CATEGORIES;
       WF.backendReady = true;
       const backends = WF.capabilities.filter(cap => cap.type === 'backend' || cap.type === 'project');
       backend.innerHTML = backends.length
         ? backends.map(cap => `<option value="${esc(cap.id)}" ${cap.id === 'writing-workshop' ? 'selected' : ''}>${esc(cap.name)}</option>`).join('')
         : '<option value="">内置执行器</option>';
-      renderCapabilities();
+      renderSkillCatalog();
       setStatus('ready', '后端已连接');
       document.getElementById('workflowBackendHint').innerHTML = '同源后端已连接。模型密钥由后端配置，浏览器不会跨域直连厂商。';
     } catch (error) {
       WF.backendReady = false;
+      WF.capabilities = FALLBACK_CAPABILITIES;
+      WF.skillPacks = FALLBACK_PACKS;
+      WF.categories = FALLBACK_CATEGORIES;
       backend.innerHTML = '<option value="">后端不可用</option>';
-      list.innerHTML = '<div class="workflow-muted">当前是静态页面或后端未启动。普通编辑仍可用；能力执行需要通过 <code>writing-workshop serve --demo</code> 打开本站。</div>';
+      renderSkillCatalog();
       setStatus('error', '后端未连接');
-      document.getElementById('workflowBackendHint').innerHTML = `无法访问同源 <code>/api/capabilities</code>：${esc(error.message)}。不要把厂商 URL 填到这里绕过 CORS。`;
+      document.getElementById('workflowBackendHint').innerHTML = `当前显示可选技能目录，但执行需要同源后端。无法访问 <code>/api/capabilities</code>：${esc(error.message)}。请使用 <code>writing-workshop serve --demo</code>，不要让浏览器跨域直连模型厂商。`;
     }
+  }
+
+  function renderSkillCatalog() {
+    renderCategoryFilter();
+    renderSkillPacks();
+    renderCapabilities();
+    updateSelectedSkills();
+  }
+
+  function renderCategoryFilter() {
+    const select = document.getElementById('workflowSkillCategory');
+    if (!select) return;
+    const current = select.value;
+    select.innerHTML = '<option value="">全部分类</option>' + WF.categories.map(category => `<option value="${esc(category.id)}">${esc(category.name)}</option>`).join('');
+    select.value = WF.categories.some(category => category.id === current) ? current : '';
+  }
+
+  function renderSkillPacks() {
+    const list = document.getElementById('workflowPackList');
+    if (!list) return;
+    if (!WF.skillPacks.length) {
+      list.innerHTML = '<div class="workflow-muted">暂无技能包；仍可逐项多选能力。</div>';
+      return;
+    }
+    list.innerHTML = WF.skillPacks.map(pack => `<button class="workflow-pack" type="button" onclick="workflowApplySkillPack('${esc(pack.id)}')" title="${esc(pack.description || '')}">
+      <span>${esc(pack.name)}</span><small>${(pack.skill_ids || []).length} skills</small>
+    </button>`).join('');
   }
 
   function renderCapabilities() {
     const list = document.getElementById('workflowCapabilityList');
     if (!list) return;
-    let savedSkills = [];
-    try { savedSkills = JSON.parse(localStorage.getItem('ww_workflow_skills') || '[]'); } catch (_) { /* ignore corrupt local preference */ }
-    const saved = new Set(Array.isArray(savedSkills) ? savedSkills : []);
-    const caps = WF.capabilities.filter(cap => !['backend', 'project'].includes(cap.type));
+    const saved = savedSkillSet();
+    const category = document.getElementById('workflowSkillCategory')?.value || '';
+    const caps = WF.capabilities.filter(cap => !['backend', 'project'].includes(cap.type) && (!category || cap.category === category));
     if (!caps.length) {
       list.innerHTML = '<div class="workflow-muted">暂无已启用的 skill、prompt 或规则能力。</div>';
       return;
@@ -332,7 +403,7 @@
       return `<div class="workflow-cap">
         <label>
           <input type="checkbox" data-workflow-skill="${esc(cap.id)}" ${saved.has(cap.id) ? 'checked' : ''}>
-          <span><span class="workflow-cap-name">${esc(cap.name)}<span class="workflow-cap-type">${esc(cap.type)}</span></span>
+          <span><span class="workflow-cap-name">${esc(cap.name)}<span class="workflow-cap-type">${esc(cap.type)}</span>${cap.category ? `<span class="workflow-cap-category">${esc(categoryName(cap.category))}</span>` : ''}</span>
           <span class="workflow-cap-desc">${esc(cap.description || '未提供能力说明')}</span></span>
         </label>
         <details><summary>查看步骤与权限</summary>
@@ -343,12 +414,56 @@
       </div>`;
     }).join('');
     list.querySelectorAll('[data-workflow-skill]').forEach(input => input.addEventListener('change', () => {
-      localStorage.setItem('ww_workflow_skills', JSON.stringify(selectedSkillIds()));
+      const next = savedSkillSet();
+      if (input.checked) next.add(input.dataset.workflowSkill);
+      else next.delete(input.dataset.workflowSkill);
+      localStorage.setItem('ww_workflow_skills', JSON.stringify([...next]));
+      updateSelectedSkills();
     }));
   }
 
+  function savedSkillSet() {
+    try {
+      const value = JSON.parse(localStorage.getItem('ww_workflow_skills') || '[]');
+      return new Set(Array.isArray(value) ? value : []);
+    } catch (_) {
+      return new Set();
+    }
+  }
+
+  function categoryName(id) {
+    return WF.categories.find(category => category.id === id)?.name || id;
+  }
+
+  function applySkillPack(id) {
+    const pack = WF.skillPacks.find(item => item.id === id);
+    if (!pack) return;
+    const wanted = new Set(pack.skill_ids || []);
+    document.querySelectorAll('[data-workflow-skill]').forEach(input => { input.checked = wanted.has(input.dataset.workflowSkill); });
+    localStorage.setItem('ww_workflow_skills', JSON.stringify([...wanted]));
+    updateSelectedSkills();
+  }
+
+  function filterSkills() {
+    renderCapabilities();
+    updateSelectedSkills();
+  }
+
+  function clearSkills() {
+    document.querySelectorAll('[data-workflow-skill]').forEach(input => { input.checked = false; });
+    localStorage.setItem('ww_workflow_skills', '[]');
+    updateSelectedSkills();
+  }
+
+  function updateSelectedSkills() {
+    const count = selectedSkillIds().length;
+    const node = document.getElementById('workflowSelectedSkills');
+    if (node) node.textContent = `已选 ${count} 项${count > 1 ? ' · 多 Skill' : ''}`;
+  }
+
   function selectedSkillIds() {
-    return [...document.querySelectorAll('[data-workflow-skill]:checked')].map(input => input.dataset.workflowSkill);
+    const available = new Set(WF.capabilities.filter(cap => !['backend', 'project'].includes(cap.type)).map(cap => cap.id));
+    return [...savedSkillSet()].filter(id => !available.size || available.has(id));
   }
 
   function setStatus(kind, message) {
@@ -661,6 +776,9 @@
   window.workflowNewSession = newSession;
   window.workflowOpenMobile = openMobile;
   window.workflowCloseMobile = closeMobile;
+  window.workflowApplySkillPack = applySkillPack;
+  window.workflowFilterSkills = filterSkills;
+  window.workflowClearSkills = clearSkills;
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mount);
   else mount();

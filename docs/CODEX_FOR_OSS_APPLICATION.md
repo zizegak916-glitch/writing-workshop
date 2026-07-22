@@ -1,5 +1,7 @@
 # Codex for Open Source — application working draft
 
+Updated: 2026-07-22. This remains an evidence draft, not a submission receipt or a claim of acceptance.
+
 Official form: <https://openai.com/form/codex-for-oss/>
 
 This file is an evidence-based draft, not a claim that the project already meets the program's popularity or ecosystem-impact bar.
@@ -32,6 +34,9 @@ API credits would fund open-source maintenance rather than hidden product usage:
 | Keyless runnable mode | `writing-workshop serve --demo` |
 | Docker health check | `/api/health` |
 | Capability contract | `docs/CAPABILITY_PROTOCOL.md` |
+| Multi-Skill packs and custom categories | `internal/web/catalog.go`, `internal/web/server_test.go` |
+| Browser-local project management and safe export/delete | `web/static/js/product-extensions.js` |
+| Documentation status and historical boundaries | `docs/README.md` |
 | Contribution and security process | `CONTRIBUTING.md`, `SECURITY.md`, issue templates |
 | Upstream attribution | `NOTICE`, `docs/UPSTREAM_ENGINE.md`, git history |
 

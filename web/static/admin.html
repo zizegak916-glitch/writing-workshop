@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>写作工坊能力后台</title>
+<link rel="icon" href="icons/app-icon.svg" type="image/svg+xml">
 <style>
 :root{--bg:#0b0c0f;--panel:#15161a;--card:#1b1d22;--border:rgba(255,255,255,.08);--text:#eceef3;--muted:#8f96a3;--accent:#5e6ad2;--red:#f87171;--green:#34d399;--amber:#fbbf24}
 body.light{--bg:#f4f6fa;--panel:#fff;--card:#f8f9fc;--border:#dfe3ec;--text:#111827;--muted:#667085}
@@ -30,6 +31,8 @@ pre{white-space:pre-wrap;background:var(--card);border:1px solid var(--border);b
   <button class="tab" onclick="showTab('characters',this)">角色</button>
   <button class="tab" onclick="showTab('rules',this)">规则</button>
   <button class="tab" onclick="showTab('capabilities',this)">能力来源</button>
+  <button class="tab" onclick="showTab('skillpacks',this)">技能包</button>
+  <button class="tab" onclick="showTab('categories',this)">分类</button>
   <button class="tab" onclick="showTab('test',this)">API 测试</button>
 </nav>
 <main>
@@ -88,6 +91,8 @@ pre{white-space:pre-wrap;background:var(--card);border:1px solid var(--border);b
         <label>类型</label>
         <select id="capType"><option value="skill">skill</option><option value="backend">backend</option><option value="rules">rules</option><option value="prompt">prompt</option></select>
       </div>
+      <div><label>分类 ID</label><input id="capCategory" placeholder="planning / drafting / 自定义分类 ID"></div>
+      <div><label>标签（逗号分隔）</label><input id="capTags" placeholder="长篇, 连续性, 对白"></div>
       <div>
         <label>版本</label>
         <input id="capVersion" placeholder="1.0.0 / commit hash">
@@ -116,6 +121,25 @@ pre{white-space:pre-wrap;background:var(--card);border:1px solid var(--border);b
     <pre>必须声明：名称、版本、来源、许可证、入口、输入 schema、输出类型、是否支持流式输出、是否支持取消、权限边界。
 能力应面向通用写作任务，不能绑定某个单一小说或私有项目。</pre>
   </section>
+  <section id="skillpacks" class="panel card">
+    <h2>技能包</h2>
+    <p style="color:var(--muted)">技能包只是已验证的多 Skill 组合；执行时仍会把每个 skill ID 和步骤保持可见。</p>
+    <div id="skillPackList"></div>
+    <input id="packId" type="hidden">
+    <div class="grid"><div><label>名称</label><input id="packName" placeholder="我的章节校准包"></div><div><label>分类 ID</label><input id="packCategory" placeholder="revision"></div></div>
+    <label>说明</label><input id="packDescription" placeholder="说明这个组合适合什么任务">
+    <label>Skill IDs（逗号或换行分隔）</label><textarea id="packSkills" placeholder="builtin-rewrite&#10;builtin-continuity"></textarea>
+    <p class="row"><label style="display:flex;align-items:center;gap:6px;margin:0"><input id="packEnabled" type="checkbox" checked style="width:auto">启用</label><button class="primary" onclick="saveSkillPack()">保存技能包</button><button class="danger" onclick="resetSkillPackForm()">清空</button><span id="packMsg"></span></p>
+  </section>
+  <section id="categories" class="panel card">
+    <h2>自定义分类</h2>
+    <p style="color:var(--muted)">分类可用于能力、技能包、项目和记忆。内置分类只读，自定义分类持久化在当前后端工作目录。</p>
+    <div id="categoryList"></div>
+    <input id="categoryId" type="hidden">
+    <div class="grid"><div><label>名称</label><input id="categoryName" placeholder="历史考据"></div><div><label>颜色</label><input id="categoryColor" type="color" value="#8FC7EF"></div><div><label>范围</label><select id="categoryScope"><option value="all">全部</option><option value="project">项目</option><option value="capability">能力</option><option value="memory">记忆</option></select></div></div>
+    <label>说明</label><input id="categoryDescription" placeholder="这个分类用于整理什么">
+    <p class="row"><button class="primary" onclick="saveCategory()">保存分类</button><button class="danger" onclick="resetCategoryForm()">清空</button><span id="categoryMsg"></span></p>
+  </section>
   <section id="test" class="panel card">
     <h2>API 测试</h2>
     <p style="color:var(--muted);margin-top:0">验证同源执行、SSE 流式返回与中断。Pages 预览不提供后端，请在本地服务中测试。</p>
@@ -133,27 +157,42 @@ pre{white-space:pre-wrap;background:var(--card);border:1px solid var(--border);b
 async function api(url,opt={}){const r=await fetch(url,{headers:{'Content-Type':'application/json',...(opt.headers||{})},...opt});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||('HTTP '+r.status));return d}
 function showTab(id,btn){document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));document.getElementById(id).classList.add('active');btn.classList.add('active')}
 function showRuntimeNotice(message){runtimeNotice.hidden=false;runtimeNotice.innerHTML=message}
-async function loadAll(){await Promise.all([loadConfig(),loadProjects(),loadChars(),loadRules(),loadCapabilities()])}
+async function loadAll(){await Promise.all([loadConfig(),loadProjects(),loadChars(),loadRules(),loadCapabilities(),loadSkillPacks(),loadCategories()])}
 async function loadConfig(){const d=await api('/api/config');const c=d.config||d;provider.value=c.provider||'';model.value=c.model||'';const pc=(c.providers||{})[c.provider]||{};ptype.value=pc.type||'';baseUrl.value=pc.base_url||''}
 async function saveConfig(){try{await api('/api/config',{method:'POST',body:JSON.stringify({provider:provider.value,model:model.value,type:ptype.value,base_url:baseUrl.value,api_key:apiKey.value})});configMsg.textContent='已保存'}catch(e){configMsg.textContent=e.message}}
-async function loadProjects(){const ps=await api('/api/projects');projectList.innerHTML=(ps||[]).map(p=>`<div class="list-item"><b>${p.name}</b><br><small>${p.store_dir||''}</small></div>`).join('')||'<p style="color:var(--muted)">暂无项目</p>';const p=ps[0];if(p){projectName.value=p.name||'';projectPremise.value=p.premise||'';totalChapters.value=p.total_chapters||0}}
+async function loadProjects(){const ps=await api('/api/projects');projectList.innerHTML=(ps||[]).map(p=>`<div class="list-item"><b>${safe(p.name)}</b><br><small>${safe(p.store_dir||'')}</small></div>`).join('')||'<p style="color:var(--muted)">暂无项目</p>';const p=ps[0];if(p){projectName.value=p.name||'';projectPremise.value=p.premise||'';totalChapters.value=p.total_chapters||0}}
 async function saveProject(){await api('/api/projects',{method:'POST',body:JSON.stringify({name:projectName.value,premise:projectPremise.value,total_chapters:Number(totalChapters.value||0)})});loadProjects()}
 async function deleteProject(){if(confirm('确认删除当前输出目录中的项目文件？')){await api('/api/projects',{method:'DELETE'});loadProjects()}}
-async function loadChars(){const cs=await api('/api/characters');charList.innerHTML=(cs||[]).map(c=>`<div class="list-item" onclick='editChar(${JSON.stringify(c)})'><b>${c.name}</b> ${c.role||''}<br>${c.description||''}</div>`).join('')||'<p style="color:var(--muted)">暂无角色</p>'}
+let characterCache=[];
+async function loadChars(){const cs=await api('/api/characters');characterCache=cs||[];charList.innerHTML=characterCache.map((c,index)=>`<button class="list-item" style="display:block;width:100%;text-align:left;background:transparent;color:inherit;border:0;cursor:pointer" onclick="editCharAt(${index})"><b>${safe(c.name)}</b> ${safe(c.role||'')}<br>${safe(c.description||'')}</button>`).join('')||'<p style="color:var(--muted)">暂无角色</p>'}
+function editCharAt(index){editChar(characterCache[index]||{})}
 function editChar(c){charName.value=c.name||'';charRole.value=c.role||'';charDesc.value=c.description||'';charArc.value=c.arc||''}
 async function saveCharacter(){await api('/api/characters',{method:'PUT',body:JSON.stringify({name:charName.value,role:charRole.value,description:charDesc.value,arc:charArc.value})});loadChars()}
-async function loadRules(){const d=await api('/api/rules');rulesRaw.value=d.custom||d.preferences||'';rulesInfo.textContent=JSON.stringify({structured:d.structured,sources:d.sources,conflicts:d.conflicts},null,2);presetList.innerHTML=(d.presets||[]).map(p=>`<button class="primary" style="margin:0 8px 8px 0" onclick="rulesRaw.value=${JSON.stringify(p.content)}">${p.name}</button>`).join('')}
+let presetCache=[];
+async function loadRules(){const d=await api('/api/rules');rulesRaw.value=d.custom||d.preferences||'';rulesInfo.textContent=JSON.stringify({structured:d.structured,sources:d.sources,conflicts:d.conflicts},null,2);presetCache=d.presets||[];presetList.innerHTML=presetCache.map((p,index)=>`<button class="primary" style="margin:0 8px 8px 0" onclick="applyPreset(${index})">${safe(p.name)}</button>`).join('')}
+function applyPreset(index){rulesRaw.value=presetCache[index]?.content||''}
 async function saveRules(){await api('/api/rules',{method:'POST',body:JSON.stringify({raw:rulesRaw.value})});loadRules()}
 async function deleteRules(){await api('/api/rules',{method:'DELETE'});loadRules()}
 async function testAI(){testResult.textContent='请求中...';try{const d=await api('/api/ai',{method:'POST',body:JSON.stringify({message:testPrompt.value})});testResult.textContent=d.choices?.[0]?.message?.content||JSON.stringify(d,null,2)}catch(e){testResult.textContent=e.message}}
-let capabilityCache=[];let runAbortController=null;
+let capabilityCache=[];let skillPackCache=[];let categoryCache=[];let runAbortController=null;
 function safe(value){return String(value==null?'':value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 async function loadCapabilities(){const d=await api('/api/capabilities');capabilityCache=d.capabilities||[];capabilityList.innerHTML=capabilityCache.map(c=>`<div class="list-item"><b>${safe(c.name)}</b> <small>${safe(c.id)} · ${safe(c.type)} · ${safe(c.version)} · ${c.enabled?'启用':'停用'}${c.read_only?' · 内置':''}</small><br><small>${safe(c.source)}</small><p class="row" style="margin:8px 0 0"><button class="primary" onclick="useCapability('${c.id}')">用于测试</button>${c.read_only?'':`<button class="primary" onclick="editCapability('${c.id}')">编辑</button><button class="danger" onclick="deleteCapability('${c.id}')">删除</button>`}</p></div>`).join('')||'<p style="color:var(--muted)">暂无能力</p>'}
-function editCapability(id){const c=capabilityCache.find(x=>x.id===id);if(!c)return;capId.value=c.id||'';capName.value=c.name||'';capType.value=c.type||'skill';capVersion.value=c.version||'';capLicense.value=c.license||'';capSource.value=c.source||'';capEntry.value=c.entry||'';capDescription.value=c.description||'';capInstructions.value=c.instructions||'';capSteps.value=(c.steps||[]).join('\n');capPermissions.value=(c.permissions||[]).join('\n');capOutput.value=c.output||'';capEnabled.checked=!!c.enabled;capStream.checked=!!c.supports_stream;capAbort.checked=!!c.supports_abort;capMsg.textContent='正在编辑 '+id}
-function resetCapabilityForm(){capId.value='';capName.value='';capType.value='skill';capVersion.value='';capLicense.value='';capSource.value='';capEntry.value='';capDescription.value='';capInstructions.value='';capSteps.value='';capPermissions.value='';capOutput.value='';capEnabled.checked=true;capStream.checked=true;capAbort.checked=true;capMsg.textContent=''}
+function editCapability(id){const c=capabilityCache.find(x=>x.id===id);if(!c)return;capId.value=c.id||'';capName.value=c.name||'';capType.value=c.type||'skill';capCategory.value=c.category||'';capTags.value=(c.tags||[]).join(', ');capVersion.value=c.version||'';capLicense.value=c.license||'';capSource.value=c.source||'';capEntry.value=c.entry||'';capDescription.value=c.description||'';capInstructions.value=c.instructions||'';capSteps.value=(c.steps||[]).join('\n');capPermissions.value=(c.permissions||[]).join('\n');capOutput.value=c.output||'';capEnabled.checked=!!c.enabled;capStream.checked=!!c.supports_stream;capAbort.checked=!!c.supports_abort;capMsg.textContent='正在编辑 '+id}
+function resetCapabilityForm(){capId.value='';capName.value='';capType.value='skill';capCategory.value='';capTags.value='';capVersion.value='';capLicense.value='';capSource.value='';capEntry.value='';capDescription.value='';capInstructions.value='';capSteps.value='';capPermissions.value='';capOutput.value='';capEnabled.checked=true;capStream.checked=true;capAbort.checked=true;capMsg.textContent=''}
 function useCapability(id){const c=capabilityCache.find(x=>x.id===id);if(!c)return;if(c.type==='backend'||c.type==='project'){runBackend.value=c.id}else{const ids=runSkills.value.split(',').map(s=>s.trim()).filter(Boolean);if(!ids.includes(c.id))ids.push(c.id);runSkills.value=ids.join(',')}testResult.textContent='已选择 '+c.name}
-async function saveCapability(){try{const split=v=>v.split(/[\n,，]/).map(x=>x.trim()).filter(Boolean);const body={id:capId.value,name:capName.value,type:capType.value,version:capVersion.value,source:capSource.value,license:capLicense.value,entry:capEntry.value,description:capDescription.value,instructions:capInstructions.value,steps:capSteps.value.split('\n').map(x=>x.trim()).filter(Boolean),permissions:split(capPermissions.value),output:capOutput.value,supports_stream:capStream.checked,supports_abort:capAbort.checked,enabled:capEnabled.checked};const d=await api('/api/capabilities',{method:'POST',body:JSON.stringify(body)});capMsg.textContent='已保存 '+d.capability.id;resetCapabilityForm();loadCapabilities()}catch(e){capMsg.textContent=e.message}}
+async function saveCapability(){try{const split=v=>v.split(/[\n,，]/).map(x=>x.trim()).filter(Boolean);const body={id:capId.value,name:capName.value,type:capType.value,category:capCategory.value,tags:split(capTags.value),version:capVersion.value,source:capSource.value,license:capLicense.value,entry:capEntry.value,description:capDescription.value,instructions:capInstructions.value,steps:capSteps.value.split('\n').map(x=>x.trim()).filter(Boolean),permissions:split(capPermissions.value),output:capOutput.value,supports_stream:capStream.checked,supports_abort:capAbort.checked,enabled:capEnabled.checked};const d=await api('/api/capabilities',{method:'POST',body:JSON.stringify(body)});capMsg.textContent='已保存 '+d.capability.id;resetCapabilityForm();await Promise.all([loadCapabilities(),loadSkillPacks()])}catch(e){capMsg.textContent=e.message}}
 async function deleteCapability(id){if(!confirm('删除能力 '+id+'？'))return;try{await api('/api/capabilities?id='+encodeURIComponent(id),{method:'DELETE'});loadCapabilities()}catch(e){capMsg.textContent=e.message}}
+function splitIDs(value){return [...new Set(value.split(/[\n,，]/).map(x=>x.trim()).filter(Boolean))]}
+async function loadSkillPacks(){const d=await api('/api/skill-packs');skillPackCache=d.packs||[];skillPackList.innerHTML=skillPackCache.map(p=>`<div class="list-item"><b>${safe(p.name)}</b> <small>${safe(p.id)} · ${(p.skill_ids||[]).length} skills${p.read_only?' · 内置':''}</small><br><small>${safe(p.description||'')}</small><p>${(p.skill_ids||[]).map(s=>`<code>${safe(s)}</code>`).join(' + ')}</p>${p.read_only?'':`<p class="row"><button class="primary" onclick="editSkillPack('${p.id}')">编辑</button><button class="danger" onclick="deleteSkillPack('${p.id}')">删除</button></p>`}</div>`).join('')||'<p style="color:var(--muted)">暂无技能包</p>'}
+function editSkillPack(id){const p=skillPackCache.find(x=>x.id===id);if(!p)return;packId.value=p.id||'';packName.value=p.name||'';packCategory.value=p.category||'';packDescription.value=p.description||'';packSkills.value=(p.skill_ids||[]).join('\n');packEnabled.checked=!!p.enabled;packMsg.textContent='正在编辑 '+id}
+function resetSkillPackForm(){packId.value='';packName.value='';packCategory.value='';packDescription.value='';packSkills.value='';packEnabled.checked=true;packMsg.textContent=''}
+async function saveSkillPack(){try{const d=await api('/api/skill-packs',{method:'POST',body:JSON.stringify({id:packId.value,name:packName.value,category:packCategory.value,description:packDescription.value,skill_ids:splitIDs(packSkills.value),enabled:packEnabled.checked})});packMsg.textContent='已保存 '+d.pack.id;resetSkillPackForm();loadSkillPacks()}catch(e){packMsg.textContent=e.message}}
+async function deleteSkillPack(id){if(!confirm('删除技能包 '+id+'？'))return;try{await api('/api/skill-packs?id='+encodeURIComponent(id),{method:'DELETE'});loadSkillPacks()}catch(e){packMsg.textContent=e.message}}
+async function loadCategories(){const d=await api('/api/categories');categoryCache=d.categories||[];categoryList.innerHTML=categoryCache.map(c=>`<div class="list-item"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${safe(c.color)}"></span> <b>${safe(c.name)}</b> <small>${safe(c.id)} · ${safe(c.scope)}${c.read_only?' · 内置':''}</small>${c.description?`<br><small>${safe(c.description)}</small>`:''}${c.read_only?'':`<p class="row"><button class="primary" onclick="editCategory('${c.id}')">编辑</button><button class="danger" onclick="deleteCategory('${c.id}')">删除</button></p>`}</div>`).join('')}
+function editCategory(id){const c=categoryCache.find(x=>x.id===id);if(!c)return;categoryId.value=c.id||'';categoryName.value=c.name||'';categoryColor.value=c.color||'#8FC7EF';categoryScope.value=c.scope||'all';categoryDescription.value=c.description||'';categoryMsg.textContent='正在编辑 '+id}
+function resetCategoryForm(){categoryId.value='';categoryName.value='';categoryColor.value='#8FC7EF';categoryScope.value='all';categoryDescription.value='';categoryMsg.textContent=''}
+async function saveCategory(){try{const d=await api('/api/categories',{method:'POST',body:JSON.stringify({id:categoryId.value,name:categoryName.value,color:categoryColor.value,scope:categoryScope.value,description:categoryDescription.value})});categoryMsg.textContent='已保存 '+d.category.id;resetCategoryForm();await Promise.all([loadCategories(),loadCapabilities()])}catch(e){categoryMsg.textContent=e.message}}
+async function deleteCategory(id){if(!confirm('删除分类 '+id+'？现有记录上的分类 ID 不会被自动改写。'))return;try{await api('/api/categories?id='+encodeURIComponent(id),{method:'DELETE'});loadCategories()}catch(e){categoryMsg.textContent=e.message}}
 async function testRun(){if(runAbortController)runAbortController.abort();runAbortController=new AbortController();const body={backend_id:runBackend.value,skill_ids:runSkills.value.split(',').map(s=>s.trim()).filter(Boolean),task:runTask.value,context:{selection:testPrompt.value},params:{stream:runStream.checked,use_ai:runUseAI.checked}};testResult.textContent='执行中...\n';try{if(runStream.checked){const r=await fetch('/api/run',{method:'POST',headers:{'Content-Type':'application/json','Accept':'text/event-stream'},body:JSON.stringify(body),signal:runAbortController.signal});if(!r.ok)throw new Error('HTTP '+r.status);const reader=r.body.getReader();const dec=new TextDecoder();while(true){const {value,done}=await reader.read();if(done)break;appendRunStream(dec.decode(value,{stream:true}))}}else{const d=await api('/api/run',{method:'POST',body:JSON.stringify(body),signal:runAbortController.signal});testResult.textContent=d.output||JSON.stringify(d,null,2)}}catch(e){testResult.textContent+='\n'+(e.name==='AbortError'?'前端已中断':e.message)}finally{runAbortController=null}}
 function appendRunStream(chunk){chunk.split('\n').forEach(line=>{if(line.startsWith('data: ')){try{const d=JSON.parse(line.slice(6));if(d.text)testResult.textContent+=d.text;if(d.error)testResult.textContent+='\n错误：'+d.error}catch{}}})}
 async function abortRun(){try{if(runAbortController)runAbortController.abort();const d=await api('/api/abort',{method:'POST'});testResult.textContent+='\n已发送中断：'+JSON.stringify(d)}catch(e){testResult.textContent=e.message}}

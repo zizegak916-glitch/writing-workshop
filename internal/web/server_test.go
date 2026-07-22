@@ -248,6 +248,67 @@ func TestResolveRunTaskFromBuiltinCapability(t *testing.T) {
 	}
 }
 
+func TestSkillPacksAndCategories(t *testing.T) {
+	_, mux := newTestServer(t)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/skill-packs", nil)
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), "chapter-revision") {
+		t.Fatalf("GET skill packs status=%d body=%s", rec.Code, rec.Body.String())
+	}
+
+	req = httptest.NewRequest(http.MethodPost, "/api/categories", bytes.NewBufferString(`{
+		"name":"自定义研究分类",
+		"color":"#123ABC",
+		"scope":"capability"
+	}`))
+	rec = httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK || !strings.Contains(rec.Body.String(), "自定义研究分类") {
+		t.Fatalf("POST category status=%d body=%s", rec.Code, rec.Body.String())
+	}
+
+	req = httptest.NewRequest(http.MethodPost, "/api/skill-packs", bytes.NewBufferString(`{
+		"id":"my-review-pack",
+		"name":"我的修订包",
+		"description":"组合多个真实能力",
+		"category":"revision",
+		"skill_ids":["builtin-rewrite","builtin-continuity","builtin-rewrite"],
+		"enabled":true
+	}`))
+	rec = httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("POST skill pack status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	if strings.Count(rec.Body.String(), "builtin-rewrite") != 1 {
+		t.Fatalf("skill ids must be deduplicated: %s", rec.Body.String())
+	}
+
+	req = httptest.NewRequest(http.MethodDelete, "/api/skill-packs?id=chapter-revision", nil)
+	rec = httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("built-in pack delete status=%d, want 400, body=%s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestSkillPackRejectsUnknownSkill(t *testing.T) {
+	_, mux := newTestServer(t)
+	req := httptest.NewRequest(http.MethodPost, "/api/skill-packs", bytes.NewBufferString(`{
+		"id":"bad-pack",
+		"name":"坏包",
+		"skill_ids":["does-not-exist"],
+		"enabled":true
+	}`))
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+	if rec.Code != http.StatusBadRequest || !strings.Contains(rec.Body.String(), "not found") {
+		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
 func newTestServer(t *testing.T) (*Server, http.Handler) {
 	t.Helper()
 	cfg := bootstrap.Config{

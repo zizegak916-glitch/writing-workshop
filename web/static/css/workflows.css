@@ -61,6 +61,59 @@
   margin-top: 5px;
 }
 
+.workflow-pack-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+  margin-top: 10px;
+}
+
+.workflow-pack {
+  display: flex;
+  justify-content: space-between;
+  gap: 7px;
+  padding: 9px 10px;
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--border));
+  border-radius: 10px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 11%, var(--bg-card)), color-mix(in srgb, #a98de8 9%, var(--bg-card)));
+  color: var(--text-primary);
+  text-align: left;
+  cursor: pointer;
+}
+
+.workflow-pack:hover {
+  border-color: color-mix(in srgb, var(--accent) 58%, var(--border));
+  transform: translateY(-1px);
+}
+
+.workflow-pack span { font-size: 11px; font-weight: 650; }
+.workflow-pack small { color: var(--text-muted); white-space: nowrap; }
+
+.workflow-skill-tools {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 7px;
+  margin: 9px 0 7px;
+}
+
+.workflow-selected {
+  color: var(--text-muted);
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.workflow-cap-category {
+  display: inline-flex;
+  padding: 1px 5px;
+  margin-left: 5px;
+  border-radius: 999px;
+  background: color-mix(in srgb, #a98de8 18%, transparent);
+  color: color-mix(in srgb, #a98de8 75%, var(--text-primary));
+  font-size: 9px;
+  font-weight: 600;
+}
+
 .workflow-status {
   display: inline-flex;
   align-items: center;

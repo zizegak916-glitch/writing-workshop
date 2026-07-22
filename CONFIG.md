@@ -1,5 +1,7 @@
 # 配置说明
 
+> 状态：现行产品配置，更新于 2026-07-22。`.ainovel` 仍是继承引擎兼容目录名，不代表产品仍叫 ainovel-cli。
+
 本页说明 Writing Workshop 的模型、密钥与监听地址配置。底层 Go 引擎源自 `ainovel-cli`，但本仓库发布的可执行文件名为 `writing-workshop`。
 
 ## 配置位置
@@ -13,6 +15,17 @@
 Web 管理后台保存配置时写入 `~/.ainovel/config.json`。
 
 主应用默认使用本地游客模式，不要求设置密码。配置和密钥由本地配置文件、环境变量或你部署的数据管理服务负责；当前本地模式不提供账号密码体系。
+
+## 工作目录中的产品数据
+
+| 路径 | 内容 | 说明 |
+|---|---|---|
+| `.ainovel/capabilities.json` | 用户能力 manifest | 内置能力不写入此文件 |
+| `.ainovel/skill-packs.json` | 用户技能包 | `skill_ids` 保存前会验证和去重 |
+| `.ainovel/categories.json` | 后端自定义分类 | 与浏览器本地项目分类分开保存 |
+| `.ainovel/rules/web.rules.md` | 后台编辑的项目规则 | 参与规则合并 |
+
+工作台中的项目自定义分类保存在当前站点的 `localStorage`，项目与分类关联保存在 IndexedDB 的 project 记录。它们不会自动与后端分类文件互相覆盖；导出项目包会带上项目的 `category_ids`。
 
 ## 最小配置
 

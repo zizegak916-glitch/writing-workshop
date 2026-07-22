@@ -1,4 +1,6 @@
-# ainovel-cli 运行时架构
+# 继承引擎运行时架构（历史基线）
+
+> 文档状态：**历史 / 引擎层**。本页描述从 `voocel/ainovel-cli` 继承的长篇 Agent 运行时，不是 Writing Workshop Web 产品的当前页面、技能包或项目管理架构。现行产品入口见根目录 `README.md`、`API.md` 与 `docs/README.md`。保留本文是为了来源追溯与维护旧引擎行为。
 
 > 让 LLM 在一次 Run 里把一本小说写完，Host 只做启动 / 恢复 / 路由 / 观察，决策权尽量留给模型。
 

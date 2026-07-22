@@ -18,6 +18,8 @@
 - 管理项目、章节、大纲、人物卡、规则和写作记忆。
 - 为一次任务显式选择正文、项目、大纲、人物与记忆，实时查看字符和 token 估算。
 - 组合后端与 Skill 执行任务；支持 SSE 流式结果和中断。
+- 逐项多选 Skill，或一键应用“长篇规划校准 / 章节修订 / 角色与对白”技能包；自定义技能包会持久化保存。
+- 搜索、筛选、重命名、复制、分类、导出和删除浏览器本地项目；自定义分类也可用于写作记忆。
 - 候选结果与正文分离；替换、插入、追加、写入记忆均需独立确认。
 - 保存写入前快照和流程历史，避免 AI 输出静默覆盖创作内容。
 - 在无 API Key 模式下运行本地链路测试和大纲拆分；需要模型时再配置 OpenAI 兼容服务、OpenRouter、Ollama 等后端。
@@ -82,8 +84,8 @@ flowchart LR
 | 页面 | 作用 |
 |---|---|
 | `index.html` | 产品说明、运行模式和 60 秒启动入口 |
-| `app.html` | 项目、章节、大纲、人物、记忆、导入导出与候选写入 |
-| `admin.html` | Provider、Model、Base URL、API Key、项目、规则、能力与 API 调试 |
+| `app.html` | 项目、章节、大纲、人物、记忆、分类、导入导出、多 Skill 与候选写入 |
+| `admin.html` | Provider、Model、Base URL、API Key、项目、规则、能力、技能包、分类与 API 调试 |
 | `docs.html` | 从 Pages / 本地模式区别到 CORS、Skill 与故障排查的完整教程 |
 
 视觉规范与组件约束见 [UI 设计系统](docs/UI_DESIGN_SYSTEM.md)。
@@ -102,6 +104,8 @@ flowchart LR
 {
   "name": "场景节奏检查",
   "type": "skill",
+  "category": "revision",
+  "tags": ["节奏", "修订"],
   "version": "1.0.0",
   "source": "https://github.com/example/scene-pacing",
   "license": "Apache-2.0",
@@ -118,6 +122,8 @@ flowchart LR
 
 完整字段和 API 示例见 [能力协议](docs/CAPABILITY_PROTOCOL.md) 与 [API 文档](API.md)。
 
+技能包不是新的执行权限，而是一组可见的 `skill_ids` 预设。工作台应用技能包后，仍会显示选中数量，并把所有 Skill ID 显式传给 `/api/run`。分类有两处真实存储边界：工作台项目分类保存在当前浏览器，能力后台分类保存在当前后端工作目录的 `.ainovel/categories.json`。
+
 ## 数据与安全边界
 
 - 项目数据默认写入本地输出目录；浏览器使用同源 `/api/`，不直连模型厂商，从根源上避开 CORS 密钥暴露。
@@ -132,19 +138,21 @@ flowchart LR
 ```text
 cmd/writing-workshop/  项目可执行入口
 internal/web/       同源 Web API、SSE、能力执行与数据管理
-web/static/         本地优先的写作工作台
+web/static/         本地优先的写作工作台、项目管理扩展与新 SVG 图标
 internal/store/     章节、大纲、人物、记忆和运行状态
-examples/           可复用能力 manifest
+examples/           可复用能力 manifest 与技能包请求示例
 docs/               协议、来源与设计说明
 ```
 
 ## 路线图
 
 - `v0.1`：无密钥启动、显式上下文包、候选确认、Skill manifest、CI 与跨平台发布。
-- `v0.2`：项目导入/导出包、可复现的端到端浏览器测试、能力版本锁定。
+- `v0.2`：项目导入/导出包已覆盖项目、章节、大纲、人物与记忆；继续补可复现的端到端浏览器测试和能力版本锁定。
 - `v0.3`：最小权限的本地 Skill 沙箱与增量资料摄取。
 
 公开任务请使用 [GitHub Issues](https://github.com/zizegak916-glitch/writing-workshop/issues)。提交代码前阅读 [CONTRIBUTING.md](CONTRIBUTING.md)。
+
+维护者社区账号：[Linux DO · The_o0l](https://linux.do/u/The_o0l)。
 
 维护者可使用 `make check` 运行与 CI 对齐的本地检查。Codex for Open Source 的证据清单与申请草稿见 [docs/CODEX_FOR_OSS_APPLICATION.md](docs/CODEX_FOR_OSS_APPLICATION.md)。
 

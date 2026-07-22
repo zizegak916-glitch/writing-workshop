@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title desc">
+  <title id="title">Writing Workshop</title>
+  <desc id="desc">由打开的书页、写作光标和四种创作颜色组成的写作工坊图标</desc>
+  <defs>
+    <linearGradient id="pageLeft" x1="12" y1="15" x2="34" y2="51" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#8FC7EF"/><stop offset="1" stop-color="#3155D9"/>
+    </linearGradient>
+    <linearGradient id="pageRight" x1="52" y1="14" x2="30" y2="52" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F2B544"/><stop offset="1" stop-color="#F26B5B"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="150%"><feDropShadow dx="0" dy="3" stdDeviation="3" flood-opacity=".24"/></filter>
+  </defs>
+  <rect x="3" y="3" width="58" height="58" rx="18" fill="#111521"/>
+  <g filter="url(#shadow)">
+    <path d="M10 16.5c8.2-2.8 15.3-1.4 22 4.2v31.1c-6.7-5.2-13.8-6.5-22-3.8V16.5Z" fill="url(#pageLeft)"/>
+    <path d="M54 16.5c-8.2-2.8-15.3-1.4-22 4.2v31.1c6.7-5.2 13.8-6.5 22-3.8V16.5Z" fill="url(#pageRight)"/>
+  </g>
+  <path d="M32 20.7v31.1" stroke="#FFFDF7" stroke-width="2" stroke-linecap="round" opacity=".9"/>
+  <path d="M17 26.5h8M17 32h10M17 37.5h7" stroke="#FFF" stroke-width="2.5" stroke-linecap="round" opacity=".9"/>
+  <path d="m42.7 26.2 4.8 4.8-8.8 8.8-5.5.8.8-5.5 8.7-8.9Z" fill="#FFFDF7"/>
+  <circle cx="13.5" cy="13.5" r="4" fill="#7BD8B2" stroke="#111521" stroke-width="2"/>
+  <circle cx="50.5" cy="13.5" r="4" fill="#A98DE8" stroke="#111521" stroke-width="2"/>
+</svg>

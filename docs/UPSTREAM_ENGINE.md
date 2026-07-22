@@ -1,6 +1,8 @@
 # 上游写作引擎说明（历史文档）
 
 > 本页保存仓库早期基于 `voocel/ainovel-cli` 的引擎说明，便于追溯来源与继承能力。Writing Workshop 自身的安装、产品边界和贡献指南请以仓库根目录 README 为准。
+>
+> 2026-07-22 复核：本页后半的大量命令、截图描述和目录结构属于上游历史记录。当前二进制是 `writing-workshop`，现行 API 以根目录 `API.md` 为准。
 
 AI写作工坊是面向小说创作的开源可自定义主体应用。它可以在 GitHub Pages 上作为静态前端发布，也可以接入本地或自部署后端来启用真实 AI 调用、配置保存、项目同步、skill 执行和规则管理。
 
@@ -29,10 +31,12 @@ AI写作工坊是面向小说创作的开源可自定义主体应用。它可以
 - `GET /api/capabilities`：列出内置能力和已保存能力。
 - `POST /api/capabilities`：保存 GitHub 项目、远程 manifest 或本地 skill 清单。数据落盘到当前工作目录的 `.ainovel/capabilities.json`。
 - `DELETE /api/capabilities?id=...`：删除用户保存的能力。
+- `GET/POST/PUT/DELETE /api/skill-packs`：管理经过校验的多 Skill 组合。
+- `GET/POST/PUT/DELETE /api/categories`：管理能力与技能包分类。
 - `POST /api/run`：按 `backend_id` 和 `skill_ids` 执行任务，返回 JSON；传 `params.stream=true` 时返回 SSE 事件流。
 - `POST /api/abort`：中断当前写作运行和能力运行。
 
-当前内置能力包括 `builtin-echo`、`builtin-outline`、`builtin-rewrite` 和 `ainovel-cli` 后端适配。内置能力只读，用户能力可编辑、启停和删除；停用能力不能被 `/api/run` 执行。出于安全原因，保存 GitHub 链接或 skill manifest 不会立即执行任意仓库代码；真正执行第三方代码需要后续接入明确的沙箱执行器。
+当前产品内置能力包括 `builtin-echo`、`builtin-outline`、`builtin-rewrite`、`builtin-continuity`、`builtin-character-voice`、`builtin-scene-pacing` 与 `writing-workshop` 后端入口。内置能力只读，用户能力可编辑、启停和删除；停用能力不能被 `/api/run` 执行。出于安全原因，保存 GitHub 链接或 skill manifest 不会立即执行任意仓库代码；真正执行第三方代码需要后续接入明确的沙箱执行器。
 
 ## Web 写作工坊
 
@@ -669,4 +673,4 @@ output/{novel_name}/
 Apache-2.0. The earlier copy of this page incorrectly said MIT; the repository
 `LICENSE` file and upstream repository are authoritative.
 
-本项目积极参与并认可 [linux.do 社区](https://linux.do/)。
+维护者社区账号：[Linux DO · The_o0l](https://linux.do/u/The_o0l)。

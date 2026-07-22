@@ -1,4 +1,6 @@
-# AI写作工坊后端 API 契约
+# Writing Workshop 后端 API 契约
+
+> 状态：现行产品接口，更新于 2026-07-22。继承引擎的历史接口另见 `docs/UPSTREAM_ENGINE.md`。
 
 写作工坊前端通过同源 `/api/` 与本地或自部署后端通信。底层写作引擎源自 `ainovel-cli`；其他 skill 或自定义后端也可以实现同一组能力契约。
 
@@ -31,6 +33,8 @@
 - `GET /api/capabilities`：列出可用后端项目、skill、规则包和来源状态。
 - `POST /api/capabilities`：保存 GitHub 链接、manifest 或本地能力文件。
 - `DELETE /api/capabilities?id=...`：删除用户保存的能力。
+- `GET/POST/PUT/DELETE /api/skill-packs`：列出、保存、更新或删除技能包。
+- `GET/POST/PUT/DELETE /api/categories`：列出、保存、更新或删除分类。
 - `POST /api/run`：执行选中的后端项目或多个 skill。
 - `POST /api/abort`：取消当前长任务。
 
@@ -39,6 +43,9 @@
 - `builtin-echo`
 - `builtin-outline`
 - `builtin-rewrite`
+- `builtin-continuity`
+- `builtin-character-voice`
+- `builtin-scene-pacing`
 - `writing-workshop`
 
 默认内置能力带 `read_only=true`，不能删除；用户保存的能力可以通过再次 `POST /api/capabilities` 覆盖更新。`enabled=false` 的能力会保留在列表中，但不能被 `/api/run` 执行。删除内置能力、执行停用能力或引用不存在的能力会返回 `400`。
@@ -49,6 +56,8 @@
 {
   "name": "通用润色",
   "type": "skill",
+  "category": "revision",
+  "tags": ["润色", "节奏"],
   "version": "1.0.0",
   "source": "https://github.com/example/writing-skill",
   "license": "MIT",
@@ -83,6 +92,37 @@
 ```
 
 普通响应会返回 `run_id`、`task`、`backend_id`、`skill_ids`、`capabilities`、`output` 和 `content`。传 `params.stream=true` 或请求头 `Accept: text/event-stream` 时返回 SSE，事件包括 `start`、`delta`、`done`、`error`、`aborted`。
+
+`skill_ids` 可以包含多个 ID。服务会按请求顺序解析所有已启用能力，把各自的 `instructions` 或 `steps` 组合进同一次运行；不存在或停用的 ID 返回 `400`，不会静默跳过。
+
+## 技能包
+
+`GET /api/skill-packs` 返回 `{"packs": [...]}`。内置包包括 `longform-planning`、`chapter-revision` 与 `character-dialogue`。
+
+`POST /api/skill-packs` / `PUT /api/skill-packs`：保存用户技能包，写入当前工作目录 `.ainovel/skill-packs.json`。Skill ID 会去重并逐项验证；只读内置包不能覆盖或删除。
+
+```json
+{
+  "id": "my-review-pack",
+  "name": "我的修订包",
+  "description": "改写、节奏与连续性联合检查",
+  "category": "revision",
+  "skill_ids": ["builtin-rewrite", "builtin-scene-pacing", "builtin-continuity"],
+  "enabled": true
+}
+```
+
+`DELETE /api/skill-packs?id=my-review-pack` 删除用户技能包。
+
+## 分类
+
+`GET /api/categories` 返回内置与用户分类。`POST/PUT /api/categories` 保存到 `.ainovel/categories.json`；`scope` 可为 `all`、`project`、`capability` 或 `memory`，颜色必须是六位十六进制值，否则使用安全默认色。
+
+```json
+{"name":"历史考据","color":"#F2B544","scope":"capability","description":"史料与时代细节"}
+```
+
+`DELETE /api/categories?id=...` 只删除用户分类，不会悄悄改写已有记录中的分类 ID。客户端应在删除前提示这一边界。
 
 当前 `/api/run` 已支持内置 `echo`、`outline`、`rewrite`、`ai/generate` 任务。`ai/generate` 和 `rewrite` 的 AI 模式会调用当前配置的 LLM provider；未配置 provider 时，`rewrite` 会返回本地链路验证结果。请求显式选择的 skill/prompt 会把其 `instructions`（或可见 `steps`）组合到本次模型输入中；后端和项目类型只负责执行路由，不会被当成提示词。保存第三方 GitHub 项目或 skill manifest 只负责登记和校验，不会直接执行任意仓库代码。
 

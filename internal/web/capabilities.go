@@ -24,6 +24,8 @@ type capabilityManifest struct {
 	License        string         `json:"license"`
 	Author         string         `json:"author,omitempty"`
 	Description    string         `json:"description,omitempty"`
+	Category       string         `json:"category,omitempty"`
+	Tags           []string       `json:"tags,omitempty"`
 	Instructions   string         `json:"instructions,omitempty"`
 	Steps          []string       `json:"steps,omitempty"`
 	Entry          string         `json:"entry"`
@@ -420,6 +422,7 @@ func defaultCapabilities() []capabilityManifest {
 		{
 			ID: "builtin-echo", Name: "内置回显", Type: "skill", Version: "1.0.0",
 			Source: "builtin://echo", License: "Apache-2.0", Entry: "builtin:echo", Output: "text",
+			Category: "utility", Tags: []string{"offline", "diagnostic"},
 			Description: "不调用模型，原样检查上下文与能力执行链路。",
 			Steps:       []string{"接收本次任务和上下文", "回传可检查的文本结果"},
 			SupportsStream: true, SupportsAbort: true, Enabled: true, ReadOnly: true,
@@ -427,6 +430,7 @@ func defaultCapabilities() []capabilityManifest {
 		{
 			ID: "builtin-outline", Name: "内置大纲拆分", Type: "skill", Version: "1.0.0",
 			Source: "builtin://outline", License: "Apache-2.0", Entry: "builtin:outline", Output: "text",
+			Category: "planning", Tags: []string{"outline", "structure"},
 			Description:  "把输入拆成起点、推进、转折和收束四段执行骨架。",
 			Instructions: "提炼输入中的目标、冲突、关键选择与结果变化，形成可继续写作的执行大纲。",
 			Steps:        []string{"识别核心目标", "拆分冲突与场景推进", "安排关键选择和代价", "给出下一步写作任务"},
@@ -435,14 +439,46 @@ func defaultCapabilities() []capabilityManifest {
 		{
 			ID: "builtin-rewrite", Name: "内置改写链路", Type: "skill", Version: "1.0.0",
 			Source: "builtin://rewrite", License: "Apache-2.0", Entry: "builtin:rewrite", Output: "text",
+			Category: "revision", Tags: []string{"rewrite", "style"},
 			Description:  "保留原意与人物逻辑，生成可审阅的改写候选。",
 			Instructions: "改写时保留原意、人物动机和因果关系，只优化表达、节奏与画面；不要宣称已经写入正文。",
 			Steps:        []string{"读取选区与项目上下文", "识别不可改变的信息", "生成改写候选", "等待用户显式写入"},
 			SupportsStream: true, SupportsAbort: true, Enabled: true, ReadOnly: true,
 		},
 		{
+			ID: "builtin-continuity", Name: "连续性校准", Type: "skill", Version: "1.0.0",
+			Source: "builtin://continuity", License: "Apache-2.0", Entry: "prompt:continuity", Output: "text",
+			Category: "continuity", Tags: []string{"facts", "timeline", "causality"},
+			Description: "检查人物事实、事件顺序、因果链与设定边界，只报告有上下文证据的问题。",
+			Instructions: "逐项核对人物事实、事件顺序、因果链和设定边界。区分明确冲突、缺少证据与合理留白；不得凭空补设定。返回问题位置、证据和最小修改候选。",
+			Steps: []string{"提取不可改变的事实", "对照当前正文与项目资料", "标记冲突和证据等级", "给出最小修改候选"},
+			Permissions: []string{"context:read"},
+			SupportsStream: true, SupportsAbort: true, Enabled: true, ReadOnly: true,
+		},
+		{
+			ID: "builtin-character-voice", Name: "角色声音检查", Type: "skill", Version: "1.0.0",
+			Source: "builtin://character-voice", License: "Apache-2.0", Entry: "prompt:character-voice", Output: "text",
+			Category: "drafting", Tags: []string{"character", "dialogue", "voice"},
+			Description: "检查对话、动作和判断是否符合已提供的人物动机与表达习惯。",
+			Instructions: "只依据人物卡和当前文本检查角色声音。保留人物动机和信息差，指出串音、解释性对白与无依据转变，并提供不改变事件结果的候选。",
+			Steps: []string{"读取人物卡与场景目标", "区分每个角色的措辞和行动逻辑", "定位串音或动机断点", "生成保持事件结果的候选"},
+			Permissions: []string{"context:read"},
+			SupportsStream: true, SupportsAbort: true, Enabled: true, ReadOnly: true,
+		},
+		{
+			ID: "builtin-scene-pacing", Name: "场景节奏检查", Type: "skill", Version: "1.0.0",
+			Source: "builtin://scene-pacing", License: "Apache-2.0", Entry: "prompt:scene-pacing", Output: "text",
+			Category: "revision", Tags: []string{"scene", "pacing", "tension"},
+			Description: "检查场景目标、阻力、变化与收束，避免只凭句子长短判断节奏。",
+			Instructions: "按场景目标、阻力、信息变化、关键选择和结果检查节奏。保持事件顺序，不擅自增加反转；优先指出可以删减、前移或展开的位置。",
+			Steps: []string{"识别场景目标和结果", "检查阻力与信息变化", "定位停滞或跳跃", "返回调整顺序和篇幅的候选"},
+			Permissions: []string{"context:read"},
+			SupportsStream: true, SupportsAbort: true, Enabled: true, ReadOnly: true,
+		},
+		{
 			ID: "writing-workshop", Name: "Writing Workshop 本地后端", Type: "backend", Version: "0.1",
 			Source: "https://github.com/zizegak916-glitch/writing-workshop", License: "Apache-2.0", Entry: "/api/*", Output: "json/event-stream",
+			Category: "runtime", Tags: []string{"local-first", "same-origin"},
 			Description: "写作工坊原生支持的同源后端，用于模型调用、项目存储、流式输出与任务中断。",
 			Steps:       []string{"接收同源请求", "执行已选择能力", "流式返回候选", "接受中断信号"},
 			Permissions: []string{"读取本次显式提交的上下文", "写入后端项目数据仅限用户发起的保存操作"},

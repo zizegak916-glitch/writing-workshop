@@ -1,0 +1,12 @@
+{
+  "id": "chapter-revision-custom",
+  "name": "章节修订示例",
+  "description": "把通用改写、场景节奏和连续性检查组合为一次候选生成。",
+  "category": "revision",
+  "skill_ids": [
+    "builtin-rewrite",
+    "builtin-scene-pacing",
+    "builtin-continuity"
+  ],
+  "enabled": true
+}

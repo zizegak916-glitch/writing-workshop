@@ -310,10 +310,6 @@
     <span data-i18n="mod-import"><svg class="ic ic-sm"><use href="#ic-import"/></svg> 导入项目（.json .txt .md .docx）</span>
     <input type="file" accept=".json,.txt,.md,.docx" multiple onchange="importProject(event)" style="display:none">
   </label>
-  <div style="margin-top:8px;display:flex;gap:6px">
-    <input class="form-input" id="importUrlInput" placeholder="粘贴网页URL..." style="flex:1;font-size:12px;padding:6px 10px">
-    <button class="btn-confirm" onclick="importFromUrl()" style="padding:6px 12px;font-size:12px">导入</button>
-  </div>
 </div>
   <div class="modal-footer"><button class="btn-cancel" data-i18n="mod-close" onclick="closeModal('projectModal')">关闭</button><button class="btn-confirm" data-i18n="mod-newproj-btn" onclick="closeModal('projectModal');openModal('newProjectModal')">＋ 新建</button></div>
 </div></div>

@@ -2381,11 +2381,6 @@ async function confirmImport() {
   } catch (err) { showToast('✕', err.message); }
   pendingImportData = null;
 }
-function importFromUrl() {
-  const url = (document.getElementById('importUrlInput')?.value || '').trim();
-  if (!url) return showToast('✕', '请输入URL');
-  showToast('⏳', 'URL导入功能即将推出');
-}
 // ═══ Enhanced Import ═══
 async function importProject(e) {
   const files = e.target.files;

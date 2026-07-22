@@ -1,5 +1,7 @@
 # 开发指南
 
+> 状态：现行开发指南，更新于 2026-07-22。
+
 ## 本地构建
 
 ```bash
@@ -26,17 +28,21 @@ GOCACHE=/tmp/go-cache GOMODCACHE=/tmp/gomodcache go build ./cmd/writing-workshop
 
 - `app.html` 是写作工坊主入口。
 - 主界面的“流程”功能拆分在 `web/static/js/workflows.js` 与 `web/static/css/workflows.css`，由 `app.html` 显式加载；不要只修改未被入口引用的旧拆分模块。
+- 浏览器项目搜索、复制、分类、单项目导出与安全删除在 `web/static/js/product-extensions.js` 和 `web/static/css/product-extensions.css`；入口仍是 `app.html`。
+- `web/static/icons/app-icon.svg` 是全站图标源；所有公开 HTML 页面都应保留 favicon 引用。
 - `/admin` 使用 `web/static/admin.html`。
 - 前端 AI 调用必须走 `/api/ai`，浏览器不直接访问厂商 API。
 - 项目、章节、角色写入会同步到 `/api/projects`、`/api/chapters`、`/api/characters`。
 - 规则包使用 `/api/rules`，项目级规则落盘到 `.ainovel/rules/web.rules.md`。
 - 新的通用能力入口使用 `/api/capabilities` 和 `/api/run`。前端传递 `backend_id`、`skill_ids`、上下文和参数；后端输出直接回传前端。
+- 技能包与分类分别使用 `/api/skill-packs`、`/api/categories`，实现在 `internal/web/catalog.go`。技能包只能引用已启用的非后端能力。
 - 长任务必须支持取消，前端可使用 `AbortController` 或调用 `/api/abort` 中断。
 
 ## 后端约定
 
 - Web API 实现在 `internal/web/server.go`。
 - 通用能力 API 实现在 `internal/web/capabilities.go`，能力清单保存到 `.ainovel/capabilities.json`。
+- 产品目录 API 实现在 `internal/web/catalog.go`，分类和技能包分别保存到 `.ainovel/categories.json`、`.ainovel/skill-packs.json`。
 - 第三方 GitHub 项目和 skill manifest 只做登记、校验和选择；不要在 Web 层直接执行未沙箱化的远程代码。
 - `/api/run` 支持 JSON 响应和 SSE 响应。新增长任务时必须使用 request context，并注册取消函数，保证 `/api/abort` 可中断。
 - 运行时配置由 `host.UpdateConfig` 持久化到本地配置文件。

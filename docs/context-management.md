@@ -1,5 +1,7 @@
 # 上下文管理说明
 
+> 文档状态：**历史 / 引擎层**。本文中的 `internal/orchestrator/*` 等路径记录上游某一阶段的实现，部分已不在当前产品树中。它不能作为 Writing Workshop Web“流程”页的执行说明；现行显式上下文包见根目录 `README.md` 与 `web/static/docs.html`。
+
 本文档说明 `ainovel-cli` 当前的上下文管理体系，包括：
 
 - 为什么要做上下文管理
