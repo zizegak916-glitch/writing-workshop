@@ -42,6 +42,10 @@
   "version": "1.0.0",
   "source": "https://github.com/example/writing-skill",
   "license": "MIT",
+  "description": "保留事实与人物动机的通用润色",
+  "instructions": "只优化表达和节奏，不改变事件顺序",
+  "steps": ["读取本次上下文", "标出不可改变的信息", "生成候选"],
+  "permissions": ["读取本次显式提交的上下文", "不自动写入正文"],
   "entry": "skill.json",
   "output": "text",
   "supports_stream": true,
@@ -70,7 +74,7 @@
 
 普通响应会返回 `run_id`、`task`、`backend_id`、`skill_ids`、`capabilities`、`output` 和 `content`。传 `params.stream=true` 或请求头 `Accept: text/event-stream` 时返回 SSE，事件包括 `start`、`delta`、`done`、`error`、`aborted`。
 
-当前 `/api/run` 已支持内置 `echo`、`outline`、`rewrite`、`ai/generate` 任务。`ai/generate` 和 `rewrite` 的 AI 模式会调用当前配置的 LLM provider；未配置 provider 时，`rewrite` 会返回本地链路验证结果。保存第三方 GitHub 项目或 skill manifest 只负责登记和校验，不会直接执行任意仓库代码。
+当前 `/api/run` 已支持内置 `echo`、`outline`、`rewrite`、`ai/generate` 任务。`ai/generate` 和 `rewrite` 的 AI 模式会调用当前配置的 LLM provider；未配置 provider 时，`rewrite` 会返回本地链路验证结果。请求显式选择的 skill/prompt 会把其 `instructions`（或可见 `steps`）组合到本次模型输入中；后端和项目类型只负责执行路由，不会被当成提示词。保存第三方 GitHub 项目或 skill manifest 只负责登记和校验，不会直接执行任意仓库代码。
 
 ## AI
 

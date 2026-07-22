@@ -36,6 +36,8 @@ AI写作工坊是面向小说创作的开源可自定义主体应用。它可以
 
 当前仓库保留了一个 `ainovel-cli` 后端适配示例。静态资源可以通过 `go:embed` 打包进单个二进制，不依赖外部 CDN。启动后即可在浏览器中编辑项目、章节、角色、规则包，并通过后端代理真实 LLM API。
 
+主界面的 AI 面板包含“流程”页：用户可以显式选择当前正文、项目设定、大纲、人物卡和记忆组成上下文包，查看估算 token，再组合后端与 skill 执行。结果先进入候选区，不会自动修改正文；写入正文与整理为记忆是两个独立确认动作。流程历史保留完整候选和写入前快照，支持重新查看与恢复。
+
 ```bash
 go build -o ainovel-cli ./cmd/ainovel-cli
 ./ainovel-cli serve --port 8080
@@ -46,6 +48,8 @@ go build -o ainovel-cli ./cmd/ainovel-cli
 - 写作工坊：`http://127.0.0.1:8080/app.html`
 - 管理后台：`http://127.0.0.1:8080/admin.html`
 - API：`http://127.0.0.1:8080/api/...`
+
+浏览器只请求同源 `/api/`，不直接跨域访问模型厂商 URL。GitHub Pages 可以使用本地项目编辑功能，但“流程”执行、模型调用和能力管理需要运行上述本地后端或部署兼容的同源后端。
 
 配置支持本地配置文件和环境变量。API key 可写入 `~/.ainovel/config.json`，也可使用 `AINOVEL_<PROVIDER>_API_KEY` 或 `<PROVIDER>_API_KEY`，例如 `AINOVEL_OPENROUTER_API_KEY`。
 

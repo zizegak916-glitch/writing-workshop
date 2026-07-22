@@ -32,13 +32,24 @@
       <div class="card"><h3>实时回传</h3><p>后端输出直接传回前端。长任务应支持流式输出，前端可以随时中断并保留已生成内容。</p></div>
     </div>
 
+    <h2>主界面的“流程”怎么用</h2>
+    <div class="grid">
+      <div class="card"><h3>1. 写清本次任务</h3><p>打开右侧 AI 面板的“流程”页，只描述这一次要完成的工作。点“新任务”会清空当前候选，但不会删除历史。</p></div>
+      <div class="card"><h3>2. 选择上下文</h3><p>按需勾选当前选区/正文、项目设定、大纲、人物卡和记忆。界面会显示字符数与估算 token；预览区只做界面截取，发送内容不会静默截断。</p></div>
+      <div class="card"><h3>3. 组合能力</h3><p>选择一个后端和需要的 skill。展开能力可以看到步骤、入口和权限；能力说明与执行要求可在后台编辑。</p></div>
+      <div class="card"><h3>4. 生成候选</h3><p>点击“生成候选”后通过同源 <code>/api/run</code> 流式返回。它不会自动覆盖编辑器；运行中可以随时中断。</p></div>
+      <div class="card"><h3>5. 明确决定去向</h3><p>候选可以复制、替换运行时选区、插入当前光标或追加到正文。正文在运行期间发生变化时，系统会阻止按旧坐标替换。</p></div>
+      <div class="card"><h3>6. 记忆单独确认</h3><p>“整理为记忆…”只会把候选送入记忆编辑框，仍需你再次确认保存。正文写入和记忆同步不会绑在一起。</p></div>
+    </div>
+    <div class="note">流程历史保留完整候选；发生正文写入时还会记录写入前快照。你可以重新打开候选，或恢复到写入前。恢复动作本身不会自动保存章节。</div>
+
     <h2>当前可用接口</h2>
     <div class="grid">
       <div class="card"><h3>保存能力</h3><p><code>GET/POST /api/capabilities</code> 已可用，能力保存到后端工作目录的 <code>.ainovel/capabilities.json</code>。</p></div>
       <div class="card"><h3>执行能力</h3><p><code>POST /api/run</code> 已可用，支持 <code>backend_id</code>、<code>skill_ids</code>、任务、上下文和参数。</p></div>
       <div class="card"><h3>中断运行</h3><p><code>POST /api/abort</code> 会同时中断写作运行和能力运行；流式输出使用 SSE 的 <code>start/delta/done</code> 事件。</p></div>
     </div>
-    <p>默认内置 <code>builtin-echo</code>、<code>builtin-outline</code>、<code>builtin-rewrite</code> 和 <code>ainovel-cli</code>。内置能力只读；用户保存的能力可以在后台编辑、启停、删除，并可直接填入测试区流式试跑或中断。保存 GitHub 链接或 skill manifest 不会直接执行任意仓库代码；第三方代码执行需要明确的沙箱执行器。</p>
+    <p>默认内置 <code>builtin-echo</code>、<code>builtin-outline</code>、<code>builtin-rewrite</code> 和 <code>ainovel-cli</code>。内置能力只读；用户保存的能力可以在后台编辑说明、执行要求、可见步骤和权限边界，也可以启停、删除、流式试跑或中断。选中的 prompt/skill 执行要求会进入本次模型请求；保存 GitHub 链接或 skill manifest 本身不会执行任意仓库代码，第三方代码执行仍需要明确的沙箱执行器。</p>
 
     <h2>自定义文件或链接要求</h2>
     <p>添加 GitHub 项目、远程链接或本地 skill 时，必须能被后端安全解析，并满足下面的最小契约。</p>

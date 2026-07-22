@@ -24,6 +24,8 @@ type capabilityManifest struct {
 	License        string         `json:"license"`
 	Author         string         `json:"author,omitempty"`
 	Description    string         `json:"description,omitempty"`
+	Instructions   string         `json:"instructions,omitempty"`
+	Steps          []string       `json:"steps,omitempty"`
 	Entry          string         `json:"entry"`
 	InputSchema    map[string]any `json:"input_schema,omitempty"`
 	Output         string         `json:"output"`
@@ -116,16 +118,15 @@ func (s *Server) executeRun(ctx context.Context, runID string, req runRequest) (
 	if err != nil {
 		return nil, err
 	}
-	task := strings.ToLower(strings.TrimSpace(req.Task))
-	if task == "" {
-		task = "echo"
-	}
+	task := resolveRunTask(req.Task, caps)
 	input := runInputText(req)
 	var output string
 	switch task {
 	case "ai", "generate":
+		req.Message = capabilityRunMessage(input, caps)
 		output, err = s.runAI(ctx, req)
 	case "rewrite":
+		req.Message = capabilityRunMessage(input, caps)
 		output, err = s.runRewrite(ctx, req)
 	case "outline", "plan":
 		output = buildOutline(input)
@@ -416,11 +417,89 @@ func mergeDefaultCapabilities(user []capabilityManifest) []capabilityManifest {
 
 func defaultCapabilities() []capabilityManifest {
 	return []capabilityManifest{
-		{ID: "builtin-echo", Name: "内置回显", Type: "skill", Version: "1.0.0", Source: "builtin://echo", License: "MIT", Entry: "builtin:echo", Output: "text", SupportsStream: true, SupportsAbort: true, Enabled: true, ReadOnly: true},
-		{ID: "builtin-outline", Name: "内置大纲拆分", Type: "skill", Version: "1.0.0", Source: "builtin://outline", License: "MIT", Entry: "builtin:outline", Output: "text", SupportsStream: true, SupportsAbort: true, Enabled: true, ReadOnly: true},
-		{ID: "builtin-rewrite", Name: "内置改写链路", Type: "skill", Version: "1.0.0", Source: "builtin://rewrite", License: "MIT", Entry: "builtin:rewrite", Output: "text", SupportsStream: true, SupportsAbort: true, Enabled: true, ReadOnly: true},
-		{ID: "ainovel-cli", Name: "ainovel-cli 后端适配", Type: "backend", Version: "upstream", Source: "https://github.com/voocel/ainovel-cli", License: "Upstream", Entry: "/api/*", Output: "json/event-stream", SupportsStream: true, SupportsAbort: true, Enabled: true, ReadOnly: true},
+		{
+			ID: "builtin-echo", Name: "内置回显", Type: "skill", Version: "1.0.0",
+			Source: "builtin://echo", License: "MIT", Entry: "builtin:echo", Output: "text",
+			Description: "不调用模型，原样检查上下文与能力执行链路。",
+			Steps:       []string{"接收本次任务和上下文", "回传可检查的文本结果"},
+			SupportsStream: true, SupportsAbort: true, Enabled: true, ReadOnly: true,
+		},
+		{
+			ID: "builtin-outline", Name: "内置大纲拆分", Type: "skill", Version: "1.0.0",
+			Source: "builtin://outline", License: "MIT", Entry: "builtin:outline", Output: "text",
+			Description:  "把输入拆成起点、推进、转折和收束四段执行骨架。",
+			Instructions: "提炼输入中的目标、冲突、关键选择与结果变化，形成可继续写作的执行大纲。",
+			Steps:        []string{"识别核心目标", "拆分冲突与场景推进", "安排关键选择和代价", "给出下一步写作任务"},
+			SupportsStream: true, SupportsAbort: true, Enabled: true, ReadOnly: true,
+		},
+		{
+			ID: "builtin-rewrite", Name: "内置改写链路", Type: "skill", Version: "1.0.0",
+			Source: "builtin://rewrite", License: "MIT", Entry: "builtin:rewrite", Output: "text",
+			Description:  "保留原意与人物逻辑，生成可审阅的改写候选。",
+			Instructions: "改写时保留原意、人物动机和因果关系，只优化表达、节奏与画面；不要宣称已经写入正文。",
+			Steps:        []string{"读取选区与项目上下文", "识别不可改变的信息", "生成改写候选", "等待用户显式写入"},
+			SupportsStream: true, SupportsAbort: true, Enabled: true, ReadOnly: true,
+		},
+		{
+			ID: "ainovel-cli", Name: "ainovel-cli 后端适配", Type: "backend", Version: "upstream",
+			Source: "https://github.com/voocel/ainovel-cli", License: "Upstream", Entry: "/api/*", Output: "json/event-stream",
+			Description: "写作工坊原生支持的同源后端，用于模型调用、项目存储、流式输出与任务中断。",
+			Steps:       []string{"接收同源请求", "执行已选择能力", "流式返回候选", "接受中断信号"},
+			Permissions: []string{"读取本次显式提交的上下文", "写入后端项目数据仅限用户发起的保存操作"},
+			SupportsStream: true, SupportsAbort: true, Enabled: true, ReadOnly: true,
+		},
 	}
+}
+
+func resolveRunTask(explicit string, caps []capabilityManifest) string {
+	if task := strings.ToLower(strings.TrimSpace(explicit)); task != "" {
+		return task
+	}
+	for _, cap := range caps {
+		switch strings.ToLower(strings.TrimSpace(cap.Entry)) {
+		case "builtin:outline":
+			return "outline"
+		case "builtin:rewrite":
+			return "rewrite"
+		case "builtin:echo":
+			return "echo"
+		}
+	}
+	for _, cap := range caps {
+		if cap.Type == "backend" || cap.Type == "project" {
+			continue
+		}
+		if strings.TrimSpace(cap.Instructions) != "" || len(cap.Steps) > 0 {
+			return "generate"
+		}
+	}
+	return "echo"
+}
+
+func capabilityRunMessage(input string, caps []capabilityManifest) string {
+	var instructions []string
+	for _, cap := range caps {
+		if cap.Type == "backend" || cap.Type == "project" {
+			continue
+		}
+		instruction := strings.TrimSpace(cap.Instructions)
+		if instruction == "" && len(cap.Steps) > 0 {
+			var numbered []string
+			for i, step := range cap.Steps {
+				if step = strings.TrimSpace(step); step != "" {
+					numbered = append(numbered, fmt.Sprintf("%d. %s", i+1, step))
+				}
+			}
+			instruction = strings.Join(numbered, "\n")
+		}
+		if instruction != "" {
+			instructions = append(instructions, fmt.Sprintf("[%s]\n%s", cap.Name, instruction))
+		}
+	}
+	if len(instructions) == 0 {
+		return input
+	}
+	return "【已选择能力的执行要求】\n" + strings.Join(instructions, "\n\n") + "\n\n【本次输入】\n" + input
 }
 
 func readJSONFile(path string, v any) error {

@@ -189,6 +189,29 @@ func TestRunStreamsEvents(t *testing.T) {
 	}
 }
 
+func TestCapabilityInstructionsComposeIntoRunMessage(t *testing.T) {
+	caps := []capabilityManifest{{
+		Name:         "节奏校准",
+		Type:         "skill",
+		Instructions: "保留事件顺序，只调整段落张力。",
+	}}
+	got := capabilityRunMessage("雨落在窗边。", caps)
+	for _, want := range []string{"节奏校准", "保留事件顺序", "雨落在窗边"} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("capabilityRunMessage missing %q: %s", want, got)
+		}
+	}
+}
+
+func TestResolveRunTaskFromBuiltinCapability(t *testing.T) {
+	if got := resolveRunTask("", []capabilityManifest{{Entry: "builtin:outline"}}); got != "outline" {
+		t.Fatalf("resolveRunTask = %q, want outline", got)
+	}
+	if got := resolveRunTask("echo", []capabilityManifest{{Entry: "builtin:outline"}}); got != "echo" {
+		t.Fatalf("explicit task must win, got %q", got)
+	}
+}
+
 func newTestServer(t *testing.T) (*Server, http.Handler) {
 	t.Helper()
 	cfg := bootstrap.Config{

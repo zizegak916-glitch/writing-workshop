@@ -25,6 +25,7 @@ GOCACHE=/tmp/go-cache GOMODCACHE=/tmp/gomodcache go build ./cmd/ainovel-cli
 ## Web 端约定
 
 - `app.html` 是写作工坊主入口。
+- 主界面的“流程”功能拆分在 `web/static/js/workflows.js` 与 `web/static/css/workflows.css`，由 `app.html` 显式加载；不要只修改未被入口引用的旧拆分模块。
 - `/admin` 使用 `web/static/admin.html`。
 - 前端 AI 调用必须走 `/api/ai`，浏览器不直接访问厂商 API。
 - 项目、章节、角色写入会同步到 `/api/projects`、`/api/chapters`、`/api/characters`。
