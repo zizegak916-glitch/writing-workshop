@@ -1,701 +1,117 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AI写作工坊 — 让写作更轻松高效</title>
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-
-    :root {
-      --primary: #6366f1;
-      --primary-hover: #4f46e5;
-      --primary-glow: rgba(99,102,241,0.2);
-      --bg: #ffffff;
-      --bg-alt: #f8fafc;
-      --surface: #ffffff;
-      --text: #0f172a;
-      --text-2: #475569;
-      --text-3: #94a3b8;
-      --border: #e2e8f0;
-      --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
-      --shadow-md: 0 4px 16px rgba(0,0,0,0.08);
-      --shadow-lg: 0 12px 40px rgba(0,0,0,0.12);
-      --radius: 12px;
-      --green: #10b981;
-      --amber: #f59e0b;
-    }
-
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --primary: #818cf8;
-        --primary-hover: #6366f1;
-        --primary-glow: rgba(129,140,248,0.15);
-        --bg: #0c0e14;
-        --bg-alt: #111318;
-        --surface: #161820;
-        --text: #e8eaed;
-        --text-2: #9ba1b0;
-        --text-3: #5c6370;
-        --border: rgba(255,255,255,0.06);
-        --shadow-sm: 0 1px 3px rgba(0,0,0,0.2);
-        --shadow-md: 0 4px 16px rgba(0,0,0,0.3);
-        --shadow-lg: 0 12px 40px rgba(0,0,0,0.4);
-      }
-    }
-
-    html { scroll-behavior: smooth; }
-
-    body {
-      font-family: Inter, "Noto Sans SC", "Microsoft YaHei", "PingFang SC", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      line-height: 1.6;
-      -webkit-font-smoothing: antialiased;
-    }
-
-    .wrap { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
-
-    /* ===== HEADER ===== */
-    header {
-      position: sticky; top: 0; z-index: 100;
-      background: color-mix(in srgb, var(--bg) 85%, transparent);
-      backdrop-filter: blur(20px) saturate(180%);
-      -webkit-backdrop-filter: blur(20px) saturate(180%);
-      border-bottom: 1px solid var(--border);
-    }
-    .hdr {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 14px 24px; max-width: 1200px; margin: 0 auto;
-    }
-    .logo {
-      display: flex; align-items: center; gap: 10px;
-      font-size: 17px; font-weight: 700;
-      color: var(--text); text-decoration: none;
-    }
-    .logo-mark {
-      width: 32px; height: 32px;
-      background: linear-gradient(135deg, var(--primary), #a78bfa);
-      border-radius: 9px;
-      display: flex; align-items: center; justify-content: center;
-      color: #fff; font-weight: 800; font-size: 13px;
-    }
-    nav { display: flex; gap: 28px; align-items: center; }
-    nav a {
-      color: var(--text-2); text-decoration: none;
-      font-size: 14px; font-weight: 500;
-      transition: color 0.2s;
-    }
-    nav a:hover { color: var(--text); }
-    .btn {
-      display: inline-flex; align-items: center; gap: 6px;
-      padding: 9px 20px; border-radius: 10px;
-      font-size: 14px; font-weight: 600;
-      text-decoration: none; border: none;
-      cursor: pointer; transition: all 0.2s;
-    }
-    .btn-primary { background: var(--primary); color: #fff; }
-    .btn-primary:hover { background: var(--primary-hover); transform: translateY(-1px); box-shadow: var(--shadow-md); }
-    .btn-ghost {
-      background: transparent; color: var(--text);
-      border: 1px solid var(--border);
-    }
-    .btn-ghost:hover { border-color: var(--primary); color: var(--primary); }
-    .btn-lg { padding: 13px 28px; font-size: 16px; border-radius: 12px; }
-
-    /* ===== HERO ===== */
-    .hero {
-      padding: 80px 0 48px; text-align: center;
-    }
-    .hero-badge {
-      display: inline-flex; align-items: center; gap: 8px;
-      padding: 6px 16px; border-radius: 20px;
-      background: var(--primary-glow);
-      color: var(--primary);
-      font-size: 13px; font-weight: 600;
-      margin-bottom: 24px;
-    }
-    .hero-badge .dot {
-      width: 6px; height: 6px; border-radius: 50%;
-      background: var(--green);
-      animation: pulse 2s infinite;
-    }
-    @keyframes pulse {
-      0%,100% { opacity: 1; } 50% { opacity: 0.4; }
-    }
-    .hero h1 {
-      font-size: 52px; font-weight: 700;
-      line-height: 1.15; margin-bottom: 20px;
-      letter-spacing: -0.02em;
-    }
-    .hero h1 .gradient {
-      background: linear-gradient(135deg, var(--primary), #a78bfa, #f472b6);
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-    .hero-sub {
-      font-size: 19px; color: var(--text-2);
-      max-width: 520px; margin: 0 auto 36px;
-    }
-    .hero-btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
-
-    /* ===== PREVIEW WINDOW ===== */
-    .preview {
-      max-width: 860px; margin: 48px auto 0;
-      border-radius: 16px; overflow: hidden;
-      border: 1px solid var(--border);
-      box-shadow: var(--shadow-lg);
-    }
-    .preview-bar {
-      display: flex; align-items: center; gap: 8px;
-      padding: 12px 16px;
-      background: var(--surface);
-      border-bottom: 1px solid var(--border);
-    }
-    .dot-r { width: 10px; height: 10px; border-radius: 50%; background: #ef4444; }
-    .dot-y { width: 10px; height: 10px; border-radius: 50%; background: #eab308; }
-    .dot-g { width: 10px; height: 10px; border-radius: 50%; background: #22c55e; }
-    .preview-bar .title {
-      flex: 1; text-align: center;
-      font-size: 12px; color: var(--text-3);
-    }
-    .preview-body {
-      padding: 32px; background: var(--bg-alt);
-      font-size: 15px; color: var(--text-2);
-      line-height: 2;
-    }
-    .preview-body .ch-title {
-      font-size: 16px; font-weight: 600; color: var(--text);
-      margin-bottom: 12px;
-    }
-    .preview-body .ai-hint {
-      display: inline-block;
-      background: var(--primary-glow);
-      color: var(--primary);
-      padding: 2px 10px; border-radius: 6px;
-      font-size: 13px; font-weight: 500;
-    }
-
-    /* ===== STATS ===== */
-    .stats {
-      padding: 60px 0 40px;
-    }
-    .stats-grid {
-      display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px;
-    }
-    .stat {
-      text-align: center; padding: 28px 16px;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-    }
-    .stat-num {
-      font-size: 32px; font-weight: 700;
-      background: linear-gradient(135deg, var(--primary), #a78bfa);
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-    .stat-label { font-size: 13px; color: var(--text-3); margin-top: 4px; }
-
-    /* ===== RUNTIME MODES ===== */
-    .runtime {
-      padding: 60px 0;
-      background: var(--bg-alt);
-    }
-    .runtime-grid {
-      display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px;
-      margin-top: 30px;
-    }
-    .runtime-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 24px;
-    }
-    .runtime-kicker {
-      display: inline-flex; align-items: center; gap: 8px;
-      font-size: 12px; font-weight: 700;
-      color: var(--primary);
-      margin-bottom: 12px;
-    }
-    .runtime-card h3 { font-size: 18px; margin-bottom: 10px; }
-    .runtime-card p { color: var(--text-2); font-size: 14px; line-height: 1.75; }
-    .endpoint-list {
-      display: grid; gap: 8px; margin-top: 16px;
-    }
-    .endpoint {
-      display: flex; align-items: center; justify-content: space-between; gap: 12px;
-      padding: 9px 10px;
-      border-radius: 8px;
-      background: var(--bg-alt);
-      color: var(--text-2);
-      font-size: 13px;
-    }
-    .endpoint code {
-      color: var(--text);
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-      font-size: 12px;
-    }
-
-    /* ===== FEATURES ===== */
-    .features { padding: 60px 0; }
-    .section-label {
-      text-align: center; font-size: 12px; font-weight: 700;
-      color: var(--primary); text-transform: uppercase;
-      letter-spacing: 0.15em; margin-bottom: 10px;
-    }
-    .section-title {
-      text-align: center; font-size: 34px; font-weight: 700;
-      margin-bottom: 10px; letter-spacing: -0.01em;
-    }
-    .section-sub {
-      text-align: center; font-size: 17px; color: var(--text-2);
-      margin-bottom: 48px;
-    }
-    .feat-grid {
-      display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;
-    }
-    .feat {
-      padding: 28px;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      transition: all 0.25s;
-    }
-    .feat:hover {
-      border-color: var(--primary);
-      box-shadow: 0 0 0 1px var(--primary), var(--shadow-md);
-      transform: translateY(-3px);
-    }
-    .feat-icon {
-      width: 44px; height: 44px;
-      border-radius: 10px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 22px; margin-bottom: 16px;
-      background: var(--primary-glow);
-    }
-    .feat h3 { font-size: 17px; font-weight: 600; margin-bottom: 8px; }
-    .feat p { font-size: 14px; color: var(--text-2); line-height: 1.7; }
-
-    /* ===== USE CASES ===== */
-    .use-cases {
-      padding: 60px 0;
-      background: var(--bg-alt);
-    }
-    .uc-grid {
-      display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;
-    }
-    .uc {
-      padding: 24px;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      transition: all 0.25s;
-    }
-    .uc:hover { border-color: var(--primary); transform: translateY(-2px); }
-    .uc-icon { font-size: 24px; margin-bottom: 10px; }
-    .uc h4 { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
-    .uc p { font-size: 13px; color: var(--text-2); }
-
-    /* ===== STAR CTA ===== */
-    .star-cta {
-      padding: 60px 0;
-    }
-    .star-box {
-      display: flex; align-items: center; justify-content: space-between;
-      gap: 40px; padding: 40px 48px;
-      background: linear-gradient(135deg, #1c1e26, #24272f);
-      border-radius: 16px;
-      color: #fff;
-    }
-    .star-box h2 {
-      font-size: 24px; font-weight: 700; margin-bottom: 8px;
-    }
-    .star-box p {
-      font-size: 15px; color: rgba(255,255,255,0.7);
-    }
-    .star-box .btns { display: flex; gap: 12px; flex-shrink: 0; }
-    .btn-white {
-      padding: 11px 24px; border-radius: 10px;
-      background: #fff; color: #1c1e26;
-      font-size: 14px; font-weight: 600;
-      text-decoration: none; border: none;
-      cursor: pointer; display: inline-flex;
-      align-items: center; gap: 6px;
-      transition: all 0.2s;
-    }
-    .btn-white:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
-    .btn-ghost-white {
-      padding: 11px 24px; border-radius: 10px;
-      background: transparent; color: #fff;
-      font-size: 14px; font-weight: 600;
-      text-decoration: none; border: 1px solid rgba(255,255,255,0.2);
-      cursor: pointer; display: inline-flex;
-      align-items: center; gap: 6px;
-      transition: all 0.2s;
-    }
-    .btn-ghost-white:hover { border-color: rgba(255,255,255,0.4); }
-
-    /* ===== CTA ===== */
-    .cta {
-      padding: 80px 0; text-align: center;
-    }
-    .cta-box {
-      max-width: 600px; margin: 0 auto;
-      padding: 52px 40px;
-      background: linear-gradient(135deg, var(--primary), #a78bfa);
-      border-radius: 20px;
-    }
-    .cta-box h2 { font-size: 30px; font-weight: 700; color: #fff; margin-bottom: 12px; }
-    .cta-box p { font-size: 17px; color: rgba(255,255,255,0.85); margin-bottom: 28px; }
-    .btn-cta {
-      padding: 14px 36px; border-radius: 12px;
-      background: #fff; color: var(--primary);
-      font-size: 16px; font-weight: 700;
-      text-decoration: none; border: none;
-      cursor: pointer; display: inline-block;
-      transition: all 0.2s;
-    }
-    .btn-cta:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.2); }
-
-    /* ===== FOOTER ===== */
-    footer {
-      padding: 40px 0; text-align: center;
-      border-top: 1px solid var(--border);
-    }
-    .flinks { display: flex; gap: 28px; justify-content: center; margin-bottom: 14px; flex-wrap: wrap; }
-    .flinks a { color: var(--text-3); text-decoration: none; font-size: 14px; }
-    .flinks a:hover { color: var(--primary); }
-    .fcopy { color: var(--text-3); font-size: 13px; }
-
-    /* ===== SCROLL ANIMATIONS ===== */
-    .reveal { opacity: 0; transform: translateY(30px); transition: all 0.7s cubic-bezier(0.22, 1, 0.36, 1); }
-    .reveal.visible { opacity: 1; transform: translateY(0); }
-    .reveal-delay-1 { transition-delay: 0.1s; }
-    .reveal-delay-2 { transition-delay: 0.2s; }
-    .reveal-delay-3 { transition-delay: 0.3s; }
-    .reveal-delay-4 { transition-delay: 0.4s; }
-    .reveal-delay-5 { transition-delay: 0.5s; }
-
-    /* ===== SCROLL PROGRESS ===== */
-    .scroll-progress { position: fixed; top: 0; left: 0; height: 3px; background: linear-gradient(90deg, var(--primary), #a78bfa, #f472b6); z-index: 200; width: 0; transition: width 0.12s linear; pointer-events: none; }
-
-    /* ===== MOBILE MENU ===== */
-    .mobile-toggle { display: none; background: none; border: none; color: var(--text); font-size: 24px; cursor: pointer; padding: 4px; }
-    .mobile-menu { display: none; position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.5); backdrop-filter: blur(8px); }
-    .mobile-menu.open { display: flex; align-items: center; justify-content: center; }
-    .mobile-menu-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 32px; width: min(320px, 90vw); text-align: center; }
-    .mobile-menu-card a { display: block; padding: 14px 0; color: var(--text); font-size: 17px; font-weight: 600; border-bottom: 1px solid var(--border); transition: color 0.2s; }
-    .mobile-menu-card a:last-child { border-bottom: none; color: var(--primary); }
-    .mobile-menu-card a:hover { color: var(--primary); }
-    .mobile-close { position: absolute; top: 20px; right: 20px; background: none; border: none; color: #fff; font-size: 28px; cursor: pointer; }
-
-    /* ===== RESPONSIVE ===== */
-    @media (max-width: 1100px) {
-      .runtime-grid { grid-template-columns: repeat(2, 1fr); }
-    }
-    @media (max-width: 768px) {
-      .hero h1 { font-size: 34px; }
-      .hero-sub { font-size: 16px; }
-      .mobile-toggle { display: block; }
-      nav { display: none; }
-      .stats-grid { grid-template-columns: repeat(2, 1fr); }
-      .runtime-grid { grid-template-columns: 1fr; }
-      .feat-grid { grid-template-columns: 1fr; }
-      .uc-grid { grid-template-columns: repeat(2, 1fr); }
-      .star-box { flex-direction: column; text-align: center; }
-      .star-box .btns { justify-content: center; }
-    }
-    @media (prefers-reduced-motion: reduce) {
-      .reveal { opacity: 1; transform: none; transition: none; }
-    }
-  </style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Writing Workshop 是本地优先、可审计的长篇写作工作台：显式选择上下文，组合 Skill，AI 生成候选，作者决定是否写入。">
+  <meta name="theme-color" content="#fffaf1">
+  <title>Writing Workshop — 把长篇写作变成可掌控的工作流</title>
+  <link rel="stylesheet" href="css/chromatic-site.css">
 </head>
 <body>
-
-  <header>
-    <div class="hdr">
-      <a href="index.html" class="logo">
-        <div class="logo-mark">AI</div>
-        写作工坊
-      </a>
-      <nav>
-        <a href="#runtime">运行模式</a>
-        <a href="#features">功能</a>
-        <a href="#use-cases">场景</a>
-        <a href="admin.html">能力后台</a>
-        <a href="docs.html">文档</a>
-        <a href="about.html">关于</a>
-        <a href="app.html" class="btn btn-primary">立即使用</a>
-      </nav>
-      <button class="mobile-toggle" onclick="document.getElementById('mobileMenu').classList.add('open')" aria-label="菜单">☰</button>
-    </div>
+  <header class="site-nav">
+    <a class="brand" href="index.html" aria-label="Writing Workshop 首页">
+      <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+      <span class="brand-copy">写作工坊<small>Writing Workshop</small></span>
+    </a>
+    <nav class="nav-links" aria-label="主导航">
+      <a href="#features">产品能力</a>
+      <a href="#workflow">工作流</a>
+      <a href="docs.html">使用文档</a>
+      <a href="https://github.com/zizegak916-glitch/writing-workshop">GitHub</a>
+      <a class="nav-cta button primary" href="app.html">打开工坊</a>
+    </nav>
   </header>
-  <div id="mobileMenu" class="mobile-menu" onclick="if(event.target===this)this.classList.remove('open')">
-    <button class="mobile-close" onclick="document.getElementById('mobileMenu').classList.remove('open')">&times;</button>
-    <div class="mobile-menu-card">
-      <a href="#runtime" onclick="document.getElementById('mobileMenu').classList.remove('open')">运行模式</a>
-      <a href="#features" onclick="document.getElementById('mobileMenu').classList.remove('open')">功能</a>
-      <a href="#use-cases" onclick="document.getElementById('mobileMenu').classList.remove('open')">场景</a>
-      <a href="admin.html">能力后台</a>
-      <a href="docs.html">文档</a>
-      <a href="about.html">关于</a>
-      <a href="app.html">立即使用 →</a>
-    </div>
-  </div>
 
-  <!-- Hero -->
-  <section class="hero">
-    <div class="wrap">
-      <div class="hero-badge"><span class="dot"></span> 免费开源 · 无需注册</div>
-      <h1>用 AI 解锁<br><span class="gradient">创作超能力</span></h1>
-      <p class="hero-sub">写作工坊是主体：开源项目、skill、自定义能力和后端执行器都只是可接入的创作能力来源</p>
-      <div class="hero-btns">
-        <a href="app.html" class="btn btn-primary btn-lg">开始创作 →</a>
-        <a href="admin.html" class="btn btn-ghost btn-lg">能力后台</a>
-        <a href="#features" class="btn btn-ghost btn-lg">了解更多</a>
-      </div>
-    </div>
-  </section>
-
-  <!-- Preview -->
-  <div class="wrap">
-    <div class="preview reveal">
-      <div class="preview-bar">
-        <div class="dot-r"></div>
-        <div class="dot-y"></div>
-        <div class="dot-g"></div>
-        <span class="title">AI写作工坊 · 编辑器</span>
-      </div>
-      <div class="preview-body">
-        <div class="ch-title">第三章 · 暗流</div>
-        月光穿过破旧的窗棂，在地面投下斑驳的影子。陆执灯站在门槛外，手里的灯笼微微晃动。<br>
-        "你确定要进去？"身后的声音带着几分犹豫。<br>
-        他没有回头。灯笼的光映在他侧脸上，像一弯残月。<br>
-        <span class="ai-hint">✨ AI建议：此处可加入环境音描写，增强沉浸感</span>
-      </div>
-    </div>
-  </div>
-
-  <!-- Stats -->
-  <section class="stats">
-    <div class="wrap">
-      <div class="stats-grid reveal">
-        <div class="stat"><div class="stat-num">10,000+</div><div class="stat-label">活跃创作者</div></div>
-        <div class="stat"><div class="stat-num">520万</div><div class="stat-label">AI辅助生成字数</div></div>
-        <div class="stat"><div class="stat-num">4.8/5</div><div class="stat-label">用户满意度</div></div>
-        <div class="stat"><div class="stat-num">0</div><div class="stat-label">数据泄露事件</div></div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Runtime Modes -->
-  <section class="runtime" id="runtime">
-    <div class="wrap reveal">
-      <div class="section-label">Runtime</div>
-      <div class="section-title">能力来源与执行链路</div>
-      <div class="section-sub">保存 GitHub 优质开源项目或 skill，也可以接入自己的通用能力文件</div>
-      <div class="runtime-grid">
-        <div class="runtime-card">
-          <div class="runtime-kicker">01 · Sources</div>
-          <h3>能力保存</h3>
-          <p>写作工坊可以保存来自 GitHub 的优质开源项目、能力包、规则包或自定义 skill。来源只是素材库，不改变写作工坊的主体定位。</p>
-          <div class="endpoint-list">
-            <div class="endpoint"><span>开源项目</span><code>GitHub URL</code></div>
-            <div class="endpoint"><span>能力包</span><code>skill.json</code></div>
-          </div>
-        </div>
-        <div class="runtime-card">
-          <div class="runtime-kicker">02 · Select</div>
-          <h3>前端选择</h3>
-          <p>创作时可以选择一个后端项目，也可以叠加多个 skill。前端把项目、章节、上下文、选中的能力和参数统一传给后端。</p>
-          <div class="endpoint-list">
-            <div class="endpoint"><span>项目</span><code>backend_id</code></div>
-            <div class="endpoint"><span>能力</span><code>skill_ids[]</code></div>
-          </div>
-        </div>
-        <div class="runtime-card">
-          <div class="runtime-kicker">03 · Stream</div>
-          <h3>后端回传</h3>
-          <p>后端执行后的输出直接回传到前端，可用于续写、改写、分析、导入和结构化生成。长任务应支持流式输出和中途停止。</p>
-          <div class="endpoint-list">
-            <div class="endpoint"><span>执行</span><code>/api/run</code></div>
-            <div class="endpoint"><span>停止</span><code>AbortController</code></div>
-          </div>
-        </div>
-        <div class="runtime-card">
-          <div class="runtime-kicker">04 · Custom</div>
-          <h3>自定义接入</h3>
-          <p>自定义文件或链接必须声明名称、版本、入口、输入输出格式、权限边界和来源。能力要通用，不绑定某个单一小说项目。</p>
-          <div class="endpoint-list">
-            <div class="endpoint"><span>清单</span><code>manifest</code></div>
-            <div class="endpoint"><span>契约</span><code>input/output</code></div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Features -->
-  <section class="features" id="features">
-    <div class="wrap reveal">
-      <div class="section-label">Features</div>
-      <div class="section-title">核心功能</div>
-      <div class="section-sub">六大模块，覆盖完整创作流程</div>
-      <div class="feat-grid">
-        <div class="feat">
-          <div class="feat-icon">✍️</div>
-          <h3>智能写作辅助</h3>
-          <p>续写、扩写、改写，支持多种创作风格。实时字数统计，帮助你达成每日目标。</p>
-        </div>
-        <div class="feat">
-          <div class="feat-icon">👥</div>
-          <h3>人物档案管理</h3>
-          <p>建立完整的人物档案，记录性格、背景、关系。AI根据设定生成符合角色的对话。</p>
-        </div>
-        <div class="feat">
-          <div class="feat-icon">📚</div>
-          <h3>大纲章节组织</h3>
-          <p>清晰的章节结构，拖拽排序，快速定位。大纲模式帮你理清故事脉络。</p>
-        </div>
-        <div class="feat">
-          <div class="feat-icon">🧠</div>
-          <h3>记忆系统</h3>
-          <p>保存世界观、写作风格、剧情线索。AI自动参考你的设定，保持创作连贯性。</p>
-        </div>
-        <div class="feat">
-          <div class="feat-icon">🎨</div>
-          <h3>多主题切换</h3>
-          <p>深色/浅色模式，护眼设计。专注模式屏蔽干扰，让你沉浸在创作中。</p>
-        </div>
-        <div class="feat">
-          <div class="feat-icon">🔒</div>
-          <h3>本地存储安全</h3>
-          <p>所有数据存储在浏览器本地，支持导入导出。密码保护，保障你的创作隐私。</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Use Cases -->
-  <section class="use-cases" id="use-cases">
-    <div class="wrap reveal">
-      <div class="section-label">Use Cases</div>
-      <div class="section-title">适用场景</div>
-      <div class="section-sub">无论你是哪种创作者，都能找到适合的方式</div>
-      <div class="uc-grid">
-        <div class="uc">
-          <div class="uc-icon">📖</div>
-          <h4>小说创作</h4>
-          <p>管理人物关系，保持情节连贯，AI辅助场景描写</p>
-        </div>
-        <div class="uc">
-          <div class="uc-icon">✏️</div>
-          <h4>内容写作</h4>
-          <p>快速生成框架，扩写要点，优化表达</p>
-        </div>
-        <div class="uc">
-          <div class="uc-icon">📝</div>
-          <h4>学术写作</h4>
-          <p>整理文献笔记，润色论文，保持学术规范</p>
-        </div>
-        <div class="uc">
-          <div class="uc-icon">💼</div>
-          <h4>商业文案</h4>
-          <p>营销文案、产品描述、邮件模板</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- GitHub Star -->
-  <section class="star-cta reveal">
-    <div class="wrap">
-      <div class="star-box">
+  <main>
+    <section class="hero">
+      <div class="site-shell hero-grid">
         <div>
-          <h2>⭐ 喜欢这个项目？</h2>
-          <p>开源不易，如果对你有帮助，请在 GitHub 给我们一个 Star</p>
+          <span class="eyebrow">Local-first · Auditable · Open source</span>
+          <h1>把长篇写作，变成<span class="accent">可掌控</span>的工作流。</h1>
+          <p class="hero-lead">你决定发送哪些上下文、调用哪些能力、结果写到哪里。AI 只负责生成候选，正文与记忆永远由作者确认。</p>
+          <div class="hero-actions">
+            <a class="button primary" href="app.html">进入写作工作台 <span aria-hidden="true">↗</span></a>
+            <a class="button secondary" href="docs.html#quickstart">60 秒本地启动</a>
+          </div>
+          <div class="proof-row" aria-label="产品特性">
+            <span>无密钥可启动</span><span>浏览器本地数据</span><span>候选安全写入</span>
+          </div>
         </div>
-        <div class="btns">
-          <a href="https://github.com/zizegak916-glitch/writing-workshop" target="_blank" class="btn-white">
-            <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
-            Star on GitHub
-          </a>
-          <a href="https://github.com/zizegak916-glitch/writing-workshop/fork" target="_blank" class="btn-ghost-white">Fork 项目</a>
+        <div class="workbench-visual" aria-label="写作工坊界面示意">
+          <div class="visual-orbit" aria-hidden="true"></div>
+          <div class="float-card candidate">候选已生成<small>等待作者选择写入位置</small></div>
+          <div class="float-card context">上下文包 · 2,148 tokens<small>正文 + 人物卡 + 项目规则</small></div>
+          <div class="workbench-window">
+            <div class="mock-top"><i></i><i></i><i></i><b>Writing Workshop</b><span>本地模式</span></div>
+            <aside class="mock-library"><strong>资料库</strong><span class="mock-nav on">章节 <em>12</em></span><span class="mock-nav">人物 <em>7</em></span><span class="mock-nav">大纲 <em>4</em></span><span class="mock-nav">笔记 <em>19</em></span></aside>
+            <article class="mock-page"><small>CHAPTER 07</small><h3>河岸没有留下影子</h3><div class="mock-line"></div><div class="mock-line"></div><div class="mock-line"></div><div class="mock-line"></div><div class="mock-line"></div><blockquote>雾从旧城墙的缺口漫进来，像一封没有署名的回信。</blockquote></article>
+            <aside class="mock-ai"><strong>AI 流程</strong><div class="mock-card"><b>本次任务</b>检查场景节奏</div><div class="mock-card mint"><b>上下文</b>3 项已选择</div><div class="mock-card coral"><b>写入保护</b>候选区隔离</div><div class="mock-generate">生成候选</div></aside>
+          </div>
         </div>
       </div>
-    </div>
-  </section>
+    </section>
 
-  <!-- CTA -->
-  <section class="cta reveal">
-    <div class="wrap">
-      <div class="cta-box">
-        <h2>准备好开始创作了吗？</h2>
-        <p>免费使用，无需注册，本地存储更安全</p>
-        <a href="app.html" class="btn-cta">立即开始 →</a>
+    <section class="section tint" id="features">
+      <div class="site-shell">
+        <div class="section-heading">
+          <span class="eyebrow">不是聊天框换皮</span>
+          <h2>创作的每一次选择，都清楚可见。</h2>
+          <p>从资料组织到写入确认，工作台把模型最容易越界的地方变成显式控制。</p>
+        </div>
+        <div class="bento">
+          <article class="bento-card"><span class="feature-no">01</span><h3>上下文包，而不是整库重发</h3><p>为每次任务勾选正文、项目设定、大纲、人物卡与记忆。发送前可见字符数和 token 估算。</p><div class="mini-context"><span class="on">当前选区</span><span>人物卡</span><span class="on">项目规则</span><span>历史记忆</span></div></article>
+          <article class="bento-card"><span class="feature-no">02</span><h3>候选与正文隔离</h3><p>模型输出先进入候选区。替换、插入、追加和写入记忆各自确认，运行期间正文变更还会触发坐标保护。</p><div class="safe-write"><div><b>AI 候选</b><br>不自动覆盖作品</div><span>→</span><div><b>作者确认</b><br>选择明确去向</div></div></article>
+          <article class="bento-card"><span class="feature-no">03</span><h3>多项目资料管理</h3><p>章节、大纲、人物、笔记、规则与记忆在同一个本地工作区组织，支持 Markdown、文本与 DOCX 导入导出。</p></article>
+          <article class="bento-card"><span class="feature-no">04</span><h3>可组合 Skill</h3><p>能力清单声明来源、版本、步骤、权限、输入与输出。登记链接不会偷偷执行第三方代码。</p></article>
+          <article class="bento-card"><span class="feature-no">05</span><h3>同源 API，避开 CORS</h3><p>浏览器只连接自己的 <code>/api/</code> 后端；密钥留在服务端或环境变量，不暴露给页面与第三方站点。</p></article>
+        </div>
       </div>
-    </div>
-  </section>
+    </section>
 
-  <!-- Footer -->
-  <footer>
-    <div class="wrap">
-      <div class="flinks">
-        <a href="about.html">关于</a>
-        <a href="admin.html">能力后台</a>
-        <a href="docs.html">文档</a>
-        <a href="privacy.html">隐私政策</a>
-        <a href="https://github.com/zizegak916-glitch/writing-workshop" target="_blank">GitHub</a>
-        <a href="https://github.com/zizegak916-glitch/writing-workshop/issues" target="_blank">反馈</a>
+    <section class="section" id="workflow">
+      <div class="site-shell">
+        <div class="section-heading"><span class="eyebrow">四步闭环</span><h2>从意图到正文，没有隐形动作。</h2><p>每一步都可以暂停、检查和撤回；AI 不会替作者做最后决定。</p></div>
+        <div class="workflow">
+          <article class="flow-step"><h3>选择任务</h3><p>写清这一轮要规划、续写、改写，还是检查。</p></article>
+          <article class="flow-step"><h3>组装上下文</h3><p>只勾选当前任务真正需要的资料与能力。</p></article>
+          <article class="flow-step"><h3>生成候选</h3><p>流式查看结果，随时中断，正文保持不动。</p></article>
+          <article class="flow-step"><h3>确认写入</h3><p>选择替换、插入、追加或整理为记忆。</p></article>
+        </div>
       </div>
-      <p class="fcopy">© 2024 AI写作工坊 · 开源项目 · MIT协议</p>
-    </div>
-  </footer>
+    </section>
 
-  <script>
-  // Scroll progress bar
-  (function(){
-    const bar = document.createElement('div');
-    bar.className = 'scroll-progress';
-    document.body.prepend(bar);
-    window.addEventListener('scroll', () => {
-      const pct = window.scrollY / (document.documentElement.scrollHeight - window.innerHeight);
-      bar.style.width = Math.min(pct * 100, 100) + '%';
-    }, { passive: true });
-  })();
+    <section class="section tint" id="run">
+      <div class="site-shell">
+        <div class="section-heading"><span class="eyebrow">从浏览到生产</span><h2>先看界面，随后在本地真正运行。</h2><p>GitHub Pages 提供完整静态体验；本地同源后端负责模型配置、项目同步与 Skill 执行。</p></div>
+        <div class="runtime-grid">
+          <div class="code-card"><header><b>Docker · 60 秒启动</b><span>无需 API Key</span></header><pre><span class="cmd">git clone</span> https://github.com/zizegak916-glitch/writing-workshop.git
+<span class="cmd">cd</span> writing-workshop
+<span class="cmd">docker compose up</span> --build
 
-  // Scroll reveal with IntersectionObserver
-  const revealObserver = new IntersectionObserver((entries) => {
-    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); revealObserver.unobserve(e.target); } });
-  }, { threshold: 0.1 });
-  document.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
+# 打开 http://127.0.0.1:8080/app.html</pre></div>
+          <div class="mode-list">
+            <div class="mode"><b>Pages 展示模式</b><span>浏览工作台、体验本地数据与交互，不连接远端模型。</span></div>
+            <div class="mode"><b>本地 Demo 模式</b><span>项目、能力和 API 闭环完整，无密钥即可验证。</span></div>
+            <div class="mode"><b>模型连接模式</b><span>后台配置 OpenAI 兼容 API、OpenRouter 或 Ollama。</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
 
-  // Animated counter for stats
-  function animateCounter(el, target, suffix) {
-    let current = 0;
-    const step = Math.ceil(target / 40);
-    const timer = setInterval(() => {
-      current += step;
-      if (current >= target) { current = target; clearInterval(timer); }
-      el.textContent = current.toLocaleString() + (suffix || '');
-    }, 25);
-  }
-  const statsObserver = new IntersectionObserver((entries) => {
-    entries.forEach(e => {
-      if (e.isIntersecting) {
-        const nums = e.target.querySelectorAll('.stat-num');
-        if (nums[0]) animateCounter(nums[0], 10000, '+');
-        if (nums[1]) { let c=0;const t=setInterval(()=>{c+=130000;if(c>=5200000){c=5200000;clearInterval(t)}nums[1].textContent=(c/10000).toFixed(0)+'万'},30); }
-        if (nums[2]) { let c=0;const t=setInterval(()=>{c+=0.12;if(c>=4.8){c=4.8;clearInterval(t)}nums[2].textContent=c.toFixed(1)+'/5'},40); }
-        if (nums[3]) animateCounter(nums[3], 0);
-        statsObserver.unobserve(e.target);
-      }
-    });
-  }, { threshold: 0.3 });
-  const statsGrid = document.querySelector('.stats-grid');
-  if (statsGrid) statsObserver.observe(statsGrid);
-  </script>
+    <section class="section">
+      <div class="site-shell">
+        <div class="oss-strip">
+          <div class="oss-copy"><h3>为长期创作而开源</h3><p>Apache-2.0 · Go 同源后端 · 原生 Web 前端 · CI / Docker / Pages / Release 工作流。</p></div>
+          <div class="oss-stat"><b>0</b><span>required cloud accounts</span></div>
+          <div class="oss-stat"><b>SSE</b><span>stream + abort</span></div>
+          <div class="oss-stat"><b>1 cmd</b><span>docker startup</span></div>
+        </div>
+        <div class="cta"><div><h2>让模型参与创作，但不接管作品。</h2><p>现在打开工作台，或用 Docker 启动完整的本地闭环。</p></div><a class="button" href="app.html">开始使用 →</a></div>
+      </div>
+    </section>
+  </main>
 
+  <footer class="site-footer"><div class="site-shell footer-row"><span>© 2026 Writing Workshop · Apache-2.0</span><nav><a href="docs.html">文档</a><a href="admin.html">能力后台</a><a href="about.html">关于</a><a href="privacy.html">隐私</a><a href="https://github.com/zizegak916-glitch/writing-workshop">GitHub</a></nav></div></footer>
 </body>
 </html>

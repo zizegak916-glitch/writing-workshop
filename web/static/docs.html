@@ -1,91 +1,184 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>文档 - AI写作工坊</title>
-  <style>
-    :root{--bg:#fff;--surface:#f8fafc;--text:#0f172a;--muted:#64748b;--border:#e2e8f0;--primary:#6366f1}
-    @media(prefers-color-scheme:dark){:root{--bg:#0c0e14;--surface:#151821;--text:#e8eaed;--muted:#9ba1b0;--border:rgba(255,255,255,.08);--primary:#818cf8}}
-    *{box-sizing:border-box} body{margin:0;font-family:Inter,"Noto Sans SC","Microsoft YaHei",system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.7}
-    header{position:sticky;top:0;background:color-mix(in srgb,var(--bg) 90%,transparent);backdrop-filter:blur(16px);border-bottom:1px solid var(--border)}
-    .wrap{max-width:960px;margin:0 auto;padding:0 24px}.nav{height:64px;display:flex;align-items:center;justify-content:space-between}.logo{font-weight:800;color:var(--text);text-decoration:none}.nav a{color:var(--muted);text-decoration:none;margin-left:20px}.nav a:hover{color:var(--primary)}
-    main{padding:56px 0 80px} h1{font-size:42px;line-height:1.15;margin:0 0 12px} h2{margin-top:40px;font-size:24px} p{color:var(--muted)} .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;margin-top:24px}.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px}.card h3{margin:0 0 8px}.card p{margin:0}.note{background:var(--surface);border:1px solid var(--border);border-left:4px solid var(--primary);border-radius:12px;padding:16px;margin:22px 0;color:var(--muted)} code{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:2px 6px} pre{overflow:auto;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px} .btn{display:inline-block;margin-top:14px;background:var(--primary);color:#fff;text-decoration:none;padding:10px 16px;border-radius:10px;font-weight:700}
-  </style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Writing Workshop 从静态预览、本地启动、API 配置到项目导入与 Skill 接入的完整使用教程。">
+  <meta name="theme-color" content="#fffaf1">
+  <title>使用文档 · Writing Workshop</title>
+  <link rel="stylesheet" href="css/chromatic-site.css">
 </head>
 <body>
-  <header><div class="wrap nav"><a class="logo" href="index.html">AI写作工坊</a><nav><a href="app.html">主应用</a><a href="admin.html">管理后台</a><a href="about.html">关于</a></nav></div></header>
-  <main class="wrap">
-    <h1>使用文档</h1>
-    <p>AI写作工坊是主体应用：GitHub Pages 发布静态前端，后端、GitHub 开源项目、skill 和自定义能力都只是可接入的能力来源。主应用默认以游客本地模式打开，不要求设置密码。</p>
-    <a class="btn" href="app.html">打开写作工坊</a>
-    <a class="btn" href="admin.html">打开能力后台</a>
-    <div class="note">当前 Pages 地址没有常驻后端。你可以浏览界面、使用本地浏览器数据和打开能力后台；真实 AI 调用、配置保存、项目同步、skill 执行和规则管理，需要运行本地后端或部署自己的 API 服务。</div>
+  <header class="site-nav">
+    <a class="brand" href="index.html"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span><span class="brand-copy">写作工坊<small>Documentation</small></span></a>
+    <nav class="nav-links"><a href="index.html">首页</a><a href="app.html">工作台</a><a href="admin.html">能力后台</a><a class="nav-cta button primary" href="https://github.com/zizegak916-glitch/writing-workshop">GitHub</a></nav>
+  </header>
 
-    <h2>主体与能力来源</h2>
-    <p>写作工坊统一保存和调度多个能力来源：GitHub 上的优质开源项目、可组合 skill、项目规则包，以及你自己编写的通用能力。项目拥有独立的 Go 模块、命令入口和同源后端；底层写作引擎的上游来源与许可证保留在仓库文档中。</p>
+  <div class="site-shell docs-layout">
+    <aside class="docs-sidebar" aria-label="文档目录">
+      <p>开始</p><a href="#overview">先理解两种模式</a><a href="#quickstart">60 秒启动</a><a href="#first-project">第一个项目</a>
+      <p style="margin-top:20px">创作</p><a href="#workspace">工作台导航</a><a href="#workflow">AI 流程</a><a href="#import-export">导入与导出</a>
+      <p style="margin-top:20px">连接</p><a href="#api">API 与模型</a><a href="#cors">CORS 说明</a><a href="#skills">Skill 与能力</a><a href="#troubleshooting">故障排查</a>
+    </aside>
 
-    <h2>执行链路</h2>
-    <div class="grid">
-      <div class="card"><h3>选择能力</h3><p>前端允许选择一个后端项目，或同时选择多个 skill，并带上当前项目、章节、角色、上下文和用户参数。</p></div>
-      <div class="card"><h3>后端执行</h3><p>后端接收结构化请求，调用对应项目或 skill，输出文本、JSON、补丁、文件列表或事件流。</p></div>
-      <div class="card"><h3>实时回传</h3><p>后端输出直接传回前端。长任务应支持流式输出，前端可以随时中断并保留已生成内容。</p></div>
-    </div>
+    <main class="docs-main">
+      <span class="eyebrow">Product guide · 2026</span>
+      <h1>从打开页面，到完成一次安全写作。</h1>
+      <p class="docs-lead">这份文档不假设你已经懂 API、Docker 或 Skill。先选择你的使用方式，再按一条完整路线跑通。</p>
 
-    <h2>主界面的“流程”怎么用</h2>
-    <div class="grid">
-      <div class="card"><h3>1. 写清本次任务</h3><p>打开右侧 AI 面板的“流程”页，只描述这一次要完成的工作。点“新任务”会清空当前候选，但不会删除历史。</p></div>
-      <div class="card"><h3>2. 选择上下文</h3><p>按需勾选当前选区/正文、项目设定、大纲、人物卡和记忆。界面会显示字符数与估算 token；预览区只做界面截取，发送内容不会静默截断。</p></div>
-      <div class="card"><h3>3. 组合能力</h3><p>选择一个后端和需要的 skill。展开能力可以看到步骤、入口和权限；能力说明与执行要求可在后台编辑。</p></div>
-      <div class="card"><h3>4. 生成候选</h3><p>点击“生成候选”后通过同源 <code>/api/run</code> 流式返回。它不会自动覆盖编辑器；运行中可以随时中断。</p></div>
-      <div class="card"><h3>5. 明确决定去向</h3><p>候选可以复制、替换运行时选区、插入当前光标或追加到正文。正文在运行期间发生变化时，系统会阻止按旧坐标替换。</p></div>
-      <div class="card"><h3>6. 记忆单独确认</h3><p>“整理为记忆…”只会把候选送入记忆编辑框，仍需你再次确认保存。正文写入和记忆同步不会绑在一起。</p></div>
-    </div>
-    <div class="note">流程历史保留完整候选；发生正文写入时还会记录写入前快照。你可以重新打开候选，或恢复到写入前。恢复动作本身不会自动保存章节。</div>
+      <section id="overview">
+        <h2>先理解：Pages 预览与本地应用不同</h2>
+        <div class="doc-grid">
+          <article class="doc-card"><h3>GitHub Pages · 看与体验</h3><p>可以打开完整界面、建立浏览器本地项目、编辑正文并体验交互。但它是静态网站，没有常驻 Go 后端，不能保存服务端配置或真正调用模型。</p></article>
+          <article class="doc-card"><h3>本地服务 · 完整生产</h3><p>运行仓库自带的 Go 服务后，页面和 API 来自同一个地址。项目同步、配置、Skill、SSE 流式输出和中断全部可用。</p></article>
+        </div>
+        <div class="doc-callout"><b>最重要的一点：</b>Pages 上的“后端未连接”不是故障。要进行真实 AI 调用，请先按下一节启动本地服务，再从 <code>127.0.0.1:8080</code> 打开页面。</div>
+      </section>
 
-    <h2>当前可用接口</h2>
-    <div class="grid">
-      <div class="card"><h3>保存能力</h3><p><code>GET/POST /api/capabilities</code> 已可用，能力保存到后端工作目录的 <code>.ainovel/capabilities.json</code>。</p></div>
-      <div class="card"><h3>执行能力</h3><p><code>POST /api/run</code> 已可用，支持 <code>backend_id</code>、<code>skill_ids</code>、任务、上下文和参数。</p></div>
-      <div class="card"><h3>中断运行</h3><p><code>POST /api/abort</code> 会同时中断写作运行和能力运行；流式输出使用 SSE 的 <code>start/delta/done</code> 事件。</p></div>
-    </div>
-    <p>默认内置 <code>builtin-echo</code>、<code>builtin-outline</code>、<code>builtin-rewrite</code> 和 <code>writing-workshop</code>。内置能力只读；用户保存的能力可以在后台编辑说明、执行要求、可见步骤和权限边界，也可以启停、删除、流式试跑或中断。选中的 prompt/skill 执行要求会进入本次模型请求；保存 GitHub 链接或 skill manifest 本身不会执行任意仓库代码，第三方代码执行仍需要明确的沙箱执行器。</p>
+      <section id="quickstart">
+        <h2>60 秒启动</h2>
+        <h3>路线 A：Docker（最省事）</h3>
+        <p>需要安装 Git 与 Docker Desktop。复制下面四行命令：</p>
+        <pre><code>git clone https://github.com/zizegak916-glitch/writing-workshop.git
+cd writing-workshop
+docker compose up --build
 
-    <h2>自定义文件或链接要求</h2>
-    <p>添加 GitHub 项目、远程链接或本地 skill 时，必须能被后端安全解析，并满足下面的最小契约。</p>
-    <div class="grid">
-      <div class="card"><h3>来源</h3><p>提供 GitHub 仓库链接、版本或 commit；本地文件需包含名称、版本、作者、许可证和用途说明。</p></div>
-      <div class="card"><h3>入口</h3><p>声明可执行入口或提示词入口，例如命令、HTTP endpoint、脚本路径、prompt 模板或规则文件路径。</p></div>
-      <div class="card"><h3>输入输出</h3><p>明确输入 schema、输出类型、是否支持流式输出、是否支持取消，以及错误返回格式。</p></div>
-      <div class="card"><h3>权限边界</h3><p>声明需要访问的文件、网络、环境变量和密钥。默认不能越权读取用户项目之外的数据。</p></div>
-      <div class="card"><h3>通用性</h3><p>能力必须面向写作、分析、导入、改写、规划等通用任务，不能绑定某个单一小说或私有项目。</p></div>
-      <div class="card"><h3>可审计</h3><p>保存原始链接、版本、摘要和启用状态，方便用户知道当前前端传给后端的能力组合。</p></div>
-    </div>
+# 浏览器打开
+http://127.0.0.1:8080/app.html</code></pre>
+        <p>第一次会以无密钥 Demo 模式启动。看到工作台后，打开 <a href="admin.html">能力后台</a>配置模型；也可以先不配，验证本地项目和内置能力链路。</p>
 
-    <h2>Writing Workshop 本地后端</h2>
-    <pre><code>go build -o writing-workshop ./cmd/writing-workshop
+        <h3>路线 B：直接运行源码</h3>
+        <p>需要 Go 1.25 或更高版本：</p>
+        <pre><code>git clone https://github.com/zizegak916-glitch/writing-workshop.git
+cd writing-workshop
+go build -o writing-workshop ./cmd/writing-workshop
 ./writing-workshop serve --demo --port 8080</code></pre>
-    <p>使用该后端示例时，本地服务启动后访问 <code>http://127.0.0.1:8080/app.html</code> 或 <code>http://127.0.0.1:8080/admin.html</code>。此时前端会通过同源 <code>/api/</code> 端点连接后端。主应用是本地游客模式；除非后续提供数据管理服务，否则不要求用户设置账号密码。</p>
+        <p>默认只监听 <code>127.0.0.1</code>，这是为了避免把作品与密钥意外暴露到局域网。如确实需要容器或局域网访问，再显式加 <code>--host 0.0.0.0</code>，并自行配置反向代理鉴权。</p>
 
-    <h2>核心入口</h2>
-    <div class="grid">
-      <div class="card"><h3>写作工坊</h3><p><a href="app.html">app.html</a>，用于项目、章节、角色、AI 辅助写作。</p></div>
-      <div class="card"><h3>管理后台</h3><p><a href="admin.html">admin.html</a>，用于配置 provider、model、API key、后端项目、skill、项目规则，并测试 <code>/api/run</code>。</p></div>
-      <div class="card"><h3>API</h3><p>后端端点以 <code>/api/</code> 开头，主要包括 <code>/api/ai</code>、<code>/api/config</code>、<code>/api/rules</code>、<code>/api/capabilities</code>、<code>/api/run</code>。</p></div>
-    </div>
+        <h3>确认服务健康</h3>
+        <pre><code>curl http://127.0.0.1:8080/api/health
+# 预期：{"mode":"demo","status":"ok"}</code></pre>
+      </section>
 
-    <h2>开源自定义</h2>
-    <div class="grid">
-      <div class="card"><h3>模型供应商</h3><p>在后台或配置文件中修改 provider、model、base URL，也可以通过环境变量注入 API key。</p></div>
-      <div class="card"><h3>能力组合</h3><p>保存多个后端项目和多个 skill，创作时按任务选择组合，由前端传递给后端执行。</p></div>
-      <div class="card"><h3>前端页面</h3><p>静态文件位于 <code>web/static/</code>，fork 后可以替换文案、样式、入口页面和能力管理界面。</p></div>
-    </div>
+      <section id="first-project">
+        <h2>建立第一个项目</h2>
+        <div class="doc-flow" aria-label="建立项目流程"><span>点击顶部 ＋</span><span>填写项目名称</span><span>添加第一章</span><span>建立人物卡</span><span>开始写作</span></div>
+        <ol>
+          <li>在工作台顶部点击 <b>＋</b>，填写项目名、题材与简介。</li>
+          <li>左侧切到“章节”，点击“添加章节”，输入标题。</li>
+          <li>切到“人物”，录入姓名、定位、描述与角色弧线。</li>
+          <li>在中间编辑区写作。自动保存开启时，数据写入浏览器 IndexedDB；点击顶部保存可以立即保存。</li>
+          <li>第一次重要编辑后，点击顶部下载图标导出项目备份。</li>
+        </ol>
+        <div class="doc-callout info"><b>本地优先：</b>静态 Pages 与本地模式都可以使用浏览器数据库。清除浏览器站点数据会删除这部分内容，因此长期项目务必定期导出。</div>
+      </section>
 
-    <h2>API Key 配置</h2>
-    <p>推荐在管理后台保存 provider 配置，或使用环境变量，例如 <code>AINOVEL_OPENROUTER_API_KEY</code>、<code>OPENROUTER_API_KEY</code>、<code>OPENAI_API_KEY</code>。</p>
+      <section id="workspace">
+        <h2>工作台各区域做什么</h2>
+        <table>
+          <thead><tr><th>区域</th><th>用途</th><th>常用操作</th></tr></thead>
+          <tbody>
+            <tr><td>顶部栏</td><td>项目切换、统计、全局设置</td><td>新建、后台、设置、导出、保存</td></tr>
+            <tr><td>左侧资料栏</td><td>项目结构与设定</td><td>大纲、章节、人物、笔记</td></tr>
+            <tr><td>中央编辑区</td><td>唯一正文工作面</td><td>格式、专注、预览、快速 AI、导出</td></tr>
+            <tr><td>右侧 AI 区</td><td>任务与候选</td><td>助手、对比、记忆、历史、流程</td></tr>
+            <tr><td>能力后台</td><td>服务端配置与调试</td><td>Provider、URL、Key、项目、规则、Skill、API 测试</td></tr>
+          </tbody>
+        </table>
+        <p>手机端会把资料栏和 AI 区折叠到底部导航。正文仍是默认首屏，不会把桌面三栏硬挤进窄屏。</p>
+      </section>
 
-    <h2>更多资料</h2>
-    <p>完整开发文档在 GitHub 仓库中维护：<a href="https://github.com/zizegak916-glitch/writing-workshop/blob/main/API.md">API.md</a>、<a href="https://github.com/zizegak916-glitch/writing-workshop/blob/main/CONFIG.md">CONFIG.md</a>、<a href="https://github.com/zizegak916-glitch/writing-workshop/blob/main/DEVELOPMENT.md">DEVELOPMENT.md</a>。</p>
-  </main>
+      <section id="workflow">
+        <h2>完成一次 AI 写作流程</h2>
+        <div class="doc-flow"><span>描述任务</span><span>选择上下文</span><span>组合能力</span><span>生成候选</span><span>确认写入</span></div>
+        <ol>
+          <li><b>描述这一次任务。</b>例如“检查这段对话的动机断点”，不要写成永久项目规则。</li>
+          <li><b>只选需要的上下文。</b>当前选区/正文、项目设定、大纲、人物卡、记忆都可以单独开关；界面显示字符数和估算 token。</li>
+          <li><b>选择后端和 Skill。</b>展开能力可查看来源、步骤、入口和权限。</li>
+          <li><b>点击生成候选。</b>本地后端通过 <code>POST /api/run</code> 返回 SSE 事件；运行中可以中断。</li>
+          <li><b>检查后再决定去向。</b>候选可复制、替换运行时选区、插入光标或追加到正文。正文若在生成期间改变，旧坐标替换会被阻止。</li>
+          <li><b>记忆另行确认。</b>“整理为记忆”只把候选放入记忆编辑框，仍需再次保存；不会和正文写入捆绑。</li>
+        </ol>
+        <div class="doc-callout"><b>可恢复：</b>流程历史保留完整候选；发生正文写入时还会记录写入前快照。恢复不会自动保存章节，你仍有最后一次确认机会。</div>
+      </section>
+
+      <section id="import-export">
+        <h2>导入、导出与备份</h2>
+        <div class="doc-grid">
+          <article class="doc-card"><h3>导入单篇内容</h3><p>在新建/导入入口选择 Markdown、TXT 或 DOCX。先检查解析后的标题与正文，再放入当前项目。</p></article>
+          <article class="doc-card"><h3>导出当前正文</h3><p>编辑工具栏的“导出”用于保存正在编辑的章节，适合送审、分享或进入其他排版工具。</p></article>
+          <article class="doc-card"><h3>导出完整项目</h3><p>顶部下载按钮打包项目数据。长期创作建议每个重要阶段保存一份带日期的备份。</p></article>
+          <article class="doc-card"><h3>增量资料</h3><p>新增资料应按文件 hash 只处理一次；脚本负责去重和分类，AI 只总结新文件，避免每次重读全库。</p></article>
+        </div>
+        <p>如果浏览器提示下载被阻止，请允许当前站点下载文件。若导入失败，先确认文件未加密，并用 UTF-8 保存纯文本或 Markdown。</p>
+      </section>
+
+      <section id="api">
+        <h2>配置 API 与模型</h2>
+        <p>从 <code>http://127.0.0.1:8080/admin.html</code> 打开能力后台，在“配置”页填写：</p>
+        <table>
+          <thead><tr><th>字段</th><th>示例</th><th>说明</th></tr></thead>
+          <tbody>
+            <tr><td>Provider</td><td><code>openai</code></td><td>当前提供商名称，可自行命名</td></tr>
+            <tr><td>Type</td><td><code>openai</code></td><td>兼容类型：openai / anthropic / gemini</td></tr>
+            <tr><td>Model</td><td><code>gpt-4.1-mini</code></td><td>必须是你的服务实际支持的模型 ID</td></tr>
+            <tr><td>Base URL</td><td><code>https://api.openai.com/v1</code></td><td>API 根地址，不要填 ChatGPT 网页地址</td></tr>
+            <tr><td>API Key</td><td><code>••••••</code></td><td>留空可保持原值或改用环境变量</td></tr>
+          </tbody>
+        </table>
+        <p>保存后切到“API 测试”，先执行“模型直连测试”；成功后再用“执行能力”验证 Skill 组合、流式回传和中断。</p>
+        <h3>使用环境变量（更适合长期部署）</h3>
+        <pre><code>export OPENAI_API_KEY="your-key"
+./writing-workshop serve --port 8080</code></pre>
+        <p>OpenRouter 也可使用 <code>OPENROUTER_API_KEY</code>。配置读取接口不会把已保存的完整密钥返回给浏览器。</p>
+      </section>
+
+      <section id="cors">
+        <h2>为什么这里不让浏览器直连模型 API</h2>
+        <p>CORS 不是“再加一个开关就能安全解决”的小错误。把 API Key 放在浏览器里，会被页面脚本、扩展或网络日志读到；不少模型服务也会拒绝来自任意网页的跨域请求。</p>
+        <div class="doc-flow"><span>浏览器工作台</span><span>同源 /api</span><span>本地 Go 后端</span><span>模型服务</span><span>候选返回</span></div>
+        <p>Writing Workshop 采用同源桥接：浏览器只访问自己的 <code>/api/</code>；后端读取密钥并请求模型，再把结果流式传回。这样既绕开浏览器跨域限制，也不向前端暴露密钥。</p>
+        <div class="doc-callout"><b>不要：</b>在 GitHub Pages、仓库 JavaScript、公开环境变量或可下载配置中写入真实 API Key。Pages 只用于静态展示。</div>
+      </section>
+
+      <section id="skills">
+        <h2>添加 GitHub 项目或 Skill</h2>
+        <p>在能力后台的“能力来源”页添加一项能力。至少填写名称、类型、版本、来源、许可证、入口、执行说明、可见步骤、权限边界和输出类型。</p>
+        <pre><code>{
+  "name": "场景节奏检查",
+  "type": "skill",
+  "version": "1.0.0",
+  "source": "https://github.com/example/scene-pacing",
+  "license": "Apache-2.0",
+  "entry": "prompt:scene-pacing",
+  "output": "text",
+  "steps": ["读取显式上下文", "检查节奏", "返回候选"],
+  "permissions": ["context:read"],
+  "supports_stream": true,
+  "supports_abort": true
+}</code></pre>
+        <p>当前实现会登记、校验和组合能力清单，但<b>不会因为你粘贴 GitHub URL 就执行仓库代码</b>。第三方代码需要明确的沙箱执行器与最小权限机制；这是安全边界，不是缺少一个按钮。</p>
+        <p>完整协议见 <a href="https://github.com/zizegak916-glitch/writing-workshop/blob/main/docs/CAPABILITY_PROTOCOL.md">CAPABILITY_PROTOCOL.md</a>，接口见 <a href="https://github.com/zizegak916-glitch/writing-workshop/blob/main/API.md">API.md</a>。</p>
+      </section>
+
+      <section id="troubleshooting">
+        <h2>故障排查</h2>
+        <table>
+          <thead><tr><th>现象</th><th>原因</th><th>处理</th></tr></thead>
+          <tbody>
+            <tr><td>Pages 显示“后端未连接”</td><td>静态站没有 API 服务</td><td>启动 Docker，从 127.0.0.1 打开</td></tr>
+            <tr><td>模型测试 401</td><td>Key 无效或未加载</td><td>检查环境变量/后台配置并重启服务</td></tr>
+            <tr><td>模型测试 404</td><td>Base URL 或 Model 不存在</td><td>确认 URL 含正确 API 根路径与模型 ID</td></tr>
+            <tr><td>浏览器报 CORS</td><td>正在直连第三方 API</td><td>改为访问同源 Go 后端，不要在 Pages 放 Key</td></tr>
+            <tr><td>项目消失</td><td>浏览器站点数据被清除</td><td>导入最近的项目备份；以后定期导出</td></tr>
+            <tr><td>旧候选不能替换</td><td>生成期间正文已变化</td><td>这是坐标保护；复制候选并手动确认位置</td></tr>
+          </tbody>
+        </table>
+        <h3>仍未解决？</h3>
+        <p>运行 <code>make check</code> 获取与 CI 一致的检查结果，并在 <a href="https://github.com/zizegak916-glitch/writing-workshop/issues">GitHub Issues</a> 提交复现步骤、终端错误、浏览器控制台信息和运行环境。请先删除日志中的 API Key 与作品隐私内容。</p>
+      </section>
+    </main>
+  </div>
+  <footer class="site-footer"><div class="site-shell footer-row"><span>Writing Workshop 文档 · Apache-2.0</span><nav><a href="index.html">首页</a><a href="app.html">工作台</a><a href="admin.html">能力后台</a><a href="https://github.com/zizegak916-glitch/writing-workshop">GitHub</a></nav></div></footer>
 </body>
 </html>

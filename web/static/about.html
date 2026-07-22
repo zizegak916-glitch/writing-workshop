@@ -1,21 +1,27 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>关于 - AI写作工坊</title>
-  <style>
-    body{margin:0;font-family:Inter,"Noto Sans SC","Microsoft YaHei",system-ui,sans-serif;background:#fff;color:#0f172a;line-height:1.7}.wrap{max-width:860px;margin:0 auto;padding:48px 24px}a{color:#6366f1}h1{font-size:40px}.nav{border-bottom:1px solid #e2e8f0;padding:18px 24px}.nav a{margin-right:20px;text-decoration:none;font-weight:700}@media(prefers-color-scheme:dark){body{background:#0c0e14;color:#e8eaed}.nav{border-color:rgba(255,255,255,.08)}}
-  </style>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#fffaf1">
+  <title>关于 · Writing Workshop</title><link rel="stylesheet" href="css/chromatic-site.css">
 </head>
 <body>
-  <div class="nav"><a href="index.html">首页</a><a href="app.html">主应用</a><a href="admin.html">能力后台</a><a href="docs.html">文档</a></div>
-  <main class="wrap">
-    <h1>关于 AI写作工坊</h1>
-    <p>AI写作工坊是主体应用，面向小说、长篇内容、角色设定和创作流程管理。</p>
-    <p>它可以保存来自 GitHub 的优质开源项目、skill、规则包和你自己的通用能力文件。创作时，前端选择一个后端项目或多个 skill，把上下文传给后端执行，再把输出实时回传到前端。</p>
-    <p>后端只是可接入的执行器之一；具体可以使用本地服务、自部署服务，或适配第三方开源项目。</p>
-    <p>源码：<a href="https://github.com/zizegak916-glitch/writing-workshop">GitHub 仓库</a></p>
+  <header class="site-nav"><a class="brand" href="index.html"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span><span class="brand-copy">写作工坊<small>About</small></span></a><nav class="nav-links"><a href="index.html">首页</a><a href="docs.html">文档</a><a href="admin.html">能力后台</a><a class="nav-cta button primary" href="app.html">打开工坊</a></nav></header>
+  <main class="site-shell docs-layout" style="grid-template-columns:minmax(0,820px);justify-content:center">
+    <article class="docs-main">
+      <span class="eyebrow">Open-source writing infrastructure</span>
+      <h1>让 AI 参与创作，但不接管作品。</h1>
+      <p class="docs-lead">Writing Workshop 是面向小说与长篇内容的本地优先工作台：资料、上下文、能力和写入动作都由作者明确控制。</p>
+      <div class="doc-grid">
+        <section class="doc-card"><h3>我们在解决什么</h3><p>长篇项目的难点不是“再生成一段”，而是维护角色、设定、章节、记忆与修改边界，同时避免上下文成本随资料库无限增长。</p></section>
+        <section class="doc-card"><h3>产品原则</h3><p>显式上下文、候选先行、作者确认、写前快照、本地默认、能力可审计。模型能力可以替换，作者控制不能消失。</p></section>
+        <section class="doc-card"><h3>能力生态</h3><p>工作台可以登记后端项目、Skill、规则包和提示能力。每项能力声明来源、版本、步骤、权限与输出，不把链接误当可执行代码。</p></section>
+        <section class="doc-card"><h3>开放协作</h3><p>项目采用 Apache-2.0 许可证，包含 Go 同源后端、原生 Web 前端、协议文档、CI、Docker、Pages 与发布工作流。</p></section>
+      </div>
+      <h2>项目边界</h2>
+      <p>浏览器使用同源 <code>/api/</code> 与本地或自部署后端通信。保存 GitHub 链接不会执行第三方仓库；真实第三方代码执行需要独立的最小权限沙箱。静态 Pages 是可交互展示，不承诺常驻 API。</p>
+      <h2>参与项目</h2>
+      <p>查看 <a href="https://github.com/zizegak916-glitch/writing-workshop">GitHub 仓库</a>、<a href="https://github.com/zizegak916-glitch/writing-workshop/issues">公开 Issues</a> 与 <a href="https://github.com/zizegak916-glitch/writing-workshop/blob/main/CONTRIBUTING.md">贡献指南</a>。完整使用方式见 <a href="docs.html">产品文档</a>。</p>
+    </article>
   </main>
 </body>
 </html>

@@ -1,20 +1,29 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>隐私政策 - AI写作工坊</title>
-  <style>
-    body{margin:0;font-family:Inter,"Noto Sans SC","Microsoft YaHei",system-ui,sans-serif;background:#fff;color:#0f172a;line-height:1.7}.wrap{max-width:860px;margin:0 auto;padding:48px 24px}a{color:#6366f1}h1{font-size:40px}.nav{border-bottom:1px solid #e2e8f0;padding:18px 24px}.nav a{margin-right:20px;text-decoration:none;font-weight:700}@media(prefers-color-scheme:dark){body{background:#0c0e14;color:#e8eaed}.nav{border-color:rgba(255,255,255,.08)}}
-  </style>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#fffaf1">
+  <title>隐私与数据边界 · Writing Workshop</title><link rel="stylesheet" href="css/chromatic-site.css">
 </head>
 <body>
-  <div class="nav"><a href="index.html">首页</a><a href="app.html">主应用</a><a href="admin.html">能力后台</a><a href="docs.html">文档</a></div>
-  <main class="wrap">
-    <h1>隐私政策</h1>
-    <p>GitHub Pages 静态页面本身不收集账号信息。写作工坊的数据默认保存在浏览器本地，或保存在你接入的本地/自部署后端工作目录中。</p>
-    <p>当你使用 AI、GitHub 项目或 skill 执行功能时，请求内容会发送到你选择的后端，再由后端调用对应模型、开源项目或能力文件。具体数据处理规则取决于你选择的后端、provider 和能力来源。</p>
-    <p>API Key 建议保存在本地配置或环境变量中，不建议提交到仓库。</p>
+  <header class="site-nav"><a class="brand" href="index.html"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span><span class="brand-copy">写作工坊<small>Privacy</small></span></a><nav class="nav-links"><a href="index.html">首页</a><a href="docs.html">文档</a><a href="about.html">关于</a><a class="nav-cta button primary" href="app.html">打开工坊</a></nav></header>
+  <main class="site-shell docs-layout" style="grid-template-columns:minmax(0,820px);justify-content:center">
+    <article class="docs-main">
+      <span class="eyebrow">Privacy by architecture</span>
+      <h1>作品默认留在你掌控的环境。</h1>
+      <p class="docs-lead">以下说明区分静态 Pages、浏览器本地数据、本地后端和第三方模型服务，避免把“本地优先”误解成“任何操作都不联网”。</p>
+      <h2>GitHub Pages</h2>
+      <p>Pages 静态页面本身不提供写作工坊账号系统或常驻后端。页面可以在浏览器 IndexedDB 保存本地项目；GitHub 作为托管平台仍可能按其政策记录常规访问日志。</p>
+      <h2>浏览器与本地后端</h2>
+      <div class="doc-grid"><section class="doc-card"><h3>浏览器数据</h3><p>项目、章节与界面状态可保存在当前站点的浏览器存储中。清除站点数据会删除它们，请定期导出。</p></section><section class="doc-card"><h3>服务端数据</h3><p>完整本地模式会把配置与项目数据写入你指定的工作目录。默认仅监听 127.0.0.1。</p></section></div>
+      <h2>模型与能力请求</h2>
+      <p>当你主动执行 AI 或 Skill 任务时，明确选择的上下文会先发送到你运行的后端，再由后端调用已配置的模型服务。第三方提供商如何保存与处理数据，取决于你与该提供商之间的条款。</p>
+      <div class="doc-callout"><b>密钥规则：</b>API Key 应存放在本地配置或环境变量中。不要写进 GitHub Pages、前端 JavaScript、公开仓库、Issue 或截图。</div>
+      <h2>第三方来源</h2>
+      <p>登记 GitHub 仓库、Skill manifest 或远程链接不会自动执行其中代码。若未来启用代码型能力，应先核对来源、许可证、版本与权限，并使用隔离执行环境。</p>
+      <h2>你可以做什么</h2>
+      <ul><li>随时从浏览器或本地工作目录导出项目。</li><li>删除浏览器站点数据或后端工作目录中的项目文件。</li><li>使用环境变量保存密钥，并在服务商后台撤销密钥。</li><li>运行前检查上下文包，不发送与本次任务无关的作品内容。</li></ul>
+      <p>安全问题请按 <a href="https://github.com/zizegak916-glitch/writing-workshop/blob/main/SECURITY.md">SECURITY.md</a> 报告；普通问题请使用 <a href="https://github.com/zizegak916-glitch/writing-workshop/issues">GitHub Issues</a>。</p>
+    </article>
   </main>
 </body>
 </html>

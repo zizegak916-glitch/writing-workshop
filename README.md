@@ -7,6 +7,10 @@
 
 它不是聊天框的换皮，也不会把整部作品在每次调用时重新发送给模型。
 
+**在线体验：** [GitHub Pages](https://zizegak916-glitch.github.io/writing-workshop/) · [完整使用文档](https://zizegak916-glitch.github.io/writing-workshop/docs.html) · [能力后台](https://zizegak916-glitch.github.io/writing-workshop/admin.html)
+
+> Pages 是静态交互预览，可以使用浏览器本地数据；模型调用、服务端配置和 Skill 执行需要启动仓库自带的同源后端。这样做是为了避免在公开网页中暴露 API Key，也从架构上避开 CORS 问题。
+
 ## 现在能做什么
 
 - 管理项目、章节、大纲、人物卡、规则和写作记忆。
@@ -56,6 +60,29 @@ go build -o writing-workshop ./cmd/writing-workshop
 6. 写入前状态保存在流程历史中，可回看和恢复。
 
 这个闭环是 Writing Workshop 与继承引擎能力之间的产品边界：引擎可以生成，工作台负责上下文控制、权限可见、结果确认和创作数据管理。
+
+```mermaid
+flowchart LR
+    A[选择本次任务] --> B[组装显式上下文]
+    B --> C[后端与 Skill 执行]
+    C --> D[候选区隔离]
+    D --> E{作者决定}
+    E -->|替换 / 插入 / 追加| F[正文]
+    E -->|再次确认| G[写作记忆]
+```
+
+## 界面与导航
+
+新版界面采用“彩色编辑部”设计：深色资料栏、暖纸张编辑器和淡紫 AI 区承担不同职责，钴蓝、珊瑚、薄荷和琥珀只用于表达动作和状态。桌面保留三栏生产布局，移动端切换为底部任务导航。
+
+| 页面 | 作用 |
+|---|---|
+| `index.html` | 产品说明、运行模式和 60 秒启动入口 |
+| `app.html` | 项目、章节、大纲、人物、记忆、导入导出与候选写入 |
+| `admin.html` | Provider、Model、Base URL、API Key、项目、规则、能力与 API 调试 |
+| `docs.html` | 从 Pages / 本地模式区别到 CORS、Skill 与故障排查的完整教程 |
+
+视觉规范与组件约束见 [UI 设计系统](docs/UI_DESIGN_SYSTEM.md)。
 
 ## Skill / 能力协议
 
