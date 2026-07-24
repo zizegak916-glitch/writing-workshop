@@ -9,6 +9,8 @@
 
 它不是聊天框的换皮，也不会把整部作品在每次调用时重新发送给模型。
 
+> 社区认可：Writing Workshop 认可并感谢 [LINUX DO](https://linux.do/) 开源技术社区及其佬友提供的交流、测试与反馈环境。维护者的社区账号为 [The_Fo0l](https://linux.do/u/The_Fo0l)。
+
 **正式在线版：** [GitHub Pages](https://zizegak916-glitch.github.io/writing-workshop/) · [完整使用文档](https://zizegak916-glitch.github.io/writing-workshop/docs.html) · [能力后台](https://zizegak916-glitch.github.io/writing-workshop/admin.html)
 
 > GitHub Pages 是本项目当前正式发布的公开在线站点，`github.io` 是真实可访问的 HTTPS 域名，不是临时预览。它采用静态托管，但浏览器本地项目、编辑、分类、导入导出等功能均可正式使用。当前默认部署不附带常驻 Go API；需要密钥托管、服务端同步或 Skill 执行时，再连接本地或自部署的兼容后端。静态托管本身并不禁止 API 调用，能否调用取决于站点是否接入了可用且安全的 API 端点。
