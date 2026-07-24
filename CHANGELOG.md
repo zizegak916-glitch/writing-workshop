@@ -4,6 +4,11 @@ All notable Writing Workshop changes are recorded here. The project follows Sema
 
 ## Unreleased
 
+### 2026-07-24 community publication compliance
+
+- Added an explicit repository-level recognition link to the LINUX DO community and retained the verified maintainer profile link, so the project itself—not only a forum draft—meets the community-link requirement for open-source promotion.
+- Kept project attribution, Apache-2.0 licensing, NOTICE and upstream history unchanged.
+
 ### 2026-07-23 documentation and quality pass
 
 - Rebuilt the desktop AI request area as a persistent panel dock so the extra instruction, context budget and generate action remain visible while the 30-capability catalog scrolls independently.
