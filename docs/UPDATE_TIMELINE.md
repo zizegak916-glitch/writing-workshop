@@ -1,6 +1,6 @@
 # Writing Workshop 更新时间线
 
-> 状态：现行产品事实账本。更新时间统一使用 UTC+8；提交、CI、Pages 和公开页面证据必须能相互对应。最后同步：2026-07-23 02:10 UTC+8。
+> 状态：现行产品事实账本。更新时间统一使用 UTC+8；提交、CI、Pages 和公开页面证据必须能相互对应。最后同步：2026-07-24 13:09 UTC+8。
 
 这份时间线只记录已经发生且可验证的产品事件，不用计划代替完成。详细功能说明仍以对应文档和代码为准；机器可读证据见 [`RELEASE_EVIDENCE.json`](RELEASE_EVIDENCE.json)。
 
@@ -27,6 +27,12 @@
 | 00:37 | 为 30 个模式卡和 2 个独立快捷工具加入 32 个实用 Prompt Skill；请求隐形注入；支持编辑、恢复、导入导出和项目 v3 备份 | [`3fdf36c`](https://github.com/zizegak916-glitch/writing-workshop/commit/3fdf36c136caf7561df964997e483ce74d8d7819) | [CI 29938799142](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/29938799142)、[Pages 29938799040](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/29938799040) 均成功；正式页显示 32 项，保存后刷新仍保留 |
 | 01:17 | 全量同步现行文档与历史状态页；修复“查AI”字段/雷达解析漂移、缺失分数伪造 50 分、AI 句子按钮不安全拼接和快捷 Skill 图标复用；新增静态产品契约 | [`aceeb957`](https://github.com/zizegak916-glitch/writing-workshop/commit/aceeb9571f5b3a0eec835efbc05a8192e322276e) | [CI 29941672602](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/29941672602)、[Pages 29941672654](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/29941672654) 均成功；正式页与本地校验和一致 |
 | 02:10 | 修复桌面上下文用量布局：能力目录独立滚动，补充指令、预算和生成按钮固定可见；估算不再依赖 API 配置，桌面与手机同步显示 | [`00c9883`](https://github.com/zizegak916-glitch/writing-workshop/commit/00c988300b54b3cbe8ef226202ba760587e836a3) | [CI 29945400780](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/29945400780)、[Pages 29945400654](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/29945400654) 均成功；正式 `app.html` 与请求栏 CSS 校验和同本地一致 |
+
+## 2026-07-24：社区发布合规补全
+
+| 时间 | 事件 | Git 痕迹 | 验证 |
+|---|---|---|---|
+| 13:09 | 在仓库 README 中明确链接并认可 LINUX DO 社区，同时保留维护者社区账号；补写 Changelog，不以论坛正文代替项目侧认可 | [`ac663a9`](https://github.com/zizegak916-glitch/writing-workshop/commit/ac663a907419c456221c4ae03d921bf63b1ed9b4)、[`1f41045`](https://github.com/zizegak916-glitch/writing-workshop/commit/1f410452f525c7ae4f19cda84330aa0f3d01e9ed) | README 已出现 `https://linux.do/` 明确认可链接；Apache-2.0、NOTICE、上游署名与历史未改动 |
 
 ## Prompt Skill 验证账
 
