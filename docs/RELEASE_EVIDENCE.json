@@ -1,7 +1,7 @@
 {
   "schema": "writing-workshop/release-evidence",
   "version": 1,
-  "updated_at": "2026-07-22T18:09:57Z",
+  "updated_at": "2026-07-26T06:30:52Z",
   "timezone_for_timeline": "UTC+8",
   "repository": "https://github.com/zizegak916-glitch/writing-workshop",
   "public_pages": "https://zizegak916-glitch.github.io/writing-workshop/",
@@ -16,6 +16,29 @@
     "source": "GitHub repository API"
   },
   "verified_releases": [
+    {
+      "commit": "10d3a2a7549c80e2dc64cd7000bb3d1563c15606",
+      "summary": "Canonical local-first workbench, project notes and v4 bundles, safer AI writes, browser secret migration and product-level browser tests",
+      "ci_run": 30191114231,
+      "pages_run": 30191114238,
+      "ci_conclusion": "success",
+      "pages_conclusion": "success",
+      "live_checks": [
+        "CI passed Go tests, vet, release build, JavaScript syntax, static product contract, offline server smoke and Chromium Playwright product smoke",
+        "Public Pages app, docs, landing page, canonical workbench JavaScript, product extensions, main CSS and icon SVG returned HTTP 200",
+        "Public Pages displayed workbench v2.5 dated 2026-07-26 and the desktop/mobile project-notes entry points",
+        "Public Pages canonical app, CSS, JavaScript, icon SVG, landing page and product guide matched the local SHA-256 values"
+      ],
+      "sha256": {
+        "web/static/app.html": "5aa951fdb959d6544b807318fc6458fba6611fe9ffffce4c53815c61d1c5b923",
+        "web/static/css/main.css": "7cb4c6b17a43c372c696b94021f06d7988e2d4f2220145c6df61fe45f855aaaa",
+        "web/static/js/workbench.js": "cf4fbf212fa99f7b71952350ef2d4ad1575540ee156dd8aacc3ea35c0689ff98",
+        "web/static/js/product-extensions.js": "9dc3cd3e55f97642fe1a0d9f167235ae36bd3e4391ec7596ac2012deaa6993d2",
+        "web/static/icons/ai-mode-icons.svg": "a6d7ac2f5429788cbd325d39f95e4904cb446753f98e398cd55b0e3bed35e02d",
+        "web/static/index.html": "b82c7986a2006a241e291a3b4b016170b0dc9a3ec5cf0e66827a983e6991a785",
+        "web/static/docs.html": "7ce64338cdf48990b7d3ec60e9b1cb3a46fbb5c7ffd202564cb4e28238787f27"
+      }
+    },
     {
       "commit": "00c988300b54b3cbe8ef226202ba760587e836a3",
       "summary": "Persistent desktop AI request dock and API-independent context budget",

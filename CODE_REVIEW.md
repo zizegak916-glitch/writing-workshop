@@ -68,6 +68,8 @@ git diff --check
 
 当前完整性实现提交为 [`5ea9f26`](https://github.com/zizegak916-glitch/writing-workshop/commit/5ea9f26786eb8fe7c7127ae13b8f39a4b959b968)。本地启动新二进制后，`/`、`/app.html`、`/docs.html`、`/about.html`、`/privacy.html`、`/admin.html`、`/css/main.css`、`/js/workbench.js` 与 `/api/health` 均返回 200；向配置接口拼接两个 JSON 值返回 400。CI 和 Pages 编号在真实运行完成前保持不写。
 
+发布验收提交为 [`10d3a2a`](https://github.com/zizegak916-glitch/writing-workshop/commit/10d3a2a7549c80e2dc64cd7000bb3d1563c15606)。[CI 30191114231](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/30191114231) 与 [Pages 30191114238](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/30191114238) 均为 `success`；CI 中 Chromium 已通过桌面与移动端产品烟雾测试。公开页面七个核心资源均返回 200，SHA-256 与仓库同提交文件一致，详见 [`RELEASE_EVIDENCE.json`](docs/RELEASE_EVIDENCE.json)。
+
 - [CI run 29931143163](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/29931143163)：`go test ./...`、`go vet ./...`、release binary build、全部 JavaScript syntax、无密钥服务启动与 `/api/health` smoke test，结论 `success`。
 - [Pages run 29931143073](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/29931143073)：正式公开在线站部署，结论 `success`。
 - 部署后从公开 URL 实测：首页可读到 Star 支持文案，`app.html` 已加载 `product-extensions.js`，多 Skill 目录、项目管理脚本和新 SVG 图标均返回 HTTP 200。

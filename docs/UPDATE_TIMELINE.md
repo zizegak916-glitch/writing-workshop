@@ -1,6 +1,6 @@
 # Writing Workshop 更新时间线
 
-> 状态：现行产品事实账本。更新时间统一使用 UTC+8；提交、CI、Pages 和公开页面证据必须能相互对应。最后同步：2026-07-26 14:20 UTC+8。
+> 状态：现行产品事实账本。更新时间统一使用 UTC+8；提交、CI、Pages 和公开页面证据必须能相互对应。最后同步：2026-07-26 14:30 UTC+8。
 
 这份时间线只记录已经发生且可验证的产品事件，不用计划代替完成。详细功能说明仍以对应文档和代码为准；机器可读证据见 [`RELEASE_EVIDENCE.json`](RELEASE_EVIDENCE.json)。
 
@@ -39,6 +39,7 @@
 | 时间 | 事件 | Git 痕迹 | 验证 |
 |---|---|---|---|
 | 14:20 | 建立唯一工作台前端入口并删除未引用副本；上线桌面/移动项目笔记、v4 项目包、分类修改、显式后端导入与全 AI 写入快照；清除浏览器遗留 Key；加固 JSON / 文件导入；加入 Playwright 产品测试 | [`5ea9f26`](https://github.com/zizegak916-glitch/writing-workshop/commit/5ea9f26786eb8fe7c7127ae13b8f39a4b959b968) | 隔离 Go 1.25.5 环境下 `make check` 通过：Go test、vet、build、全量 JS 语法、静态产品契约和服务 smoke；本地 HTTP 检查 9 个页面/API/资源均为 200，拼接双 JSON 返回 400。当前容器禁止 Chromium 单例 socket，不把浏览器测试写成已在本地通过 |
+| 14:30 | 修正浏览器测试等待 IndexedDB 笔记激活的竞态并完成发布验收 | [`10d3a2a`](https://github.com/zizegak916-glitch/writing-workshop/commit/10d3a2a7549c80e2dc64cd7000bb3d1563c15606) | [CI 30191114231](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/30191114231)、[Pages 30191114238](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/30191114238) 均为 `success`；CI 的真实 Chromium 已通过桌面项目、遗留 Key 清除、笔记持久化、安全导入预览、上下文用量和移动端笔记烟雾测试。公开 `app.html`、CSS、JS、SVG、首页与教程均为 HTTP 200 且 SHA-256 与本地一致 |
 
 ## Prompt Skill 验证账
 
@@ -48,7 +49,7 @@
 | 本地持久化 | 保存、读取、恢复默认、独立导出、合并导入 | JavaScript 状态测试通过 |
 | 正式域名交互 | “流程 → 内置 Prompt Skill → 查看与修改”可打开 32 项；修改后刷新仍显示“1 个已修改” | GitHub Pages 浏览器实测 |
 | 部署内容 | 正式站 Prompt JS、快捷图标 SVG 与提交内容校验和一致 | Prompt JS `e2f45ae2…2e3e`；图标 SVG `a6d7ac2f…e02d` |
-| 自动回归 | Skill 清单、图标映射、SVG symbol、入口资源、孤立脚本/样式、核心函数唯一性、浏览器明文 Key 回归、静态链接和证据 JSON | 本地 `scripts/check-static.mjs` 已通过；Playwright 产品烟雾测试已进入 CI，运行结果只在完成后回填 |
+| 自动回归 | Skill 清单、图标映射、SVG symbol、入口资源、孤立脚本/样式、核心函数唯一性、浏览器明文 Key 回归、静态链接和证据 JSON | 本地 `scripts/check-static.mjs` 已通过；[CI 30191114231](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/30191114231) 的 Playwright 产品烟雾测试已通过 |
 | 服务端边界 | Pages 是正式静态在线版；浏览器本地管理可用，模型执行仍取决于实际接入的 `/api` | README、教程、API、配置和审计文档一致 |
 
 ## 文档同步规则
