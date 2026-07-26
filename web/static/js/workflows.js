@@ -19,6 +19,7 @@
     project: '项目设定',
     outlines: '大纲',
     characters: '人物卡',
+    notes: '项目笔记',
     memories: '记忆'
   };
 
@@ -54,9 +55,9 @@
 
   function currentContextPrefs() {
     try {
-      return { current: true, project: true, outlines: false, characters: true, memories: true, ...JSON.parse(localStorage.getItem('ww_workflow_context') || '{}') };
+      return { current: true, project: true, outlines: false, characters: true, notes: false, memories: true, ...JSON.parse(localStorage.getItem('ww_workflow_context') || '{}') };
     } catch (_) {
-      return { current: true, project: true, outlines: false, characters: true, memories: true };
+      return { current: true, project: true, outlines: false, characters: true, notes: false, memories: true };
     }
   }
 
@@ -260,7 +261,7 @@
   function activeDocumentLabel() {
     const title = document.getElementById('chapterTitle')?.value?.trim();
     const type = typeof S !== 'undefined' && S.active ? S.active.type : 'document';
-    return `${type === 'chapter' ? '章节' : type === 'outline' ? '大纲' : type === 'character' ? '人物' : '文档'}：${title || '未命名'}`;
+    return `${type === 'chapter' ? '章节' : type === 'outline' ? '大纲' : type === 'character' ? '人物' : type === 'note' ? '笔记' : '文档'}：${title || '未命名'}`;
   }
 
   function collectContext() {
@@ -306,6 +307,12 @@
       ].filter(Boolean).join('\n')).join('\n\n');
       if (text) blocks.push(`【人物卡】\n${text}`);
       structured.characters = S.proj.characters || [];
+    }
+
+    if (keys.includes('notes') && typeof S !== 'undefined' && S.proj) {
+      const text = (S.proj.notes || []).map((note, i) => `${i + 1}. ${note.title || '未命名笔记'}\n${note.content || ''}`).join('\n\n');
+      if (text) blocks.push(`【项目笔记】\n${text}`);
+      structured.notes = S.proj.notes || [];
     }
 
     if (keys.includes('memories') && typeof buildMemoryContext === 'function') {

@@ -19,6 +19,7 @@ profile.cov
 
 # Dependency directories (remove the comment below to include it)
 # vendor/
+node_modules/
 
 # Go workspace file
 go.work
@@ -38,6 +39,7 @@ go.work.sum
 dist/
 release-notes.md
 /ainovel-cli
+/writing-workshop
 
 tasks
 refer/

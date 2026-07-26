@@ -61,7 +61,7 @@
           <p>从资料组织到写入确认，工作台把模型最容易越界的地方变成显式控制。</p>
         </div>
         <div class="bento">
-          <article class="bento-card"><span class="feature-no">01</span><h3>上下文包，而不是整库重发</h3><p>为每次任务勾选正文、项目设定、大纲、人物卡与记忆。发送前可见字符数和 token 估算。</p><div class="mini-context"><span class="on">当前选区</span><span>人物卡</span><span class="on">项目规则</span><span>历史记忆</span></div></article>
+          <article class="bento-card"><span class="feature-no">01</span><h3>上下文包，而不是整库重发</h3><p>为每次任务勾选正文、项目设定、大纲、人物卡、笔记与记忆。发送前可见字符数和 token 估算。</p><div class="mini-context"><span class="on">当前选区</span><span>人物卡</span><span class="on">项目笔记</span><span>历史记忆</span></div></article>
           <article class="bento-card"><span class="feature-no">02</span><h3>候选与正文隔离</h3><p>模型输出先进入候选区。替换、插入、追加和写入记忆各自确认，运行期间正文变更还会触发坐标保护。</p><div class="safe-write"><div><b>AI 候选</b><br>不自动覆盖作品</div><span>→</span><div><b>作者确认</b><br>选择明确去向</div></div></article>
           <article class="bento-card"><span class="feature-no">03</span><h3>多项目资料管理</h3><p>章节、大纲、人物、笔记、规则与记忆在同一个本地工作区组织，支持 Markdown、文本与 DOCX 导入导出。</p></article>
           <article class="bento-card"><span class="feature-no">04</span><h3>可组合 Skill</h3><p>能力清单声明来源、版本、步骤、权限、输入与输出。登记链接不会偷偷执行第三方代码。</p></article>
@@ -84,7 +84,7 @@
 
     <section class="section tint" id="run">
       <div class="site-shell">
-        <div class="section-heading"><span class="eyebrow">在线即可写作</span><h2>Pages 是正式在线站，后端是可选增强层。</h2><p>直接打开 GitHub Pages 就能管理浏览器本地项目、编辑与导入导出；密钥托管、服务端同步与 Skill 执行按需接入后端。</p></div>
+        <div class="section-heading"><span class="eyebrow">在线即可写作</span><h2>Pages 是正式在线站，后端是可选增强层。</h2><p>直接打开 GitHub Pages 就能管理浏览器本地项目、笔记、编辑与导入导出；密钥托管、后端项目导入与 Skill 执行按需接入自部署后端。</p></div>
         <div class="runtime-grid">
           <div class="code-card"><header><b>Docker · 60 秒启动</b><span>无需 API Key</span></header><pre><span class="cmd">git clone</span> https://github.com/zizegak916-glitch/writing-workshop.git
 <span class="cmd">cd</span> writing-workshop
@@ -92,7 +92,7 @@
 
 # 打开 http://127.0.0.1:8080/app.html</pre></div>
           <div class="mode-list">
-            <div class="mode"><b>Pages 正式在线版</b><span>使用真实 HTTPS 公开域名，浏览器本地项目、编辑、分类和导入导出可直接使用。</span></div>
+            <div class="mode"><b>Pages 正式在线版</b><span>使用真实 HTTPS 公开域名，浏览器本地项目、笔记、编辑、分类和导入导出可直接使用。</span></div>
             <div class="mode"><b>本地 Demo 模式</b><span>项目、能力和 API 闭环完整，无密钥即可验证。</span></div>
             <div class="mode"><b>模型连接模式</b><span>后台配置 OpenAI 兼容 API、OpenRouter 或 Ollama。</span></div>
           </div>

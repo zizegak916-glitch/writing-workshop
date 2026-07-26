@@ -1,6 +1,6 @@
 # 开发指南
 
-> 状态：现行开发指南，更新于 2026-07-23（UTC+8）。
+> 状态：现行开发指南，更新于 2026-07-26（UTC+8）。
 
 ## 本地构建
 
@@ -9,7 +9,7 @@ go build -o writing-workshop ./cmd/writing-workshop
 ./writing-workshop serve --demo --port 8080
 ```
 
-当前仓库的 Web 前端位于 `web/static/`，由 `web/static/static.go` 通过 `go:embed` 打包。
+当前仓库的 Web 前端位于 `web/static/`，由 `web/static/static.go` 通过 `go:embed` 打包。主入口只使用 `web/static/css/main.css` 与 `web/static/js/workbench.js` 作为基础样式和基础交互的权威文件，其余脚本按功能显式加载；不要重新引入重复的内联实现。
 
 写作工坊是主体应用。GitHub 开源项目、skill、规则包和自定义能力都只是可保存、可组合、可执行的能力来源。底层 Go 引擎源自 `ainovel-cli`；新增后端适配时应保持 `/api/` 契约稳定。
 
@@ -24,19 +24,23 @@ GOCACHE=/tmp/go-cache GOMODCACHE=/tmp/gomodcache go vet ./...
 GOCACHE=/tmp/go-cache GOMODCACHE=/tmp/gomodcache go build ./cmd/writing-workshop
 find web/static -name '*.js' -print0 | xargs -0 -n1 node --check
 node scripts/check-static.mjs
+npm ci
+npx playwright install --with-deps chromium
+npm run test:browser
 ```
 
 ## Web 端约定
 
 - `app.html` 是写作工坊主入口。
-- 主界面的“流程”功能拆分在 `web/static/js/workflows.js` 与 `web/static/css/workflows.css`，由 `app.html` 显式加载；不要只修改未被入口引用的旧拆分模块。
+- 基础工作台逻辑在 `web/static/js/workbench.js`，基础样式在 `web/static/css/main.css`；`app.html` 不再保留大段内联 CSS / JavaScript。
+- 主界面的“流程”功能拆分在 `web/static/js/workflows.js` 与 `web/static/css/workflows.css`，由 `app.html` 显式加载。
 - 浏览器项目搜索、复制、分类、单项目导出与安全删除在 `web/static/js/product-extensions.js` 和 `web/static/css/product-extensions.css`；入口仍是 `app.html`。
 - 32 个浏览器 Prompt Skill、覆盖值校验、管理器和本地备份逻辑在 `web/static/js/prompt-skills.js`；样式在 `web/static/css/prompt-skills.css`。新增 AI 功能时必须同时补名称、提示词、功能入口和覆盖审计，不能只给 `AI_MODES` 增加按钮。
 - `web/static/js/ai-mode-icons.js` 与 `web/static/icons/ai-mode-icons.svg` 是功能图标映射和符号源；Prompt Skill 管理器也复用这套映射。
 - `web/static/icons/app-icon.svg` 是全站图标源；所有公开 HTML 页面都应保留 favicon 引用。
 - `/admin` 使用 `web/static/admin.html`。
 - 前端 AI 调用必须走 `/api/ai`，浏览器不直接访问厂商 API。
-- 项目、章节、角色写入会同步到 `/api/projects`、`/api/chapters`、`/api/characters`。
+- 浏览器项目是 IndexedDB 中的本地工作副本。日常保存不得静默写入后端；项目操作台中的“从自部署后端导入”是当前唯一显式后端导入入口。
 - 规则包使用 `/api/rules`，项目级规则落盘到 `.ainovel/rules/web.rules.md`。
 - 新的通用能力入口使用 `/api/capabilities` 和 `/api/run`。前端传递 `backend_id`、`skill_ids`、上下文和参数；后端输出直接回传前端。
 - 技能包与分类分别使用 `/api/skill-packs`、`/api/categories`，实现在 `internal/web/catalog.go`。技能包只能引用已启用的非后端能力。
@@ -61,5 +65,6 @@ node scripts/check-static.mjs
 4. `go build ./cmd/writing-workshop`
 5. 启动 `serve --demo` 后检查 `/api/health`，再访问 `/app.html` 和 `/admin`。
 6. 在管理后台测试 `/api/capabilities`、`/api/run` 和 `/api/ai`，确认能力保存、执行和 provider/model/key 配置有效。
-7. 运行 `node scripts/check-static.mjs`：确认 32 个 Prompt Skill、图标映射、SVG symbol、内联脚本、静态链接和证据 JSON 一致；另以浏览器测试保存、恢复、导出和导入。
-8. 影响公开行为后更新 `CHANGELOG.md`、`CODE_REVIEW.md` 和 `docs/UPDATE_TIMELINE.md`；有新的 CI/Pages 证据时同步 `docs/RELEASE_EVIDENCE.json`。
+7. 运行 `node scripts/check-static.mjs`：确认 32 个 Prompt Skill、图标映射、SVG symbol、入口资源、无孤立脚本/样式、函数唯一性、静态链接和证据 JSON 一致。
+8. 运行 `npm run test:browser`：确认桌面/移动端项目创建、笔记持久化、导入预览安全与上下文预算可用。
+9. 影响公开行为后更新 `CHANGELOG.md`、`CODE_REVIEW.md` 和 `docs/UPDATE_TIMELINE.md`；有新的 CI/Pages 证据时同步 `docs/RELEASE_EVIDENCE.json`。

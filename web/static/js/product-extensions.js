@@ -13,6 +13,26 @@
     } catch (_) { return []; }
   }
   function saveCategories(items) { localStorage.setItem(CATEGORY_KEY, JSON.stringify(items)); }
+  window.wwCategoriesExport = () => getCategories();
+  window.wwCategoriesImport = function (incoming) {
+    if (!Array.isArray(incoming)) return getCategories();
+    const current = getCategories();
+    const byId = new Map(current.map(item => [item.id, item]));
+    incoming.forEach(item => {
+      if (!item || !item.id || !text(item.name).trim()) return;
+      byId.set(text(item.id), {
+        id: text(item.id),
+        name: text(item.name).trim().slice(0, 60),
+        color: /^#[0-9a-f]{6}$/i.test(item.color || '') ? item.color : '#8FC7EF',
+        scope: ['project', 'memory', 'capability', 'all'].includes(item.scope) ? item.scope : 'project',
+        created_at: item.created_at || new Date().toISOString()
+      });
+    });
+    const merged = [...byId.values()];
+    saveCategories(merged);
+    refreshCategoryUI();
+    return merged;
+  };
   function categoryById(id) { return getCategories().find(item => item.id === id); }
   function categoryName(id) { return categoryById(id)?.name || id; }
   window.wwCategoryLabel = categoryName;
@@ -134,14 +154,40 @@
       dot.style.background = item.color || '#8FC7EF';
       const copy = document.createElement('span');
       copy.textContent = `${item.name} · ${item.scope || 'project'}`;
+      const edit = document.createElement('button');
+      edit.type = 'button';
+      edit.className = 'project-mini-button';
+      edit.textContent = '修改';
+      edit.addEventListener('click', () => editCategory(item.id));
       const remove = document.createElement('button');
       remove.type = 'button';
       remove.className = 'project-mini-button danger';
       remove.textContent = '删除';
       remove.addEventListener('click', () => deleteCategory(item.id));
-      row.append(dot, copy, remove);
+      row.append(dot, copy, edit, remove);
       root.appendChild(row);
     });
+  }
+
+  function editCategory(id) {
+    const item = categoryById(id);
+    if (!item) return;
+    const name = prompt('分类名称', item.name || '');
+    if (name == null || !name.trim()) return;
+    const scope = prompt('适用范围：project / memory / capability / all', item.scope || 'project');
+    if (scope == null) return;
+    const nextScope = ['project', 'memory', 'capability', 'all'].includes(scope.trim()) ? scope.trim() : item.scope;
+    const color = prompt('分类颜色（六位十六进制，如 #8FC7EF）', item.color || '#8FC7EF');
+    if (color == null) return;
+    const nextColor = /^#[0-9a-f]{6}$/i.test(color.trim()) ? color.trim() : (item.color || '#8FC7EF');
+    saveCategories(getCategories().map(category => category.id === id ? {
+      ...category,
+      name: name.trim().slice(0, 60),
+      scope: nextScope,
+      color: nextColor
+    } : category));
+    renderCategoryManager();
+    refreshCategoryUI();
   }
 
   async function deleteCategory(id) {
@@ -185,20 +231,23 @@
   async function projectBundle(id) {
     const project = await dbGet('projects', id);
     if (!project) throw new Error('项目不存在');
-    const [outlines, characters, chapters, memories] = await Promise.all([
+    const [outlines, characters, chapters, notes, memories] = await Promise.all([
       dbByIndex('outlines', 'project_id', id),
       dbByIndex('characters', 'project_id', id),
       dbByIndex('chapters', 'project_id', id),
+      dbByIndex('notes', 'project_id', id),
       dbByIndex('aiMemories', 'project_id', id)
     ]);
     return {
-      version: 3,
+      version: 4,
       exported_at: new Date().toISOString(),
       project,
       outlines,
       characters,
       chapters,
+      notes,
       memories,
+      categories: getCategories(),
       prompt_skills: window.wwPromptSkillsExport?.() || null
     };
   }
@@ -232,7 +281,7 @@
       const copy = { ...source, name: `${source.name || '未命名项目'} · 副本`, created_at: now, updated_at: now };
       delete copy.id;
       const newId = await dbPut('projects', copy);
-      for (const store of ['outlines', 'characters', 'chapters', 'aiMemories']) {
+      for (const store of ['outlines', 'characters', 'chapters', 'notes', 'aiMemories']) {
         for (const entry of bundle[store === 'aiMemories' ? 'memories' : store] || []) {
           const next = { ...entry, project_id: newId };
           delete next.id;
@@ -263,8 +312,8 @@
 
   async function deleteProjectById(id) {
     const project = await dbGet('projects', id);
-    if (!project || !confirm(`删除项目“${project.name}”及其大纲、人物、章节和记忆？此操作不可撤销，建议先导出。`)) return;
-    for (const store of ['outlines', 'characters', 'chapters', 'aiMemories']) {
+    if (!project || !confirm(`删除项目“${project.name}”及其大纲、人物、章节、笔记和记忆？此操作不可撤销，建议先导出。`)) return;
+    for (const store of ['outlines', 'characters', 'chapters', 'notes', 'aiMemories']) {
       const rows = await dbByIndex(store, 'project_id', id);
       for (const row of rows) await dbDel(store, row.id);
     }
@@ -277,7 +326,7 @@
       document.getElementById('currentProjectName').textContent = '选择项目...';
       document.getElementById('mainEditor').value = '';
       document.getElementById('chapterTitle').value = '';
-      ['outlineList', 'chapterList', 'charList', 'mpOutlineList', 'mpChapterList', 'mpCharList'].forEach(id => {
+      ['outlineList', 'chapterList', 'charList', 'noteList', 'mpOutlineList', 'mpChapterList', 'mpCharList', 'mpNoteList'].forEach(id => {
         const node = document.getElementById(id);
         if (node) node.replaceChildren();
       });

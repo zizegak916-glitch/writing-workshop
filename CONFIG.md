@@ -1,6 +1,6 @@
 # 配置说明
 
-> 状态：现行产品配置，更新于 2026-07-23（UTC+8）。`.ainovel` 仍是继承引擎兼容目录名，不代表产品仍叫 ainovel-cli。
+> 状态：现行产品配置，更新于 2026-07-26（UTC+8）。`.ainovel` 仍是继承引擎兼容目录名，不代表产品仍叫 ainovel-cli。
 
 本页说明 Writing Workshop 的模型、密钥与监听地址配置。底层 Go 引擎源自 `ainovel-cli`，但本仓库发布的可执行文件名为 `writing-workshop`。
 
@@ -16,6 +16,8 @@ Web 管理后台保存配置时写入 `~/.ainovel/config.json`。
 
 主应用默认使用本地游客模式，不要求设置密码。配置和密钥由本地配置文件、环境变量或你部署的数据管理服务负责；当前本地模式不提供账号密码体系。
 
+工作台保存配置后只在浏览器保留 Provider、Model 和“由后端托管”的状态，不保留真实 Key。多模型槽位同样只保存 Provider / Model；旧版本曾写入 `ww_api` 或 `ww_slot*` 的 Key 会在新工作台启动或打开槽位时被清除。
+
 ## 工作目录中的产品数据
 
 | 路径 | 内容 | 说明 |
@@ -25,9 +27,9 @@ Web 管理后台保存配置时写入 `~/.ainovel/config.json`。
 | `.ainovel/categories.json` | 后端自定义分类 | 与浏览器本地项目分类分开保存 |
 | `.ainovel/rules/web.rules.md` | 后台编辑的项目规则 | 参与规则合并 |
 
-工作台中的项目自定义分类保存在当前站点的 `localStorage`，项目与分类关联保存在 IndexedDB 的 project 记录。浏览器 Prompt Skill 覆盖值单独保存在 `localStorage` 键 `ww_prompt_skills_v1`。这些数据不会自动与后端分类或 capability 文件互相覆盖；项目 v3 备份会带上 `category_ids`、记忆和 Prompt Skill 覆盖值。
+工作台中的项目自定义分类保存在当前站点的 `localStorage`，项目与分类关联保存在 IndexedDB 的 project 记录。项目、章节、大纲、人物、项目笔记与写作记忆也保存在 IndexedDB。浏览器 Prompt Skill 覆盖值单独保存在 `localStorage` 键 `ww_prompt_skills_v1`。这些数据不会自动与后端分类、项目或 capability 文件互相覆盖；项目 v4 备份会带上笔记、分类、记忆和 Prompt Skill 覆盖值。
 
-浏览器存储按来源域名隔离：`github.io`、自定义域名、`127.0.0.1` 与 `localhost` 彼此不是同一份数据。迁移域名、清除站点数据或换浏览器前，先在项目操作台导出 v3 项目包，或在 Prompt Skill 管理中单独导出提示词备份。
+浏览器存储按来源域名隔离：`github.io`、自定义域名、`127.0.0.1` 与 `localhost` 彼此不是同一份数据。迁移域名、清除站点数据或换浏览器前，先在项目操作台导出 v4 项目包，或在 Prompt Skill 管理中单独导出提示词备份。连接 Go 后端不会自动合并这两套数据；需要后端内容时，应在项目操作台显式导入为新的浏览器项目。
 
 ## 最小配置
 

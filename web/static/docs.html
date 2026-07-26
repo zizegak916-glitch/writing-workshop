@@ -24,15 +24,15 @@
     </aside>
 
     <main class="docs-main">
-      <span class="eyebrow">Product guide · 2026-07-23</span>
+      <span class="eyebrow">Product guide · 2026-07-26</span>
       <h1>从打开页面，到完成一次安全写作。</h1>
       <p class="docs-lead">这份文档不假设你已经懂 API、Docker 或 Skill。先选择你的使用方式，再按一条完整路线跑通。</p>
 
       <section id="overview">
         <h2>先理解：Pages 在线版与后端增强模式</h2>
         <div class="doc-grid">
-          <article class="doc-card"><h3>GitHub Pages · 正式在线版</h3><p>这是项目当前对外发布的真实 HTTPS 站点，不是临时预览。可以正式建立浏览器本地项目、编辑正文、管理分类与导入导出。数据默认保存在当前域名的 IndexedDB / localStorage。</p></article>
-          <article class="doc-card"><h3>后端增强模式</h3><p>运行仓库自带的 Go 服务，或部署兼容后端后，可增加服务端项目同步、密钥保管、Skill 执行、SSE 流式输出和中断。这是能力扩展，不是把 Pages 从“假站”变成“真站”。</p></article>
+          <article class="doc-card"><h3>GitHub Pages · 正式在线版</h3><p>这是项目当前对外发布的真实 HTTPS 站点，不是临时预览。可以正式建立浏览器本地项目、编辑正文和笔记、管理分类与导入导出。数据默认保存在当前域名的 IndexedDB / localStorage。</p></article>
+          <article class="doc-card"><h3>后端增强模式</h3><p>运行仓库自带的 Go 服务，或部署兼容后端后，可增加密钥保管、Skill 执行、SSE 流式输出、中断和后端项目导入。浏览器不会把每次编辑静默镜像到后端。</p></article>
         </div>
         <div class="doc-callout"><b>托管方式不等于功能真假：</b>静态网页同样可以发起 API 请求；是否成功取决于实际端点、认证和 CORS。本仓库当前默认 Pages 工作流未同时部署 Go API，所以界面显示“未连接后端”仅说明服务端能力未接入。GitHub Pages 与 OpenAI Sites 是独立托管方式。</div>
       </section>
@@ -66,13 +66,13 @@ go build -o writing-workshop ./cmd/writing-workshop
 
       <section id="first-project">
         <h2>建立第一个项目</h2>
-        <div class="doc-flow" aria-label="建立项目流程"><span>点击顶部 ＋</span><span>填写项目名称</span><span>添加第一章</span><span>建立人物卡</span><span>开始写作</span></div>
+        <div class="doc-flow" aria-label="建立项目流程"><span>点击顶部 ＋</span><span>填写项目名称</span><span>添加第一章</span><span>建立人物卡/笔记</span><span>开始写作</span></div>
         <ol>
           <li>在工作台顶部点击 <b>＋</b>，填写项目名、题材与简介；已有自定义分类时可同时多选分类。</li>
           <li>左侧切到“章节”，点击“添加章节”，输入标题。</li>
-          <li>切到“人物”，录入姓名、定位、描述与角色弧线。</li>
+          <li>切到“人物”，录入姓名、定位、描述与角色弧线；临时考据、场景材料和会议记录可放到“笔记”。</li>
           <li>在中间编辑区写作。自动保存开启时，数据写入浏览器 IndexedDB；点击顶部保存可以立即保存。</li>
-          <li>第一次重要编辑后，点击顶部下载图标导出项目备份。项目包版本 3 包含项目、章节、大纲、人物、记忆与自定义 Prompt Skill。</li>
+          <li>第一次重要编辑后，点击顶部下载图标导出项目备份。项目包版本 4 包含项目、章节、大纲、人物、笔记、记忆、自定义分类与 Prompt Skill。</li>
         </ol>
         <div class="doc-callout info"><b>本地优先：</b>Pages 正式在线版与后端增强模式都可以使用浏览器数据库。清除浏览器站点数据会删除这部分内容，因此长期项目务必定期导出。</div>
       </section>
@@ -91,8 +91,10 @@ go build -o writing-workshop ./cmd/writing-workshop
         </table>
         <p>桌面端右侧的能力目录独立滚动，底部“补充指令 / 上下文预算 / 开始生成”请求栏保持可见；切换到对比、记忆、历史或流程时会隐藏，返回“助手”后恢复。手机端会把资料栏和 AI 区折叠到底部导航，预算卡随 AI 内容正常滚动，避免挡住底部导航。正文仍是默认首屏，不会把桌面三栏硬挤进窄屏。</p>
         <h3>项目操作台</h3>
-        <p>点击顶部项目名进入“我的项目”。搜索框会匹配项目名、类型和自定义分类；分类下拉可进一步筛选。每个项目提供重命名、复制、分类、单独导出和删除。删除会明确列出连带删除的大纲、人物、章节与记忆并再次确认，不提供无确认批量删除。</p>
-        <p>“分类管理”创建浏览器本地分类并指定范围；项目和记忆分类都可自定义。它们保存在当前站点的浏览器存储，不会自动覆盖后台的能力分类。</p>
+        <p>点击顶部项目名进入“我的项目”。搜索框会匹配项目名、类型和自定义分类；分类下拉可进一步筛选。每个项目提供重命名、复制、分类、单独导出和删除。删除会明确列出连带删除的大纲、人物、章节、笔记与记忆并再次确认，不提供无确认批量删除。</p>
+        <p>“分类管理”创建浏览器本地分类并可修改名称、范围和颜色；项目和记忆分类都可自定义。它们保存在当前站点的浏览器存储，不会自动覆盖后台的能力分类。</p>
+        <h3>从自部署后端导入</h3>
+        <p>先用 Docker 或源码启动 Go 后端，再在项目操作台点击“从自部署后端导入”。工作台会读取后端现有项目、章节和人物，建立一个新的浏览器项目副本。之后的浏览器编辑仍保存在 IndexedDB，不会静默覆盖后端资料；需要再次迁移时重新显式导入并核对。</p>
       </section>
 
       <section id="workflow">
@@ -100,10 +102,10 @@ go build -o writing-workshop ./cmd/writing-workshop
         <div class="doc-flow"><span>描述任务</span><span>选择上下文</span><span>组合能力</span><span>生成候选</span><span>确认写入</span></div>
         <ol>
           <li><b>描述这一次任务。</b>例如“检查这段对话的动机断点”，不要写成永久项目规则。</li>
-          <li><b>只选需要的上下文。</b>当前选区/正文、项目设定、大纲、人物卡、记忆都可以单独开关。普通助手的固定请求栏显示估算 token、当前模型上限和百分比；估算不要求先配置 API，模型返回 usage 后才会追加上次实际输入/输出。</li>
+          <li><b>只选需要的上下文。</b>当前选区/正文、项目设定、大纲、人物卡、项目笔记、记忆都可以单独开关。普通助手的固定请求栏显示估算 token、当前模型上限和百分比；估算不要求先配置 API，模型返回 usage 后才会追加上次实际输入/输出。</li>
           <li><b>选择功能与 Skill。</b>“模式”里的功能卡决定本次隐形使用哪个浏览器 Prompt Skill；“流程”里还可逐项勾选多个后端 Skill，或一键应用技能包。“已选 N 项”会明确显示后端组合。</li>
           <li><b>点击生成候选。</b>本地后端通过 <code>POST /api/run</code> 返回 SSE 事件；运行中可以中断。</li>
-          <li><b>检查后再决定去向。</b>候选可复制、替换运行时选区、插入光标或追加到正文。正文若在生成期间改变，旧坐标替换会被阻止。</li>
+          <li><b>检查后再决定去向。</b>候选可复制、替换运行时选区、插入光标或追加到正文。普通、快捷、多模型、降 AI 与递归创作都会绑定生成时文档；跨文档应用会被阻止，替换时还会检查正文是否已变化。</li>
           <li><b>记忆另行确认。</b>“整理为记忆”只把候选放入记忆编辑框，仍需再次保存；不会和正文写入捆绑。</li>
         </ol>
         <div class="doc-callout"><b>可恢复：</b>流程历史保留完整候选；发生正文写入时还会记录写入前快照。恢复不会自动保存章节，你仍有最后一次确认机会。</div>
@@ -114,10 +116,10 @@ go build -o writing-workshop ./cmd/writing-workshop
         <div class="doc-grid">
           <article class="doc-card"><h3>导入单篇内容</h3><p>在新建/导入入口选择 Markdown、TXT 或 DOCX。先检查解析后的标题与正文，再放入当前项目。</p></article>
           <article class="doc-card"><h3>导出当前正文</h3><p>编辑工具栏的“导出”用于保存正在编辑的章节，适合送审、分享或进入其他排版工具。</p></article>
-          <article class="doc-card"><h3>导出完整项目</h3><p>顶部下载按钮或项目操作台“导出”会打包项目、章节、大纲、人物、记忆和已修改的 Prompt Skill。长期创作建议每个重要阶段保存一份带日期的 v3 备份。</p></article>
+          <article class="doc-card"><h3>导出完整项目</h3><p>顶部下载按钮或项目操作台“导出”会打包项目、章节、大纲、人物、笔记、记忆、自定义分类和已修改的 Prompt Skill。长期创作建议每个重要阶段保存一份带日期的 v4 备份。</p></article>
           <article class="doc-card"><h3>增量资料</h3><p>新增资料应按文件 hash 只处理一次；脚本负责去重和分类，AI 只总结新文件，避免每次重读全库。</p></article>
         </div>
-        <p>如果浏览器提示下载被阻止，请允许当前站点下载文件。若导入失败，先确认文件未加密，并用 UTF-8 保存纯文本或 Markdown。</p>
+        <p>如果浏览器提示下载被阻止，请允许当前站点下载文件。若导入失败，先确认文件未加密，并用 UTF-8 保存纯文本或 Markdown。一次最多导入 50 个文件；单文件最多 25 MiB、总计最多 100 MiB。项目备份恢复保持原内容，不会在导入后静默追加 AI 分析结果；普通文本只有在预览页显式开启分析时才会补结构。</p>
       </section>
 
       <section id="api">
@@ -134,6 +136,7 @@ go build -o writing-workshop ./cmd/writing-workshop
           </tbody>
         </table>
         <p>保存后切到“API 测试”，先执行“模型直连测试”；成功后再用“执行能力”验证 Skill 组合、流式回传和中断。</p>
+        <p>需要“对比”中的多个 Provider 时，先在自部署后端分别保存这些 Provider 的 Key / Base URL。槽位只选择 Provider 与 Model，不在浏览器保存每个槽位的密钥；未配置的 Provider 会明确返回错误。</p>
         <h3>使用环境变量（更适合长期部署）</h3>
         <pre><code>export OPENAI_API_KEY="your-key"
 ./writing-workshop serve --port 8080</code></pre>
@@ -157,7 +160,7 @@ go build -o writing-workshop ./cmd/writing-workshop
           <li>在“组合能力”底部找到“内置 Prompt Skill”，点击“查看与修改”。</li>
           <li>按分类或关键词找到功能。左侧“内置”表示使用仓库默认版本，“已修改”表示当前浏览器有覆盖值。</li>
           <li>在右侧改写提示词并保存。下一次点击该功能生成时立即使用新版本，不需要刷新。</li>
-          <li>需要撤销时点击“恢复默认”。“导出/导入”可单独备份；完整项目 v3 备份也会携带覆盖值，导入项目时以合并方式恢复。</li>
+          <li>需要撤销时点击“恢复默认”。“导出/导入”可单独备份；完整项目 v4 备份也会携带覆盖值，导入项目时以合并方式恢复。</li>
         </ol>
         <div class="doc-callout info"><b>存储边界：</b>自定义 Prompt Skill 保存在当前域名的 <code>localStorage</code>，不会上传到 GitHub，也不会自动同步到另一台设备、另一个浏览器或另一个域名。清除站点数据前先导出项目或提示词备份。</div>
         <p>实际请求按以下顺序组装：内置/自定义 Prompt Skill → 当前选区或正文 → 输出长度与创意要求 → 项目信息和写作记忆 → 额外指令。普通模式、多模型模式、移动端与六个快捷工具都使用同一份浏览器配置。</p>
@@ -196,7 +199,8 @@ go build -o writing-workshop ./cmd/writing-workshop
             <tr><td>模型测试 404</td><td>Base URL 或 Model 不存在</td><td>确认 URL 含正确 API 根路径与模型 ID</td></tr>
             <tr><td>浏览器报 CORS</td><td>正在直连第三方 API</td><td>改为访问同源 Go 后端，不要在 Pages 放 Key</td></tr>
             <tr><td>项目消失</td><td>浏览器站点数据被清除</td><td>导入最近的项目备份；以后定期导出</td></tr>
-            <tr><td>Prompt Skill 修改丢失</td><td>换了域名、浏览器或清除了当前 origin 的 localStorage</td><td>从 Prompt Skill 备份导入，或导入带覆盖值的项目 v3 备份</td></tr>
+            <tr><td>Prompt Skill 修改丢失</td><td>换了域名、浏览器或清除了当前 origin 的 localStorage</td><td>从 Prompt Skill 备份导入，或导入带覆盖值的项目 v4 备份</td></tr>
+            <tr><td>在浏览器编辑后端文件没变化</td><td>浏览器和 Go 后端是两套存储，不做静默双向同步</td><td>这是数据边界；使用项目操作台显式导入，导出 v4 包迁移浏览器内容</td></tr>
             <tr><td>上下文预算一直很小</td><td>普通助手只取当前选区或正文末尾 1000 字，并叠加所选 Prompt Skill、项目和记忆</td><td>这是本次请求估算，不是整个项目总字数；需要更多材料时使用“流程”显式选择上下文</td></tr>
             <tr><td>旧候选不能替换</td><td>生成期间正文已变化</td><td>这是坐标保护；复制候选并手动确认位置</td></tr>
           </tbody>

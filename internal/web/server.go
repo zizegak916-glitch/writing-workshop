@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"log/slog"
 	"net/http"
@@ -34,6 +35,8 @@ type Server struct {
 	hub    *sseHub
 	runMu  sync.Mutex
 	runCtx map[string]context.CancelFunc
+
+	extension runtimeExtension
 }
 
 func NewServer(h *host.Host, addr string) *Server {
@@ -41,11 +44,12 @@ func NewServer(h *host.Host, addr string) *Server {
 		addr = "127.0.0.1:8787"
 	}
 	s := &Server{
-		host:   h,
-		store:  h.Store(),
-		addr:   addr,
-		hub:    newSSEHub(),
-		runCtx: map[string]context.CancelFunc{},
+		host:      h,
+		store:     h.Store(),
+		addr:      addr,
+		hub:       newSSEHub(),
+		runCtx:    map[string]context.CancelFunc{},
+		extension: disabledRuntimeExtension{},
 	}
 	s.hub.attachHost(h)
 	return s
@@ -75,6 +79,7 @@ func (s *Server) ListenAndServe(ctx context.Context) error {
 }
 
 func (s *Server) routes(mux *http.ServeMux) {
+	s.extension.Mount(mux)
 	sub, _ := fs.Sub(staticfiles.Files, ".")
 	mux.Handle("/", http.FileServer(http.FS(sub)))
 	mux.HandleFunc("GET /admin", s.handleAdmin)
@@ -1140,9 +1145,22 @@ func providerAPIKeyFromEnv(provider string) string {
 	return ""
 }
 
+const maxJSONBody = 8 << 20
+
 func readJSON(r *http.Request, v any) error {
 	defer r.Body.Close()
-	return json.NewDecoder(r.Body).Decode(v)
+	decoder := json.NewDecoder(io.LimitReader(r.Body, maxJSONBody+1))
+	if err := decoder.Decode(v); err != nil {
+		return fmt.Errorf("invalid JSON body: %w", err)
+	}
+	var trailing any
+	if err := decoder.Decode(&trailing); !errors.Is(err, io.EOF) {
+		if err == nil {
+			return errors.New("invalid JSON body: multiple values")
+		}
+		return fmt.Errorf("invalid JSON body: %w", err)
+	}
+	return nil
 }
 
 func respond(w http.ResponseWriter, payload any, err error) {

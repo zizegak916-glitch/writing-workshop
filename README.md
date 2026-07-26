@@ -3,7 +3,7 @@
 [![CI](https://github.com/zizegak916-glitch/writing-workshop/actions/workflows/ci.yml/badge.svg)](https://github.com/zizegak916-glitch/writing-workshop/actions/workflows/ci.yml)
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-black.svg)](LICENSE)
 
-> 文档与验证证据最后同步：2026-07-23（UTC+8）。完整演进记录见 [更新时间线](docs/UPDATE_TIMELINE.md)，机器可读证据见 [RELEASE_EVIDENCE.json](docs/RELEASE_EVIDENCE.json)。
+> 文档与验证证据最后同步：2026-07-26（UTC+8）。完整演进记录见 [更新时间线](docs/UPDATE_TIMELINE.md)，机器可读证据见 [RELEASE_EVIDENCE.json](docs/RELEASE_EVIDENCE.json)。
 
 一个本地优先、可审计的长篇写作工作台。它把“选哪些上下文、运行哪些 Skill、结果写到哪里”变成显式操作：AI 只生成候选，作者确认后才写入正文或记忆。
 
@@ -13,7 +13,7 @@
 
 **正式在线版：** [GitHub Pages](https://zizegak916-glitch.github.io/writing-workshop/) · [完整使用文档](https://zizegak916-glitch.github.io/writing-workshop/docs.html) · [能力后台](https://zizegak916-glitch.github.io/writing-workshop/admin.html)
 
-> GitHub Pages 是本项目当前正式发布的公开在线站点，`github.io` 是真实可访问的 HTTPS 域名，不是临时预览。它采用静态托管，但浏览器本地项目、编辑、分类、导入导出等功能均可正式使用。当前默认部署不附带常驻 Go API；需要密钥托管、服务端同步或 Skill 执行时，再连接本地或自部署的兼容后端。静态托管本身并不禁止 API 调用，能否调用取决于站点是否接入了可用且安全的 API 端点。
+> GitHub Pages 是本项目当前正式发布的公开在线站点，`github.io` 是真实可访问的 HTTPS 域名，不是临时预览。它采用静态托管，但浏览器本地项目、编辑、笔记、分类、导入导出等功能均可正式使用。当前默认部署不附带常驻 Go API；需要密钥托管、Skill 执行或后端项目导入时，再运行本地或自部署后端。静态托管本身并不禁止 API 调用，能否调用取决于站点是否接入了可用且安全的 API 端点。
 
 > GitHub Pages 与 OpenAI Sites 是彼此独立的托管方式。本仓库当前公开地址由 GitHub Pages 发布，不把 Pages 写成 Sites 的预览层或降级版。
 
@@ -21,12 +21,12 @@
 
 ## 现在能做什么
 
-- 管理项目、章节、大纲、人物卡、规则和写作记忆。
+- 管理项目、章节、大纲、人物卡、项目笔记、规则和写作记忆。
 - 为一次任务显式选择正文、项目、大纲、人物与记忆；桌面请求栏始终显示当前 token 估算、模型上限和上次实际用量，未配置 API 时也可先估算。
 - 组合后端与 Skill 执行任务；支持 SSE 流式结果和中断。
 - 逐项多选 Skill，或一键应用“长篇规划校准 / 章节修订 / 角色与对白”技能包；自定义技能包会持久化保存。
 - 32 个 AI 功能都有可直接使用的内置 Prompt Skill；点击功能卡或快捷工具后，请求会隐形使用对应提示词，作者可在“流程 → Prompt Skill 管理”查看、改写或恢复默认。
-- 搜索、筛选、重命名、复制、分类、导出和删除浏览器本地项目；自定义分类也可用于写作记忆。
+- 搜索、筛选、重命名、复制、分类、导出和删除浏览器本地项目；自定义分类可修改名称、范围和颜色，也可用于写作记忆。
 - 候选结果与正文分离；替换、插入、追加、写入记忆均需独立确认。
 - 保存写入前快照和流程历史，避免 AI 输出静默覆盖创作内容。
 - 在无 API Key 模式下运行本地链路测试和大纲拆分；需要模型时再配置 OpenAI 兼容服务、OpenRouter、Ollama 等后端。
@@ -91,7 +91,7 @@ flowchart LR
 | 页面 | 作用 |
 |---|---|
 | `index.html` | 产品说明、运行模式和 60 秒启动入口 |
-| `app.html` | 项目、章节、大纲、人物、记忆、分类、导入导出、多 Skill 与候选写入 |
+| `app.html` | 项目、章节、大纲、人物、笔记、记忆、分类、导入导出、多 Skill 与候选写入 |
 | `admin.html` | Provider、Model、Base URL、API Key、项目、规则、能力、技能包、分类与 API 调试 |
 | `docs.html` | 从 Pages 在线版 / 后端增强模式到 CORS、Skill 与故障排查的完整教程 |
 
@@ -107,7 +107,7 @@ flowchart LR
 
 Writing Workshop 明确区分两类 Skill：
 
-- **浏览器 Prompt Skill**：对应润色、续写、对白、校对、标题、实时灵感等 32 个 AI 功能。选择功能后，其提示词在请求组装时自动加入，普通创作界面不显示全文；“流程 → Prompt Skill 管理”可搜索、查看、编辑、恢复、单独导入导出。自定义值写入当前域名的 `localStorage`，项目 v3 备份也会携带这些覆盖值并在导入时合并恢复。
+- **浏览器 Prompt Skill**：对应润色、续写、对白、校对、标题、实时灵感等 32 个 AI 功能。选择功能后，其提示词在请求组装时自动加入，普通创作界面不显示全文；“流程 → Prompt Skill 管理”可搜索、查看、编辑、恢复、单独导入导出。自定义值写入当前域名的 `localStorage`，项目 v4 备份也会携带这些覆盖值并在导入时合并恢复。
 - **后端能力 Skill**：由 manifest 声明步骤、权限和入口，可多选并通过 `/api/run` 执行；这类能力仍遵循下面的协议和服务端安全边界。
 
 修改浏览器 Prompt Skill 不会改变内置源文件，也不会把提示词显示在正文或结果中。额外指令仍会附加在所选 Skill 之后，因此一次请求的实际顺序是“功能 Prompt Skill → 当前文本 → 输出长度/创意要求 → 项目上下文 → 作者额外指令”。
@@ -142,9 +142,12 @@ Writing Workshop 明确区分两类 Skill：
 
 ## 数据与安全边界
 
-- 项目数据默认写入本地输出目录；浏览器使用同源 `/api/`，不直连模型厂商，从根源上避开 CORS 密钥暴露。
+- Pages 和工作台中的项目、章节、大纲、人物、笔记与记忆以当前域名的 IndexedDB / `localStorage` 为浏览器数据源；清除站点数据前应导出 v4 项目包。
+- Go 后端工作目录与浏览器数据库是两套明确存储。浏览器不会把每次编辑静默镜像到单个后端项目；需要后端资料时，由作者在项目操作台显式执行“从自部署后端导入”。
+- 浏览器模型请求使用同源 `/api/`，不直接把厂商密钥写进公开前端，从根源上避开 CORS 密钥暴露。
 - 默认监听回环地址；如使用 `0.0.0.0`，请只在可信网络或反向代理鉴权后开放。
 - API Key 可使用环境变量，不必写入仓库；配置读取时会对外隐藏密钥。
+- 多模型槽位只保留 Provider / Model，不在浏览器 `localStorage` 持久化真实 Key；所用 Provider 应先在自部署后端配置。
 - 保存 GitHub URL 不等于执行仓库代码。
 
 详见 [配置指南](CONFIG.md) 与 [安全策略](SECURITY.md)。
@@ -154,8 +157,9 @@ Writing Workshop 明确区分两类 Skill：
 ```text
 cmd/writing-workshop/  项目可执行入口
 internal/web/       同源 Web API、SSE、能力执行与数据管理
-web/static/         本地优先的写作工作台、项目管理扩展与新 SVG 图标
-internal/store/     章节、大纲、人物、记忆和运行状态
+web/static/         本地优先的写作工作台、项目管理扩展与 SVG 图标
+internal/store/     后端章节、大纲、人物、记忆和运行状态
+tests/              Playwright 浏览器产品烟雾测试
 examples/           可复用能力 manifest 与技能包请求示例
 docs/               协议、来源与设计说明
 ```
@@ -163,7 +167,7 @@ docs/               协议、来源与设计说明
 ## 路线图
 
 - `v0.1`：无密钥启动、显式上下文包、候选确认、Skill manifest、CI 与跨平台发布。
-- `v0.2`：项目导入/导出包 v3 已覆盖项目、章节、大纲、人物、记忆与浏览器 Prompt Skill 覆盖值；继续补可复现的端到端浏览器测试和能力版本锁定。
+- `v0.2`：项目导入/导出包 v4 已覆盖项目、章节、大纲、人物、笔记、记忆、自定义分类与浏览器 Prompt Skill 覆盖值；Playwright 产品烟雾测试已进入 CI。
 - `v0.3`：最小权限的本地 Skill 沙箱与增量资料摄取。
 
 公开任务请使用 [GitHub Issues](https://github.com/zizegak916-glitch/writing-workshop/issues)。提交代码前阅读 [CONTRIBUTING.md](CONTRIBUTING.md)。

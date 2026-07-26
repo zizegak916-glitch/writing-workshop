@@ -1,6 +1,6 @@
 # Writing Workshop UI 设计系统
 
-> 状态：现行产品视觉规范，更新于 2026-07-23（UTC+8）。
+> 状态：现行产品视觉规范，更新于 2026-07-26（UTC+8）。
 
 Writing Workshop 的界面方向是“彩色编辑部（Ink & Spectrum）”：把长篇创作看作由资料、正文、能力和决策共同组成的编辑工作，而不是把聊天框放大。
 
@@ -73,13 +73,15 @@ box-shadow: 0 12px 36px rgba(33, 43, 76, .09);
 
 - `> 980px`：资料 / 正文 / AI 三栏；AI 请求栏固定在右侧面板底部，能力目录独立滚动。
 - `768–980px`：缩窄资料和 AI 面板，隐藏次要统计；请求文本区变矮，但预算数值和生成按钮不得隐藏。
-- `< 560px`：正文全宽；大纲、章节、人物和 AI 进入底部导航。
+- `< 560px`：正文全宽；大纲、章节、人物、笔记和 AI 进入底部导航。
 - 所有主要点击区域最低 44px；横向工具条允许滚动而不是压缩到不可点击。
 - 遵守 `prefers-reduced-motion`，用户关闭动效时移除动画与平滑滚动。
 
 ## 6. 代码位置
 
 - 落地页和文档共享：`web/static/css/chromatic-site.css`
+- 工作台基础样式：`web/static/css/main.css`
+- 工作台基础交互：`web/static/js/workbench.js`
 - 主工作台后置覆盖：`web/static/css/chromatic-app.css`
 - 能力后台：`web/static/css/chromatic-console.css`
 - Prompt Skill 管理：`web/static/css/prompt-skills.css`

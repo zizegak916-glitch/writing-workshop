@@ -4,6 +4,17 @@ All notable Writing Workshop changes are recorded here. The project follows Sema
 
 ## Unreleased
 
+### 2026-07-26 product integrity pass
+
+- Split the historical all-in-one workbench into one canonical `main.css` and `workbench.js`, removed unused duplicate frontend modules, and added a static contract that rejects inline regressions, orphan assets and duplicate core functions.
+- Added project notes on desktop and mobile, upgraded browser project bundles to v4, and included notes, custom categories, memories and Prompt Skill overrides in export, import, duplicate and cascade-delete flows.
+- Replaced implicit browser-to-backend project mirroring with an explicit “import from self-hosted backend” action, keeping IndexedDB and the Go workspace as separate, author-controlled data stores.
+- Extended candidate safety to regular, mobile, quick, multi-model, humanization and recursive writing flows: generated output is bound to its source document, destructive stale writes are blocked, and pre-write snapshots are recorded for recovery.
+- Made custom project categories editable by name, scope and color, and included project notes in workflow context selection and project statistics.
+- Escaped imported titles, diff fragments and recursive-planning output; limited JSON request bodies to 8 MiB, rejected trailing JSON values, and bound the default Docker port to loopback.
+- Added Playwright product smoke tests for desktop/mobile note persistence, project creation, context metering and import-preview safety; CI now installs Chromium and runs the browser suite.
+- Replaced the remaining text-based top-bar AI mark with the repository-native colored writing icon.
+
 ### 2026-07-24 community publication compliance
 
 - Added an explicit repository-level recognition link to the LINUX DO community and retained the verified maintainer profile link, so the project itself—not only a forum draft—meets the community-link requirement for open-source promotion.

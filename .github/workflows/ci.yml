@@ -26,6 +26,10 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: 22
+          cache: npm
+
+      - name: Install browser test dependencies
+        run: npm ci
 
       - name: Go tests
         run: go test ./...
@@ -55,4 +59,25 @@ jobs:
             sleep 1
           done
           cat /tmp/writing-workshop.log
+          exit 1
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Browser product smoke
+        env:
+          CI: "true"
+          WW_TEST_BASE_URL: http://127.0.0.1:18080
+        run: |
+          ./writing-workshop serve --demo --host 127.0.0.1 --port 18080 > /tmp/writing-workshop-browser.log 2>&1 &
+          pid=$!
+          trap 'kill "$pid" 2>/dev/null || true' EXIT
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:18080/api/health > /dev/null; then
+              npm run test:browser
+              exit $?
+            fi
+            sleep 1
+          done
+          cat /tmp/writing-workshop-browser.log
           exit 1

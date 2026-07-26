@@ -1,6 +1,6 @@
 # Contributing
 
-> 现行贡献约束最后同步：2026-07-23（UTC+8）。可验证的产品演进记录在 [`docs/UPDATE_TIMELINE.md`](docs/UPDATE_TIMELINE.md)。
+> 现行贡献约束最后同步：2026-07-26（UTC+8）。可验证的产品演进记录在 [`docs/UPDATE_TIMELINE.md`](docs/UPDATE_TIMELINE.md)。
 
 Writing Workshop 欢迎问题报告、协议讨论、测试样例和代码贡献。项目优先解决真实长篇写作中的可复现问题，不以增加按钮数量作为完成标准。
 
@@ -20,6 +20,9 @@ go build -o writing-workshop ./cmd/writing-workshop
 curl http://127.0.0.1:8080/api/health
 find web/static -name '*.js' -print0 | xargs -0 -n1 node --check
 node scripts/check-static.mjs
+npm ci
+npx playwright install --with-deps chromium
+npm run test:browser
 ```
 
 Pull request 应保持范围单一，说明行为变化与验证结果。涉及上下文、写入或第三方执行时，必须说明数据边界和回滚路径。
@@ -34,5 +37,6 @@ Pull request 应保持范围单一，说明行为变化与验证结果。涉及�
 - 修改功能名、图标、入口脚本或文档证据时，静态产品契约必须保持通过；不要只以页面“看起来正常”代替映射和链接校验。
 - 新增分类必须声明存储边界（浏览器或后端）和删除后如何处理既有分类 ID。
 - 保持本地数据格式向后兼容；破坏性迁移必须提供备份与迁移说明。
+- `app.html` 只负责页面结构与显式资源加载；不要重新加入大段内联脚本/样式或未被入口引用的重复实现。
 - 影响公开行为、数据格式或安全边界的 PR 必须更新 `CHANGELOG.md`、相关契约、`CODE_REVIEW.md` 和 `docs/UPDATE_TIMELINE.md`。CI/Pages 结果只能在运行完成后写成事实。
 - 继承引擎代码中的上游版权与归属不得删除。

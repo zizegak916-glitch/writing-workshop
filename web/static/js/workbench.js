@@ -1,22 +1,66 @@
-
 // ═══ IndexedDB ═══
-const DB_NAME='WritingWorkshop',DB_VER=3;let db;
+const DB_NAME='WritingWorkshop',DB_VER=4;let db;
 function ensureIndex(store,name,keyPath,options={unique:false}){if(!store.indexNames.contains(name))store.createIndex(name,keyPath,options);}
-function openDB(){return new Promise((res,rej)=>{const r=indexedDB.open(DB_NAME,DB_VER);r.onupgradeneeded=e=>{const d=e.target.result;let st;if(!d.objectStoreNames.contains('projects'))d.createObjectStore('projects',{keyPath:'id',autoIncrement:true});st=d.objectStoreNames.contains('outlines')?e.target.transaction.objectStore('outlines'):d.createObjectStore('outlines',{keyPath:'id',autoIncrement:true});ensureIndex(st,'project_id','project_id');st=d.objectStoreNames.contains('characters')?e.target.transaction.objectStore('characters'):d.createObjectStore('characters',{keyPath:'id',autoIncrement:true});ensureIndex(st,'project_id','project_id');st=d.objectStoreNames.contains('chapters')?e.target.transaction.objectStore('chapters'):d.createObjectStore('chapters',{keyPath:'id',autoIncrement:true});ensureIndex(st,'project_id','project_id');if(!d.objectStoreNames.contains('aiHistory'))d.createObjectStore('aiHistory',{keyPath:'id',autoIncrement:true});st=d.objectStoreNames.contains('aiMemories')?e.target.transaction.objectStore('aiMemories'):d.createObjectStore('aiMemories',{keyPath:'id',autoIncrement:true});ensureIndex(st,'project_id','project_id');};r.onsuccess=e=>{db=e.target.result;res(db);};r.onerror=e=>rej(e.target.error);});}
+function openDB(){return new Promise((res,rej)=>{const r=indexedDB.open(DB_NAME,DB_VER);r.onupgradeneeded=e=>{const d=e.target.result;let st;if(!d.objectStoreNames.contains('projects'))d.createObjectStore('projects',{keyPath:'id',autoIncrement:true});st=d.objectStoreNames.contains('outlines')?e.target.transaction.objectStore('outlines'):d.createObjectStore('outlines',{keyPath:'id',autoIncrement:true});ensureIndex(st,'project_id','project_id');st=d.objectStoreNames.contains('characters')?e.target.transaction.objectStore('characters'):d.createObjectStore('characters',{keyPath:'id',autoIncrement:true});ensureIndex(st,'project_id','project_id');st=d.objectStoreNames.contains('chapters')?e.target.transaction.objectStore('chapters'):d.createObjectStore('chapters',{keyPath:'id',autoIncrement:true});ensureIndex(st,'project_id','project_id');st=d.objectStoreNames.contains('notes')?e.target.transaction.objectStore('notes'):d.createObjectStore('notes',{keyPath:'id',autoIncrement:true});ensureIndex(st,'project_id','project_id');if(!d.objectStoreNames.contains('aiHistory'))d.createObjectStore('aiHistory',{keyPath:'id',autoIncrement:true});st=d.objectStoreNames.contains('aiMemories')?e.target.transaction.objectStore('aiMemories'):d.createObjectStore('aiMemories',{keyPath:'id',autoIncrement:true});ensureIndex(st,'project_id','project_id');};r.onsuccess=e=>{db=e.target.result;res(db);};r.onerror=e=>rej(e.target.error);});}
 function dbPut(s,v){return new Promise((r,j)=>{const t=db.transaction(s,'readwrite');const st=t.objectStore(s);const q=st.put(v);q.onsuccess=()=>r(q.result);q.onerror=()=>j(q.error);});}
 function dbGet(s,id){return new Promise((r,j)=>{const t=db.transaction(s,'readonly');const q=t.objectStore(s).get(id);q.onsuccess=()=>r(q.result);q.onerror=()=>j(q.error);});}
 function dbDel(s,id){return new Promise((r,j)=>{const t=db.transaction(s,'readwrite');const q=t.objectStore(s).delete(id);q.onsuccess=()=>r();q.onerror=()=>j(q.error);});}
 function dbAll(s){return new Promise((r,j)=>{const t=db.transaction(s,'readonly');const q=t.objectStore(s).getAll();q.onsuccess=()=>r(q.result);q.onerror=()=>j(q.error);});}
 function dbByIndex(s,f,v){return new Promise((r,j)=>{const t=db.transaction(s,'readonly');const st=t.objectStore(s);if(st.indexNames.contains(f)){const q=st.index(f).getAll(v);q.onsuccess=()=>r(q.result);q.onerror=()=>j(q.error);return;}const a=[];const q=st.openCursor();q.onsuccess=e=>{const c=e.target.result;if(c){if(c.value[f]===v)a.push(c.value);c.continue();}else r(a);};q.onerror=()=>j(q.error);});}
+
+// ═══ Writing Workshop backend bridge ═══
 async function apiJSON(url,opts={}){
   const r=await fetch(url,{headers:{'Content-Type':'application/json',...(opts.headers||{})},...opts});
   const d=await r.json().catch(()=>({}));
-  if(!r.ok)throw new Error(d.error||('HTTP '+r.status));
+  if(!r.ok){
+    if(r.status===404&&location.hostname.endsWith('github.io'))throw new Error('当前 Pages 未连接 Go 后端；请使用 Docker 自部署版执行 API 与 Skill');
+    throw new Error(typeof d.error==='string'?d.error:(d.error?.message||('HTTP '+r.status)));
+  }
   return d;
+}
+async function loadBackendConfig(){
+  try{
+    const cfgResp=await apiJSON('/api/config');
+    const cfg=cfgResp?.config||cfgResp;
+    if(cfg?.provider&&!S.apiConfig.provider){
+      S.apiConfig={provider:cfg.provider,model:cfg.model||'',key:'backend',baseUrl:''};
+      localStorage.setItem('ww_api',JSON.stringify(S.apiConfig));
+    }
+  }catch(_){}
+}
+async function importProjectFromBackend(){
+  try{
+    const projects=await apiJSON('/api/projects');
+    if(!Array.isArray(projects)||!projects.length)throw new Error('后端没有可导入的项目');
+    const p=projects[0],now=Date.now();
+    const projectId=await dbPut('projects',{name:p.name||'当前项目',genre:'writing-workshop',description:p.premise||p.description||'',world_setting:'',goal:2000,total_chapters:p.total_chapters||0,created_at:now,updated_at:now});
+    const chapters=await apiJSON('/api/chapters').catch(()=>[]);
+    for(const ch of chapters){
+      const detail=await apiJSON('/api/chapters?chapter='+encodeURIComponent(ch.chapter)).catch(()=>ch);
+      await dbPut('chapters',{project_id:projectId,title:detail.title||ch.title||('第 '+ch.chapter+' 章'),content:detail.content||'',word_count:detail.word_count||0,sort_order:ch.chapter-1,created_at:now,updated_at:now});
+    }
+    const chars=await apiJSON('/api/characters').catch(()=>[]);
+    for(const c of chars){
+      await dbPut('characters',{project_id:projectId,name:c.name||'',role:c.role||'',personality:(c.traits||[]).join('、'),background:c.arc||'',appearance:'',skills:'',created_at:now});
+    }
+    await loadProjects();
+    await loadProject(projectId);
+    closeModal('projectModal');
+    showToast('✓','已从自部署后端导入项目');
+  }catch(e){showToast('✕',e.message);}
 }
 
 // ═══ State ═══
-const S={proj:null,active:null,editCharId:null,aiMode:'润色',aiTemp:'mid',aiLen:'long',apiConfig:JSON.parse(localStorage.getItem('ww_api')||'{}'),autoSave:true,unsaved:false,wordGoal:2000,curFontSize:16,lastArpResult:'',selectedProvider:'claude',previewMode:false,projects:[],aiMemories:[]};
+function loadStoredApiConfig(){
+  let stored={};
+  try{stored=JSON.parse(localStorage.getItem('ww_api')||'{}')||{};}catch(_){}
+  if(stored.key&&stored.key!=='backend'){
+    stored={provider:stored.provider||'',model:stored.model||'',baseUrl:'',key:'backend'};
+    localStorage.setItem('ww_api',JSON.stringify(stored));
+  }
+  return stored;
+}
+const S={proj:null,active:null,editCharId:null,aiMode:'润色',aiTemp:'mid',aiLen:'long',apiConfig:loadStoredApiConfig(),autoSave:true,unsaved:false,wordGoal:2000,curFontSize:16,lastArpResult:'',aiRunSnapshot:null,multiRunSnapshot:null,selectedProvider:'claude',previewMode:false,projects:[],aiMemories:[]};
 
 
 // ═══ Token Estimation & Context Limits ═══
@@ -79,7 +123,16 @@ function updateContextBar(){
   ].forEach(target=>{
     const bar=document.getElementById(target.bar),txt=document.getElementById(target.text);
     const percent=document.getElementById(target.percent),model=document.getElementById(target.model);
-    if(bar){bar.style.width=pctRaw+'%';bar.style.background=color;bar.classList.toggle('has-usage',promptTokens>0);const track=bar.parentElement;track?.setAttribute('aria-valuenow',pctRaw.toFixed(2));track?.setAttribute('aria-valuetext',kStr+' / '+lStr+' tokens，'+pctLabel);const meter=bar.closest('.ai-context-meter');if(meter)meter.dataset.level=level;}
+    if(bar){
+      bar.style.width=pctRaw+'%';
+      bar.style.background=color;
+      bar.classList.toggle('has-usage',promptTokens>0);
+      const track=bar.parentElement;
+      track?.setAttribute('aria-valuenow',pctRaw.toFixed(2));
+      track?.setAttribute('aria-valuetext',kStr+' / '+lStr+' tokens，'+pctLabel);
+      const meter=bar.closest('.ai-context-meter');
+      if(meter)meter.dataset.level=level;
+    }
     if(txt){txt.textContent='约 '+kStr+' / '+lStr+' tokens';txt.style.color=level==='normal'?'var(--text-muted)':color;}
     if(percent)percent.textContent=pctLabel;
     if(model)model.textContent=(ac.model||'默认估算')+' · 上限 '+lStr;
@@ -155,7 +208,7 @@ zh:{
   "mod-close":"关闭",
   "mod-newproj-btn":"＋ 新建项目",
   "mod-api":"⚙️ API 设置",
-  "mod-api-sub":"配置 AI 服务商。API Key 仅存储在本地浏览器。",
+  "mod-api-sub":"配置自部署后端中的 AI 服务商；Pages 本身不保存密钥。",
   "mod-api-provider":"选择服务商",
   "mod-api-url":"Base URL",
   "mod-api-url-hint":"自定义接口地址",
@@ -198,7 +251,7 @@ zh:{
   "sb-empty-outline":"暂无大纲",
   "sb-empty-chapter":"暂无章节",
   "sb-empty-char":"暂无人物",
-  "sb-empty-notes":"功能开发中...",
+  "sb-empty-notes":"暂无笔记，点击下方按钮创建",
   "lock-set":"游客本地模式",
   "lock-unlock":"游客本地模式",
   "lock-btn-set":"进入工坊",
@@ -268,7 +321,7 @@ zh:{
   "form-save":"保存 ✓",
   "form-api-provider":"选择服务商",
   "form-api-key-label":"API Key",
-  "form-api-key-hint":"加密存储于本地",
+  "form-api-key-hint":"保存到自部署后端",
   "form-api-test":"测试",
   "form-api-model-label":"模型",
   "form-api-model-ph":"留空使用默认",
@@ -414,7 +467,7 @@ en:{
   "mod-close":"Close",
   "mod-newproj-btn":"＋ New Project",
   "mod-api":"⚙️ API Settings",
-  "mod-api-sub":"Configure AI provider. Key stored locally only.",
+  "mod-api-sub":"Configure the AI provider on your self-hosted backend. Pages does not store keys.",
   "mod-api-provider":"Provider",
   "mod-api-url":"Base URL",
   "mod-api-url-hint":"Custom endpoint",
@@ -457,7 +510,7 @@ en:{
   "sb-empty-outline":"No outlines",
   "sb-empty-chapter":"No chapters",
   "sb-empty-char":"No characters",
-  "sb-empty-notes":"Coming soon...",
+  "sb-empty-notes":"No notes yet. Create one below.",
   "lock-set":"Local guest mode",
   "lock-unlock":"Local guest mode",
   "lock-btn-set":"Enter workshop",
@@ -527,7 +580,7 @@ en:{
   "form-save":"Save ✓",
   "form-api-provider":"Provider",
   "form-api-key-label":"API Key",
-  "form-api-key-hint":"Stored locally",
+  "form-api-key-hint":"Stored by the self-hosted backend",
   "form-api-test":"Test",
   "form-api-model-label":"Model",
   "form-api-model-ph":"Leave empty for default",
@@ -673,7 +726,7 @@ ja:{
   "mod-close":"閉じる",
   "mod-newproj-btn":"＋ 新規",
   "mod-api":"⚙️ API設定",
-  "mod-api-sub":"AIプロバイダーを設定。キーはローカル保存。",
+  "mod-api-sub":"セルフホストしたバックエンドの AI プロバイダーを設定します。Pages はキーを保存しません。",
   "mod-api-provider":"プロバイダー",
   "mod-api-url":"Base URL",
   "mod-api-url-hint":"カスタム",
@@ -716,7 +769,7 @@ ja:{
   "sb-empty-outline":"あらすじなし",
   "sb-empty-chapter":"章なし",
   "sb-empty-char":"キャラなし",
-  "sb-empty-notes":"準備中...",
+  "sb-empty-notes":"メモはまだありません。下から作成できます。",
   "lock-set":"Local guest mode",
   "lock-unlock":"Local guest mode",
   "lock-btn-set":"Enter workshop",
@@ -786,7 +839,7 @@ ja:{
   "form-save":"保存 ✓",
   "form-api-provider":"プロバイダー",
   "form-api-key-label":"APIキー",
-  "form-api-key-hint":"ローカル保存",
+  "form-api-key-hint":"セルフホストのバックエンドに保存",
   "form-api-test":"テスト",
   "form-api-model-label":"モデル",
   "form-api-model-ph":"空白でデフォルト",
@@ -932,7 +985,7 @@ ko:{
   "mod-close":"닫기",
   "mod-newproj-btn":"＋ 새 프로젝트",
   "mod-api":"⚙️ API 설정",
-  "mod-api-sub":"AI 공급자 설정. 키는 로컬 저장.",
+  "mod-api-sub":"자체 호스팅 백엔드의 AI 공급자를 설정합니다. Pages는 키를 저장하지 않습니다.",
   "mod-api-provider":"공급자",
   "mod-api-url":"Base URL",
   "mod-api-url-hint":"사용자 정의",
@@ -975,7 +1028,7 @@ ko:{
   "sb-empty-outline":"개요 없음",
   "sb-empty-chapter":"챕터 없음",
   "sb-empty-char":"캐릭터 없음",
-  "sb-empty-notes":"준비중...",
+  "sb-empty-notes":"아직 메모가 없습니다. 아래에서 만들어 보세요.",
   "lock-set":"Local guest mode",
   "lock-unlock":"Local guest mode",
   "lock-btn-set":"Enter workshop",
@@ -1045,7 +1098,7 @@ ko:{
   "form-save":"저장 ✓",
   "form-api-provider":"제공업체 선택",
   "form-api-key-label":"API Key",
-  "form-api-key-hint":"로컬에 암호화 저장",
+  "form-api-key-hint":"자체 호스팅 백엔드에 저장",
   "form-api-test":"테스트",
   "form-api-model-label":"모델",
   "form-api-model-ph":"비워 두면 기본값 사용",
@@ -1234,7 +1287,7 @@ fr:{
   "sb-empty-outline":"Aucun plan",
   "sb-empty-chapter":"Aucun chapitre",
   "sb-empty-char":"Aucun personnage",
-  "sb-empty-notes":"Fonction en développement...",
+  "sb-empty-notes":"Aucune note. Créez-en une ci-dessous.",
   "lock-set":"Local guest mode",
   "lock-unlock":"Local guest mode",
   "lock-btn-set":"Enter workshop",
@@ -1304,7 +1357,7 @@ fr:{
   "form-save":"Enregistrer ✓",
   "form-api-provider":"Choisir un fournisseur",
   "form-api-key-label":"Clé API",
-  "form-api-key-hint":"Stockée localement avec chiffrement",
+  "form-api-key-hint":"Stockée par le backend auto-hébergé",
   "form-api-test":"Tester",
   "form-api-model-label":"Modèle",
   "form-api-model-ph":"Vide = défaut",
@@ -1493,7 +1546,7 @@ es:{
   "sb-empty-outline":"Sin esquemas",
   "sb-empty-chapter":"Sin capítulos",
   "sb-empty-char":"Sin personajes",
-  "sb-empty-notes":"Función en desarrollo...",
+  "sb-empty-notes":"Aún no hay notas. Crea una abajo.",
   "lock-set":"Local guest mode",
   "lock-unlock":"Local guest mode",
   "lock-btn-set":"Enter workshop",
@@ -1563,7 +1616,7 @@ es:{
   "form-save":"Guardar ✓",
   "form-api-provider":"Elegir proveedor",
   "form-api-key-label":"API Key",
-  "form-api-key-hint":"Cifrada y guardada localmente",
+  "form-api-key-hint":"Guardada por el backend autoalojado",
   "form-api-test":"Probar",
   "form-api-model-label":"Modelo",
   "form-api-model-ph":"Vacío = predeterminado",
@@ -1745,14 +1798,14 @@ de:{
   "sb-outline":"Story-Gliederung",
   "sb-chapters":"Kapitelliste",
   "sb-chars":"Charakterprofile",
-  "sb-notes":"Notas",
+  "sb-notes":"Notizen",
   "sb-add-outline":"＋ Gliederung hinzufügen",
   "sb-add-chapter":"＋ Kapitel hinzufügen",
   "sb-add-char":"＋ Charakter hinzufügen",
   "sb-empty-outline":"Keine Gliederungen",
   "sb-empty-chapter":"Keine Kapitel",
   "sb-empty-char":"Keine Charaktere",
-  "sb-empty-notes":"Funktion in Entwicklung...",
+  "sb-empty-notes":"Noch keine Notizen. Unten können Sie eine erstellen.",
   "lock-set":"Local guest mode",
   "lock-unlock":"Local guest mode",
   "lock-btn-set":"Enter workshop",
@@ -1822,7 +1875,7 @@ de:{
   "form-save":"Speichern ✓",
   "form-api-provider":"Anbieter wählen",
   "form-api-key-label":"API Key",
-  "form-api-key-hint":"Lokal verschlüsselt gespeichert",
+  "form-api-key-hint":"Vom selbst gehosteten Backend gespeichert",
   "form-api-test":"Testen",
   "form-api-model-label":"Modell",
   "form-api-model-ph":"Leer = Standard",
@@ -2004,14 +2057,14 @@ ru:{
   "sb-outline":"План истории",
   "sb-chapters":"Список глав",
   "sb-chars":"Профили персонажей",
-  "sb-notes":"Notas",
+  "sb-notes":"Заметки",
   "sb-add-outline":"＋ Добавить план",
   "sb-add-chapter":"＋ Добавить главу",
   "sb-add-char":"＋ Добавить персонажа",
   "sb-empty-outline":"Планов нет",
   "sb-empty-chapter":"Глав нет",
   "sb-empty-char":"Персонажей нет",
-  "sb-empty-notes":"Функция в разработке...",
+  "sb-empty-notes":"Заметок пока нет. Создайте первую ниже.",
   "lock-set":"Local guest mode",
   "lock-unlock":"Local guest mode",
   "lock-btn-set":"Enter workshop",
@@ -2081,7 +2134,7 @@ ru:{
   "form-save":"Сохранить ✓",
   "form-api-provider":"Выбрать провайдера",
   "form-api-key-label":"API Key",
-  "form-api-key-hint":"Зашифровано и сохранено локально",
+  "form-api-key-hint":"Хранится на самостоятельно размещённом сервере",
   "form-api-test":"Тест",
   "form-api-model-label":"Модель",
   "form-api-model-ph":"Пусто = по умолчанию",
@@ -2202,7 +2255,7 @@ function lockApp(){showToast('i','本地游客模式无需本地锁定');showApp
 
 
 // ═══ Init ═══
-async function initApp(){await openDB();renderAiModeGrid();renderMultiSlots();await loadProjects();await loadMemories();renderHistory();setInterval(()=>{if(S.autoSave&&S.unsaved)saveDoc();},30000);const ed=document.getElementById('mainEditor');ed.addEventListener('input',onEditorInput);ed.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='s'){e.preventDefault();saveDoc();}});document.getElementById('focusEditor').addEventListener('input',()=>{document.getElementById('focusInfo').textContent=countWords(document.getElementById('focusEditor').value)+' 字 · Esc 退出';});document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeFocus();closeAiResult();}});if(S.projects.length>0)await loadProject(S.projects[0].id);updateAllStats();updateContextBar();}
+async function initApp(){await openDB();await loadBackendConfig();renderAiModeGrid();renderMultiSlots();await loadProjects();await loadMemories();renderHistory();setInterval(()=>{if(S.autoSave&&S.unsaved)saveDoc();},30000);const ed=document.getElementById('mainEditor');ed.addEventListener('input',onEditorInput);ed.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='s'){e.preventDefault();saveDoc();}});document.getElementById('focusEditor').addEventListener('input',()=>{document.getElementById('focusInfo').textContent=countWords(document.getElementById('focusEditor').value)+' 字 · Esc 退出';});document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeFocus();closeAiResult();}});if(S.projects.length>0)await loadProject(S.projects[0].id);updateAllStats();updateContextBar();}
 document.addEventListener('DOMContentLoaded',()=>{/* lock handled in IIFE above */});
 
 // ═══ Editor ═══
@@ -2231,12 +2284,28 @@ function switchSidebar(t,el){document.querySelectorAll('.nav-tab').forEach(x=>x.
 
 // ═══ Projects ═══
 async function loadProjects(){S.projects=await dbAll('projects');S.projects.sort((a,b)=>(b.updated_at||0)-(a.updated_at||0));if(S.projects.length>0&&!S.proj)await loadProject(S.projects[0].id);}
-async function loadProject(id){const p=await dbGet('projects',id);if(!p)return;const [os,cs,chs]=await Promise.all([dbByIndex('outlines','project_id',id),dbByIndex('characters','project_id',id),dbByIndex('chapters','project_id',id)]);os.sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));chs.sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));S.proj={project:p,outlines:os,characters:cs,chapters:chs};S.active=null;S.wordGoal=p.goal||2000;document.getElementById('currentProjectName').textContent=p.name;document.querySelector('.project-selector')?.setAttribute('title',p.name);renderOutlineList();renderChapterList();renderCharList();if(chs.length>0)loadChapterContent(chs[0].id);else if(os.length>0)loadOutlineContent(os[0].id);else{document.getElementById('mainEditor').value='';document.getElementById('chapterTitle').value='';}onEditorInput();showToast('📁',p.name);}
+async function loadProject(id){const p=await dbGet('projects',id);if(!p)return;const [os,cs,chs,notes]=await Promise.all([dbByIndex('outlines','project_id',id),dbByIndex('characters','project_id',id),dbByIndex('chapters','project_id',id),dbByIndex('notes','project_id',id)]);os.sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));chs.sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));notes.sort((a,b)=>(b.updated_at||b.created_at||0)-(a.updated_at||a.created_at||0));S.proj={project:p,outlines:os,characters:cs,chapters:chs,notes};S.active=null;S.wordGoal=p.goal||2000;document.getElementById('currentProjectName').textContent=p.name;document.querySelector('.project-selector')?.setAttribute('title',p.name);renderOutlineList();renderChapterList();renderCharList();renderNoteList();if(chs.length>0)loadChapterContent(chs[0].id);else if(os.length>0)loadOutlineContent(os[0].id);else if(notes.length>0)loadNoteContent(notes[0].id);else{document.getElementById('mainEditor').value='';document.getElementById('chapterTitle').value='';}onEditorInput();showToast('📁',p.name);}
 async function createProject(){const name=document.getElementById('newProjectName').value.trim();if(!name){showToast('✕',t('toast-enter-name'));return;}const g=[...document.querySelectorAll('#genreGrid .genre-chip.on')].map(e=>e.textContent),now=Date.now();const id=await dbPut('projects',{name,genre:g[0]||t('genre-uncategorized'),description:document.getElementById('newProjectDesc').value.trim(),world_setting:document.getElementById('newProjectWorld').value.trim(),goal:parseInt(document.getElementById('dailyGoal').value)||2000,created_at:now,updated_at:now});await dbPut('outlines',{project_id:id,title:t('default-chapter-title'),content:'',sort_order:0,created_at:now});closeModal('newProjectModal');await loadProjects();await loadProject(id);showToast('📁',t('toast-created')+': '+name);document.getElementById('newProjectName').value='';}
-function renderProjectList(){const el=document.getElementById('projectList');if(!S.projects.length){el.innerHTML='<div style="text-align:center;padding:30px;color:var(--text-muted)">'+t('ps-none')+'</div>';return;}el.innerHTML=S.projects.map(p=>'<div class="project-list-item" onclick="loadProject('+p.id+');closeModal(\'projectModal\')"><div class="pli-name">'+p.name+'</div><div class="pli-meta">'+p.genre+' · '+new Date(p.created_at).toLocaleDateString(currentLang)+'</div></div>').join('');}
-function exportProject(){if(!S.proj)return showToast('✕',t('toast-no-proj'));const d={version:3,project:S.proj.project,outlines:S.proj.outlines,characters:S.proj.characters,chapters:S.proj.chapters,memories:S.aiMemories.filter(m=>m.project_id===S.proj.project.id),prompt_skills:window.wwPromptSkillsExport?.()||null};const b=new Blob([JSON.stringify(d,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=(S.proj.project.name||t('default-doc-title'))+'.json';a.click();showToast('↓',t('toast-exported'));}
+function renderProjectList(){const el=document.getElementById('projectList');if(!S.projects.length){el.innerHTML='<div style="text-align:center;padding:30px;color:var(--text-muted)">'+t('ps-none')+'</div>';return;}el.innerHTML=S.projects.map(p=>'<div class="project-list-item" onclick="loadProject('+Number(p.id)+');closeModal(\'projectModal\')"><div class="pli-name">'+escapeHtml(p.name)+'</div><div class="pli-meta">'+escapeHtml(p.genre)+' · '+new Date(p.created_at).toLocaleDateString(currentLang)+'</div></div>').join('');}
+function exportProject(){if(!S.proj)return showToast('✕',t('toast-no-proj'));const d={version:4,project:S.proj.project,outlines:S.proj.outlines,characters:S.proj.characters,chapters:S.proj.chapters,notes:S.proj.notes||[],memories:S.aiMemories.filter(m=>m.project_id===S.proj.project.id),categories:window.wwCategoriesExport?.()||[],prompt_skills:window.wwPromptSkillsExport?.()||null};const b=new Blob([JSON.stringify(d,null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=(S.proj.project.name||t('default-doc-title'))+'.json';a.click();showToast('↓',t('toast-exported'));}
 function cloneWithoutId(v){const x={...(v||{})};delete x.id;return x;}
 // ═══ DOCX Parser (minimal ZIP XML extraction) ═══
+const MAX_IMPORT_FILES=50;
+const MAX_IMPORT_FILE_BYTES=25*1024*1024;
+const MAX_IMPORT_TOTAL_BYTES=100*1024*1024;
+const MAX_DOCX_TEXT_BYTES=40*1024*1024;
+const MAX_PROJECT_BUNDLE_ENTRIES=20000;
+function validateProjectBundle(data){
+  if(!data||typeof data!=='object'||Array.isArray(data)||!data.project||typeof data.project!=='object'||Array.isArray(data.project))throw new Error('无效的项目备份');
+  const keys=['outlines','characters','chapters','notes','memories','categories'];
+  let total=0;
+  for(const key of keys){
+    if(data[key]!=null&&!Array.isArray(data[key]))throw new Error('项目备份字段 '+key+' 必须是数组');
+    total+=(data[key]||[]).length;
+  }
+  if(total>MAX_PROJECT_BUNDLE_ENTRIES)throw new Error('项目备份条目过多，最多 '+MAX_PROJECT_BUNDLE_ENTRIES+' 条');
+  return data;
+}
 async function parseDocx(arrayBuffer) {
   const view = new DataView(arrayBuffer);
   let eocdOffset = -1;
@@ -2246,6 +2315,7 @@ async function parseDocx(arrayBuffer) {
   if (eocdOffset < 0) return '';
   const cdOffset = view.getUint32(eocdOffset + 16, true);
   const cdSize = view.getUint32(eocdOffset + 12, true);
+  if(cdOffset+cdSize>arrayBuffer.byteLength)return'';
   let pos = cdOffset, docOffset = -1, docSize = 0, docMethod = 0;
   while (pos < cdOffset + cdSize && pos + 46 <= arrayBuffer.byteLength) {
     if (view.getUint32(pos, true) !== 0x02014b50) break;
@@ -2257,6 +2327,7 @@ async function parseDocx(arrayBuffer) {
     const localOffset = view.getUint32(pos + 42, true);
     const name = new TextDecoder().decode(new Uint8Array(arrayBuffer, pos + 46, nameLen));
     if (name === 'word/document.xml') {
+      if(localOffset+30>arrayBuffer.byteLength)return'';
       const lhNameLen = view.getUint16(localOffset + 26, true);
       const lhExtraLen = view.getUint16(localOffset + 28, true);
       docOffset = localOffset + 30 + lhNameLen + lhExtraLen;
@@ -2266,7 +2337,7 @@ async function parseDocx(arrayBuffer) {
     }
     pos += 46 + nameLen + extraLen + commentLen;
   }
-  if (docOffset < 0) return '';
+  if (docOffset < 0 || docOffset+docSize>arrayBuffer.byteLength) return '';
   const rawData = new Uint8Array(arrayBuffer, docOffset, docSize);
   let xmlText;
   if (docMethod === 0) {
@@ -2278,7 +2349,14 @@ async function parseDocx(arrayBuffer) {
       writer.write(rawData); writer.close();
       const reader = ds.readable.getReader();
       const chunks = [];
-      while (true) { const { done, value } = await reader.read(); if (done) break; chunks.push(value); }
+      let expanded=0;
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        expanded+=value.length;
+        if(expanded>MAX_DOCX_TEXT_BYTES){await reader.cancel();return'';}
+        chunks.push(value);
+      }
       const totalLen = chunks.reduce((s, c) => s + c.length, 0);
       const result = new Uint8Array(totalLen);
       let p2 = 0;
@@ -2336,7 +2414,7 @@ function showImportPreview(importData) {
     importData.chapters.forEach((c, i) => {
       h += '<div style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:12px;border-bottom:1px solid var(--border)">';
       h += '<span style="color:var(--text-muted)">' + (i + 1) + '.</span>';
-      h += '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + (c.title || '未命名') + '</span>';
+      h += '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + escapeHtml(c.title || '未命名') + '</span>';
       h += '<span style="color:var(--text-hint)">' + (c.word_count || countWords(c.content || '')) + '字</span>';
       h += '</div>';
     });
@@ -2368,6 +2446,8 @@ async function confirmImport() {
     });
     if (data.outlines) for (const o of data.outlines) await dbPut('outlines', { ...cloneWithoutId(o), project_id: id });
     if (data.characters) for (const c of data.characters) await dbPut('characters', { ...cloneWithoutId(c), project_id: id });
+    if (data.notes) for (const note of data.notes) await dbPut('notes', { ...cloneWithoutId(note), project_id: id });
+    if (data.memories) for (const memory of data.memories) await dbPut('aiMemories', { ...cloneWithoutId(memory), project_id: id });
     for (const c of data.chapters) {
       await dbPut('chapters', {
         ...cloneWithoutId(c),
@@ -2388,19 +2468,26 @@ async function confirmImport() {
 async function importProject(e) {
   const files = e.target.files;
   if (!files || !files.length) return;
+  const totalBytes=[...files].reduce((sum,file)=>sum+(file.size||0),0);
+  if(files.length>MAX_IMPORT_FILES){showToast('✕','一次最多导入 '+MAX_IMPORT_FILES+' 个文件');e.target.value='';return;}
+  if([...files].some(file=>(file.size||0)>MAX_IMPORT_FILE_BYTES)||totalBytes>MAX_IMPORT_TOTAL_BYTES){showToast('✕','导入文件过大：单文件最多 25 MiB，总计最多 100 MiB');e.target.value='';return;}
   // Single JSON file: direct import (original behavior)
   if (files.length === 1 && files[0].name.toLowerCase().endsWith('.json')) {
     try {
       const f = files[0];
       const raw = await f.text();
-      const d = JSON.parse(raw);
-      if (!d.project) return showToast('✕', t('toast-invalid-file'));
+      const d = validateProjectBundle(JSON.parse(raw));
       const now = Date.now();
       const id = await dbPut('projects', { ...cloneWithoutId(d.project), created_at: d.project.created_at || now, updated_at: now });
       if (d.outlines) for (const o of d.outlines) await dbPut('outlines', { ...cloneWithoutId(o), project_id: id });
       if (d.characters) for (const c of d.characters) await dbPut('characters', { ...cloneWithoutId(c), project_id: id });
       if (d.chapters) for (const c of d.chapters) await dbPut('chapters', { ...cloneWithoutId(c), project_id: id, word_count: c.word_count || countWords(c.content || '') });
+      if (d.notes) for (const note of d.notes) await dbPut('notes', { ...cloneWithoutId(note), project_id: id });
       if (d.memories) for (const m of d.memories) await dbPut('aiMemories', { ...cloneWithoutId(m), project_id: id });
+      if (d.categories && window.wwCategoriesImport) {
+        try { window.wwCategoriesImport(d.categories); }
+        catch (categoryError) { console.warn('Category import skipped:', categoryError); }
+      }
       if (d.prompt_skills && window.wwPromptSkillsImport) {
         try { window.wwPromptSkillsImport(d.prompt_skills, { merge: true, silent: true }); }
         catch (promptError) { console.warn('Prompt Skill import skipped:', promptError); }
@@ -2408,7 +2495,6 @@ async function importProject(e) {
       await loadProjects();
       await loadProject(id);
       showToast('↓', t('toast-imported'));
-      await autoAnalyzeImportedProject(id);
     } catch (err) { showToast('✕', err.message); }
     e.target.value = '';
     return;
@@ -2463,6 +2549,7 @@ function collectProjectText(proj){
   (proj.outlines||[]).forEach(o=>parts.push('【大纲】'+(o.title||'')+'\n'+(o.content||'')));
   (proj.characters||[]).forEach(c=>parts.push('【人物】'+[c.name,c.role,c.personality,c.background,c.appearance,c.skills].filter(Boolean).join(' / ')));
   (proj.chapters||[]).forEach(c=>parts.push('【章节】'+(c.title||'')+'\n'+(c.content||'')));
+  (proj.notes||[]).forEach(note=>parts.push('【笔记】'+(note.title||'')+'\n'+(note.content||'')));
   return parts.join('\n\n').slice(0,24000);
 }
 function parseAiImportAnalysis(text){
@@ -2528,21 +2615,62 @@ async function autoAnalyzeImportedProject(projectId){
 
 
 // ═══ Outlines ═══
-function renderOutlineList(){if(!S.proj)return;const el=document.getElementById('outlineList');if(!S.proj.outlines.length){el.innerHTML='<div style="text-align:center;padding:20px;color:var(--text-hint);font-size:12px">'+t('sb-empty-outline')+'</div>';return;}el.innerHTML=S.proj.outlines.map(o=>'<div class="outline-item'+(S.active&&S.active.type==='outline'&&S.active.id===o.id?' active':'')+'" onclick="loadOutlineContent('+o.id+')"><span class="oi-icon"><svg class="ic ic-sm"><use href="#ic-outline"/></svg></span><span class="oi-text">'+o.title+'</span><span class="oi-count">'+(o.content?countWords(o.content):0)+t('ps-units-2')+'</span><button class="oi-del" onclick="event.stopPropagation();delOutline('+o.id+')">✕</button></div>').join('');}
+function renderOutlineList(){if(!S.proj)return;const el=document.getElementById('outlineList');if(!S.proj.outlines.length){el.innerHTML='<div style="text-align:center;padding:20px;color:var(--text-hint);font-size:12px">'+t('sb-empty-outline')+'</div>';return;}el.innerHTML=S.proj.outlines.map(o=>'<div class="outline-item'+(S.active&&S.active.type==='outline'&&S.active.id===o.id?' active':'')+'" onclick="loadOutlineContent('+Number(o.id)+')"><span class="oi-icon"><svg class="ic ic-sm"><use href="#ic-outline"/></svg></span><span class="oi-text">'+escapeHtml(o.title)+'</span><span class="oi-count">'+(o.content?countWords(o.content):0)+t('ps-units-2')+'</span><button class="oi-del" onclick="event.stopPropagation();delOutline('+Number(o.id)+')">✕</button></div>').join('');}
 async function addOutline(){if(!S.proj)return showToast('✕',t('toast-no-proj'));const now=Date.now(),id=await dbPut('outlines',{project_id:S.proj.project.id,title:t('outline-new'),content:'',sort_order:S.proj.outlines.length,created_at:now});S.proj.outlines.push({id,project_id:S.proj.project.id,title:t('outline-new'),content:'',sort_order:S.proj.outlines.length});renderOutlineList();showToast('✓',t('toast-added'));}
 function loadOutlineContent(id){const o=S.proj.outlines.find(x=>x.id===id);if(!o)return;S.active={type:'outline',id,data:o};document.getElementById('chapterTitle').value=o.title;document.getElementById('mainEditor').value=o.content||'';onEditorInput();renderOutlineList();}
 async function delOutline(id){if(!confirm(t('confirm-delete')))return;await dbDel('outlines',id);S.proj.outlines=S.proj.outlines.filter(x=>x.id!==id);if(S.active&&S.active.id===id)S.active=null;renderOutlineList();showToast('✕',t('toast-deleted'));}
 
 
 // ═══ Chapters ═══
-function renderChapterList(){if(!S.proj)return;const el=document.getElementById('chapterList');if(!S.proj.chapters.length){el.innerHTML='<div style="text-align:center;padding:20px;color:var(--text-hint);font-size:12px">'+t('sb-empty-chapter')+'</div>';return;}el.innerHTML=S.proj.chapters.map(c=>'<div class="outline-item'+(S.active&&S.active.type==='chapter'&&S.active.id===c.id?' active':'')+'" onclick="loadChapterContent('+c.id+')"><span class="oi-icon"><svg class="ic ic-sm"><use href="#ic-chapter"/></svg></span><span class="oi-text">'+c.title+'</span><span class="oi-count">'+(c.word_count||0)+t('ps-units-2')+'</span><button class="oi-del" onclick="event.stopPropagation();delChapter('+c.id+')">✕</button></div>').join('');}
+function renderChapterList(){if(!S.proj)return;const el=document.getElementById('chapterList');if(!S.proj.chapters.length){el.innerHTML='<div style="text-align:center;padding:20px;color:var(--text-hint);font-size:12px">'+t('sb-empty-chapter')+'</div>';return;}el.innerHTML=S.proj.chapters.map(c=>'<div class="outline-item'+(S.active&&S.active.type==='chapter'&&S.active.id===c.id?' active':'')+'" onclick="loadChapterContent('+Number(c.id)+')"><span class="oi-icon"><svg class="ic ic-sm"><use href="#ic-chapter"/></svg></span><span class="oi-text">'+escapeHtml(c.title)+'</span><span class="oi-count">'+(c.word_count||0)+t('ps-units-2')+'</span><button class="oi-del" onclick="event.stopPropagation();delChapter('+Number(c.id)+')">✕</button></div>').join('');}
 async function addChapter(){if(!S.proj)return showToast('✕',t('toast-no-proj'));const now=Date.now(),id=await dbPut('chapters',{project_id:S.proj.project.id,title:t('chapter-new'),content:'',word_count:0,sort_order:S.proj.chapters.length,created_at:now,updated_at:now});S.proj.chapters.push({id,project_id:S.proj.project.id,title:t('chapter-new'),content:'',word_count:0});renderChapterList();showToast('✓',t('toast-added'));}
 function loadChapterContent(id){const c=S.proj.chapters.find(x=>x.id===id);if(!c)return;S.active={type:'chapter',id,data:c};document.getElementById('chapterTitle').value=c.title;document.getElementById('mainEditor').value=c.content||'';onEditorInput();renderChapterList();}
 async function delChapter(id){if(!confirm(t('confirm-delete')))return;await dbDel('chapters',id);S.proj.chapters=S.proj.chapters.filter(x=>x.id!==id);if(S.active&&S.active.id===id)S.active=null;renderChapterList();showToast('✕',t('toast-deleted'));}
 
+// ═══ Notes ═══
+function renderNoteList(){
+  if(!S.proj)return;
+  const el=document.getElementById('noteList');
+  const notes=S.proj.notes||[];
+  if(!notes.length){el.innerHTML='<div class="sidebar-empty">'+t('sb-empty-notes')+'</div>';return;}
+  el.innerHTML=notes.map(note=>'<div class="outline-item'+(S.active&&S.active.type==='note'&&S.active.id===note.id?' active':'')+'" onclick="loadNoteContent('+Number(note.id)+')"><span class="oi-icon"><svg class="ic ic-sm"><use href="#ic-note"/></svg></span><span class="oi-text">'+escapeHtml(note.title||'未命名笔记')+'</span><span class="oi-count">'+countWords(note.content||'')+t('ps-units-2')+'</span><button class="oi-del" onclick="event.stopPropagation();delNote('+Number(note.id)+')">✕</button></div>').join('');
+}
+async function addNote(){
+  if(!S.proj)return showToast('✕',t('toast-no-proj'));
+  const now=Date.now();
+  const note={project_id:S.proj.project.id,title:'新笔记',content:'',created_at:now,updated_at:now};
+  note.id=await dbPut('notes',note);
+  S.proj.notes.unshift(note);
+  renderNoteList();
+  loadNoteContent(note.id);
+  showToast('✓',t('toast-added'));
+}
+function loadNoteContent(id){
+  const note=S.proj?.notes?.find(item=>item.id===id);
+  if(!note)return;
+  S.active={type:'note',id,data:note};
+  document.getElementById('chapterTitle').value=note.title||'';
+  document.getElementById('mainEditor').value=note.content||'';
+  onEditorInput();
+  renderNoteList();
+}
+async function delNote(id){
+  if(!confirm(t('confirm-delete')))return;
+  await dbDel('notes',id);
+  S.proj.notes=S.proj.notes.filter(item=>item.id!==id);
+  if(S.active&&S.active.type==='note'&&S.active.id===id){
+    S.active=null;
+    document.getElementById('chapterTitle').value='';
+    document.getElementById('mainEditor').value='';
+    onEditorInput();
+  }
+  renderNoteList();
+  renderMpNote();
+  showToast('✕',t('toast-deleted'));
+}
 
 // ═══ Characters ═══
-function renderCharList(){if(!S.proj)return;const el=document.getElementById('charList');if(!S.proj.characters.length){el.innerHTML='<div style="text-align:center;padding:20px;color:var(--text-hint);font-size:12px">'+t('sb-empty-char')+'</div>';return;}el.innerHTML=S.proj.characters.map(c=>'<div class="char-card" onclick="loadCharContent('+c.id+')"><div class="char-name">'+c.name+'</div><span class="char-role">'+c.role+'</span><div class="char-desc">'+(c.personality||c.background||t('char-no-desc'))+'</div><div class="char-actions"><button class="char-act-btn" onclick="event.stopPropagation();editChar('+c.id+')">'+t('action-edit')+'</button><button class="char-act-btn" onclick="event.stopPropagation();delChar('+c.id+')">'+t('action-delete')+'</button></div></div>').join('');}
+function renderCharList(){if(!S.proj)return;const el=document.getElementById('charList');if(!S.proj.characters.length){el.innerHTML='<div style="text-align:center;padding:20px;color:var(--text-hint);font-size:12px">'+t('sb-empty-char')+'</div>';return;}el.innerHTML=S.proj.characters.map(c=>'<div class="char-card" onclick="loadCharContent('+Number(c.id)+')"><div class="char-name">'+escapeHtml(c.name)+'</div><span class="char-role">'+escapeHtml(c.role)+'</span><div class="char-desc">'+escapeHtml(c.personality||c.background||t('char-no-desc'))+'</div><div class="char-actions"><button class="char-act-btn" onclick="event.stopPropagation();editChar('+Number(c.id)+')">'+t('action-edit')+'</button><button class="char-act-btn" onclick="event.stopPropagation();delChar('+Number(c.id)+')">'+t('action-delete')+'</button></div></div>').join('');}
 function loadCharContent(id){const c=S.proj.characters.find(x=>x.id===id);if(!c)return;S.active={type:'character',id,data:c};document.getElementById('chapterTitle').value=c.name;document.getElementById('mainEditor').value='【'+c.role+'】'+c.name+'\n\n性格：'+(c.personality||'')+'\n\n背景：'+(c.background||'')+'\n\n外貌：'+(c.appearance||'')+(c.skills?'\n\n技能：'+c.skills:'');onEditorInput();renderCharList();}
 function editChar(id){const c=S.proj.characters.find(x=>x.id===id);if(!c)return;S.editCharId=id;document.getElementById('charModalTitle').textContent='✎ 编辑人物';document.getElementById('charName').value=c.name;document.querySelectorAll('#charRoleGrid .genre-chip').forEach(ch=>{ch.classList.toggle('on',ch.textContent===c.role);});document.getElementById('charPers').value=c.personality||'';document.getElementById('charBack').value=c.background||'';document.getElementById('charLook').value=c.appearance||'';document.getElementById('charSkill').value=c.skills||'';openModal('charModal');}
 async function saveChar(){const name=document.getElementById('charName').value.trim();if(!name){showToast('✕',t('toast-enter-char-name'));return;}const role=document.querySelector('#charRoleGrid .genre-chip.on')?.textContent||'配角';const d={project_id:S.proj.project.id,name,role,personality:document.getElementById('charPers').value,background:document.getElementById('charBack').value,appearance:document.getElementById('charLook').value,skills:document.getElementById('charSkill').value,created_at:Date.now()};if(S.editCharId){d.id=S.editCharId;await dbPut('characters',d);}else{await dbPut('characters',d);}S.editCharId=null;closeModal('charModal');await loadProject(S.proj.project.id);showToast('●',name+' '+t('toast-saved'));document.getElementById('charName').value='';document.getElementById('charPers').value='';document.getElementById('charBack').value='';document.getElementById('charLook').value='';document.getElementById('charSkill').value='';document.getElementById('charModalTitle').textContent=t('mod-char');}
@@ -2550,7 +2678,7 @@ async function delChar(id){if(!confirm(t('confirm-delete')))return;await dbDel('
 
 
 // ═══ Save ═══
-async function saveDoc(){if(!S.active||!S.proj)return;const text=document.getElementById('mainEditor').value,title=document.getElementById('chapterTitle').value,now=Date.now();if(S.active.type==='outline'){const o=S.proj.outlines.find(x=>x.id===S.active.id);if(o){o.title=title;o.content=text;o.updated_at=now;await dbPut('outlines',{...o,title,content:text,updated_at:now});renderOutlineList();}}else if(S.active.type==='chapter'){const c=S.proj.chapters.find(x=>x.id===S.active.id);if(c){const words=countWords(text);c.title=title;c.content=text;c.word_count=words;c.updated_at=now;await dbPut('chapters',{...c,title,content:text,word_count:words,updated_at:now});renderChapterList();}}S.proj.project.updated_at=now;await dbPut('projects',S.proj.project);S.unsaved=false;document.getElementById('saveBtn').classList.remove('unsaved');showToast('💾','已保存');}
+async function saveDoc(){if(!S.active||!S.proj)return;const btn=document.getElementById('saveBtn');btn.classList.add('saving');const text=document.getElementById('mainEditor').value,title=document.getElementById('chapterTitle').value,now=Date.now();if(S.active.type==='outline'){const o=S.proj.outlines.find(x=>x.id===S.active.id);if(o){o.title=title;o.content=text;o.updated_at=now;await dbPut('outlines',{...o,title,content:text,updated_at:now});renderOutlineList();}}else if(S.active.type==='chapter'){const c=S.proj.chapters.find(x=>x.id===S.active.id);if(c){const words=countWords(text);c.title=title;c.content=text;c.word_count=words;c.updated_at=now;await dbPut('chapters',{...c,title,content:text,word_count:words,updated_at:now});renderChapterList();}}else if(S.active.type==='note'){const note=S.proj.notes.find(x=>x.id===S.active.id);if(note){note.title=title||'未命名笔记';note.content=text;note.updated_at=now;await dbPut('notes',{...note});S.proj.notes.sort((a,b)=>(b.updated_at||0)-(a.updated_at||0));renderNoteList();renderMpNote();}}S.proj.project.updated_at=now;await dbPut('projects',S.proj.project);S.unsaved=false;document.getElementById('saveBtn').classList.remove('unsaved');btn.classList.remove('saving');showToast('💾','已保存');}
 
 // ═══ AI Modes ═══
 const AI_MODES={'润色':{icon:'◇',group:'基础',p:'请对以下文字进行润色，提升语言的流畅度、文学性和表达力，保持原意和风格：'},'扩写':{icon:'↑',group:'基础',p:'请对以下文字进行扩写，增加细节描写、画面感和情感层次：'},'缩写':{icon:'↓',group:'基础',p:'请对以下文字进行精炼缩写，保留核心内容，简洁有力：'},'改写':{icon:'↻',group:'基础',p:'请用不同的表达方式改写以下文字，保持核心意思：'},'续写':{icon:'→',group:'基础',p:'请根据以下内容自然地续写下文，保持风格和情节逻辑：'},'补写':{icon:'⊞',group:'基础',p:'请为以下内容填补缺失的过渡或细节部分：'},'对话':{icon:'❝',group:'描写',p:'请为以下场景创作自然生动的对话，符合人物性格：'},'心理':{icon:'◉',group:'描写',p:'请为以下内容增加细腻的人物心理描写：'},'环境':{icon:'❋',group:'描写',p:'请为以下内容增加生动的环境和氛围描写：'},'战斗':{icon:'⚡',group:'描写',p:'请将以下内容改写为紧张刺激的战斗场景描写：'},'古风':{icon:'◎',group:'风格',p:'请将以下内容改写为古典文学风格：'},'现代':{icon:'▣',group:'风格',p:'请将以下内容改写为现代白话文风格：'},'幽默':{icon:'♪',group:'风格',p:'请将以下内容改写得轻松幽默：'},'悬疑':{icon:'⊕',group:'风格',p:'请将以下内容改写为悬疑神秘风格：'},'唯美':{icon:'✿',group:'风格',p:'请将以下内容改写为唯美诗意风格：'},'霸气':{icon:'△',group:'风格',p:'请将以下内容改写为霸气豪迈风格：'},'分析':{icon:'≡',group:'分析',p:'请分析以下文字的结构、节奏和表达问题：'},'校对':{icon:'✓',group:'分析',p:'请检查以下文字的错别字、语病和标点错误：'},'节奏':{icon:'♫',group:'分析',p:'请分析以下文字的叙事节奏：'},'情感':{icon:'♥',group:'分析',p:'请分析以下文字的情感层次和情绪弧度：'},'大纲':{icon:'☰',group:'创作',p:'请根据以下信息生成详细的故事大纲：'},'人物':{icon:'◉',group:'创作',p:'请根据以下信息生成详细的人物档案：'},'伏笔':{icon:'⊹',group:'创作',p:'请为以下故事设计3-5个巧妙的伏笔：'},'转折':{icon:'⇄',group:'创作',p:'请为以下故事情节设计2-3个出乎意料的转折：'},'结局':{icon:'■',group:'创作',p:'请为以下故事提供3种不同风格的结局：'},'翻译':{icon:'⊕',group:'工具',p:'请将以下中文内容翻译为英文：'},'总结':{icon:'✎',group:'工具',p:'请为以下内容生成简洁摘要：'},'标题':{icon:'¶',group:'工具',p:'请为以下内容生成5个吸引人的标题：'},'降AI':{icon:'▷',group:'工具',p:'请将以下AI生成的文字重写为自然的人类写作风格。要求：1.使用口语化、不规则的句式 2.加入个人化的表达和语气词 3.偶尔使用短句或碎片化表达 4.避免完美排比和过度修饰 5.添加一些即兴感和不完美感 6.保持核心意思不变 7.让文字读起来像真人随手写的，而不是AI精心构造的。输出重写后的全文：'},'查AI':{icon:'⊕',group:'工具',p:'请分析以下文字的AI生成特征。从句式规律性、词汇丰富度、情感自然度、结构完美度、口语化程度、重复冗余度六个维度各给0-100评分，给出综合AI概率评估和具体特征描述。⚠️ 仅供参考，不构成正式判定。文字：'}};
@@ -2619,7 +2747,11 @@ function updateUsageDisplay(usage){
   const totalStr=total>1000?(total/1000).toFixed(1)+'k':total;
   const inStr=(usage.input||0)>1000?((usage.input||0)/1000).toFixed(1)+'k':usage.input||0;
   const outStr=(usage.output||0)>1000?((usage.output||0)/1000).toFixed(1)+'k':usage.output||0;
-  ['ctxUsedText','mpCtxUsedText'].forEach(id=>{const el=document.getElementById(id);if(!el)return;el.textContent='上次实际：输入 '+inStr+' · 输出 '+outStr+' · 合计 '+totalStr+' tokens';el.hidden=false;});
+  ['ctxUsedText','mpCtxUsedText'].forEach(id=>{
+    const el=document.getElementById(id);if(!el)return;
+    el.textContent='上次实际：输入 '+inStr+' · 输出 '+outStr+' · 合计 '+totalStr+' tokens';
+    el.hidden=false;
+  });
 }
 function buildCtx(){if(!S.proj)return'';const p=S.proj.project,a=[];a.push('作品：《'+p.name+'》');if(p.genre)a.push('类型：'+p.genre);if(p.description)a.push('简介：'+p.description);if(p.world_setting)a.push('世界观：'+p.world_setting);if(S.proj.characters.length)a.push('人物：'+S.proj.characters.map(c=>c.name+'('+c.role+')').join('、'));return a.join('\n');}
 
@@ -2646,7 +2778,7 @@ function renderMemoryList(){
     return;
   }
   const cats={plot:'☐ 剧情',style:'✎ 风格',world:'◆ 世界观',char:'● 人物',note:'📝 备注',rule:'─ 规则'};
-  el.innerHTML=projMem.map(m=>'<div class="char-card" style="position:relative"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px"><span style="font-size:10px;padding:1px 6px;border-radius:10px;background:var(--accent-glow);color:var(--accent)">'+(cats[m.category]||m.category)+'</span><div style="display:none;gap:4px" class="mem-actions"><button class="char-act-btn" onclick="event.stopPropagation();editMemory('+m.id+')">'+t('action-edit')+'</button><button class="char-act-btn" onclick="event.stopPropagation();delMemory('+m.id+')">'+t('action-delete')+'</button></div></div><div style="font-size:12px;color:var(--text-secondary);line-height:1.6">'+m.content+'</div></div>').join('');
+  el.innerHTML=projMem.map(m=>'<div class="char-card" style="position:relative"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px"><span style="font-size:10px;padding:1px 6px;border-radius:10px;background:var(--accent-glow);color:var(--accent)">'+escapeHtml(cats[m.category]||(window.wwCategoryLabel?window.wwCategoryLabel(m.category):m.category))+'</span><div style="display:none;gap:4px" class="mem-actions"><button class="char-act-btn" onclick="event.stopPropagation();editMemory('+Number(m.id)+')">'+t('action-edit')+'</button><button class="char-act-btn" onclick="event.stopPropagation();delMemory('+Number(m.id)+')">'+t('action-delete')+'</button></div></div><div style="font-size:12px;color:var(--text-secondary);line-height:1.6">'+escapeHtml(m.content)+'</div></div>').join('');
   el.querySelectorAll('.char-card').forEach(c=>{
     c.addEventListener('mouseenter',()=>{const a=c.querySelector('.mem-actions');if(a)a.style.display='flex';});
     c.addEventListener('mouseleave',()=>{const a=c.querySelector('.mem-actions');if(a)a.style.display='none';});
@@ -2659,7 +2791,7 @@ async function saveMemory(){
   const catEl=document.querySelector('#memCatGrid .genre-chip.on');
   const category=catEl?catEl.textContent.replace(/^[^\s]+\s/,''):'备注';
   const catMap={'☐ 剧情':'plot','✎ 风格':'style','◆ 世界观':'world','● 人物':'char','📝 备注':'note','─ 规则':'rule'};
-  const catKey=catMap[category]||'note';
+  const catKey=catEl?.dataset.categoryId||catMap[category]||'note';
   const d={project_id:S.proj.project.id,category:catKey,content,created_at:Date.now()};
   if(S.editMemoryId){d.id=S.editMemoryId;}
   await dbPut('aiMemories',d);
@@ -2684,31 +2816,63 @@ function editMemory(id){
   S.editMemoryId=id;
   document.getElementById('memContent').value=m.content;
   const catMap2={plot:'☐ 剧情',style:'✎ 风格',world:'◆ 世界观',char:'● 人物',note:'📝 备注',rule:'─ 规则'};
-  document.querySelectorAll('#memCatGrid .genre-chip').forEach(c=>c.classList.toggle('on',c.textContent===catMap2[m.category]));
+  document.querySelectorAll('#memCatGrid .genre-chip').forEach(c=>c.classList.toggle('on',c.dataset.categoryId===m.category||c.textContent===catMap2[m.category]));
   openModal('memoryModal');
 }
 function toggleMemCat(el){el.parentElement.querySelectorAll('.genre-chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');}
 function selectProvider(el,p){el.parentElement.querySelectorAll('.provider-chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');S.selectedProvider=p;const cur=el.closest('.provider-grid').id;const urlRow=cur==='sProviderGrid'?'sCustomUrlRow':'customUrlRow';document.getElementById(urlRow).style.display=p==='custom'?'block':'none';const d={claude:'claude-sonnet-4-20250514',openai:'gpt-4o',deepseek:'deepseek-chat',xiaomi:'mimo-v2.5-pro',qwen:'qwen-plus',zhipu:'glm-4-flash',moonshot:'moonshot-v1-8k',siliconflow:'deepseek-ai/DeepSeek-V3',openrouter:'anthropic/claude-sonnet-4',gemini:'gemini-2.0-flash',grok:'grok-3',custom:''};const modelEl=cur==='sProviderGrid'?document.getElementById('sApiModel'):document.getElementById('apiModel');if(modelEl)modelEl.placeholder=d[p]||'';}
 async function testApi(){const k=document.getElementById('apiKey').value.trim(),r=document.getElementById('testResult');r.className='test-result ok';r.textContent='⟳ '+t('mod-api-test')+'...';try{const conf={key:k||'backend',provider:S.selectedProvider,model:document.getElementById('apiModel').value.trim(),baseUrl:document.getElementById('apiBaseUrl').value.trim()};await apiJSON('/api/config',{method:'POST',body:JSON.stringify({provider:conf.provider,model:conf.model,api_key:k,base_url:conf.baseUrl})});const t=await callAI('Reply with OK',conf);r.className='test-result ok';r.textContent='✓ '+t.slice(0,30);}catch(e){r.className='test-result fail';r.textContent='✗ '+e.message;}}
-async function saveApi(){const key=document.getElementById('apiKey').value.trim();const c={provider:S.selectedProvider,key:key||'backend',model:document.getElementById('apiModel').value.trim(),baseUrl:document.getElementById('apiBaseUrl').value.trim()};try{await apiJSON('/api/config',{method:'POST',body:JSON.stringify({provider:c.provider,model:c.model,api_key:key,base_url:c.baseUrl})});S.apiConfig=c;localStorage.setItem('ww_api',JSON.stringify(c));closeModal('apiModal');showToast('✓',t('toast-saved'));}catch(e){showToast('✕',e.message);}}
+async function saveApi(){const key=document.getElementById('apiKey').value.trim();const c={provider:S.selectedProvider,key:'backend',model:document.getElementById('apiModel').value.trim(),baseUrl:''};try{await apiJSON('/api/config',{method:'POST',body:JSON.stringify({provider:c.provider,model:c.model,api_key:key,base_url:document.getElementById('apiBaseUrl').value.trim()})});S.apiConfig=c;localStorage.setItem('ww_api',JSON.stringify(c));document.getElementById('apiKey').value='';closeModal('apiModal');showToast('✓',t('toast-saved'));}catch(e){showToast('✕',e.message);}}
 function loadApiUI(){const c=S.apiConfig;if(c.provider){const el=document.querySelector('.provider-chip[onclick*="'+c.provider+'"]');if(el)selectProvider(el,c.provider);}document.getElementById('apiKey').value=c.key==='backend'?'':(c.key||'');document.getElementById('apiModel').value=c.model||'';document.getElementById('apiBaseUrl').value=c.baseUrl||'';}
 
+function makeEditorSnapshot(){
+  const ed=document.getElementById('mainEditor');
+  return{
+    project_id:S.proj?.project?.id||null,
+    active_type:S.active?.type||null,
+    active_id:S.active?.id||null,
+    title:document.getElementById('chapterTitle').value,
+    document:ed.value,
+    selection_start:ed.selectionStart,
+    selection_end:ed.selectionEnd,
+    captured_at:Date.now()
+  };
+}
+function isSameEditorTarget(snapshot){
+  return !!snapshot&&snapshot.project_id===(S.proj?.project?.id||null)&&snapshot.active_type===(S.active?.type||null)&&snapshot.active_id===(S.active?.id||null);
+}
+function isEditorSnapshotCurrent(snapshot){
+  return isSameEditorTarget(snapshot)&&snapshot.document===document.getElementById('mainEditor').value;
+}
+async function saveWriteSnapshot(mode,applyMode,result,snapshot){
+  return addHistory(mode+' · 写入前快照',result,{apply_mode:applyMode,original_document:snapshot.document,original_title:snapshot.title,project_id:snapshot.project_id,active_type:snapshot.active_type,active_id:snapshot.active_id,is_snapshot:true});
+}
 
 // ═══ AI Generate ═══
-async function doGenerate(){const ac=S.apiConfig;if(!aiHasConfig(ac)){showToast('⚙',t('toast-no-api'));openModal('apiModal');return;}const ed=document.getElementById('mainEditor'),sel=ed.value.slice(ed.selectionStart,ed.selectionEnd).trim(),full=ed.value.trim(),extra=document.getElementById('aiPrompt').value.trim(),content=sel||full.slice(-1000);if(!content&&!extra){showToast('✎',t('toast-no-content'));return;}const lm={short:'100字以内',mid:'200-300字',long:'400-600字',xl:'800字以上'},tm={low:'保持严谨',mid:'适度创意',high:'大胆想象'};const md=AI_MODES[S.aiMode]||{p:'请处理以下内容：'};let prompt=(typeof wwPromptText==='function'?wwPromptText(S.aiMode):md.p)+'\n\n'+content+'\n\n【输出要求】'+lm[S.aiLen]+'。'+tm[S.aiTemp]+'。';if(S.proj)prompt+='\n\n【项目信息】\n'+buildCtx();if(extra)prompt+='\n\n【额外指令】'+extra;let sysPrompt='你是一位专业的中文写作助手。';const memCtx=buildMemoryContext();if(memCtx)sysPrompt+='\n\n'+memCtx;const btn=document.getElementById('generateBtn');btn.classList.add('loading');document.getElementById('generateBtnIcon').innerHTML='<div class="spinner"></div>';document.getElementById('generateBtnText').textContent=t('ap-gen-ing');try{showStreamingResult('arpText');const arpEl=document.getElementById('arpText');document.getElementById('arpMode').textContent=S.aiMode;document.getElementById('aiResultPopup').classList.add('show');let fullResult='';await callAIStream(prompt,ac,sysPrompt,(chunk)=>{fullResult+=chunk;arpEl.textContent=fullResult;});S.lastArpResult=fullResult;addHistory(S.aiMode,fullResult);}catch(e){showToast('✕',e.message||'请求失败');}finally{hideStreamingCursor();btn.classList.remove('loading');document.getElementById('generateBtnIcon').textContent='★';document.getElementById('generateBtnText').textContent=t('ap-gen');}}
-function arpAction(t){const text=S.lastArpResult,ed=document.getElementById('mainEditor');if(t==='replace'){const s=ed.selectionStart,e=ed.selectionEnd;if(s!==e)ed.value=ed.value.slice(0,s)+text+ed.value.slice(e);else ed.value=text;showToast('✓','已替换');}else if(t==='append'){ed.value+='\n\n'+text;showToast('✓','已追加');}else if(t==='insert'){const p=ed.selectionStart;ed.value=ed.value.slice(0,p)+text+ed.value.slice(p);showToast('✓','已插入');}else if(t==='copy'){navigator.clipboard.writeText(text).then(()=>showToast('✓',t('toast-copied')));return;}onEditorInput();closeAiResult();}
+async function doGenerate(){const ac=S.apiConfig;if(!aiHasConfig(ac)){showToast('⚙',t('toast-no-api'));openModal('apiModal');return;}const ed=document.getElementById('mainEditor'),sel=ed.value.slice(ed.selectionStart,ed.selectionEnd).trim(),full=ed.value.trim(),extra=document.getElementById('aiPrompt').value.trim(),content=sel||full.slice(-1000);if(!content&&!extra){showToast('✎',t('toast-no-content'));return;}S.aiRunSnapshot=makeEditorSnapshot();const lm={short:'100字以内',mid:'200-300字',long:'400-600字',xl:'800字以上'},tm={low:'保持严谨',mid:'适度创意',high:'大胆想象'};const md=AI_MODES[S.aiMode]||{p:'请处理以下内容：'};let prompt=(typeof wwPromptText==='function'?wwPromptText(S.aiMode):md.p)+'\n\n'+content+'\n\n【输出要求】'+lm[S.aiLen]+'。'+tm[S.aiTemp]+'。';if(S.proj)prompt+='\n\n【项目信息】\n'+buildCtx();if(extra)prompt+='\n\n【额外指令】'+extra;let sysPrompt='你是一位专业的中文写作助手。';const memCtx=buildMemoryContext();if(memCtx)sysPrompt+='\n\n'+memCtx;const btn=document.getElementById('generateBtn');btn.classList.add('loading');document.getElementById('generateBtnIcon').innerHTML='<div class="spinner"></div>';document.getElementById('generateBtnText').textContent=t('ap-gen-ing');try{showStreamingResult('arpText');const arpEl=document.getElementById('arpText');document.getElementById('arpMode').textContent=S.aiMode;document.getElementById('aiResultPopup').classList.add('show');let fullResult='';await callAIStream(prompt,ac,sysPrompt,(chunk)=>{fullResult+=chunk;arpEl.textContent=fullResult;});S.lastArpResult=fullResult;await addHistory(S.aiMode,fullResult,{project_id:S.aiRunSnapshot.project_id,active_type:S.aiRunSnapshot.active_type,active_id:S.aiRunSnapshot.active_id});}catch(e){showToast('✕',e.message||'请求失败');}finally{hideStreamingCursor();btn.classList.remove('loading');document.getElementById('generateBtnIcon').innerHTML='<svg class="ic ic-sm"><use href="icons/ai-mode-icons.svg#mode-workshop"/></svg>';document.getElementById('generateBtnText').textContent=t('ap-gen');}}
+async function arpAction(action){const text=S.lastArpResult,ed=document.getElementById('mainEditor');if(action==='copy'){navigator.clipboard.writeText(text).then(()=>showToast('✓',t('toast-copied')));return;}const snapshot=S.aiRunSnapshot||makeEditorSnapshot();if(!isSameEditorTarget(snapshot)){showToast('✕','生成后已切换文档，请复制结果或返回原文档后重试');return;}if(action==='replace'&&!isEditorSnapshotCurrent(snapshot)){showToast('✕','正文已在生成期间变化，为避免覆盖已阻止替换');return;}await saveWriteSnapshot(S.aiMode,action,text,makeEditorSnapshot());if(action==='replace'){const s=snapshot.selection_start,e=snapshot.selection_end;if(s!==e)ed.value=snapshot.document.slice(0,s)+text+snapshot.document.slice(e);else ed.value=text;showToast('✓','已替换');}else if(action==='append'){ed.value+='\n\n'+text;showToast('✓','已追加');}else if(action==='insert'){const p=ed.selectionStart;ed.value=ed.value.slice(0,p)+text+ed.value.slice(p);showToast('✓','已插入');}onEditorInput();closeAiResult();}
 function closeAiResult(){document.getElementById('aiResultPopup').classList.remove('show');}
 
 
 // ═══ Multi-AI ═══
 const SLOT_PRESETS={xiaomi:{url:'https://api.xiaomimimo.com/v1/chat/completions',model:'mimo-v2.5-pro'},claude:{url:'https://api.anthropic.com/v1/messages',model:'claude-sonnet-4-20250514'},openai:{url:'https://api.openai.com/v1/chat/completions',model:'gpt-4o'},deepseek:{url:'https://api.deepseek.com/v1/chat/completions',model:'deepseek-chat'},qwen:{url:'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',model:'qwen-plus'},openrouter:{url:'https://openrouter.ai/api/v1/chat/completions',model:'anthropic/claude-sonnet-4'},siliconflow:{url:'https://api.siliconflow.cn/v1/chat/completions',model:'deepseek-ai/DeepSeek-V3'},gemini:{url:'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',model:'gemini-2.0-flash'},grok:{url:'https://api.x.ai/v1/chat/completions',model:'grok-3'}};
+function loadSlot(n){
+  let slot={};
+  try{slot=JSON.parse(localStorage.getItem('ww_slot'+n)||'{}')||{};}catch(_){}
+  if(Object.prototype.hasOwnProperty.call(slot,'key')||Object.prototype.hasOwnProperty.call(slot,'url')){
+    delete slot.key;
+    delete slot.url;
+    localStorage.setItem('ww_slot'+n,JSON.stringify(slot));
+  }
+  return slot;
+}
 function renderMultiSlots(){
   const el=document.getElementById('multiSlots');
   const hasMainKey=aiHasConfig(S.apiConfig);
   let h='<div id="multiSummary" class="multi-summary" style="display:none"></div><div id="multiSlotList">';
   for(let i=1;i<=3;i++){
-    const s=JSON.parse(localStorage.getItem('ww_slot'+i)||'{}');
-    if(i===1&&hasMainKey&&!s.key&&!s._touched)s.enabled=true;
+    const s=loadSlot(i);
+    if(i===1&&hasMainKey&&!s._touched)s.enabled=true;
     const enabled=s.enabled;
     const presetName=s.preset||'';
     const displayName=presetName?(SLOT_PRESETS[presetName]?presetName:'自定义'):'未配置';
@@ -2724,8 +2888,7 @@ function renderMultiSlots(){
     h+='<select class="slot-select" onchange="applySlotPreset('+i+',this.value)"><option value="">自定义</option>';
     for(const[k]of Object.entries(SLOT_PRESETS))h+='<option value="'+k+'"'+(s.preset===k?' selected':'')+'>'+k+'</option>';
     h+='</select>';
-    h+='<input class="slot-input" id="slotUrl'+i+'" placeholder="Base URL" value="'+(s.url||'')+'" onchange="saveSlot('+i+')">';
-    h+='<input class="slot-input" id="slotKey'+i+'" type="password" placeholder="API Key" value="'+(s.key||'')+'" onchange="saveSlot('+i+')">';
+    h+='<div class="slot-server-note">密钥与 Base URL 由自部署后端管理</div>';
     h+='<input class="slot-input" id="slotModel'+i+'" placeholder="Model" value="'+(s.model||'')+'" onchange="saveSlot('+i+')">';
     h+='<div class="slot-result" id="slotResult'+i+'"></div>';
     h+='<div class="slot-meta" id="slotMeta'+i+'" style="display:none"></div>';
@@ -2757,7 +2920,7 @@ function toggleSlot(n){
   event&&event.stopPropagation();
 }
 function applySlotPreset(n,p){
-  if(p&&SLOT_PRESETS[p]){document.getElementById('slotUrl'+n).value=SLOT_PRESETS[p].url;document.getElementById('slotModel'+n).value=SLOT_PRESETS[p].model;}
+  if(p&&SLOT_PRESETS[p])document.getElementById('slotModel'+n).value=SLOT_PRESETS[p].model;
   saveSlot(n);
   const badge=document.querySelector('#multiSlot'+n+' .slot-provider-badge');
   const mName=document.querySelector('#multiSlot'+n+' .slot-model-name');
@@ -2766,12 +2929,13 @@ function applySlotPreset(n,p){
 }
 function saveSlot(n){
   const toggle=document.querySelector('#multiSlot'+n+' .slot-toggle');
-  const s={enabled:toggle?toggle.classList.contains('on'):false,preset:document.querySelector('#slotFields'+n+' .slot-select')?.value||'',url:document.getElementById('slotUrl'+n)?.value||'',key:document.getElementById('slotKey'+n)?.value||'',model:document.getElementById('slotModel'+n)?.value||'',_touched:true};
+  const s={enabled:toggle?toggle.classList.contains('on'):false,preset:document.querySelector('#slotFields'+n+' .slot-select')?.value||'',model:document.getElementById('slotModel'+n)?.value||'',_touched:true};
   localStorage.setItem('ww_slot'+n,JSON.stringify(s));
 }
 async function doMultiGenerate(){
   const ac=S.apiConfig;
   if(!aiHasConfig(ac)){showToast('⚙',t('toast-no-api'));openModal('apiModal');return;}
+  S.multiRunSnapshot=makeEditorSnapshot();
   const content=document.getElementById('mainEditor').value.slice(-800)||'请创作一段精彩的故事片段';
   const lm={short:'100字以内',mid:'200-300字',long:'400-600字',xl:'800字以上'};
   const tm={low:'保持严谨',mid:'适度创意',high:'大胆想象'};
@@ -2786,15 +2950,15 @@ async function doMultiGenerate(){
   const promises=[];
   const results=[];
   for(let i=1;i<=3;i++){
-    const s=JSON.parse(localStorage.getItem('ww_slot'+i)||'{}');
-    if(!s.enabled||!s.key){results.push({i,skipped:true});continue;}
+    const s=loadSlot(i);
+    if(!s.enabled||!s.preset){results.push({i,skipped:true});continue;}
     const r=document.getElementById('slotResult'+i);
     const meta=document.getElementById('slotMeta'+i);
     const actions=document.getElementById('slotActions'+i);
     if(r){r.innerHTML='<div class="slot-loading"><div class="spinner"></div> 生成中...</div>';r.classList.add('has-content');}
     if(meta)meta.style.display='none';
     if(actions)actions.style.display='none';
-    const conf={key:s.key,provider:s.preset||'openai',model:s.model,baseUrl:s.url};
+    const conf={key:'backend',provider:s.preset,model:s.model,baseUrl:''};
     results.push({i,conf});
   }
   for(const r of results){
@@ -2831,11 +2995,14 @@ async function doMultiGenerate(){
   }
   showToast('⚡','对比完成');
 }
-function applySlotToEditor(n){
+async function applySlotToEditor(n){
   const r=document.getElementById('slotResult'+n);
   if(!r||!r.textContent)return;
+  const snapshot=S.multiRunSnapshot||makeEditorSnapshot();
+  if(!isSameEditorTarget(snapshot)){showToast('✕','生成后已切换文档，请复制结果或返回原文档');return;}
   const ed=document.getElementById('mainEditor');
   const text=r.textContent;
+  await saveWriteSnapshot('多模型槽位 '+n,'insert',text,makeEditorSnapshot());
   const p=ed.selectionStart;
   ed.value=ed.value.slice(0,p)+text+ed.value.slice(p);
   onEditorInput();
@@ -2852,15 +3019,18 @@ function markBest(n){
   if(slot)slot.classList.add('slot-best');
   showToast('★','槽位'+n+'标记为最佳');
 }
-function applyAllSlots(){
+async function applyAllSlots(){
   const parts=[];
   for(let i=1;i<=3;i++){
     const r=document.getElementById('slotResult'+i);
     if(r&&r.textContent&&r.classList.contains('has-content'))parts.push(r.textContent);
   }
   if(!parts.length){showToast('✎','没有可应用的结果');return;}
+  const snapshot=S.multiRunSnapshot||makeEditorSnapshot();
+  if(!isSameEditorTarget(snapshot)){showToast('✕','生成后已切换文档，请复制结果或返回原文档');return;}
   const ed=document.getElementById('mainEditor');
   const text=parts.join('\n\n---\n\n');
+  await saveWriteSnapshot('多模型全部结果','insert',text,makeEditorSnapshot());
   const p=ed.selectionStart;
   ed.value=ed.value.slice(0,p)+text+ed.value.slice(p);
   onEditorInput();
@@ -2878,13 +3048,15 @@ function clearAllResults(){
   const summary=document.getElementById('multiSummary');
   if(summary)summary.style.display='none';
   document.querySelectorAll('.multi-slot').forEach(el=>el.classList.remove('slot-best'));
+  S.multiRunSnapshot=null;
 }
 
 
 // ═══ History ═══
-async function addHistory(m,t){await dbPut('aiHistory',{mode:m,text:t.slice(0,500),time:Date.now()});renderHistory();}
-async function renderHistory(){if(!db)return;const items=await dbAll('aiHistory');items.sort((a,b)=>(b.time||0)-(a.time||0));const el=document.getElementById('historyList');if(!items.length){el.innerHTML='<div class="history-empty">☐ '+t('hist-empty')+'</div>';return;}el.innerHTML=items.slice(0,50).map(h=>'<div class="history-item" onclick="restoreHistory(this)" data-text="'+h.text.slice(0,200).replace(/"/g,'&quot;')+'" data-mode="'+h.mode+'"><div class="hi-meta"><span class="hi-mode">'+h.mode+'</span><span class="hi-time">'+new Date(h.time).toLocaleString(currentLang)+'</span></div><div class="hi-preview">'+h.text.slice(0,100)+'</div></div>').join('');}
-function restoreHistory(el){S.lastArpResult=el.dataset.text;document.getElementById('arpText').textContent=el.dataset.text;document.getElementById('arpMode').textContent=el.dataset.mode;document.getElementById('aiResultPopup').classList.add('show');}
+async function addHistory(mode,textValue,extra={}){const id=await dbPut('aiHistory',{mode,text:String(textValue||'').slice(0,200000),time:Date.now(),...extra});renderHistory();return id;}
+async function renderHistory(){if(!db)return;const items=await dbAll('aiHistory');items.sort((a,b)=>(b.time||0)-(a.time||0));const el=document.getElementById('historyList');if(!items.length){el.innerHTML='<div class="history-empty">☐ '+t('hist-empty')+'</div>';return;}el.innerHTML=items.slice(0,50).map(h=>'<div class="history-item" onclick="restoreHistory('+Number(h.id)+')"><div class="hi-meta"><span class="hi-mode">'+escapeHtml(h.mode||'')+'</span><span class="hi-time">'+new Date(h.time).toLocaleString(currentLang)+'</span></div><div class="hi-preview">'+escapeHtml((h.text||'').slice(0,100))+'</div>'+(h.original_document!=null?'<button class="history-restore-btn" onclick="event.stopPropagation();restoreEditorSnapshot('+Number(h.id)+')">恢复写入前</button>':'')+'</div>').join('');}
+async function restoreHistory(id){const item=await dbGet('aiHistory',Number(id));if(!item)return;S.lastArpResult=item.text||'';S.aiRunSnapshot=makeEditorSnapshot();document.getElementById('arpText').textContent=S.lastArpResult;document.getElementById('arpMode').textContent=item.mode||'';document.getElementById('aiResultPopup').classList.add('show');}
+async function restoreEditorSnapshot(id){const item=await dbGet('aiHistory',Number(id));if(!item||item.original_document==null)return;if(item.project_id!==(S.proj?.project?.id||null)||item.active_type!==(S.active?.type||null)||item.active_id!==(S.active?.id||null)){showToast('✕','请先打开产生该快照的原文档');return;}if(!confirm('恢复到 AI 写入前的正文？当前未保存修改会被替换。'))return;document.getElementById('mainEditor').value=item.original_document;document.getElementById('chapterTitle').value=item.original_title||document.getElementById('chapterTitle').value;onEditorInput();showToast('✓','已恢复写入前正文');}
 async function clearHistory(){if(!confirm('清空历史？'))return;const items=await dbAll('aiHistory');for(const i of items)await dbDel('aiHistory',i.id);renderHistory();showToast('✕','已清空');}
 
 
@@ -2897,8 +3069,8 @@ function renderMpMultiSlots(){
   const hasMainKey=aiHasConfig(S.apiConfig);
   let h='';
   for(let i=1;i<=3;i++){
-    const s=JSON.parse(localStorage.getItem('ww_slot'+i)||'{}');
-    if(i===1&&hasMainKey&&!s.key&&!s._touched)s.enabled=true;
+    const s=loadSlot(i);
+    if(i===1&&hasMainKey&&!s._touched)s.enabled=true;
     const enabled=s.enabled;
     const presetName=s.preset||'';
     const displayName=presetName?(SLOT_PRESETS[presetName]?presetName:'自定义'):'未配置';
@@ -2910,7 +3082,7 @@ function renderMpMultiSlots(){
       h+='<select class="slot-select" onchange="applySlotPreset('+i+',this.value);renderMpMultiSlots()"><option value="">自定义</option>';
       for(const[k]of Object.entries(SLOT_PRESETS))h+='<option value="'+k+'"'+(s.preset===k?' selected':'')+'>'+k+'</option>';
       h+='</select>';
-      h+='<input class="slot-input" type="password" placeholder="API Key" value="'+(s.key||'')+'" onchange="saveMpSlot('+i+',this.value,\'key\')">';
+      h+='<div class="slot-server-note">密钥由自部署后端管理</div>';
       h+='<input class="slot-input" placeholder="Model" value="'+(s.model||'')+'" onchange="saveMpSlot('+i+',this.value,\'model\')">';
       h+='<div class="slot-result" id="mpSlotResult'+i+'" style="min-height:80px;max-height:200px;overflow-y:auto"></div>';
       h+='<div class="slot-meta" id="mpSlotMeta'+i+'" style="display:none"></div>';
@@ -2926,12 +3098,12 @@ function toggleMpSlot(n){
   const slot=allSlots[n-1];if(!slot)return;
   const btn=slot.querySelector('.slot-toggle');
   const isOn=btn.classList.toggle('on');
-  const s=JSON.parse(localStorage.getItem('ww_slot'+n)||'{}');
+  const s=loadSlot(n);
   s.enabled=isOn;localStorage.setItem('ww_slot'+n,JSON.stringify(s));
   renderMpMultiSlots();
 }
 function saveMpSlot(n,val,key){
-  const s=JSON.parse(localStorage.getItem('ww_slot'+n)||'{}');
+  const s=loadSlot(n);
   s[key]=val;s._touched=true;localStorage.setItem('ww_slot'+n,JSON.stringify(s));
 }
 async function doMultiGenerateMobile(){
@@ -2948,11 +3120,11 @@ async function doMultiGenerateMobile(){
   const memCtx=buildMemoryContext();if(memCtx)sysPrompt+='\n\n'+memCtx;
   const tasks=[];
   for(let i=1;i<=3;i++){
-    const s=JSON.parse(localStorage.getItem('ww_slot'+i)||'{}');
-    if(!s.enabled||!s.key)continue;
-    tasks.push({i,conf:{key:s.key,provider:s.preset||'openai',model:s.model,baseUrl:s.url}});
+    const s=loadSlot(i);
+    if(!s.enabled||!s.preset)continue;
+    tasks.push({i,conf:{key:'backend',provider:s.preset,model:s.model,baseUrl:''}});
   }
-  if(!tasks.length){showToast('✕','请至少启用一个槽位并填入API Key');return;}
+  if(!tasks.length){showToast('✕','请至少启用一个已选择 Provider 的槽位');return;}
   showToast('⟳','并行生成中...');
   const results=await Promise.allSettled(tasks.map(async({i,conf})=>{
     const t0=Date.now();
@@ -2967,6 +3139,554 @@ async function doMultiGenerateMobile(){
     if(meta){meta.style.display='block';meta.textContent=d.text.replace(/\s/g,'').length+'字 · '+(d.time/1000).toFixed(1)+'s';}
   }
   showToast('✓','对比完成');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Advanced AI Features - 高级AI功能增强
+// ═══════════════════════════════════════════════════════════════
+
+// ═══ AI味审查雷达图可视化 ═══
+function drawAiRadarChart(scores) {
+  const canvas = document.getElementById('aiRadarCanvas');
+  if (!canvas) return;
+
+  const ctx = canvas.getContext('2d');
+  const centerX = canvas.width / 2;
+  const centerY = canvas.height / 2;
+  const radius = Math.min(centerX, centerY) - 40;
+
+  // Clear canvas
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // 6 dimensions
+  const dimensions = [
+    { label: '句式规律', key: 'pattern' },
+    { label: '词汇丰富', key: 'vocab' },
+    { label: '情感自然', key: 'emotion' },
+    { label: '结构完美', key: 'structure' },
+    { label: '口语程度', key: 'colloquial' },
+    { label: '重复冗余', key: 'redundancy' }
+  ];
+
+  const angleStep = (Math.PI * 2) / dimensions.length;
+
+  // Draw background circles
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+  ctx.lineWidth = 1;
+  for (let i = 1; i <= 5; i++) {
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, (radius / 5) * i, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+
+  // Draw axes
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+  ctx.lineWidth = 1;
+  dimensions.forEach((dim, i) => {
+    const angle = angleStep * i - Math.PI / 2;
+    const x = centerX + Math.cos(angle) * radius;
+    const y = centerY + Math.sin(angle) * radius;
+
+    ctx.beginPath();
+    ctx.moveTo(centerX, centerY);
+    ctx.lineTo(x, y);
+    ctx.stroke();
+
+    // Draw labels
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '12px Inter, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const labelX = centerX + Math.cos(angle) * (radius + 25);
+    const labelY = centerY + Math.sin(angle) * (radius + 25);
+    ctx.fillText(dim.label, labelX, labelY);
+  });
+
+  // Draw data polygon
+  ctx.beginPath();
+  ctx.strokeStyle = 'rgba(99, 102, 241, 0.8)';
+  ctx.fillStyle = 'rgba(99, 102, 241, 0.2)';
+  ctx.lineWidth = 2;
+
+  dimensions.forEach((dim, i) => {
+    const angle = angleStep * i - Math.PI / 2;
+    const value = scores[dim.key] || 0;
+    const r = (radius * value) / 100;
+    const x = centerX + Math.cos(angle) * r;
+    const y = centerY + Math.sin(angle) * r;
+
+    if (i === 0) {
+      ctx.moveTo(x, y);
+    } else {
+      ctx.lineTo(x, y);
+    }
+
+    // Draw value points
+    ctx.fillStyle = 'rgba(99, 102, 241, 1)';
+    ctx.beginPath();
+    ctx.arc(x, y, 4, 0, Math.PI * 2);
+    ctx.fill();
+  });
+
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  // Draw score values
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 10px Inter, sans-serif';
+  dimensions.forEach((dim, i) => {
+    const angle = angleStep * i - Math.PI / 2;
+    const value = scores[dim.key] || 0;
+    const r = (radius * value) / 100;
+    const x = centerX + Math.cos(angle) * (r + 15);
+    const y = centerY + Math.sin(angle) * (r + 15);
+
+    ctx.fillText(value.toString(), x, y);
+  });
+}
+
+// ═══ AI味深度分析（增强版） ═══
+async function deepAiCheck() {
+  if (!aiHasConfig(S.apiConfig)) {
+    showToast('✕', t('toast-no-api'));
+    return;
+  }
+
+  const content = document.getElementById('mainEditor').value.trim();
+  if (!content) {
+    showToast('✕', '编辑器内容为空');
+    return;
+  }
+
+  const btn = event?.target;
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = '分析中...';
+  }
+
+  try {
+    const systemPrompt = `你是AI写作检测专家。分析文本的AI生成特征，返回JSON格式：
+
+{
+  "scores": {
+    "pattern": 0-100,    // 句式规律性（越高越AI）
+    "vocab": 0-100,      // 词汇丰富度（越低越AI）
+    "emotion": 0-100,    // 情感自然度（越低越AI）
+    "structure": 0-100,  // 结构完美度（越高越AI）
+    "colloquial": 0-100, // 口语化程度（越低越AI）
+    "redundancy": 0-100  // 重复冗余度（越高越AI）
+  },
+  "probability": 0-100,  // AI概率（综合评分）
+  "highlights": [
+    {"sentence": "具体句子", "reason": "AI特征描述", "start": 位置}
+  ],
+  "suggestions": [
+    {"issue": "问题描述", "fix": "修改建议"}
+  ]
+}
+
+⚠️ 仅供参考，不构成正式判定。`;
+
+    const result = await callAI('分析以下文本：\n\n' + content, S.apiConfig, systemPrompt);
+
+    // Parse JSON
+    let analysis;
+    try {
+      const jsonMatch = result.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        analysis = JSON.parse(jsonMatch[0]);
+      } else {
+        throw new Error('No JSON found');
+      }
+    } catch (e) {
+      showToast('✕', 'AI返回格式错误');
+      return;
+    }
+
+    // Show results
+    displayAiCheckResults(analysis, content);
+
+  } catch (e) {
+    showToast('✕', t('toast-api-err') + ': ' + e.message);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = 'AI味深度分析';
+    }
+  }
+}
+
+function displayAiCheckResults(analysis, originalText) {
+  const modal = document.getElementById('aiCheckResultModal');
+  if (!modal) return;
+
+  // Draw radar chart
+  if (analysis.scores) {
+    drawAiRadarChart(analysis.scores);
+  }
+
+  // Overall probability
+  const probEl = document.getElementById('aiProbability');
+  if (probEl) {
+    probEl.textContent = (analysis.probability || 0) + '%';
+    probEl.className = 'ai-prob-value';
+    if (analysis.probability > 70) probEl.classList.add('high');
+    else if (analysis.probability > 40) probEl.classList.add('medium');
+    else probEl.classList.add('low');
+  }
+
+  // Dimension scores
+  if (analysis.scores) {
+    const scoreList = document.getElementById('aiScoreList');
+    if (scoreList) {
+      const labels = {
+        pattern: '句式规律性',
+        vocab: '词汇丰富度',
+        emotion: '情感自然度',
+        structure: '结构完美度',
+        colloquial: '口语化程度',
+        redundancy: '重复冗余度'
+      };
+
+      scoreList.innerHTML = Object.entries(analysis.scores)
+        .map(([key, value]) => `
+          <div class="score-item">
+            <span class="score-label">${labels[key] || key}</span>
+            <div class="score-bar-container">
+              <div class="score-bar" style="width: ${value}%"></div>
+            </div>
+            <span class="score-value">${value}</span>
+          </div>
+        `).join('');
+    }
+  }
+
+  // Highlighted sentences
+  if (analysis.highlights && analysis.highlights.length > 0) {
+    const highlightEl = document.getElementById('aiHighlights');
+    if (highlightEl) {
+      highlightEl.innerHTML = analysis.highlights.map(h => `
+        <div class="highlight-item">
+          <div class="highlight-sentence">"${escapeHtml(h.sentence)}"</div>
+          <div class="highlight-reason">${escapeHtml(h.reason)}</div>
+        </div>
+      `).join('');
+    }
+  }
+
+  // Suggestions
+  if (analysis.suggestions && analysis.suggestions.length > 0) {
+    const suggestEl = document.getElementById('aiSuggestions');
+    if (suggestEl) {
+      suggestEl.innerHTML = analysis.suggestions.map((s, i) => `
+        <div class="suggestion-item">
+          <div class="suggestion-number">${i + 1}</div>
+          <div class="suggestion-content">
+            <div class="suggestion-issue">${escapeHtml(s.issue)}</div>
+            <div class="suggestion-fix">💡 ${escapeHtml(s.fix)}</div>
+          </div>
+        </div>
+      `).join('');
+    }
+  }
+
+  modal.style.display = 'flex';
+}
+
+function closeAiCheckResult() {
+  const modal = document.getElementById('aiCheckResultModal');
+  if (modal) modal.style.display = 'none';
+}
+
+// ═══ 智能降AI（多轮+强度控制） ═══
+let reduceAiHistory = [];
+let reduceAiSnapshot = null;
+
+async function smartReduceAi(intensity = 'medium') {
+  if (!aiHasConfig(S.apiConfig)) {
+    showToast('✕', t('toast-no-api'));
+    return;
+  }
+
+  const ed = document.getElementById('mainEditor');
+  const selected = ed.value.slice(ed.selectionStart, ed.selectionEnd).trim();
+  const content = selected || ed.value.trim();
+  reduceAiSnapshot = makeEditorSnapshot();
+
+  if (!content) {
+    showToast('✕', '请先选择文本或在编辑器中输入内容');
+    return;
+  }
+
+  const intensityMap = {
+    light: { degree: '轻度', desc: '保留80%原文，仅调整最明显的AI痕迹' },
+    medium: { degree: '中度', desc: '保留60%原文，优化句式和表达' },
+    heavy: { degree: '重度', desc: '保留40%原文，大幅重写' }
+  };
+
+  const config = intensityMap[intensity] || intensityMap.medium;
+
+  const btn = event?.target;
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = '降AI中...';
+  }
+
+  try {
+    const systemPrompt = `你是人类化写作专家。将AI生成文本改写为自然的人类写作风格。
+
+强度：${config.degree}（${config.desc}）
+
+要求：
+1. 打破工整的排比和对仗
+2. 使用不规则句式，偶尔用短句和碎片
+3. 加入口语化表达、语气词
+4. 保留一些不完美和即兴感
+5. 避免过度修饰和堆砌
+6. 让文字有"人味"，而非机械精准
+
+直接输出改写后的文本，不要解释。`;
+
+    showStreamingResult('reduceAiResult');
+    const resultEl = document.getElementById('reduceAiResult');
+    document.getElementById('reduceAiModal').style.display = 'flex';
+
+    let fullResult = '';
+    await callAIStream('请改写以下文本：\n\n' + content, S.apiConfig, systemPrompt, (chunk) => {
+      fullResult += chunk;
+      resultEl.textContent = fullResult;
+    });
+
+    hideStreamingCursor();
+
+    // Save to history
+    reduceAiHistory.push({
+      original: content,
+      result: fullResult,
+      intensity,
+      timestamp: Date.now()
+    });
+
+    S.lastReduceAiResult = fullResult;
+    showToast('✓', '降AI完成');
+
+  } catch (e) {
+    showToast('✕', t('toast-api-err') + ': ' + e.message);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = '智能降AI';
+    }
+  }
+}
+
+async function applyReduceAi() {
+  if (!S.lastReduceAiResult) return;
+
+  const snapshot=reduceAiSnapshot||makeEditorSnapshot();
+  if(!isSameEditorTarget(snapshot)){showToast('✕','生成后已切换文档，请复制结果或返回原文档');return;}
+  if(!isEditorSnapshotCurrent(snapshot)){showToast('✕','正文已在生成期间变化，为避免覆盖已阻止应用');return;}
+  const ed = document.getElementById('mainEditor');
+  const start = snapshot.selection_start;
+  const end = snapshot.selection_end;
+  await saveWriteSnapshot('智能降 AI','replace',S.lastReduceAiResult,makeEditorSnapshot());
+
+  if (start !== end) {
+    // Replace selection
+    ed.value = ed.value.slice(0, start) + S.lastReduceAiResult + ed.value.slice(end);
+  } else {
+    // Replace all
+    ed.value = S.lastReduceAiResult;
+  }
+
+  onEditorInput();
+  closeReduceAiModal();
+  showToast('✓', '已应用');
+}
+
+function closeReduceAiModal() {
+  document.getElementById('reduceAiModal').style.display = 'none';
+}
+
+function showReduceAiHistory() {
+  if (reduceAiHistory.length === 0) {
+    showToast('📝', '暂无历史记录');
+    return;
+  }
+
+  const lines = reduceAiHistory.slice(-10).reverse().map((item, index) => {
+    const time = item.time ? new Date(item.time).toLocaleString(currentLang || 'zh-CN') : '';
+    const text = (item.result || item.text || '').slice(0, 220);
+    return `${index + 1}. ${time}\n${text}`;
+  });
+  S.lastArpResult = lines.join('\n\n');
+  S.aiRunSnapshot=makeEditorSnapshot();
+  document.getElementById('arpMode').textContent = '降AI历史';
+  document.getElementById('arpText').textContent = S.lastArpResult;
+  document.getElementById('aiResultPopup').classList.add('show');
+}
+
+// ═══ AI续写建议（三个方向） ═══
+async function aiSuggestContinuations() {
+  if (!aiHasConfig(S.apiConfig)) {
+    showToast('✕', t('toast-no-api'));
+    return;
+  }
+
+  const ed = document.getElementById('mainEditor');
+  const content = ed.value.trim();
+
+  if (!content) {
+    showToast('✕', '编辑器内容为空');
+    return;
+  }
+
+  // Get last 500 chars as context
+  const context = content.slice(-500);
+
+  const btn = event?.target;
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = '生成中...';
+  }
+
+  try {
+    const systemPrompt = `你是创意写作助手。基于已有文本，提供3个不同方向的续写建议。
+
+返回JSON格式：
+{
+  "suggestions": [
+    {
+      "direction": "方向名称（如：冲突升级/情感深化/转折）",
+      "preview": "续写预览（50字以内）",
+      "reasoning": "为什么这样写（30字以内）"
+    }
+  ]
+}`;
+
+    const result = await callAI('请为以下文本提供3个续写方向：\n\n' + context, S.apiConfig, systemPrompt);
+
+    // Parse and display
+    let suggestions;
+    try {
+      const jsonMatch = result.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        suggestions = JSON.parse(jsonMatch[0]);
+      }
+    } catch (e) {
+      showToast('✕', 'AI返回格式错误');
+      return;
+    }
+
+    displayContinuationSuggestions(suggestions);
+
+  } catch (e) {
+    showToast('✕', t('toast-api-err') + ': ' + e.message);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = 'AI续写建议';
+    }
+  }
+}
+
+function displayContinuationSuggestions(data) {
+  const suggestions = Array.isArray(data?.suggestions) ? data.suggestions : [];
+  if (!suggestions.length) {
+    showToast('✕', '没有可显示的续写方向');
+    return;
+  }
+  S.lastArpResult = suggestions.map((s, i) => {
+    const direction = s.direction || `方向 ${i + 1}`;
+    const preview = s.preview || '';
+    const reasoning = s.reasoning || '';
+    return `${i + 1}. ${direction}\n${preview}\n${reasoning}`;
+  }).join('\n\n');
+  S.aiRunSnapshot=makeEditorSnapshot();
+  document.getElementById('arpMode').textContent = 'AI续写建议';
+  document.getElementById('arpText').textContent = S.lastArpResult;
+  document.getElementById('aiResultPopup').classList.add('show');
+  showToast('✓', '生成了 ' + suggestions.length + ' 个方向');
+}
+
+// ═══ 风格学习与迁移 ═══
+async function learnWritingStyle() {
+  if (!S.proj) {
+    showToast('✕', t('toast-no-proj'));
+    return;
+  }
+
+  // Collect all chapter content
+  const allContent = S.proj.chapters
+    .map(c => c.content)
+    .filter(Boolean)
+    .join('\n\n');
+
+  if (allContent.length < 500) {
+    showToast('✕', '内容太少，无法学习风格（至少需要500字）');
+    return;
+  }
+
+  const btn = event?.target;
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = '学习中...';
+  }
+
+  try {
+    const systemPrompt = `你是写作风格分析专家。分析文本的写作风格特征，用于后续生成时保持一致。
+
+返回JSON格式：
+{
+  "style": {
+    "sentence_length": "short/medium/long",
+    "vocab_level": "simple/moderate/advanced",
+    "tone": "serious/casual/humorous/etc",
+    "rhetoric": ["常用修辞手法"],
+    "signature_phrases": ["特色表达"],
+    "pacing": "fast/moderate/slow"
+  },
+  "summary": "风格总结（100字以内）"
+}`;
+
+    const sample = allContent.slice(0, 2000); // Sample first 2000 chars
+    const result = await callAI('分析以下文本的写作风格：\n\n' + sample, S.apiConfig, systemPrompt);
+
+    // Parse and save
+    let styleData;
+    try {
+      const jsonMatch = result.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        styleData = JSON.parse(jsonMatch[0]);
+      }
+    } catch (e) {
+      showToast('✕', 'AI返回格式错误');
+      return;
+    }
+
+    // Save to project metadata
+    S.proj.project.learned_style = styleData;
+    await dbPut('projects', S.proj.project);
+
+    showToast('✓', '风格学习完成');
+    console.log('学到的风格', styleData);
+
+  } catch (e) {
+    showToast('✕', t('toast-api-err') + ': ' + e.message);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = '学习我的风格';
+    }
+  }
+}
+
+// ═══ Utility Functions ═══
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
 }
 
 // ═══ Modals ═══
@@ -2984,10 +3704,7 @@ function toggleTheme(){document.body.classList.toggle('light');const isLight=doc
 function openSettingsTab(tab,el){
   document.querySelectorAll('.settings-tab').forEach(t=>t.classList.remove('active'));
   if(el)el.classList.add('active');
-  ['lang','api','theme','rules'].forEach(t=>{
-    const pane=document.getElementById('settingsTab-'+t);
-    if(pane)pane.style.display=t===tab?'block':'none';
-  });
+  ['lang','api','theme','rules'].forEach(t=>{document.getElementById('settingsTab-'+t).style.display=t===tab?'block':'none';});
   if(tab==='rules')loadRulesPanel();
 }
 
@@ -3010,21 +3727,20 @@ function initSettingsModal(){
 
 let currentRulesPayload=null;
 async function loadRulesPanel(){
-  const grid=document.getElementById('rulesPresetGrid');
-  const rawEl=document.getElementById('rulesRaw');
-  if(!grid||!rawEl)return;
   try{
     const data=await apiJSON('/api/rules');
     currentRulesPayload=data;
-    rawEl.value=data.custom||data.preferences||'';
+    document.getElementById('rulesRaw').value=data.custom||data.preferences||'';
+    const grid=document.getElementById('rulesPresetGrid');
     grid.innerHTML=(data.presets||[]).map(p=>`<div class="provider-chip" onclick="applyRulePreset('${p.id}')">${p.name}</div>`).join('');
   }catch(e){
-    grid.innerHTML='<div style="color:var(--text-muted);font-size:12px">规则加载失败</div>';
+    document.getElementById('rulesPresetGrid').innerHTML='<div style="color:var(--text-muted);font-size:12px">规则加载失败</div>';
   }
 }
 async function applyRulePreset(id){
   const p=(currentRulesPayload?.presets||[]).find(x=>x.id===id);
-  if(p)document.getElementById('rulesRaw').value=p.content||'';
+  if(!p)return;
+  document.getElementById('rulesRaw').value=p.content||'';
 }
 async function saveRulesPack(){
   const raw=document.getElementById('rulesRaw').value.trim();
@@ -3051,11 +3767,7 @@ async function importRulesFile(e){
 function exportRules(){
   const data={version:1,raw:document.getElementById('rulesRaw').value,exported_at:new Date().toISOString()};
   const b=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(b);
-  a.download='ainovel-rules.json';
-  a.click();
-  URL.revokeObjectURL(a.href);
+  const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='ainovel-rules.json';a.click();
 }
 
 function settingsSetLang(lang,el){
@@ -3100,10 +3812,11 @@ function settingsTestApi(){
 function saveSettings(){
   // Save API settings from settings modal
   const key=document.getElementById('sApiKey').value.trim();
-  const c={provider:S.selectedProvider,key:key||'backend',model:document.getElementById('sApiModel').value.trim(),baseUrl:document.getElementById('sApiBaseUrl').value.trim()};
+  const c={provider:S.selectedProvider,key:'backend',model:document.getElementById('sApiModel').value.trim(),baseUrl:''};
   if(!key&&!c.model&&!c.baseUrl&&!S.apiConfig.provider){closeModal('settingsModal');showToast('✓',t('mod-save'));return;}
-  apiJSON('/api/config',{method:'POST',body:JSON.stringify({provider:c.provider,model:c.model,api_key:key,base_url:c.baseUrl})}).then(()=>{
+  apiJSON('/api/config',{method:'POST',body:JSON.stringify({provider:c.provider,model:c.model,api_key:key,base_url:document.getElementById('sApiBaseUrl').value.trim()})}).then(()=>{
     S.apiConfig=c;localStorage.setItem('ww_api',JSON.stringify(c));
+    document.getElementById('sApiKey').value='';
     closeModal('settingsModal');
     showToast('✓',t('mod-save'));
   }).catch(e=>showToast('✕',e.message));
@@ -3135,7 +3848,7 @@ function applyLang(){
   navTabs.forEach((tab,i)=>{if(navKeys[i])tab.lastChild.textContent=' '+t(navKeys[i]);});
   // Bottom nav
   const bnavTabs=document.querySelectorAll('#bottomNav .btab');
-  const bnavKeys=['bnav-editor','bnav-outline','bnav-chapters','bnav-chars','bnav-ai'];
+  const bnavKeys=['bnav-editor','bnav-outline','bnav-chapters','bnav-chars','bnav-ai','nav-notes'];
   bnavTabs.forEach((tab,i)=>{if(bnavKeys[i])tab.lastChild.textContent=' '+t(bnavKeys[i]);});
   // Editor placeholders
   document.getElementById('mainEditor').placeholder=t('ed-placeholder');
@@ -3292,9 +4005,10 @@ async function renderProfileStats(){
   const totalChars=S.proj.characters.length;
   const totalOutlines=S.proj.outlines.length;
   const totalChapters=S.proj.chapters.length;
+  const totalNotes=(S.proj.notes||[]).length;
   const created=new Date(p.created_at).toLocaleDateString(currentLang);
   const updated=p.updated_at?new Date(p.updated_at).toLocaleDateString(currentLang):'-';
-  el.innerHTML='<div>📁 '+t('ps-project')+' <b>'+p.name+'</b></div><div>◎ '+t('ps-genre')+' '+(p.genre||'-')+'</div><div>📝 '+t('ps-words')+' <b>'+totalWords+'</b> '+t('ps-units-2')+'</div><div>☐ '+t('ps-outlines')+' '+totalOutlines+' '+t('ps-units-1')+t('ps-chapters')+' '+totalChapters+' '+t('ps-units-1')+'</div><div>● '+t('ps-chars')+' '+totalChars+' '+t('ps-units-1')+'</div><div>◎ '+t('ps-goal')+' '+S.wordGoal+' '+t('ps-units-2')+'</div><div>◷ '+t('ps-created')+' '+created+' · '+t('ps-updated')+' '+updated+'</div>';
+  el.innerHTML='<div>📁 '+t('ps-project')+' <b>'+escapeHtml(p.name)+'</b></div><div>◎ '+t('ps-genre')+' '+escapeHtml(p.genre||'-')+'</div><div>📝 '+t('ps-words')+' <b>'+totalWords+'</b> '+t('ps-units-2')+'</div><div>☐ '+t('ps-outlines')+' '+totalOutlines+' '+t('ps-units-1')+t('ps-chapters')+' '+totalChapters+' '+t('ps-units-1')+'</div><div>● '+t('ps-chars')+' '+totalChars+' '+t('ps-units-1')+' · ✎ 笔记 '+totalNotes+' '+t('ps-units-1')+'</div><div>◎ '+t('ps-goal')+' '+S.wordGoal+' '+t('ps-units-2')+'</div><div>◷ '+t('ps-created')+' '+created+' · '+t('ps-updated')+' '+updated+'</div>';
 }
 async function changePassword(){
   localStorage.removeItem('ww_pwd_hash');
@@ -3305,11 +4019,11 @@ async function changePassword(){
 
 
 // ═══ AI Quick Tools ═══
-let aiQuickLastResult='',aiQuickMode='',aiPresLevel='medium',aiDetectScores=null;
+let aiQuickLastResult='',aiQuickMode='',aiQuickSnapshot=null,aiPresLevel='medium',aiDetectScores=null;
 function aiCheckApi(){const ac=S.apiConfig;if(!aiHasConfig(ac)){showToast('⚙',t('toast-no-api'));openModal('apiModal');return false;}return true;}
 function showAiQuickResult(title,text,mode){aiQuickLastResult=text;aiQuickMode=mode;document.getElementById('aiQuickResultTitle').textContent=title;document.getElementById('aiQuickResultText').textContent=text;document.getElementById('aiQuickResult').style.display='block';document.getElementById('aiRadarWrap').style.display='none';document.getElementById('aiDiffWrap').style.display='none';document.getElementById('aiSentencesWrap').style.display='none';}
-function closeAiQuickResult(){document.getElementById('aiQuickResult').style.display='none';aiQuickLastResult='';aiQuickMode='';aiDetectScores=null;document.getElementById('aiRadarWrap').style.display='none';document.getElementById('aiDiffWrap').style.display='none';document.getElementById('aiSentencesWrap').style.display='none';document.getElementById('presLevelBar').style.display='none';}
-function aiQuickApply(){if(!aiQuickLastResult)return;if(aiQuickMode==='title'){document.getElementById('chapterTitle').value=aiQuickLastResult;S.unsaved=true;showToast('✓',t('toast-title-applied'));closeAiQuickResult();return;}const ed=document.getElementById('mainEditor');if(aiQuickMode==='proofread'||aiQuickMode==='humanize'){ed.value=aiQuickLastResult;onEditorInput();showToast('✓',aiQuickMode==='humanize'?t('toast-humanize-applied'):t('toast-proofread-applied'));}else if(aiQuickMode==='inspire'){const pos=ed.selectionStart;ed.value=ed.value.slice(0,pos)+'\n\n'+aiQuickLastResult+'\n'+ed.value.slice(pos);onEditorInput();showToast('✓',t('toast-inspire-inserted'));}closeAiQuickResult();}
+function closeAiQuickResult(){document.getElementById('aiQuickResult').style.display='none';aiQuickLastResult='';aiQuickMode='';aiQuickSnapshot=null;aiDetectScores=null;document.getElementById('aiRadarWrap').style.display='none';document.getElementById('aiDiffWrap').style.display='none';document.getElementById('aiSentencesWrap').style.display='none';document.getElementById('presLevelBar').style.display='none';}
+async function aiQuickApply(){if(!aiQuickLastResult)return;const snapshot=aiQuickSnapshot||makeEditorSnapshot();if(!isSameEditorTarget(snapshot)){showToast('✕','生成后已切换文档，请复制结果或返回原文档');return;}if((aiQuickMode==='proofread'||aiQuickMode==='humanize'||aiQuickMode==='title')&&!isEditorSnapshotCurrent(snapshot)){showToast('✕','正文已在生成期间变化，为避免覆盖已阻止应用');return;}await saveWriteSnapshot('快捷工具 · '+aiQuickMode,aiQuickMode,aiQuickLastResult,makeEditorSnapshot());if(aiQuickMode==='title'){document.getElementById('chapterTitle').value=aiQuickLastResult;S.unsaved=true;showToast('✓',t('toast-title-applied'));closeAiQuickResult();return;}const ed=document.getElementById('mainEditor');if(aiQuickMode==='proofread'||aiQuickMode==='humanize'){ed.value=aiQuickLastResult;onEditorInput();showToast('✓',aiQuickMode==='humanize'?t('toast-humanize-applied'):t('toast-proofread-applied'));}else if(aiQuickMode==='inspire'){const pos=ed.selectionStart;ed.value=ed.value.slice(0,pos)+'\n\n'+aiQuickLastResult+'\n'+ed.value.slice(pos);onEditorInput();showToast('✓',t('toast-inspire-inserted'));}closeAiQuickResult();}
 function aiQuickCopy(){if(!aiQuickLastResult)return;navigator.clipboard.writeText(aiQuickLastResult).then(()=>showToast('✓',t('toast-copied'))).catch(()=>showToast('✕',t('toast-copy-failed')));}
 function setLoading(btnId,loading){const b=document.getElementById(btnId);if(b){if(loading){b.disabled=true;b.dataset.origText=b.textContent;b.textContent='⟳ ...';}else{b.disabled=false;b.textContent=b.dataset.origText||b.textContent;}}}
 
@@ -3494,13 +4208,13 @@ function renderDiffView(before,after){
   for(const l of bSet){
     if(l&&l.length>2&&!aSet.has(l)){
       if(!hasDel){html+='<div class="diff-header" style="color:#e55">✕ 被移除/修改：</div>';hasDel=true;}
-      html+='<span class="diff-del">'+l.replace(/</g,'&lt;')+'</span>';
+      html+='<span class="diff-del">'+escapeHtml(l)+'</span>';
     }
   }
   for(const l of aSet){
     if(l&&l.length>2&&!bSet.has(l)){
       if(!hasIns){html+='<div class="diff-header" style="color:#2a2">✓ 新增/改写：</div>';hasIns=true;}
-      html+='<span class="diff-ins">'+l.replace(/</g,'&lt;')+'</span>';
+      html+='<span class="diff-ins">'+escapeHtml(l)+'</span>';
     }
   }
   if(!hasDel&&!hasIns){
@@ -3513,6 +4227,7 @@ async function aiProofread(){
   if(!aiCheckApi())return;
   const text=document.getElementById('mainEditor').value.trim();
   if(!text){showToast('✎',t('toast-no-content'));return;}
+  aiQuickSnapshot=makeEditorSnapshot();
   setLoading('aiBtnProof',true);
   try{
     const ctx=S.proj?buildCtx()+'\n\n':'';
@@ -3535,6 +4250,7 @@ async function aiAutoTitle(){
   if(!aiCheckApi())return;
   const text=document.getElementById('mainEditor').value.trim();
   if(!text){showToast('✎',t('toast-no-content'));return;}
+  aiQuickSnapshot=makeEditorSnapshot();
   setLoading('aiBtnTitle',true);
   try{
     const ctx=S.proj?buildCtx()+'\n\n':'';
@@ -3555,6 +4271,7 @@ async function aiInspiration(){
   if(!aiCheckApi())return;
   const text=document.getElementById('mainEditor').value.trim();
   const title=document.getElementById('chapterTitle').value.trim();
+  aiQuickSnapshot=makeEditorSnapshot();
   setLoading('aiBtnInspire',true);
   try{
     const ctx=S.proj?buildCtx()+'\n\n':'';
@@ -3573,6 +4290,7 @@ async function aiResearch(){
   const title=document.getElementById('chapterTitle').value.trim();
   // Extract keywords from content
   const selectedText=text.slice(document.getElementById('mainEditor').selectionStart,document.getElementById('mainEditor').selectionEnd).trim();
+  aiQuickSnapshot=makeEditorSnapshot();
   setLoading('aiBtnResearch',true);
   try{
     const ctx=S.proj?buildCtx()+'\n\n':'';
@@ -3590,6 +4308,7 @@ async function aiHumanize(){
   const selected=ed.value.slice(ed.selectionStart,ed.selectionEnd).trim();
   const text=selected||ed.value.trim();
   if(!text){showToast('✎',t('toast-no-content'));return;}
+  aiQuickSnapshot=makeEditorSnapshot();
   setLoading('aiBtnHumanize',true);
   // Show preservation level selector
   document.getElementById('presLevelBar').style.display='flex';
@@ -3616,6 +4335,7 @@ async function aiDetect(){
   const ed=document.getElementById('mainEditor');
   const text=ed.value.trim();
   if(!text||text.length<50){showToast('✎','请先输入至少50字');return;}
+  aiQuickSnapshot=makeEditorSnapshot();
   setLoading('aiBtnDetect',true);
   try{
     const prompt=wwPromptText('查AI')+'\n\n【待分析文字】\n'+text.slice(0,3000);
@@ -3646,15 +4366,16 @@ function swMobileTab(tab,btn){
     document.querySelector('.editor-area').style.display='none';
     const p=document.getElementById('mp-'+tab);
     if(p)p.classList.add('on');
-    if(tab==='outline')renderMpOutline();if(tab==='chapters')renderMpChapter();if(tab==='chars')renderMpChar();if(tab==='ai')renderMpAi();
+    if(tab==='outline')renderMpOutline();if(tab==='chapters')renderMpChapter();if(tab==='chars')renderMpChar();if(tab==='notes')renderMpNote();if(tab==='ai')renderMpAi();
   }
 }
 function backToEditor(){const btn=document.querySelector('#bottomNav .btab');if(btn)swMobileTab('editor',btn);}
-function renderMpOutline(){if(!S.proj)return;const el=document.getElementById('mpOutlineList');if(!S.proj.outlines.length){el.innerHTML='<div style="text-align:center;padding:40px;color:var(--text-hint)">'+t('sb-empty-outline')+'</div>';return;}el.innerHTML=S.proj.outlines.map(o=>'<div class="outline-item'+(S.active&&S.active.type==='outline'&&S.active.id===o.id?' active':'')+'" onclick="loadOutlineContent('+o.id+');backToEditor()"><span class="oi-icon"><svg class="ic ic-sm"><use href="#ic-outline"/></svg></span><span class="oi-text">'+o.title+'</span><span class="oi-count">'+(o.content?countWords(o.content):0)+t('ps-units-2')+'</span></div>').join('');}
-function renderMpChapter(){if(!S.proj)return;const el=document.getElementById('mpChapterList');if(!S.proj.chapters.length){el.innerHTML='<div style="text-align:center;padding:40px;color:var(--text-hint)">'+t('sb-empty-chapter')+'</div>';return;}el.innerHTML=S.proj.chapters.map(c=>'<div class="outline-item'+(S.active&&S.active.type==='chapter'&&S.active.id===c.id?' active':'')+'" onclick="loadChapterContent('+c.id+');backToEditor()"><span class="oi-icon"><svg class="ic ic-sm"><use href="#ic-chapter"/></svg></span><span class="oi-text">'+c.title+'</span><span class="oi-count">'+(c.word_count||0)+t('ps-units-2')+'</span></div>').join('');}
-function renderMpChar(){if(!S.proj)return;const el=document.getElementById('mpCharList');if(!S.proj.characters.length){el.innerHTML='<div style="text-align:center;padding:40px;color:var(--text-hint)">'+t('sb-empty-char')+'</div>';return;}el.innerHTML=S.proj.characters.map(c=>'<div class="char-card" onclick="loadCharContent('+c.id+');backToEditor()"><div class="char-name">'+c.name+'</div><span class="char-role">'+c.role+'</span><div class="char-desc">'+(c.personality||t('char-no-desc'))+'</div></div>').join('');}
+function renderMpOutline(){if(!S.proj)return;const el=document.getElementById('mpOutlineList');if(!S.proj.outlines.length){el.innerHTML='<div style="text-align:center;padding:40px;color:var(--text-hint)">'+t('sb-empty-outline')+'</div>';return;}el.innerHTML=S.proj.outlines.map(o=>'<div class="outline-item'+(S.active&&S.active.type==='outline'&&S.active.id===o.id?' active':'')+'" onclick="loadOutlineContent('+Number(o.id)+');backToEditor()"><span class="oi-icon"><svg class="ic ic-sm"><use href="#ic-outline"/></svg></span><span class="oi-text">'+escapeHtml(o.title)+'</span><span class="oi-count">'+(o.content?countWords(o.content):0)+t('ps-units-2')+'</span></div>').join('');}
+function renderMpChapter(){if(!S.proj)return;const el=document.getElementById('mpChapterList');if(!S.proj.chapters.length){el.innerHTML='<div style="text-align:center;padding:40px;color:var(--text-hint)">'+t('sb-empty-chapter')+'</div>';return;}el.innerHTML=S.proj.chapters.map(c=>'<div class="outline-item'+(S.active&&S.active.type==='chapter'&&S.active.id===c.id?' active':'')+'" onclick="loadChapterContent('+Number(c.id)+');backToEditor()"><span class="oi-icon"><svg class="ic ic-sm"><use href="#ic-chapter"/></svg></span><span class="oi-text">'+escapeHtml(c.title)+'</span><span class="oi-count">'+(c.word_count||0)+t('ps-units-2')+'</span></div>').join('');}
+function renderMpChar(){if(!S.proj)return;const el=document.getElementById('mpCharList');if(!S.proj.characters.length){el.innerHTML='<div style="text-align:center;padding:40px;color:var(--text-hint)">'+t('sb-empty-char')+'</div>';return;}el.innerHTML=S.proj.characters.map(c=>'<div class="char-card" onclick="loadCharContent('+Number(c.id)+');backToEditor()"><div class="char-name">'+escapeHtml(c.name)+'</div><span class="char-role">'+escapeHtml(c.role)+'</span><div class="char-desc">'+escapeHtml(c.personality||t('char-no-desc'))+'</div></div>').join('');}
+function renderMpNote(){if(!S.proj)return;const el=document.getElementById('mpNoteList');if(!el)return;const notes=S.proj.notes||[];if(!notes.length){el.innerHTML='<div class="sidebar-empty">'+t('sb-empty-notes')+'</div>';return;}el.innerHTML=notes.map(note=>'<div class="outline-item" onclick="loadNoteContent('+Number(note.id)+');backToEditor()"><span class="oi-icon"><svg class="ic ic-sm"><use href="#ic-note"/></svg></span><span class="oi-text">'+escapeHtml(note.title||'未命名笔记')+'</span><span class="oi-count">'+countWords(note.content||'')+t('ps-units-2')+'</span></div>').join('');}
 function renderMpAi(){const el=document.getElementById('mpAiModeGrid');if(!el||el.children.length>0)return;const g={};for(const[k,v]of Object.entries(AI_MODES)){if(!g[v.group])g[v.group]=[];g[v.group].push(k);}let h='';for(const[label,keys]of Object.entries(g)){h+='<div class="mode-group" data-mode-group="'+label+'"><div class="mode-group-title">'+t('grp-'+label)+'</div><div class="mode-grid">';for(const k of keys)h+='<button class="mode-btn'+(S.aiMode===k?' selected':'')+'" data-mode="'+k+'" onclick="selectMode(this,\''+k+'\')"><span class="micon">'+wwAiModeIcon(k)+'</span>'+t('mode-'+k)+'</button>';h+='</div></div>';}el.innerHTML=h;if(typeof renderMpMultiSlots==='function')renderMpMultiSlots();}
-async function doGenerateMobile(){const ac=S.apiConfig;if(!aiHasConfig(ac)){showToast('⚙',t('toast-no-api'));openModal('apiModal');return;}const ed=document.getElementById('mainEditor'),content=ed.value.slice(-1000)||'';const extra=document.getElementById('mpAiPrompt')?.value.trim()||'';if(!content&&!extra){showToast('✎',t('toast-no-content'));return;}const lm={short:'100字以内',mid:'200-300字',long:'400-600字',xl:'800字以上'},tm={low:'保持严谨',mid:'适度创意',high:'大胆想象'};const md=AI_MODES[S.aiMode]||{p:'请处理以下内容：'};let prompt=(typeof wwPromptText==='function'?wwPromptText(S.aiMode):md.p)+'\n\n'+content+'\n\n【输出要求】'+lm[S.aiLen]+'。'+tm[S.aiTemp]+'。';if(S.proj)prompt+='\n\n【项目信息】\n'+buildCtx();if(extra)prompt+='\n\n【额外指令】'+extra;let sysPrompt='你是一位专业的中文写作助手。';const memCtx=buildMemoryContext();if(memCtx)sysPrompt+='\n\n'+memCtx;const btn=document.getElementById('mpGenerateBtn');btn.classList.add('loading');btn.textContent=t('ap-gen-ing');try{const r=await callAI(prompt,ac,sysPrompt);S.lastArpResult=r;document.getElementById('arpText').textContent=r;document.getElementById('arpMode').textContent=S.aiMode;document.getElementById('aiResultPopup').classList.add('show');addHistory(S.aiMode,r);}catch(e){showToast('✕',e.message||'失败');}finally{btn.classList.remove('loading');btn.innerHTML='<span>★</span><span data-i18n="ap-gen">'+t('ap-gen')+'</span>';}}
+async function doGenerateMobile(){const ac=S.apiConfig;if(!aiHasConfig(ac)){showToast('⚙',t('toast-no-api'));openModal('apiModal');return;}const ed=document.getElementById('mainEditor'),content=ed.value.slice(-1000)||'';const extra=document.getElementById('mpAiPrompt')?.value.trim()||'';if(!content&&!extra){showToast('✎',t('toast-no-content'));return;}S.aiRunSnapshot=makeEditorSnapshot();const lm={short:'100字以内',mid:'200-300字',long:'400-600字',xl:'800字以上'},tm={low:'保持严谨',mid:'适度创意',high:'大胆想象'};const md=AI_MODES[S.aiMode]||{p:'请处理以下内容：'};let prompt=(typeof wwPromptText==='function'?wwPromptText(S.aiMode):md.p)+'\n\n'+content+'\n\n【输出要求】'+lm[S.aiLen]+'。'+tm[S.aiTemp]+'。';if(S.proj)prompt+='\n\n【项目信息】\n'+buildCtx();if(extra)prompt+='\n\n【额外指令】'+extra;let sysPrompt='你是一位专业的中文写作助手。';const memCtx=buildMemoryContext();if(memCtx)sysPrompt+='\n\n'+memCtx;const btn=document.getElementById('mpGenerateBtn');btn.classList.add('loading');btn.textContent=t('ap-gen-ing');try{const r=await callAI(prompt,ac,sysPrompt);S.lastArpResult=r;document.getElementById('arpText').textContent=r;document.getElementById('arpMode').textContent=S.aiMode;document.getElementById('aiResultPopup').classList.add('show');await addHistory(S.aiMode,r,{project_id:S.aiRunSnapshot.project_id,active_type:S.aiRunSnapshot.active_type,active_id:S.aiRunSnapshot.active_id});}catch(e){showToast('✕',e.message||'失败');}finally{btn.classList.remove('loading');btn.innerHTML='<span><svg class="ic ic-sm"><use href="icons/ai-mode-icons.svg#mode-workshop"/></svg></span><span data-i18n="ap-gen">'+t('ap-gen')+'</span>';}}
 
 // ═══ Cookie Consent & Privacy ═══
 function showPrivacyModal(){document.getElementById('privacyModal').classList.add('show');}
@@ -3664,3 +4385,156 @@ function acceptCookie(){localStorage.setItem('ww_cookie_consent','1');document.g
 (function(){
   if(!localStorage.getItem('ww_cookie_consent')){document.getElementById('cookieBanner').classList.add('show');}
 })();
+
+// ═══ Recursive Writing Panel ═══
+function openRecursivePanel(){
+  const ov = document.getElementById('recursiveOverlay');
+  ov.classList.add('show');
+  resetRecursivePanel();
+}
+function closeRecursivePanel(){
+  if(RecursiveEngine.isRunning()){
+    if(!confirm('正在运行中，确定关闭？')) return;
+    RecursiveEngine.cancel();
+  }
+  document.getElementById('recursiveOverlay').classList.remove('show');
+}
+function resetRecursivePanel(){
+  document.getElementById('recInput').value='';
+  document.getElementById('recInput').style.display='flex';
+  document.getElementById('recStartBtn').style.display='block';
+  document.getElementById('recPlanArea').style.display='none';
+  document.getElementById('recOutputBody').innerHTML='<div style="text-align:center;padding:40px;color:var(--text-hint)">等待规划完成...</div>';
+  document.getElementById('recOutputActions').style.display='none';
+  document.getElementById('recProgressFill').style.width='0%';
+  document.getElementById('recStatusText').textContent='就绪';
+}
+let _recArticle='',_recSnapshot=null;
+function startRecursive(){
+  const prompt=document.getElementById('recInput').value.trim();
+  if(!prompt){showToast('✎','请输入写作需求');return;}
+  document.getElementById('recInput').style.display='none';
+  document.getElementById('recStartBtn').style.display='none';
+  document.getElementById('recPlanArea').style.display='block';
+  document.getElementById('recOutputActions').style.display='none';
+  _recArticle='';
+  _recSnapshot=makeEditorSnapshot();
+  RecursiveEngine.run(prompt, onRecursiveProgress).then(result=>{
+    if(result){
+      document.getElementById('recOutputActions').style.display='flex';
+    }
+  }).catch(e=>{
+    showToast('✕',e.message||'递归写作失败');
+  });
+}
+function onRecursiveProgress(type,data){
+  const statusEl=document.getElementById('recStatusText');
+  const fillEl=document.getElementById('recProgressFill');
+  const dagEl=document.getElementById('recDag');
+  const outputEl=document.getElementById('recOutputBody');
+  switch(type){
+    case 'status':
+      statusEl.textContent=data.text;
+      document.getElementById('recSpinner').style.display='block';
+      break;
+    case 'plan':
+      document.getElementById('recPlanArea').innerHTML=renderRecPlan(data);
+      document.getElementById('recPlanGoal').textContent=data.goal||'';
+      fillEl.style.width='5%';
+      break;
+    case 'task-start':
+      statusEl.textContent=`${data.icon} ${data.label}: ${data.goal.slice(0,50)}...`;
+      fillEl.style.width=Math.round(data.completed/data.total*100)+'%';
+      dagEl.classList.add('running');
+      markDagNode(data.id,'active');
+      break;
+    case 'task-done':
+      fillEl.style.width=Math.round(data.completed/data.total*100)+'%';
+      markDagNode(data.id,'done');
+      if(data.completed>=data.total) dagEl.classList.remove('running');
+      break;
+    case 'design-done':
+      appendDesignOutput(data);
+      break;
+    case 'article-update':
+      _recArticle=data.text;
+      updateArticleOutput(data.fragment);
+      break;
+    case 'done':
+      statusEl.textContent='✅ 完成！';
+      fillEl.style.width='100%';
+      document.getElementById('recSpinner').style.display='none';
+      break;
+    case 'error':
+      statusEl.textContent='❌ '+data.message;
+      dagEl.classList.remove('running');
+      document.getElementById('recSpinner').style.display='none';
+      break;
+  }
+}
+function renderRecPlan(plan){
+  let h=`<div class="rec-plan-title">📋 任务规划</div>`;
+  h+=`<div class="rec-plan-goal" id="recPlanGoal">${escapeHtml(plan.goal||'')}</div>`;
+  h+=`<div class="rec-dag" id="recDag">`;
+  for(const t of Array.isArray(plan.sub_tasks)?plan.sub_tasks:[]){
+    const safeId=String(t.id??'').replace(/[^a-zA-Z0-9_-]/g,'').slice(0,40);
+    const taskType=t.task_type==='think'?'think':'write';
+    const depStr=Array.isArray(t.dependency)&&t.dependency.length?'依赖: '+t.dependency.map(d=>'<code>#'+escapeHtml(String(d))+'</code>').join(' '):'';
+    h+=`<div class="rec-dag-node" id="recNode-${safeId}">
+      <div class="rec-dag-icon ${taskType}" id="recIcon-${safeId}">${taskType==='think'?'🎨':'✍️'}</div>
+      <div class="rec-dag-info">
+        <div class="rec-dag-type ${taskType}">${taskType==='think'?'设计':'写作'} #${escapeHtml(String(t.id??''))}</div>
+        <div class="rec-dag-goal">${escapeHtml(t.goal||'')}</div>
+        ${depStr?'<div class="rec-dag-dep">'+depStr+'</div>':''}
+      </div>
+    </div>`;
+  }
+  h+=`</div>`;
+  return h;
+}
+function markDagNode(id,state){
+  const icon=document.getElementById('recIcon-'+id);
+  if(icon){icon.classList.remove('active','done');if(state)icon.classList.add(state);}
+}
+function appendDesignOutput(data){
+  const el=document.getElementById('recOutputBody');
+  const div=document.createElement('div');
+  div.className='design-block';
+  div.innerHTML=`<div class="design-title">🎨 ${escapeHtml(data.goal||'')}</div><div class="design-content">${escH(data.result||'')}</div>`;
+  el.appendChild(div);
+  el.scrollTop=el.scrollHeight;
+}
+function updateArticleOutput(fragment){
+  const el=document.getElementById('recOutputBody');
+  let artEl=el.querySelector('.article-wrap');
+  if(!artEl){
+    const hr=document.createElement('hr');
+    hr.className='article-sep';
+    el.appendChild(hr);
+    artEl=document.createElement('div');
+    artEl.className='article-wrap';
+    artEl.innerHTML=`<div style="font-size:11px;font-weight:600;color:var(--green);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">✍️ 正文</div><div class="article-text" id="recArticleText"></div>`;
+    el.appendChild(artEl);
+  }
+  const artText=el.querySelector('#recArticleText');
+  if(artText)artText.textContent=_recArticle;
+  el.scrollTop=el.scrollHeight;
+}
+async function insertRecResult(){
+  if(!_recArticle){showToast('✎','没有可插入的正文结果');return;}
+  const snapshot=_recSnapshot||makeEditorSnapshot();
+  if(!isSameEditorTarget(snapshot)){showToast('✕','生成后已切换文档，请复制结果或返回原文档');return;}
+  const ed=document.getElementById('mainEditor');
+  await saveWriteSnapshot('递归创作','insert',_recArticle,makeEditorSnapshot());
+  const p=ed.selectionStart;
+  const prefix=ed.value.slice(0,p);
+  const suffix=ed.value.slice(p);
+  ed.value=prefix+(prefix.endsWith('\n')||!prefix?'':'\n\n')+_recArticle+'\n'+suffix;
+  onEditorInput();
+  closeRecursivePanel();
+  showToast('✓','已插入编辑器');
+}
+function copyRecResult(){
+  navigator.clipboard.writeText(_recArticle).then(()=>showToast('✓','已复制'));
+}
+function escH(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');}
