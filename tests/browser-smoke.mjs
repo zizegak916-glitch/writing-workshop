@@ -55,6 +55,7 @@ try {
 
   await page.locator('.nav-tab', { hasText: '笔记' }).click();
   await page.locator('#tab-notes .add-item-btn').click();
+  await page.waitForFunction(() => S.active?.type === 'note' && document.querySelector('#noteList .oi-text')?.textContent === '新笔记');
   await page.locator('#chapterTitle').fill('设定核对');
   await page.locator('#mainEditor').fill('这里记录一条不会混入正文的项目笔记。');
   await page.locator('#saveBtn').click();
