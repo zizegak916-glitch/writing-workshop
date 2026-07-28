@@ -318,7 +318,7 @@ func TestExternalCatalogImportsMetadataOnly(t *testing.T) {
 	if rec.Code != http.StatusOK {
 		t.Fatalf("GET external catalog status=%d body=%s", rec.Code, rec.Body.String())
 	}
-	for _, want := range []string{`"execution_policy":"metadata-only"`, `"mcp-filesystem"`, `"openai-agent-skills"`} {
+	for _, want := range []string{`"execution_policy":"metadata-only"`, `"mcp-filesystem"`, `"openai-plugins"`, `"deprecated-upstream"`} {
 		if !strings.Contains(rec.Body.String(), want) {
 			t.Fatalf("external catalog missing %q: %s", want, rec.Body.String())
 		}

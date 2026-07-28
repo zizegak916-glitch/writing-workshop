@@ -185,7 +185,7 @@ go build -o writing-workshop ./cmd/writing-workshop
         <h3>从公开 Agent Skills / MCP 目录登记来源</h3>
         <ol>
           <li>必须通过 Docker 或本地 Go 后端打开 <code>admin.html</code>；Pages 默认没有该服务端 API。</li>
-          <li>切到“公开能力目录”，先看维护者、许可证、核验日期、所需权限和风险。</li>
+          <li>切到“公开能力目录”，先看维护者、许可证、核验日期、所需权限和风险。现行 OpenAI 示例入口是 <code>openai/plugins</code>；旧 <code>openai/skills</code> 已按上游状态标为弃用参考。</li>
           <li>“查看上游”只打开原仓库；“复制示例”只复制文本，不会执行命令。</li>
           <li>点击“登记元数据”后，到“能力来源”可以看到一条停用的 <code>external:*</code> 记录。</li>
           <li>当前版本不允许启用或执行这种记录。真正接入必须等版本锁定、目录隔离、网络默认关闭、取消与审计都完成。</li>

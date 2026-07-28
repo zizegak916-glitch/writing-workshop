@@ -30,11 +30,25 @@ func curatedExternalCatalog() []externalCatalogItem {
 	const verified = "2026-07-28"
 	return []externalCatalogItem{
 		{
-			ID: "openai-agent-skills", Name: "OpenAI Agent Skills", Kind: "agent-skill-catalog",
+			ID: "openai-plugins", Name: "OpenAI Plugins（现行示例）", Kind: "codex-plugin-catalog",
+			Source: "https://github.com/openai/plugins", License: "按具体 plugin / skill 检查", Maintainer: "OpenAI",
+			Description: "OpenAI 当前维护的 Codex Plugin 示例集合；一个插件可包含 Skill、MCP、应用配置和其他配套资源。",
+			Category:    "utility", Tags: []string{"codex", "plugins", "agent-skills", "mcp"}, Status: "official-catalog", VerifiedAt: verified,
+			Permissions: []string{"由具体 plugin 的 Skill、MCP 与应用配置声明"}, Risks: []string{"目录不是统一许可或统一权限边界", "不得整库自动安装或执行"},
+		},
+		{
+			ID: "agent-skills-standard", Name: "Agent Skills 开放标准", Kind: "agent-skill-specification",
+			Source: "https://agentskills.io/home", License: "以规范站与实现仓库声明为准", Maintainer: "Agent Skills",
+			Description: "Agent Skills 的开放格式说明，用来理解 SKILL.md、渐进式加载和跨代理可移植性；它本身不是可执行 Skill。",
+			Category:    "utility", Tags: []string{"agent-skills", "specification"}, Status: "official-specification", VerifiedAt: verified,
+			Permissions: []string{"无；仅规范入口"}, Risks: []string{"兼容格式不等于实现具有相同权限与安全边界"},
+		},
+		{
+			ID: "openai-agent-skills-legacy", Name: "OpenAI Agent Skills（已弃用目录）", Kind: "agent-skill-catalog",
 			Source: "https://github.com/openai/skills", License: "按具体 skill 的 LICENSE.txt", Maintainer: "OpenAI",
-			Description: "官方 Agent Skills 示例与目录。应逐项查看 SKILL.md、脚本和许可证，再决定是否使用。",
-			Category:    "utility", Tags: []string{"agent-skills", "catalog"}, Status: "official-catalog", VerifiedAt: verified,
-			Permissions: []string{"由具体 skill 声明"}, Risks: []string{"目录不是统一许可证", "不得整库自动安装或执行"},
+			Description: "旧版 Codex Skills 目录。上游已明确标为 deprecated，仅用于迁移核对；新接入应查看 openai/plugins。",
+			Category:    "utility", Tags: []string{"agent-skills", "catalog", "deprecated"}, Status: "deprecated-upstream", VerifiedAt: verified,
+			Permissions: []string{"由具体 skill 声明"}, Risks: []string{"上游已停止作为现行入口", "不得把旧目录当作最新来源", "不得整库自动安装或执行"},
 		},
 		{
 			ID: "anthropic-agent-skills", Name: "Anthropic Skills", Kind: "agent-skill-catalog",
@@ -89,6 +103,13 @@ func curatedExternalCatalog() []externalCatalogItem {
 			Category:    "research", Tags: []string{"mcp", "fetch", "research"}, Package: "mcp-server-fetch",
 			Example: "uvx mcp-server-fetch", Status: "official-reference", VerifiedAt: verified,
 			Permissions: []string{"访问网络"}, Risks: []string{"官方明确说明参考服务器不面向生产", "需要 SSRF、来源可信度和内容注入防护"},
+		},
+		{
+			ID: "openai-remotion-plugin", Name: "OpenAI Remotion Plugin 示例", Kind: "codex-plugin",
+			Source: "https://github.com/openai/plugins/tree/main/plugins/remotion", License: "按插件目录及其依赖分别检查", Maintainer: "OpenAI",
+			Description: "把视频创作工作流封装为 Codex Plugin / Skill 的现行官方示例，可用于研究从脚本、素材到程序化视频的能力边界。",
+			Category:    "media", Tags: []string{"codex", "plugin", "remotion", "video"}, Status: "official-example", VerifiedAt: verified,
+			Permissions: []string{"读取项目和素材", "执行 Node / Remotion 工具链", "写入渲染产物"}, Risks: []string{"只是设计参考，Writing Workshop 尚未执行它", "依赖执行与素材读写必须进入隔离沙箱", "接入前固定依赖并核对许可证"},
 		},
 		{
 			ID: "openwriter", Name: "OpenWriter", Kind: "mcp-writing-app",

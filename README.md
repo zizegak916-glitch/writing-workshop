@@ -115,7 +115,7 @@ Writing Workshop 明确区分两类 Skill：
 
 能力清单不是任意远程代码执行入口。仓库当前只登记、校验和组合 manifest；第三方代码必须经过未来的沙箱执行器才允许运行。
 
-能力后台的“公开能力目录”包含官方或可核验上游入口、许可证提示、权限和风险。`POST /api/external-catalog` 只把选中条目登记为 `enabled=false` 的 `external:*` 元数据；后端会拒绝启用或运行这种入口。它用于审查和规划接入，不是假装已经完成第三方 Skill 沙箱。
+能力后台的“公开能力目录”包含官方或可核验上游入口、许可证提示、权限和风险。目录以现行 `openai/plugins`、Agent Skills 开放标准、Anthropic Skills、SkillPort 和 MCP 官方来源为主；已弃用的 `openai/skills` 只保留迁移警告。`POST /api/external-catalog` 只把选中条目登记为 `enabled=false` 的 `external:*` 元数据；后端会拒绝启用或运行这种入口。它用于审查和规划接入，不是假装已经完成第三方 Skill 沙箱。
 
 最小 manifest：
 
