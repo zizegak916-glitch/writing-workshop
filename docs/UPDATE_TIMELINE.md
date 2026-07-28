@@ -1,6 +1,6 @@
 # Writing Workshop 更新时间线
 
-> 状态：现行产品事实账本。更新时间统一使用 UTC+8；提交、CI、Pages 和公开页面证据必须能相互对应。最后同步：2026-07-26 14:30 UTC+8。
+> 状态：现行产品事实账本。更新时间统一使用 UTC+8；提交、CI、Pages 和公开页面证据必须能相互对应。最后同步：2026-07-28 23:53 UTC+8。
 
 这份时间线只记录已经发生且可验证的产品事件，不用计划代替完成。详细功能说明仍以对应文档和代码为准；机器可读证据见 [`RELEASE_EVIDENCE.json`](RELEASE_EVIDENCE.json)。
 
@@ -40,6 +40,13 @@
 |---|---|---|---|
 | 14:20 | 建立唯一工作台前端入口并删除未引用副本；上线桌面/移动项目笔记、v4 项目包、分类修改、显式后端导入与全 AI 写入快照；清除浏览器遗留 Key；加固 JSON / 文件导入；加入 Playwright 产品测试 | [`5ea9f26`](https://github.com/zizegak916-glitch/writing-workshop/commit/5ea9f26786eb8fe7c7127ae13b8f39a4b959b968) | 隔离 Go 1.25.5 环境下 `make check` 通过：Go test、vet、build、全量 JS 语法、静态产品契约和服务 smoke；本地 HTTP 检查 9 个页面/API/资源均为 200，拼接双 JSON 返回 400。当前容器禁止 Chromium 单例 socket，不把浏览器测试写成已在本地通过 |
 | 14:30 | 修正浏览器测试等待 IndexedDB 笔记激活的竞态并完成发布验收 | [`10d3a2a`](https://github.com/zizegak916-glitch/writing-workshop/commit/10d3a2a7549c80e2dc64cd7000bb3d1563c15606) | [CI 30191114231](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/30191114231)、[Pages 30191114238](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/30191114238) 均为 `success`；CI 的真实 Chromium 已通过桌面项目、遗留 Key 清除、笔记持久化、安全导入预览、上下文用量和移动端笔记烟雾测试。公开 `app.html`、CSS、JS、SVG、首页与教程均为 HTTP 200 且 SHA-256 与本地一致 |
+
+## 2026-07-28：可信闭环与外部能力目录
+
+| 时间 | 事件 | Git 痕迹 | 验证 |
+|---|---|---|---|
+| 23:47 | 将维护重点收回到“生成候选 → 人工确认 → 安全写入”：补齐 v1–v3 项目包迁移、候选错文档拦截、刷新后候选恢复、写入前快照恢复；加入 OpenAI-compatible / Anthropic 本地模拟协议测试；增加公开 Agent Skills / MCP 来源目录，但只登记元数据，不执行第三方代码 | [`e86912b`](https://github.com/zizegak916-glitch/writing-workshop/commit/e86912bf6304f887ec6d18187f31b26027c4316e) | 首轮 [CI 30375060458](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/30375060458) 的 Playwright 在流程页检查助手预算时失败，Pages 成功；失败没有被写成通过 |
+| 23:53 | 修正浏览器验收步骤，回到“助手”页后再检查桌面上下文预算 | [`3d5319d`](https://github.com/zizegak916-glitch/writing-workshop/commit/3d5319d5f125fdbd8795eb04925c083600359608) | [CI 30375358854](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/30375358854) 与 [Pages 30375358581](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/30375358581) 均为 `success`；Go test、vet、构建、格式、JS、静态契约、离线服务及真实 Chromium 产品烟雾测试全部通过。Pages 的工作台、教程和后台均为 HTTP 200，且 SHA-256 与当前源文件一致 |
 
 ## Prompt Skill 验证账
 

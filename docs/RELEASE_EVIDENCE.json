@@ -1,14 +1,14 @@
 {
   "schema": "writing-workshop/release-evidence",
   "version": 1,
-  "updated_at": "2026-07-26T06:30:52Z",
+  "updated_at": "2026-07-28T15:53:28Z",
   "timezone_for_timeline": "UTC+8",
   "repository": "https://github.com/zizegak916-glitch/writing-workshop",
   "public_pages": "https://zizegak916-glitch.github.io/writing-workshop/",
   "default_branch": "main",
   "license": "Apache-2.0",
   "metrics_snapshot": {
-    "captured_at": "2026-07-22T17:04:25Z",
+    "captured_at": "2026-07-28T15:53:28Z",
     "stars": 1,
     "forks": 0,
     "open_issues": 0,
@@ -16,6 +16,26 @@
     "source": "GitHub repository API"
   },
   "verified_releases": [
+    {
+      "commit": "3d5319d5f125fdbd8795eb04925c083600359608",
+      "summary": "Core-loop candidate recovery, v1-v3 project migration, local provider contracts and metadata-only external Agent Skills/MCP catalog",
+      "ci_run": 30375358854,
+      "pages_run": 30375358581,
+      "ci_conclusion": "success",
+      "pages_conclusion": "success",
+      "live_checks": [
+        "CI passed Go formatting, Go tests, vet, release build, JavaScript syntax, static product contract, offline server smoke and Chromium Playwright product smoke",
+        "Chromium covered v1-v3 to v4 project migration, candidate generation, wrong-document write blocking, candidate recovery after reload and pre-write snapshot restoration",
+        "Local provider contract tests covered OpenAI-compatible and Anthropic request/response translation without claiming real paid-provider connectivity",
+        "Public Pages app, product guide and admin console returned HTTP 200 and matched the current source SHA-256 values",
+        "The external catalog registered MCP Filesystem as a disabled metadata-only capability and rejected execution"
+      ],
+      "sha256": {
+        "web/static/app.html": "754550629f32bddb223ab76aafb2a8e802a4fefb14740d9f7e39aad003c01f3a",
+        "web/static/docs.html": "90369e5013c1ca96bd833a0e7124361076bb976a3cc6eeaa3e9675ba88ffa795",
+        "web/static/admin.html": "646ef24b8efea500cf32553ec704d279c525247179b5999012dafbc0956da8ee"
+      }
+    },
     {
       "commit": "10d3a2a7549c80e2dc64cd7000bb3d1563c15606",
       "summary": "Canonical local-first workbench, project notes and v4 bundles, safer AI writes, browser secret migration and product-level browser tests",
@@ -123,6 +143,9 @@
   "truth_boundaries": [
     "GitHub Pages is the formal public static deployment, not an OpenAI Sites preview.",
     "Browser-local features are usable on Pages; model execution requires an actually available API endpoint.",
+    "The external catalog only registers disabled metadata; third-party Skill and MCP execution is not implemented.",
+    "Local provider mock tests verify protocol translation, not live provider availability, latency or billing behavior.",
+    "Repository CI and this evidence file are maintainer-run checks, not independent third-party validation.",
     "Metrics are point-in-time facts and must be refreshed before an application is submitted.",
     "This file records verified evidence and is not an acceptance or program-eligibility claim."
   ]
