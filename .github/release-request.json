@@ -1,5 +1,5 @@
 {
-  "version": "v0.2.2",
-  "requested_at": "2026-07-28T16:09:00Z",
-  "reason": "Correct the external catalog to the current OpenAI Plugins source and retain the legacy skills catalog only as a deprecation reference."
+  "version": "v0.2.3",
+  "requested_at": "2026-07-28T17:23:00Z",
+  "reason": "Restore GitHub Pages browser-local BYOK custom API configuration and direct model requests, fix the static /api/config HTTP 405 regression, and preserve self-hosted backend key custody."
 }
