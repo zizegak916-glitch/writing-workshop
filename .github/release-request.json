@@ -1,5 +1,5 @@
 {
-  "version": "v0.2.1",
-  "requested_at": "2026-07-28T15:55:00Z",
-  "reason": "First downloadable maintenance release after the verified core-loop recovery pass."
+  "version": "v0.2.2",
+  "requested_at": "2026-07-28T16:09:00Z",
+  "reason": "Correct the external catalog to the current OpenAI Plugins source and retain the legacy skills catalog only as a deprecation reference."
 }

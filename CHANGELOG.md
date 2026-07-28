@@ -1,6 +1,6 @@
 # Changelog
 
-## 2026-07-28 — 外部目录来源校正
+## v0.2.2 — 2026-07-28 — 外部目录来源校正
 
 - 将已经由上游标为 deprecated 的 `openai/skills` 从现行入口改为迁移参考。
 - 增加当前维护的 `openai/plugins`、Agent Skills 开放标准和 OpenAI Remotion Plugin 示例。
