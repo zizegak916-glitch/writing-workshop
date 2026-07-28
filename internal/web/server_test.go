@@ -309,6 +309,145 @@ func TestSkillPackRejectsUnknownSkill(t *testing.T) {
 	}
 }
 
+func TestExternalCatalogImportsMetadataOnly(t *testing.T) {
+	_, mux := newTestServer(t)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/external-catalog", nil)
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("GET external catalog status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	for _, want := range []string{`"execution_policy":"metadata-only"`, `"mcp-filesystem"`, `"openai-agent-skills"`} {
+		if !strings.Contains(rec.Body.String(), want) {
+			t.Fatalf("external catalog missing %q: %s", want, rec.Body.String())
+		}
+	}
+
+	req = httptest.NewRequest(http.MethodPost, "/api/external-catalog", bytes.NewBufferString(`{"id":"mcp-filesystem"}`))
+	rec = httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("POST external catalog status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	var imported struct {
+		Imported   bool               `json:"imported"`
+		Capability capabilityManifest `json:"capability"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &imported); err != nil {
+		t.Fatalf("decode external import: %v", err)
+	}
+	if !imported.Imported || imported.Capability.Enabled || imported.Capability.Entry != "external:mcp-server" {
+		t.Fatalf("external import must be disabled metadata: %#v", imported)
+	}
+
+	runBody := bytes.NewBufferString(`{
+		"skill_ids":["external-mcp-filesystem"],
+		"task":"echo",
+		"context":{"selection":"must not run"}
+	}`)
+	req = httptest.NewRequest(http.MethodPost, "/api/run", runBody)
+	rec = httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+	if rec.Code != http.StatusBadRequest || !strings.Contains(rec.Body.String(), "disabled") {
+		t.Fatalf("external metadata unexpectedly ran: status=%d body=%s", rec.Code, rec.Body.String())
+	}
+
+	req = httptest.NewRequest(http.MethodPost, "/api/capabilities", bytes.NewBufferString(`{
+		"id":"unsafe-external",
+		"name":"unsafe",
+		"type":"skill",
+		"version":"upstream",
+		"source":"https://example.com/source",
+		"license":"MIT",
+		"entry":"external:mcp-server",
+		"output":"external",
+		"enabled":true
+	}`))
+	rec = httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+	if rec.Code != http.StatusBadRequest || !strings.Contains(rec.Body.String(), "metadata-only") {
+		t.Fatalf("enabled external entry must be rejected: status=%d body=%s", rec.Code, rec.Body.String())
+	}
+}
+
+func TestAIProviderContractsWithLocalMocks(t *testing.T) {
+	tests := []struct {
+		name         string
+		providerType string
+		model        string
+		response     string
+		wantPath     string
+	}{
+		{
+			name: "openai", providerType: "openai", model: "contract-gpt",
+			response: `{"id":"chatcmpl-contract","object":"chat.completion","model":"contract-gpt","choices":[{"index":0,"message":{"role":"assistant","content":"openai contract ok"},"finish_reason":"stop"}],"usage":{"prompt_tokens":4,"completion_tokens":3,"total_tokens":7}}`,
+			wantPath: "chat/completions",
+		},
+		{
+			name: "anthropic", providerType: "anthropic", model: "contract-claude",
+			response: `{"id":"msg_contract","type":"message","role":"assistant","model":"contract-claude","content":[{"type":"text","text":"anthropic contract ok"}],"stop_reason":"end_turn","usage":{"input_tokens":4,"output_tokens":3}}`,
+			wantPath: "messages",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var gotPath string
+			var gotBody map[string]any
+			upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				gotPath = r.URL.Path
+				if err := json.NewDecoder(r.Body).Decode(&gotBody); err != nil {
+					t.Errorf("decode upstream request: %v", err)
+				}
+				w.Header().Set("Content-Type", "application/json")
+				_, _ = w.Write([]byte(tt.response))
+			}))
+			defer upstream.Close()
+
+			cfg := bootstrap.Config{
+				OutputDir: t.TempDir(),
+				Provider:  tt.name,
+				ModelName: tt.model,
+				Providers: map[string]bootstrap.ProviderConfig{
+					tt.name: {
+						Type:    tt.providerType,
+						APIKey:  "contract-key",
+						BaseURL: upstream.URL + "/v1",
+						Models:  []string{tt.model},
+					},
+				},
+				Style: "default",
+			}
+			h, err := host.New(cfg, assets.Load(cfg.Style))
+			if err != nil {
+				t.Fatalf("host.New: %v", err)
+			}
+			defer h.Close()
+			s := NewServer(h, "127.0.0.1:0")
+			mux := http.NewServeMux()
+			s.routes(mux)
+
+			req := httptest.NewRequest(http.MethodPost, "/api/ai", bytes.NewBufferString(
+				`{"provider":"`+tt.name+`","model":"`+tt.model+`","message":"contract request"}`,
+			))
+			rec := httptest.NewRecorder()
+			mux.ServeHTTP(rec, req)
+			if rec.Code != http.StatusOK {
+				t.Fatalf("POST /api/ai status=%d body=%s upstream_path=%s", rec.Code, rec.Body.String(), gotPath)
+			}
+			if !strings.Contains(gotPath, tt.wantPath) {
+				t.Fatalf("upstream path=%q, want to contain %q", gotPath, tt.wantPath)
+			}
+			if gotBody["model"] != tt.model {
+				t.Fatalf("upstream model=%v, want %q; body=%#v", gotBody["model"], tt.model, gotBody)
+			}
+			if !strings.Contains(rec.Body.String(), tt.name+" contract ok") {
+				t.Fatalf("proxy response missing upstream content: %s", rec.Body.String())
+			}
+		})
+	}
+}
+
 func newTestServer(t *testing.T) (*Server, http.Handler) {
 	t.Helper()
 	cfg := bootstrap.Config{

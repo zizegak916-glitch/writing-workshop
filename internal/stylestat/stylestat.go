@@ -2,7 +2,7 @@
 //
 // 动机：弧内评审窗口（~10 章）对全书级模式固化天然失明——句式 tic 章均几十次、
 // 章末形态同构、跨章复读，单章看每处都"正常"，只有全书统计能暴露。统计归代码
-//（确定性、零幻觉），裁定归 LLM（editor 按数字判维度分，writer 据此自避免）。
+// （确定性、零幻觉），裁定归 LLM（editor 按数字判维度分，writer 据此自避免）。
 package stylestat
 
 import (
@@ -200,7 +200,7 @@ func validGram(gram []rune) bool {
 }
 
 // stopwordBigrams 把专有名词拆成 2 字片段：人名常以部分形式入文
-//（"九渊负手"含"九渊"），按整名匹配会漏网。宁可过滤偏严——短语事实少一条
+// （"九渊负手"含"九渊"），按整名匹配会漏网。宁可过滤偏严——短语事实少一条
 // 无碍，人名混进口头禅清单才是噪声。
 func stopwordBigrams(stopwords []string) []string {
 	var grams []string

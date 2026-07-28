@@ -1,0 +1,71 @@
+name: 7-day writing field test
+description: Report a real week-long writing session without sharing private manuscript text.
+title: "[Field test]: "
+labels: [validation]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This form is for third-party use evidence, not praise. Please report what actually worked, failed, or caused hesitation. Remove API keys, private manuscript text, and provider billing details.
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+      placeholder: v0.2.1 or commit SHA
+    validations:
+      required: true
+  - type: dropdown
+    id: deployment
+    attributes:
+      label: Deployment
+      options:
+        - Docker self-hosted
+        - Local Go binary
+        - GitHub Pages local-only mode
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: goal
+    attributes:
+      label: Real writing goal
+      description: Describe the kind of chapter or document and the intended workflow. Do not paste the manuscript.
+    validations:
+      required: true
+  - type: input
+    id: repetitions
+    attributes:
+      label: Completed core-loop runs
+      description: Approximate count of context selection → execution → candidate review → confirmed write.
+      placeholder: "37"
+    validations:
+      required: true
+  - type: checkboxes
+    id: data
+    attributes:
+      label: Data integrity
+      options:
+        - label: Project reopened after browser or server restart.
+        - label: A v4 export was created and imported into a clean browser profile.
+        - label: Candidate history was reopened and the pre-write snapshot was restored.
+  - type: textarea
+    id: blockers
+    attributes:
+      label: Failures, confusion, or missing steps
+      description: Give the smallest reproducible sequence and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Outcome after seven days
+      description: State whether you finished the planned work and whether any data was lost or corrupted.
+    validations:
+      required: true
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Privacy check
+      options:
+        - label: I removed secrets, private manuscript text, and personally identifying provider data.
+          required: true

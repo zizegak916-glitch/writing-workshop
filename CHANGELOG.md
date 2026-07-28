@@ -4,6 +4,16 @@ All notable Writing Workshop changes are recorded here. The project follows Sema
 
 ## Unreleased
 
+### 2026-07-28 credibility and recovery pass
+
+- Added explicit v1-v3 to v4 browser bundle migration with regression fixtures for chapters, legacy memories, categories and Prompt Skill overrides.
+- Bound workflow history candidates and pre-write snapshots to their original project and document; recovered candidates are read-only in the wrong document instead of being inserted or appended at an unrelated cursor.
+- Expanded the Playwright product path to cover local execution, candidate review, wrong-document blocking, confirmed write, reload recovery and pre-write restoration.
+- Added local mock contracts for OpenAI-compatible and Anthropic provider requests without using paid credentials.
+- Added a reviewed Agent Skills / MCP source catalog. Importing an entry stores disabled metadata only; `external:*` entries cannot be enabled or executed.
+- Added repository-wide `gofmt` enforcement and formatted the existing Go source set.
+- Added a seven-day field-test issue form so independent users can report completed core-loop runs, migration results and data-integrity failures without sharing manuscripts.
+
 ### 2026-07-26 product integrity pass
 
 - Split the historical all-in-one workbench into one canonical `main.css` and `workbench.js`, removed unused duplicate frontend modules, and added a static contract that rejects inline regressions, orphan assets and duplicate core functions.

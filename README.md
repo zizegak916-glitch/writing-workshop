@@ -3,7 +3,7 @@
 [![CI](https://github.com/zizegak916-glitch/writing-workshop/actions/workflows/ci.yml/badge.svg)](https://github.com/zizegak916-glitch/writing-workshop/actions/workflows/ci.yml)
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-black.svg)](LICENSE)
 
-> 文档与验证证据最后同步：2026-07-26（UTC+8）。完整演进记录见 [更新时间线](docs/UPDATE_TIMELINE.md)，机器可读证据见 [RELEASE_EVIDENCE.json](docs/RELEASE_EVIDENCE.json)。
+> 用户文档最后同步：2026-07-28（UTC+8）。完整演进记录见 [更新时间线](docs/UPDATE_TIMELINE.md)；自审记录不能替代第三方使用反馈。
 
 一个本地优先、可审计的长篇写作工作台。它把“选哪些上下文、运行哪些 Skill、结果写到哪里”变成显式操作：AI 只生成候选，作者确认后才写入正文或记忆。
 
@@ -29,6 +29,7 @@
 - 搜索、筛选、重命名、复制、分类、导出和删除浏览器本地项目；自定义分类可修改名称、范围和颜色，也可用于写作记忆。
 - 候选结果与正文分离；替换、插入、追加、写入记忆均需独立确认。
 - 保存写入前快照和流程历史，避免 AI 输出静默覆盖创作内容。
+- 在能力后台查看经过来源、许可证与权限初筛的 Agent Skills / MCP 公开目录；登记只生成停用元数据，不下载、不安装、不执行第三方代码。
 - 在无 API Key 模式下运行本地链路测试和大纲拆分；需要模型时再配置 OpenAI 兼容服务、OpenRouter、Ollama 等后端。
 
 ## 60 秒启动
@@ -92,7 +93,7 @@ flowchart LR
 |---|---|
 | `index.html` | 产品说明、运行模式和 60 秒启动入口 |
 | `app.html` | 项目、章节、大纲、人物、笔记、记忆、分类、导入导出、多 Skill 与候选写入 |
-| `admin.html` | Provider、Model、Base URL、API Key、项目、规则、能力、技能包、分类与 API 调试 |
+| `admin.html` | Provider、Model、Base URL、API Key、项目、规则、能力、公开 Agent Skills / MCP 目录、技能包、分类与 API 调试 |
 | `docs.html` | 从 Pages 在线版 / 后端增强模式到 CORS、Skill 与故障排查的完整教程 |
 
 代码、文档、CI、Pages 与公开实测的对应关系见 [更新时间线](docs/UPDATE_TIMELINE.md)，避免只凭截图、文件名或聊天记录判断功能是否已经上线。
@@ -113,6 +114,8 @@ Writing Workshop 明确区分两类 Skill：
 修改浏览器 Prompt Skill 不会改变内置源文件，也不会把提示词显示在正文或结果中。额外指令仍会附加在所选 Skill 之后，因此一次请求的实际顺序是“功能 Prompt Skill → 当前文本 → 输出长度/创意要求 → 项目上下文 → 作者额外指令”。
 
 能力清单不是任意远程代码执行入口。仓库当前只登记、校验和组合 manifest；第三方代码必须经过未来的沙箱执行器才允许运行。
+
+能力后台的“公开能力目录”包含官方或可核验上游入口、许可证提示、权限和风险。`POST /api/external-catalog` 只把选中条目登记为 `enabled=false` 的 `external:*` 元数据；后端会拒绝启用或运行这种入口。它用于审查和规划接入，不是假装已经完成第三方 Skill 沙箱。
 
 最小 manifest：
 
@@ -168,9 +171,19 @@ docs/               协议、来源与设计说明
 
 - `v0.1`：无密钥启动、显式上下文包、候选确认、Skill manifest、CI 与跨平台发布。
 - `v0.2`：项目导入/导出包 v4 已覆盖项目、章节、大纲、人物、笔记、记忆、自定义分类与浏览器 Prompt Skill 覆盖值；Playwright 产品烟雾测试已进入 CI。
+- `v0.2.1`：稳定性维护版；补旧项目包迁移、候选历史恢复、跨文档写入保护、OpenAI/Anthropic 本地模拟契约和 Go 格式门禁。
 - `v0.3`：最小权限的本地 Skill 沙箱与增量资料摄取。
 
 公开任务请使用 [GitHub Issues](https://github.com/zizegak916-glitch/writing-workshop/issues)。提交代码前阅读 [CONTRIBUTING.md](CONTRIBUTING.md)。
+
+## 当前验证边界
+
+- 仓库有 65 个 Go `_test.go` 文件，覆盖后端多个包；这不等于“核心业务 100% 单元测试覆盖”，仓库目前没有发布覆盖率数字。
+- Playwright 验证项目/笔记持久化、v1-v3 → v4 迁移、候选生成/确认写入/刷新恢复/写入前恢复、跨文档保护、导入预览安全、上下文预算和移动端入口；它仍不是像素级 UI 回归测试。
+- OpenAI 与 Anthropic 适配在 CI 中使用本地模拟服务校验请求/响应契约，不消耗真实密钥，也不能替代各供应商生产网络的兼容性测试。
+- 第三方用户数、连续一周使用和数据完整性仍缺独立证据。愿意测试者可提交 [7 天真实写作反馈](https://github.com/zizegak916-glitch/writing-workshop/issues/new?template=field-test.yml)，不需要提供私稿。
+
+[Releases](https://github.com/zizegak916-glitch/writing-workshop/releases) 提供版本化二进制与校验和；从源码或 Docker 使用仍然受支持。
 
 维护者社区账号：[Linux DO · The_Fo0l](https://linux.do/u/The_Fo0l)。
 

@@ -76,6 +76,76 @@ try {
   await page.waitForFunction(() => document.getElementById('currentProjectName')?.textContent === '浏览器验收项目');
   await page.locator('.nav-tab', { hasText: '笔记' }).click();
   await page.waitForFunction(() => document.querySelector('#noteList .oi-text')?.textContent === '设定核对');
+  await page.locator('#noteList .outline-item', { hasText: '设定核对' }).click();
+
+  const migrations = await page.evaluate(() => {
+    const fixtures = [
+      { version: 1, project: { name: 'v1' }, chapters: [{ title: '旧章', content: '旧正文' }] },
+      { version: 2, project: { name: 'v2' }, aiMemories: [{ content: '旧记忆' }] },
+      {
+        version: 3,
+        project: { name: 'v3', category_ids: ['history'] },
+        custom_categories: [{ id: 'history', name: '考据' }],
+        promptSkills: { overrides: { '润色': { prompt: '保留事实' } } }
+      }
+    ];
+    return fixtures.map(fixture => {
+      const migrated = validateProjectBundle(fixture);
+      return {
+        version: migrated.version,
+        sourceVersion: migrated.source_version,
+        chapters: migrated.chapters.length,
+        memories: migrated.memories.length,
+        categories: migrated.categories.length,
+        prompt: migrated.prompt_skills?.overrides?.['润色']?.prompt || '',
+        notes: migrated.notes.length
+      };
+    });
+  });
+  assert.deepEqual(migrations, [
+    { version: 4, sourceVersion: 1, chapters: 1, memories: 0, categories: 0, prompt: '', notes: 0 },
+    { version: 4, sourceVersion: 2, chapters: 0, memories: 1, categories: 0, prompt: '', notes: 0 },
+    { version: 4, sourceVersion: 3, chapters: 0, memories: 0, categories: 1, prompt: '保留事实', notes: 0 }
+  ]);
+
+  await page.locator('.workflow-tab').click();
+  await page.waitForFunction(() => document.getElementById('workflowStatus')?.textContent === '后端已连接');
+  await page.locator('#workflowTaskType').selectOption('echo');
+  await page.locator('#workflowTaskPrompt').fill('验证候选必须先审阅，再由用户确认写入。');
+  await page.locator('#workflowRunBtn').click();
+  await page.waitForFunction(() => document.getElementById('workflowStatus')?.textContent === '候选已生成');
+  const candidateText = await page.locator('#workflowCandidate').textContent();
+  assert.match(candidateText, /验证候选必须先审阅/);
+
+  await page.locator('.nav-tab', { hasText: '大纲' }).click();
+  await page.locator('#outlineList .outline-item').first().click();
+  const outlineBeforeWrongApply = await page.locator('#mainEditor').inputValue();
+  await page.locator('#workflowApplyMode').selectOption('append');
+  await page.locator('#workflowApplyBtn').click();
+  assert.equal(await page.locator('#mainEditor').inputValue(), outlineBeforeWrongApply, 'candidate must not write into another document');
+
+  await page.locator('.nav-tab', { hasText: '笔记' }).click();
+  await page.locator('#noteList .outline-item', { hasText: '设定核对' }).click();
+  const noteBeforeApply = await page.locator('#mainEditor').inputValue();
+  await page.locator('#workflowApplyBtn').click();
+  await page.waitForFunction(before => document.getElementById('mainEditor')?.value !== before, noteBeforeApply);
+  assert.match(await page.locator('#mainEditor').inputValue(), /验证候选必须先审阅/);
+  await page.locator('#saveBtn').click();
+
+  await page.reload({ waitUntil: 'networkidle' });
+  await page.waitForFunction(() => document.getElementById('currentProjectName')?.textContent === '浏览器验收项目');
+  await page.locator('.nav-tab', { hasText: '笔记' }).click();
+  await page.locator('#noteList .outline-item', { hasText: '设定核对' }).click();
+  await page.locator('.workflow-tab').click();
+  await page.waitForFunction(() => document.querySelector('#workflowHistory .workflow-history-item'));
+  await page.locator('#workflowHistory .workflow-history-item', { hasText: '流程 · echo' }).first().getByRole('button', { name: '查看候选' }).click();
+  await page.waitForFunction(() => document.getElementById('workflowCandidateMeta')?.textContent.includes('已定位原文档'));
+  assert.match(await page.locator('#workflowCandidate').textContent(), /验证候选必须先审阅/);
+
+  page.once('dialog', dialog => dialog.accept());
+  await page.locator('#workflowHistory .workflow-history-item', { hasText: '流程 · echo' }).first().getByRole('button', { name: '恢复写入前' }).click();
+  await page.waitForFunction(before => document.getElementById('mainEditor')?.value === before, noteBeforeApply);
+  assert.equal(await page.locator('#mainEditor').inputValue(), noteBeforeApply);
 
   await page.evaluate(() => showImportPreview({
     name: '安全预览',
@@ -89,6 +159,23 @@ try {
   assert.match(await page.locator('#ctxText').textContent(), /tokens/);
   assert.deepEqual(errors, [], `desktop browser errors:\n${errors.join('\n')}`);
 
+  const adminPage = await desktop.newPage();
+  const adminErrors = await collectErrors(adminPage);
+  await adminPage.goto(`${baseURL}/admin.html`, { waitUntil: 'networkidle' });
+  await adminPage.waitForFunction(() => document.getElementById('apiStatus')?.textContent === '后端已连接');
+  await adminPage.getByRole('button', { name: '公开能力目录' }).click();
+  await adminPage.waitForFunction(() => document.querySelectorAll('#externalCatalogList .list-item').length >= 8);
+  const filesystemSource = adminPage.locator('#externalCatalogList .list-item', { hasText: 'MCP Filesystem' });
+  await filesystemSource.getByRole('button', { name: '登记元数据' }).click();
+  await adminPage.waitForFunction(() => document.getElementById('externalMsg')?.textContent.includes('没有下载或执行'));
+  const externalCapability = await adminPage.evaluate(async () => {
+    const data = await fetch('/api/capabilities').then(response => response.json());
+    return data.capabilities.find(item => item.id === 'external-mcp-filesystem');
+  });
+  assert.equal(externalCapability.enabled, false);
+  assert.equal(externalCapability.entry, 'external:mcp-server');
+  assert.deepEqual(adminErrors, [], `admin browser errors:\n${adminErrors.join('\n')}`);
+
   const mobilePage = await desktop.newPage();
   await mobilePage.setViewportSize({ width: 390, height: 844 });
   const mobileErrors = await collectErrors(mobilePage);
@@ -100,7 +187,7 @@ try {
   assert.deepEqual(mobileErrors, [], `mobile browser errors:\n${mobileErrors.join('\n')}`);
 
   await desktop.close();
-  console.log('Browser smoke OK: desktop project/notes/import/context and mobile notes navigation.');
+  console.log('Browser smoke OK: v1-v3 migration, guarded candidate recovery, desktop project/notes/import/context and mobile notes navigation.');
 } finally {
   await browser.close();
 }

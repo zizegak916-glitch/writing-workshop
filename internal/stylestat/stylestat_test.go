@@ -27,9 +27,9 @@ func TestComputePatterns(t *testing.T) {
 		t.Fatal("expected stats")
 	}
 	want := map[string]int{
-		"矫正句『不是…(而)是…』":          6,
-		"计时量词『X息/X瞬』":            6,
-		"明喻『像一/仿佛/如同/宛如』":        6,
+		"矫正句『不是…(而)是…』":       6,
+		"计时量词『X息/X瞬』":         6,
+		"明喻『像一/仿佛/如同/宛如』":     6,
 		"沉默节拍『沉默了/没有说话/没有回头』": 6,
 	}
 	for _, p := range s.Patterns {

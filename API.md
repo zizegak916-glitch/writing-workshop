@@ -63,6 +63,8 @@
 - `GET /api/capabilities`：列出可用后端项目、skill、规则包和来源状态。
 - `POST /api/capabilities`：保存 GitHub 链接、manifest 或本地能力文件。
 - `DELETE /api/capabilities?id=...`：删除用户保存的能力。
+- `GET /api/external-catalog`：列出经过初筛的 Agent Skills / MCP 上游来源与风险。
+- `POST /api/external-catalog`：把一个目录条目登记为停用元数据；不下载、不安装、不执行。
 - `GET/POST/PUT/DELETE /api/skill-packs`：列出、保存、更新或删除技能包。
 - `GET/POST/PUT/DELETE /api/categories`：列出、保存、更新或删除分类。
 - `POST /api/run`：执行选中的后端项目或多个 skill。
@@ -155,6 +157,18 @@
 `DELETE /api/categories?id=...` 只删除用户分类，不会悄悄改写已有记录中的分类 ID。客户端应在删除前提示这一边界。
 
 当前 `/api/run` 已支持内置 `echo`、`outline`、`rewrite`、`ai/generate` 任务。`ai/generate` 和 `rewrite` 的 AI 模式会调用当前配置的 LLM provider；未配置 provider 时，`rewrite` 会返回本地链路验证结果。请求显式选择的 skill/prompt 会把其 `instructions`（或可见 `steps`）组合到本次模型输入中；后端和项目类型只负责执行路由，不会被当成提示词。保存第三方 GitHub 项目或 skill manifest 只负责登记和校验，不会直接执行任意仓库代码。
+
+外部目录导入示例：
+
+```bash
+curl http://127.0.0.1:8080/api/external-catalog
+
+curl -X POST http://127.0.0.1:8080/api/external-catalog \
+  -H 'content-type: application/json' \
+  -d '{"id":"mcp-filesystem"}'
+```
+
+返回的 capability 使用 `entry: "external:mcp-server"` 与 `enabled: false`。这种记录不能通过 `/api/run` 执行，也不能改成启用状态；它只是来源、许可证、权限和风险的审查记录。
 
 ## AI
 

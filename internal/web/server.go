@@ -98,6 +98,8 @@ func (s *Server) routes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/capabilities", s.handleCapabilities)
 	mux.HandleFunc("PUT /api/capabilities", s.handleCapabilities)
 	mux.HandleFunc("DELETE /api/capabilities", s.handleCapabilities)
+	mux.HandleFunc("GET /api/external-catalog", s.handleExternalCatalog)
+	mux.HandleFunc("POST /api/external-catalog", s.handleExternalCatalog)
 	mux.HandleFunc("GET /api/skill-packs", s.handleSkillPacks)
 	mux.HandleFunc("POST /api/skill-packs", s.handleSkillPacks)
 	mux.HandleFunc("PUT /api/skill-packs", s.handleSkillPacks)

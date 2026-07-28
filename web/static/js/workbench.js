@@ -2295,13 +2295,30 @@ const MAX_IMPORT_FILE_BYTES=25*1024*1024;
 const MAX_IMPORT_TOTAL_BYTES=100*1024*1024;
 const MAX_DOCX_TEXT_BYTES=40*1024*1024;
 const MAX_PROJECT_BUNDLE_ENTRIES=20000;
+function migrateProjectBundle(data){
+  if(!data||typeof data!=='object'||Array.isArray(data))throw new Error('无效的项目备份');
+  const sourceVersion=Number.isInteger(Number(data.version))?Number(data.version):1;
+  if(sourceVersion<1||sourceVersion>4)throw new Error('不支持的项目备份版本: '+String(data.version));
+  const migrated={...data};
+  migrated.version=4;
+  migrated.source_version=sourceVersion;
+  migrated.outlines=Array.isArray(data.outlines)?data.outlines:[];
+  migrated.characters=Array.isArray(data.characters)?data.characters:[];
+  migrated.chapters=Array.isArray(data.chapters)?data.chapters:[];
+  migrated.notes=Array.isArray(data.notes)?data.notes:[];
+  migrated.memories=Array.isArray(data.memories)?data.memories:(Array.isArray(data.aiMemories)?data.aiMemories:[]);
+  migrated.categories=Array.isArray(data.categories)?data.categories:(Array.isArray(data.custom_categories)?data.custom_categories:[]);
+  migrated.prompt_skills=data.prompt_skills||data.promptSkills||null;
+  return migrated;
+}
 function validateProjectBundle(data){
-  if(!data||typeof data!=='object'||Array.isArray(data)||!data.project||typeof data.project!=='object'||Array.isArray(data.project))throw new Error('无效的项目备份');
+  data=migrateProjectBundle(data);
+  if(!data.project||typeof data.project!=='object'||Array.isArray(data.project))throw new Error('无效的项目备份');
   const keys=['outlines','characters','chapters','notes','memories','categories'];
   let total=0;
   for(const key of keys){
-    if(data[key]!=null&&!Array.isArray(data[key]))throw new Error('项目备份字段 '+key+' 必须是数组');
-    total+=(data[key]||[]).length;
+    if(!Array.isArray(data[key]))throw new Error('项目备份字段 '+key+' 必须是数组');
+    total+=data[key].length;
   }
   if(total>MAX_PROJECT_BUNDLE_ENTRIES)throw new Error('项目备份条目过多，最多 '+MAX_PROJECT_BUNDLE_ENTRIES+' 条');
   return data;

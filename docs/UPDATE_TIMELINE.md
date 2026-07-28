@@ -54,13 +54,11 @@
 
 ## 文档同步规则
 
-一次影响公开行为、数据格式或安全边界的变更，至少同时更新：
+单人维护阶段改为最小同步，避免文档数量比可验证代码增长更快：
 
-1. `CHANGELOG.md`：面向版本的行为变化。
-2. `docs/UPDATE_TIMELINE.md`：时间、提交、CI、Pages 和实测证据。
-3. `CODE_REVIEW.md`：发现、修复、剩余技术债和未能执行的检查。
-4. 对应契约：`API.md`、`CONFIG.md`、`docs/CAPABILITY_PROTOCOL.md` 或 `SECURITY.md`。
-5. 用户入口：`README.md` 与 `web/static/docs.html`。
-6. 申请证据：只有在出现真实、可公开复核的新证据时才更新 `docs/CODEX_FOR_OSS_APPLICATION.md`。
+1. 每次行为变化更新 `CHANGELOG.md` 和真正受影响的协议/用户入口。
+2. 这份时间线只记录版本发布或安全/数据格式里程碑，不再记录每个小提交。
+3. `CODE_REVIEW.md` 保留为阶段快照，不冒充第三方审计。
+4. `RELEASE_EVIDENCE.json` 与申请材料只在出现已完成的 CI、Release、独立 Issue/PR、真实用户或下游集成证据时更新。
 
 历史引擎文档不追写 Web 产品细节，只维护清晰的状态标签并链接回这份时间线，避免再次把历史层误认成当前执行层。

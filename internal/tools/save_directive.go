@@ -40,7 +40,9 @@ func (t *SaveDirectiveTool) Description() string {
 func (t *SaveDirectiveTool) ReadOnly(_ json.RawMessage) bool        { return false }
 func (t *SaveDirectiveTool) ConcurrencySafe(_ json.RawMessage) bool { return false }
 
-func (t *SaveDirectiveTool) ActivityDescription(_ json.RawMessage) string { return "保存长效指令" }
+func (t *SaveDirectiveTool) ActivityDescription(_ json.RawMessage) string {
+	return "保存长效指令"
+}
 
 func (t *SaveDirectiveTool) Schema() map[string]any {
 	return schema.Object(

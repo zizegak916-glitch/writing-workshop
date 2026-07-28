@@ -506,6 +506,13 @@
     };
   }
 
+  function sameEditorTarget(snapshot) {
+    if (!snapshot || snapshot.projectId == null || snapshot.activeType == null || snapshot.activeId == null) return false;
+    return snapshot.projectId === (typeof S !== 'undefined' && S.proj ? S.proj.project.id : null)
+      && snapshot.activeType === (typeof S !== 'undefined' && S.active ? S.active.type : null)
+      && snapshot.activeId === (typeof S !== 'undefined' && S.active ? S.active.id : null);
+  }
+
   async function run() {
     if (WF.controller) WF.controller.abort();
     if (!WF.backendReady) {
@@ -583,6 +590,9 @@
         selection_start: WF.runSnapshot.selectionStart,
         selection_end: WF.runSnapshot.selectionEnd,
         active_title: WF.runSnapshot.title,
+        project_id: WF.runSnapshot.projectId,
+        active_type: WF.runSnapshot.activeType,
+        active_id: WF.runSnapshot.activeId,
         time: Date.now()
       };
       if (typeof dbPut === 'function' && typeof db !== 'undefined' && db) WF.candidateHistoryId = await dbPut('aiHistory', record);
@@ -638,6 +648,10 @@
 
   async function applyCandidate() {
     if (!WF.candidate || !WF.runSnapshot) return;
+    if (!sameEditorTarget(WF.runSnapshot)) {
+      if (typeof showToast === 'function') showToast('!', '候选属于另一份文档；请返回原文档后再写入');
+      return;
+    }
     const editor = document.getElementById('mainEditor');
     const mode = document.getElementById('workflowApplyMode').value;
     const beforeApply = editor.value;
@@ -717,13 +731,19 @@
       document: item.editor_before_run || '',
       selectionStart: item.selection_start || 0,
       selectionEnd: item.selection_end || 0,
-      title: item.active_title || ''
+      title: item.active_title || '',
+      projectId: item.project_id ?? null,
+      activeType: item.active_type ?? null,
+      activeId: item.active_id ?? null
     };
+    const canApply = Boolean(WF.candidate) && sameEditorTarget(WF.runSnapshot);
     const result = document.getElementById('workflowCandidate');
     result.classList.toggle('empty', !WF.candidate);
     result.textContent = WF.candidate || '此记录没有候选文本。';
-    document.getElementById('workflowCandidateMeta').textContent = `历史候选 · ${new Date(item.time).toLocaleString()}`;
-    document.getElementById('workflowApplyBtn').disabled = !WF.candidate;
+    document.getElementById('workflowCandidateMeta').textContent = canApply
+      ? `历史候选 · ${new Date(item.time).toLocaleString()} · 已定位原文档`
+      : `历史候选 · ${new Date(item.time).toLocaleString()} · 只读，请返回产生它的原文档`;
+    document.getElementById('workflowApplyBtn').disabled = !canApply;
     document.getElementById('workflowMemoryBtn').disabled = !WF.candidate;
     document.getElementById('workflowCandidateCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
@@ -731,12 +751,18 @@
   async function restoreBefore(id) {
     const item = await dbGet('aiHistory', id);
     if (!item || typeof item.original_document !== 'string') return;
+    if (!sameEditorTarget({ projectId: item.project_id, activeType: item.active_type, activeId: item.active_id })) {
+      if (typeof showToast === 'function') showToast('!', '该快照属于另一份文档；请先打开原文档');
+      return;
+    }
     if (!confirm('恢复到这次候选写入前的正文？当前未保存修改会留在新的流程快照中，但不会自动保存。')) return;
     const editor = document.getElementById('mainEditor');
     const current = editor.value;
     await dbPut('aiHistory', {
       mode: '流程 · 恢复前快照', text: current, workflow: true, task: 'restore-snapshot',
-      editor_before_run: current, original_document: current, time: Date.now()
+      editor_before_run: current, original_document: current,
+      project_id: item.project_id, active_type: item.active_type, active_id: item.active_id,
+      time: Date.now()
     });
     editor.value = item.original_document;
     if (typeof onEditorInput === 'function') onEditorInput();

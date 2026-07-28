@@ -1,4 +1,4 @@
-.PHONY: build test vet check check-browser run-demo
+.PHONY: build test vet fmt-check check check-browser run-demo
 
 build:
 	go build -o writing-workshop ./cmd/writing-workshop
@@ -9,7 +9,10 @@ test:
 vet:
 	go vet ./...
 
-check: test vet build
+fmt-check:
+	test -z "$$(gofmt -l .)"
+
+check: fmt-check test vet build
 	find web/static -name '*.js' -print0 | xargs -0 -n1 node --check
 	node scripts/check-static.mjs
 
