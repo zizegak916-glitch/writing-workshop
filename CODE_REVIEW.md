@@ -9,7 +9,7 @@
 
 当前产品已经形成三个明确而不混用的能力层：浏览器 Prompt Skill 管理 32 个功能按钮的隐形提示词；后端 Skill / 技能包负责可组合执行；项目操作台负责浏览器本地资料、笔记、分类、备份与删除。多 Skill 选择会显式传给后端，浏览器 Prompt Skill 可搜索、修改、恢复、单独导入导出并随项目 v4 备份，技能包和能力分类有真实 CRUD、校验、测试与磁盘记录。
 
-GitHub Pages 正式在线版与后端增强模式有明确运行时边界。Pages 是真实公开域名上的正式部署，可以使用浏览器本地项目、笔记与分类、查看 Skill 目录和选择状态；当前默认 Pages 工作流未同时部署 Go API，因此单独打开该版本时不执行 `/api/run` 或保存后端技能包。浏览器工作台和 Go 后端是两套明确存储，不再把每次浏览器编辑静默写入单个后端项目；导入后端内容必须由作者显式触发。
+GitHub Pages 正式在线版与后端增强模式有明确运行时边界。Pages 是真实公开域名上的正式部署，可以使用浏览器本地项目、笔记、分类与 BYOK 自定义 API；当前默认 Pages 工作流未同时部署 Go API，因此单独打开该版本时不执行 `/api/run` 或保存后端技能包。浏览器工作台和 Go 后端是两套明确存储，不再把每次浏览器编辑静默写入单个后端项目；导入后端内容必须由作者显式触发。
 
 ## 本轮发现与处理
 
@@ -17,7 +17,8 @@ GitHub Pages 正式在线版与后端增强模式有明确运行时边界。Page
 |---|---|---|---|
 | 高 | `app.html` 同时包含超大内联实现和一批未加载/重复拆分脚本与翻译 JSON，核心函数存在重复声明，出现“改了文件但线上入口不生效”和旧函数覆盖新函数的风险 | 提取唯一基础入口 `css/main.css` / `js/workbench.js`，删除未引用副本；静态契约禁止大段内联、孤立资源与核心函数重复声明 | `web/static/app.html`、`web/static/js/workbench.js`、`scripts/check-static.mjs` |
 | 高 | 浏览器每次保存曾隐式镜像到后端单项目，多个浏览器项目可能互相污染，且界面没有提示数据边界 | 删除隐式写入；增加“从自部署后端导入”，只在用户确认的动作中建立新浏览器副本 | `web/static/js/workbench.js`、`web/static/js/product-extensions.js` |
-| 高 | 多模型槽位仍要求并持久化浏览器 Key，但请求已走同源后端；既增加泄露风险，也无法代表后端 Provider 是否已配置 | 槽位只保存 Provider / Model；真实 Key 与 Base URL 统一由后端管理，启动时清除旧 `ww_api` / `ww_slot*` 明文 Key | `web/static/js/workbench.js`、`SECURITY.md` |
+| 高 | 多模型槽位仍要求并持久化每槽 Key，既增加泄露风险，也无法代表后端 Provider 是否已配置 | 槽位只保存 Provider / Model；自部署版 Key 由后端管理。Pages 主 BYOK 配置可保存在当前 origin，但不会静默复制到其他 Provider 槽位 | `web/static/js/workbench.js`、`SECURITY.md` |
+| 高 | Pages 的 API 保存与模型调用被错误改成无条件访问静态 `/api/config` / `/api/ai`，配置出现 405 | 恢复运行时双通道：Pages 保存 `ww_api` 后直连目标服务，自部署版保持同源后端；Playwright 断言 Pages 保存/测试没有 POST `/api/config` | `web/static/js/workbench.js`、`web/static/admin.html`、`tests/browser-smoke.mjs` |
 | 高 | 多模型、降 AI 和递归创作可在生成后切换文档再应用，部分写入没有快照 | 所有 AI 写入绑定生成时项目/文档；替换类操作校验正文未变化，写入前统一保存恢复快照 | `web/static/js/workbench.js`、`web/static/js/workflows.js` |
 | 高 | 导入标题、差异文本和模型返回的递归规划内容存在 HTML 拼接路径 | 导入预览和模型文本统一转义或使用 `textContent`，并增加恶意标题浏览器回归用例 | `web/static/js/workbench.js`、`tests/browser-smoke.mjs` |
 | 中 | 项目备份 JSON 导入后会无条件执行结构“自动分析”，即使用户只想原样恢复也可能新增内容；文件导入没有浏览器侧体积上限 | v1-v4 备份恢复不再自动改写内容；文本/DOCX 只在预览中显式勾选时分析，并限制文件数、单文件/总大小和 DOCX 解压体积 | `web/static/js/workbench.js` |

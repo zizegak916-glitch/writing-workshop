@@ -39,7 +39,7 @@ npm run test:browser
 - `web/static/js/ai-mode-icons.js` 与 `web/static/icons/ai-mode-icons.svg` 是功能图标映射和符号源；Prompt Skill 管理器也复用这套映射。
 - `web/static/icons/app-icon.svg` 是全站图标源；所有公开 HTML 页面都应保留 favicon 引用。
 - `/admin` 使用 `web/static/admin.html`。
-- 前端 AI 调用必须走 `/api/ai`，浏览器不直接访问厂商 API。
+- 自部署模式的前端 AI 调用必须走 `/api/ai`。Pages 浏览器 BYOK 是明确例外：仅在运行时判定为浏览器 API 模式且用户主动保存本地配置时直连目标端点；不得把 Key 写入源码、构建产物或测试日志。
 - 浏览器项目是 IndexedDB 中的本地工作副本。日常保存不得静默写入后端；项目操作台中的“从自部署后端导入”是当前唯一显式后端导入入口。
 - 规则包使用 `/api/rules`，项目级规则落盘到 `.ainovel/rules/web.rules.md`。
 - 新的通用能力入口使用 `/api/capabilities` 和 `/api/run`。前端传递 `backend_id`、`skill_ids`、上下文和参数；后端输出直接回传前端。

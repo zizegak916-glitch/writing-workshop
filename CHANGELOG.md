@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.2.3 — 2026-07-28 — Pages 自定义 API 回归修复
+
+- 恢复 GitHub Pages 浏览器 BYOK：Provider、Model、Base URL 与 API Key 保存在当前浏览器，并直连用户配置的模型接口。
+- Pages 保存和测试不再向静态 `/api/config` 发起 POST，修复 HTTP 405。
+- 自部署版继续使用同源 `/api/config` 与 `/api/ai`，后端密钥托管行为不变。
+- 自定义 OpenAI 兼容 Base URL 可填 `/v1` 根路径或完整 `/chat/completions` 端点。
+- 浏览器直连请求移除内部代理字段，并为网络 / CORS 失败返回明确提示。
+- Playwright 增加 Pages 模式配置、持久化、直连请求形状和“零 `/api/config` POST”回归断言。
+
 ## v0.2.2 — 2026-07-28 — 外部目录来源校正
 
 - 将已经由上游标为 deprecated 的 `openai/skills` 从现行入口改为迁移参考。

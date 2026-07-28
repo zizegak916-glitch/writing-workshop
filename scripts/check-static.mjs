@@ -41,9 +41,11 @@ assert(appHtml.includes('css/main.css') && appHtml.includes('js/workbench.js'), 
 assert(!/<style[\s>]/i.test(appHtml), 'workbench must not contain inline style blocks');
 assert(!/<script(?![^>]*\bsrc=)[^>]*>/i.test(appHtml), 'workbench must not contain inline script blocks');
 assert(workbenchSource.includes("DB_VER=4") && workbenchSource.includes("'notes'"), 'project notes store must be part of the v4 browser database');
-assert(workbenchSource.includes('function loadStoredApiConfig()'), 'legacy browser API keys must have a migration scrubber');
+assert(workbenchSource.includes('function loadStoredApiConfig()'), 'browser API configuration loader is missing');
 assert(workbenchSource.includes('function loadSlot(n)'), 'multi-model slots must use the canonical scrubbed loader');
-assert(!workbenchSource.includes("localStorage.setItem('ww_api',JSON.stringify(c));") || workbenchSource.includes("key:'backend'"), 'browser API metadata must use the backend marker');
+assert(workbenchSource.includes('WW_BROWSER_API_MODE') && workbenchSource.includes("?'browser':'backend'"), 'Pages browser API mode is missing');
+assert(workbenchSource.includes('function persistApiConfig('), 'dual-mode API persistence is missing');
+assert(workbenchSource.includes('browserDirect=false') && workbenchSource.includes('return await fetch(url'), 'browser-direct provider transport is missing');
 assert(!/slotKey|placeholder="API Key" value="'\+\(s\.key/.test(workbenchSource), 'multi-model slots must not render or persist browser API keys');
 for (const coreFunction of ['renderCharList', 'countWords', 'escapeHtml']) {
   const declarations = workbenchSource.match(new RegExp(`function\\s+${coreFunction}\\s*\\(`, 'g')) || [];

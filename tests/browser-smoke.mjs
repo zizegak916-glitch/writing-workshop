@@ -177,6 +177,62 @@ try {
   assert.equal(externalCapability.entry, 'external:mcp-server');
   assert.deepEqual(adminErrors, [], `admin browser errors:\n${adminErrors.join('\n')}`);
 
+  const pagesContext = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+  const pagesPage = await pagesContext.newPage();
+  const pagesErrors = await collectErrors(pagesPage);
+  let configPosts = 0;
+  let directRequest = null;
+  pagesPage.on('request', request => {
+    if (request.url().endsWith('/api/config') && request.method() === 'POST') configPosts += 1;
+  });
+  await pagesPage.route('https://mock-api.example/v1/chat/completions', async route => {
+    const request = route.request();
+    directRequest = {
+      authorization: request.headers().authorization,
+      body: request.postDataJSON()
+    };
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        choices: [{ message: { content: 'OK' } }],
+        usage: { prompt_tokens: 8, completion_tokens: 1 }
+      })
+    });
+  });
+  await pagesPage.goto(`${baseURL}/app.html?api_mode=browser`, { waitUntil: 'networkidle' });
+  await pagesPage.evaluate(() => {
+    localStorage.setItem('ww_cookie_consent', '1');
+    openModal('apiModal');
+    const custom = document.querySelector('#providerGrid .provider-chip[onclick*="custom"]');
+    selectProvider(custom, 'custom');
+  });
+  await pagesPage.locator('#apiBaseUrl').fill('https://mock-api.example/v1');
+  await pagesPage.locator('#apiKey').fill('browser-test-key');
+  await pagesPage.locator('#apiModel').fill('test-model');
+  await pagesPage.locator('#apiModal .btn-confirm').click();
+  await pagesPage.waitForFunction(() => !document.getElementById('apiModal')?.classList.contains('show'));
+  const browserConfig = await pagesPage.evaluate(() => JSON.parse(localStorage.getItem('ww_api') || '{}'));
+  assert.deepEqual(browserConfig, {
+    provider: 'custom',
+    key: 'browser-test-key',
+    model: 'test-model',
+    baseUrl: 'https://mock-api.example/v1',
+    type: 'openai',
+    transport: 'browser'
+  });
+  assert.equal(configPosts, 0, 'Pages save must not POST to static /api/config');
+  await pagesPage.evaluate(() => openModal('apiModal'));
+  await pagesPage.locator('#apiModal .btn-test').click();
+  await pagesPage.waitForFunction(() => document.getElementById('testResult')?.textContent.includes('✓ OK'));
+  assert.equal(configPosts, 0, 'Pages API test must not POST to static /api/config');
+  assert.equal(directRequest.authorization, 'Bearer browser-test-key');
+  assert.equal(directRequest.body.provider, undefined, 'browser request must not leak internal proxy fields');
+  assert.equal(directRequest.body.model, 'test-model');
+  assert.match(directRequest.body.messages[0].content, /Reply with exactly: OK/);
+  assert.deepEqual(pagesErrors, [], `Pages browser API errors:\n${pagesErrors.join('\n')}`);
+  await pagesContext.close();
+
   const mobilePage = await desktop.newPage();
   await mobilePage.setViewportSize({ width: 390, height: 844 });
   const mobileErrors = await collectErrors(mobilePage);
@@ -188,7 +244,7 @@ try {
   assert.deepEqual(mobileErrors, [], `mobile browser errors:\n${mobileErrors.join('\n')}`);
 
   await desktop.close();
-  console.log('Browser smoke OK: v1-v3 migration, guarded candidate recovery, desktop project/notes/import/context and mobile notes navigation.');
+  console.log('Browser smoke OK: v1-v3 migration, guarded candidate recovery, Pages browser BYOK, desktop project/notes/import/context and mobile notes navigation.');
 } finally {
   await browser.close();
 }

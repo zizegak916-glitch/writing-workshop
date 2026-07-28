@@ -8,7 +8,10 @@ function dbDel(s,id){return new Promise((r,j)=>{const t=db.transaction(s,'readwr
 function dbAll(s){return new Promise((r,j)=>{const t=db.transaction(s,'readonly');const q=t.objectStore(s).getAll();q.onsuccess=()=>r(q.result);q.onerror=()=>j(q.error);});}
 function dbByIndex(s,f,v){return new Promise((r,j)=>{const t=db.transaction(s,'readonly');const st=t.objectStore(s);if(st.indexNames.contains(f)){const q=st.index(f).getAll(v);q.onsuccess=()=>r(q.result);q.onerror=()=>j(q.error);return;}const a=[];const q=st.openCursor();q.onsuccess=e=>{const c=e.target.result;if(c){if(c.value[f]===v)a.push(c.value);c.continue();}else r(a);};q.onerror=()=>j(q.error);});}
 
-// ═══ Writing Workshop backend bridge ═══
+// ═══ Writing Workshop runtime and backend bridge ═══
+const WW_BROWSER_API_MODE=location.hostname.endsWith('github.io')||new URLSearchParams(location.search).get('api_mode')==='browser';
+function usesBrowserAPI(conf){return !!(conf&&(conf.transport==='browser'||(WW_BROWSER_API_MODE&&conf.key&&conf.key!=='backend')));}
+function apiStorageDescription(){return WW_BROWSER_API_MODE?'API Key 与自定义地址只保存在当前浏览器；请求由浏览器直接发往模型服务。':'API Key 保存到当前自部署后端；浏览器通过同源 /api 请求。';}
 async function apiJSON(url,opts={}){
   const r=await fetch(url,{headers:{'Content-Type':'application/json',...(opts.headers||{})},...opts});
   const d=await r.json().catch(()=>({}));
@@ -54,7 +57,10 @@ async function importProjectFromBackend(){
 function loadStoredApiConfig(){
   let stored={};
   try{stored=JSON.parse(localStorage.getItem('ww_api')||'{}')||{};}catch(_){}
-  if(stored.key&&stored.key!=='backend'){
+  if(WW_BROWSER_API_MODE&&stored.key&&stored.key!=='backend'){
+    stored.transport='browser';
+    localStorage.setItem('ww_api',JSON.stringify(stored));
+  }else if(stored.key&&stored.key!=='backend'&&stored.transport!=='browser'){
     stored={provider:stored.provider||'',model:stored.model||'',baseUrl:'',key:'backend'};
     localStorage.setItem('ww_api',JSON.stringify(stored));
   }
@@ -208,7 +214,7 @@ zh:{
   "mod-close":"关闭",
   "mod-newproj-btn":"＋ 新建项目",
   "mod-api":"⚙️ API 设置",
-  "mod-api-sub":"配置自部署后端中的 AI 服务商；Pages 本身不保存密钥。",
+  "mod-api-sub":"Pages 使用浏览器本地自定义 API；自部署版默认由后端保管密钥。",
   "mod-api-provider":"选择服务商",
   "mod-api-url":"Base URL",
   "mod-api-url-hint":"自定义接口地址",
@@ -321,7 +327,7 @@ zh:{
   "form-save":"保存 ✓",
   "form-api-provider":"选择服务商",
   "form-api-key-label":"API Key",
-  "form-api-key-hint":"保存到自部署后端",
+  "form-api-key-hint":"Pages 保存于当前浏览器；自部署版保存到后端",
   "form-api-test":"测试",
   "form-api-model-label":"模型",
   "form-api-model-ph":"留空使用默认",
@@ -467,7 +473,7 @@ en:{
   "mod-close":"Close",
   "mod-newproj-btn":"＋ New Project",
   "mod-api":"⚙️ API Settings",
-  "mod-api-sub":"Configure the AI provider on your self-hosted backend. Pages does not store keys.",
+  "mod-api-sub":"Pages uses a browser-local custom API; self-hosted mode stores keys on its backend.",
   "mod-api-provider":"Provider",
   "mod-api-url":"Base URL",
   "mod-api-url-hint":"Custom endpoint",
@@ -580,7 +586,7 @@ en:{
   "form-save":"Save ✓",
   "form-api-provider":"Provider",
   "form-api-key-label":"API Key",
-  "form-api-key-hint":"Stored by the self-hosted backend",
+  "form-api-key-hint":"Stored in this browser on Pages, or by the self-hosted backend",
   "form-api-test":"Test",
   "form-api-model-label":"Model",
   "form-api-model-ph":"Leave empty for default",
@@ -726,7 +732,7 @@ ja:{
   "mod-close":"閉じる",
   "mod-newproj-btn":"＋ 新規",
   "mod-api":"⚙️ API設定",
-  "mod-api-sub":"セルフホストしたバックエンドの AI プロバイダーを設定します。Pages はキーを保存しません。",
+  "mod-api-sub":"Pages はブラウザー内のカスタム API を使用し、セルフホスト版はバックエンドにキーを保存します。",
   "mod-api-provider":"プロバイダー",
   "mod-api-url":"Base URL",
   "mod-api-url-hint":"カスタム",
@@ -839,7 +845,7 @@ ja:{
   "form-save":"保存 ✓",
   "form-api-provider":"プロバイダー",
   "form-api-key-label":"APIキー",
-  "form-api-key-hint":"セルフホストのバックエンドに保存",
+  "form-api-key-hint":"Pages ではブラウザー、セルフホスト版ではバックエンドに保存",
   "form-api-test":"テスト",
   "form-api-model-label":"モデル",
   "form-api-model-ph":"空白でデフォルト",
@@ -985,7 +991,7 @@ ko:{
   "mod-close":"닫기",
   "mod-newproj-btn":"＋ 새 프로젝트",
   "mod-api":"⚙️ API 설정",
-  "mod-api-sub":"자체 호스팅 백엔드의 AI 공급자를 설정합니다. Pages는 키를 저장하지 않습니다.",
+  "mod-api-sub":"Pages는 브라우저 로컬 사용자 지정 API를 사용하고, 자체 호스팅 모드는 백엔드에 키를 저장합니다.",
   "mod-api-provider":"공급자",
   "mod-api-url":"Base URL",
   "mod-api-url-hint":"사용자 정의",
@@ -1098,7 +1104,7 @@ ko:{
   "form-save":"저장 ✓",
   "form-api-provider":"제공업체 선택",
   "form-api-key-label":"API Key",
-  "form-api-key-hint":"자체 호스팅 백엔드에 저장",
+  "form-api-key-hint":"Pages에서는 이 브라우저, 자체 호스팅에서는 백엔드에 저장",
   "form-api-test":"테스트",
   "form-api-model-label":"모델",
   "form-api-model-ph":"비워 두면 기본값 사용",
@@ -2710,10 +2716,32 @@ const PROVIDERS={claude:{url:'https://api.anthropic.com/v1/messages',model:'clau
 const TRANSIENT_ERRORS=[429,500,502,503,504];
 function _isTransient(err){const m=err.message?.match?.(/HTTP (\d+)/);return m&&TRANSIENT_ERRORS.includes(+m[1]);}
 async function _sleep(ms){return new Promise(r=>setTimeout(r,ms));}
-function aiHasConfig(conf){return !!(conf&&(conf.key||conf.provider));}
-async function _fetchWithTimeout(url,opts,timeoutMs=60000){
+function aiHasConfig(conf){
+  if(!conf)return false;
+  if(usesBrowserAPI(conf))return !!(conf.key&&conf.provider&&(conf.provider!=='custom'||(conf.baseUrl&&conf.model)));
+  return !!conf.provider;
+}
+function providerEndpoint(conf,p){
+  const configured=(conf.baseUrl||'').trim();
+  if(!configured)return p.url;
+  if(PROVIDERS[conf.provider]&&conf.provider!=='custom')return configured;
+  if(/\/(?:chat\/completions|messages)(?:\?|$)/.test(configured))return configured;
+  const clean=configured.replace(/\/+$/,'');
+  if(p.type==='claude')return clean+(clean.endsWith('/v1')?'/messages':'/v1/messages');
+  return clean+'/chat/completions';
+}
+function browserAPIError(error){
+  if(error?.name==='AbortError')return error;
+  if(error instanceof TypeError)return new Error('浏览器直连失败：请检查 Base URL、网络和服务端 CORS；目标接口必须允许当前 Pages 域名发起请求。');
+  return error;
+}
+async function _fetchWithTimeout(url,opts,timeoutMs=60000,browserDirect=false){
   const ac=new AbortController();const id=setTimeout(()=>ac.abort(),timeoutMs);
   try{
+    if(browserDirect){
+      try{return await fetch(url,{...opts,signal:ac.signal});}
+      catch(error){throw browserAPIError(error);}
+    }
     const original=opts.body?JSON.parse(opts.body):{};
     const providerEntry=Object.entries(PROVIDERS).find(([,p])=>p.url===url)?.[0];
     const aiBody={...original,provider:providerEntry||original.provider,signal:undefined};
@@ -2722,26 +2750,29 @@ async function _fetchWithTimeout(url,opts,timeoutMs=60000){
     return{ok:r.ok&&(!data.error||r.status===200),status:r.status,json:async()=>data,
       _proxyError:data.error?new Error('HTTP '+(data.error.code||r.status)+': '+(data.error.message||'Unknown')):null};
   }finally{clearTimeout(id);}}
-function _buildHeaders(conf,p){const h={'Content-Type':'application/json'};if(p.type==='claude'){h['x-api-key']=conf.key;h['anthropic-version']='2023-06-01';}else{h['Authorization']='Bearer '+conf.key;}return h;}
-function _buildBody(conf,p,msgs,systemPrompt,stream){
+function _buildHeaders(conf,p,browserDirect=false){const h={'Content-Type':'application/json'};if(p.type==='claude'){h['x-api-key']=conf.key;h['anthropic-version']='2023-06-01';if(browserDirect)h['anthropic-dangerous-direct-browser-access']='true';}else{h['Authorization']='Bearer '+conf.key;}return h;}
+function _buildBody(conf,p,msgs,systemPrompt,stream,browserDirect=false){
   if(p.type==='claude'){
-    const claudeBody={provider:conf.provider,model:conf.model||p.model,max_tokens:2000,messages:msgs.filter(m=>m.role!=='system')};
+    const claudeBody={model:conf.model||p.model,max_tokens:2000,messages:msgs.filter(m=>m.role!=='system')};
+    if(!browserDirect)claudeBody.provider=conf.provider;
     if(systemPrompt)claudeBody.system=systemPrompt;
     if(stream)claudeBody.stream=true;
     return JSON.stringify(claudeBody);
   }
-  const b={provider:conf.provider,model:conf.model||p.model,max_tokens:2000,messages:msgs};
+  const b={model:conf.model||p.model,max_tokens:2000,messages:msgs};
+  if(!browserDirect)b.provider=conf.provider;
   if(stream)b.stream=true;
   return JSON.stringify(b);
 }
 function _parseMessages(prompt,systemPrompt){const msgs=[];if(systemPrompt)msgs.push({role:'system',content:systemPrompt});msgs.push({role:'user',content:prompt});return msgs;}
 async function callAI(prompt,conf,systemPrompt){
-  const pr=conf.provider||'claude',p=PROVIDERS[pr]||PROVIDERS.claude,url=conf.baseUrl||p.url;
+  const pr=conf.provider||'claude',p=PROVIDERS[pr]||{url:'',model:conf.model||'',type:conf.type==='anthropic'?'claude':'openai'},url=providerEndpoint(conf,p);
   const msgs=_parseMessages(prompt,systemPrompt);
-  const h=_buildHeaders(conf,p),body=_buildBody(conf,p,msgs,systemPrompt,false);
+  const direct=usesBrowserAPI(conf);
+  const h=_buildHeaders(conf,p,direct),body=_buildBody(conf,p,msgs,systemPrompt,false,direct);
   let lastErr=null;
   for(let attempt=0;attempt<3;attempt++){
-    try{const r=await _fetchWithTimeout(url,{method:'POST',headers:h,body},conf.timeout||60000);
+    try{const r=await _fetchWithTimeout(url,{method:'POST',headers:h,body},conf.timeout||60000,direct);
       if(r._proxyError)throw r._proxyError;
       if(!r.ok)throw new Error('HTTP '+r.status);
       const d=await r.json();let result='',usage=null;
@@ -2838,9 +2869,27 @@ function editMemory(id){
 }
 function toggleMemCat(el){el.parentElement.querySelectorAll('.genre-chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');}
 function selectProvider(el,p){el.parentElement.querySelectorAll('.provider-chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');S.selectedProvider=p;const cur=el.closest('.provider-grid').id;const urlRow=cur==='sProviderGrid'?'sCustomUrlRow':'customUrlRow';document.getElementById(urlRow).style.display=p==='custom'?'block':'none';const d={claude:'claude-sonnet-4-20250514',openai:'gpt-4o',deepseek:'deepseek-chat',xiaomi:'mimo-v2.5-pro',qwen:'qwen-plus',zhipu:'glm-4-flash',moonshot:'moonshot-v1-8k',siliconflow:'deepseek-ai/DeepSeek-V3',openrouter:'anthropic/claude-sonnet-4',gemini:'gemini-2.0-flash',grok:'grok-3',custom:''};const modelEl=cur==='sProviderGrid'?document.getElementById('sApiModel'):document.getElementById('apiModel');if(modelEl)modelEl.placeholder=d[p]||'';}
-async function testApi(){const k=document.getElementById('apiKey').value.trim(),r=document.getElementById('testResult');r.className='test-result ok';r.textContent='⟳ '+t('mod-api-test')+'...';try{const conf={key:k||'backend',provider:S.selectedProvider,model:document.getElementById('apiModel').value.trim(),baseUrl:document.getElementById('apiBaseUrl').value.trim()};await apiJSON('/api/config',{method:'POST',body:JSON.stringify({provider:conf.provider,model:conf.model,api_key:k,base_url:conf.baseUrl})});const t=await callAI('Reply with OK',conf);r.className='test-result ok';r.textContent='✓ '+t.slice(0,30);}catch(e){r.className='test-result fail';r.textContent='✗ '+e.message;}}
-async function saveApi(){const key=document.getElementById('apiKey').value.trim();const c={provider:S.selectedProvider,key:'backend',model:document.getElementById('apiModel').value.trim(),baseUrl:''};try{await apiJSON('/api/config',{method:'POST',body:JSON.stringify({provider:c.provider,model:c.model,api_key:key,base_url:document.getElementById('apiBaseUrl').value.trim()})});S.apiConfig=c;localStorage.setItem('ww_api',JSON.stringify(c));document.getElementById('apiKey').value='';closeModal('apiModal');showToast('✓',t('toast-saved'));}catch(e){showToast('✕',e.message);}}
-function loadApiUI(){const c=S.apiConfig;if(c.provider){const el=document.querySelector('.provider-chip[onclick*="'+c.provider+'"]');if(el)selectProvider(el,c.provider);}document.getElementById('apiKey').value=c.key==='backend'?'':(c.key||'');document.getElementById('apiModel').value=c.model||'';document.getElementById('apiBaseUrl').value=c.baseUrl||'';}
+function apiFormConfig(prefix=''){
+  const key=document.getElementById(prefix+'ApiKey').value.trim();
+  const baseUrl=document.getElementById(prefix+'ApiBaseUrl').value.trim();
+  const provider=S.selectedProvider||'claude';
+  return{provider,key:key||(WW_BROWSER_API_MODE?'':'backend'),model:document.getElementById(prefix+'ApiModel').value.trim(),baseUrl,type:PROVIDERS[provider]?.type||'openai',transport:WW_BROWSER_API_MODE?'browser':'backend'};
+}
+async function persistApiConfig(conf){
+  if(WW_BROWSER_API_MODE){
+    if(!conf.key)throw new Error('Pages 浏览器直连模式需要填写 API Key');
+    if(conf.provider==='custom'&&!conf.baseUrl)throw new Error('自定义服务需要填写 Base URL');
+    S.apiConfig=conf;
+    localStorage.setItem('ww_api',JSON.stringify(conf));
+    return;
+  }
+  await apiJSON('/api/config',{method:'POST',body:JSON.stringify({provider:conf.provider,model:conf.model,type:conf.type,api_key:conf.key==='backend'?'':conf.key,base_url:conf.baseUrl})});
+  S.apiConfig={provider:conf.provider,key:'backend',model:conf.model,baseUrl:'',type:conf.type,transport:'backend'};
+  localStorage.setItem('ww_api',JSON.stringify(S.apiConfig));
+}
+async function testApi(){const r=document.getElementById('testResult');r.className='test-result ok';r.textContent='⟳ '+t('mod-api-test')+'...';try{const conf=apiFormConfig();if(!WW_BROWSER_API_MODE)await persistApiConfig(conf);const result=await callAI('Reply with exactly: OK',conf);r.className='test-result ok';r.textContent='✓ '+result.slice(0,30);}catch(e){r.className='test-result fail';r.textContent='✗ '+e.message;}}
+async function saveApi(){try{await persistApiConfig(apiFormConfig());if(!WW_BROWSER_API_MODE)document.getElementById('apiKey').value='';closeModal('apiModal');showToast('✓',t('toast-saved'));}catch(e){showToast('✕',e.message);}}
+function loadApiUI(){const c=S.apiConfig;if(c.provider){const el=document.querySelector('.provider-chip[onclick*="'+c.provider+'"]');if(el)selectProvider(el,c.provider);}document.getElementById('apiKey').value=c.key==='backend'?'':(c.key||'');document.getElementById('apiModel').value=c.model||'';document.getElementById('apiBaseUrl').value=c.baseUrl||'';const notice=document.getElementById('apiStorageNotice');if(notice)notice.textContent=apiStorageDescription();}
 
 function makeEditorSnapshot(){
   const ed=document.getElementById('mainEditor');
@@ -3734,6 +3783,7 @@ function initSettingsModal(){
   document.getElementById('sApiKey').value=c.key==='backend'?'':(c.key||'');
   document.getElementById('sApiModel').value=c.model||'';
   document.getElementById('sApiBaseUrl').value=c.baseUrl||'';
+  const notice=document.getElementById('settingsApiStorageNotice');if(notice)notice.textContent=apiStorageDescription();
   // Highlight current theme
   const isLight=document.body.classList.contains('light');
   document.getElementById('themeCardDark').classList.toggle('active',!isLight);
@@ -3800,22 +3850,10 @@ function settingsSetTheme(theme,el){
 
 function settingsTestApi(){
   const r=document.getElementById('sTestResult');
-  const key=document.getElementById('sApiKey').value.trim();
-  const provider=S.selectedProvider||'claude';
   r.className='test-result ok';r.textContent='⟳ '+t('mod-api-test')+'...';
-  const conf={key:key||'backend',provider,model:document.getElementById('sApiModel').value.trim(),baseUrl:document.getElementById('sApiBaseUrl').value.trim()};
-  apiJSON('/api/config',{method:'POST',body:JSON.stringify({provider:conf.provider,model:conf.model,api_key:key,base_url:conf.baseUrl})}).then(()=>{
-  const pr=conf.provider||'claude',p=PROVIDERS[pr]||PROVIDERS.claude,url=conf.baseUrl||p.url;
-  const msgs=[{role:'user',content:'Reply with exactly: OK'}];
-  const h=_buildHeaders(conf,p),body=_buildBody(conf,p,msgs,null,false);
-  return _fetchWithTimeout(url,{method:'POST',headers:h,body},30000);
-  }).then(resp=>{
-    if(resp._proxyError)throw resp._proxyError;
-    if(!resp.ok)throw new Error('HTTP '+resp.status);
-    return resp.json();
-  }).then(d=>{
-    if(d.error)throw new Error(d.error.message||JSON.stringify(d.error));
-    let txt=d.choices?.[0]?.message?.content||d.content?.[0]?.text||'（无返回）';
+  const conf=apiFormConfig('s');
+  const prepare=WW_BROWSER_API_MODE?Promise.resolve():persistApiConfig(conf);
+  prepare.then(()=>callAI('Reply with exactly: OK',conf)).then(txt=>{
     r.className='test-result ok';r.textContent='✓ '+txt.slice(0,60);
   }).catch(e=>{
     let msg=e.message||'Error';
@@ -3827,13 +3865,10 @@ function settingsTestApi(){
 }
 
 function saveSettings(){
-  // Save API settings from settings modal
-  const key=document.getElementById('sApiKey').value.trim();
-  const c={provider:S.selectedProvider,key:'backend',model:document.getElementById('sApiModel').value.trim(),baseUrl:''};
-  if(!key&&!c.model&&!c.baseUrl&&!S.apiConfig.provider){closeModal('settingsModal');showToast('✓',t('mod-save'));return;}
-  apiJSON('/api/config',{method:'POST',body:JSON.stringify({provider:c.provider,model:c.model,api_key:key,base_url:document.getElementById('sApiBaseUrl').value.trim()})}).then(()=>{
-    S.apiConfig=c;localStorage.setItem('ww_api',JSON.stringify(c));
-    document.getElementById('sApiKey').value='';
+  const c=apiFormConfig('s');
+  if(!c.key&&!c.model&&!c.baseUrl&&!S.apiConfig.provider){closeModal('settingsModal');showToast('✓',t('mod-save'));return;}
+  persistApiConfig(c).then(()=>{
+    if(!WW_BROWSER_API_MODE)document.getElementById('sApiKey').value='';
     closeModal('settingsModal');
     showToast('✓',t('mod-save'));
   }).catch(e=>showToast('✕',e.message));

@@ -8,7 +8,7 @@ Capability manifest 用于描述一个可组合的写作能力。它解决三件
 
 | 类型 | 存储 | 触发 | 执行位置 | 适用场景 |
 |---|---|---|---|---|
-| 浏览器 Prompt Skill | 默认值在 `web/static/js/prompt-skills.js`；覆盖值在 `ww_prompt_skills_v1` | 点击模式卡或快捷工具 | 前端组装 `/api/ai` 请求前 | 润色、续写、对白、标题等固定功能 |
+| 浏览器 Prompt Skill | 默认值在 `web/static/js/prompt-skills.js`；覆盖值在 `ww_prompt_skills_v1` | 点击模式卡或快捷工具 | 前端组装模型请求前（Pages BYOK 直连或自部署 `/api/ai`） | 润色、续写、对白、标题等固定功能 |
 | 后端 capability Skill | 内置清单或 `.ainovel/capabilities.json` | 流程中显式多选 `skill_ids` | `/api/run` | 可组合步骤、权限和后端能力 |
 
 浏览器 Prompt Skill 不是 capability manifest v0.2 的远程执行入口，不拥有文件、网络或写入权限。它只改变本次模型请求中的约束文本；项目包 v4 只导出合法的用户覆盖值。后端 capability 仍必须通过本协议验证 ID、启用状态、步骤和权限。

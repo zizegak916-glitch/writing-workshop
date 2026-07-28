@@ -55,7 +55,7 @@ go build -o ainovel-cli ./cmd/ainovel-cli
 - 管理后台：`http://127.0.0.1:8080/admin.html`
 - API：`http://127.0.0.1:8080/api/...`
 
-浏览器只请求同源 `/api/`，不直接跨域访问模型厂商 URL。GitHub Pages 正式在线版可以使用浏览器本地项目编辑功能；当前默认 Pages 部署未附带该 `/api/` 服务，因此“流程”执行、模型调用和能力管理需要另行运行本地后端或部署兼容后端。静态网页在技术上可以发起 API 请求，是否成功取决于实际接入的端点、认证与 CORS 策略。
+自部署版浏览器请求同源 `/api/`，由后端保管密钥。GitHub Pages 正式在线版另有浏览器 BYOK 通道：Provider、Model、Base URL 与 Key 保存在当前 origin，模型请求直接发往用户配置的接口；是否成功取决于端点、认证与 CORS。Pages 默认仍没有 `/api/run` 等 Go 服务，因此后端 Skill、项目同步和能力管理需要另行部署兼容后端。
 
 配置支持本地配置文件和环境变量。API key 可写入 `~/.ainovel/config.json`，也可使用 `AINOVEL_<PROVIDER>_API_KEY` 或 `<PROVIDER>_API_KEY`，例如 `AINOVEL_OPENROUTER_API_KEY`。
 

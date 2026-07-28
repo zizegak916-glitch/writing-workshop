@@ -13,7 +13,7 @@
 
 **正式在线版：** [GitHub Pages](https://zizegak916-glitch.github.io/writing-workshop/) · [完整使用文档](https://zizegak916-glitch.github.io/writing-workshop/docs.html) · [能力后台](https://zizegak916-glitch.github.io/writing-workshop/admin.html)
 
-> GitHub Pages 是本项目当前正式发布的公开在线站点，`github.io` 是真实可访问的 HTTPS 域名，不是临时预览。它采用静态托管，但浏览器本地项目、编辑、笔记、分类、导入导出等功能均可正式使用。当前默认部署不附带常驻 Go API；需要密钥托管、Skill 执行或后端项目导入时，再运行本地或自部署后端。静态托管本身并不禁止 API 调用，能否调用取决于站点是否接入了可用且安全的 API 端点。
+> GitHub Pages 是本项目当前正式发布的公开在线站点，`github.io` 是真实可访问的 HTTPS 域名，不是临时预览。它采用静态托管，但浏览器本地项目、编辑、笔记、分类、导入导出和浏览器 BYOK 自定义 API 均可正式使用。Pages 会把用户主动填写的 Key 与 Base URL 存在当前浏览器并直连目标服务；接口必须允许该 Pages 域名跨域访问。需要服务端密钥托管、Skill 执行或后端项目导入时，再运行本地或自部署后端。
 
 > GitHub Pages 与 OpenAI Sites 是彼此独立的托管方式。本仓库当前公开地址由 GitHub Pages 发布，不把 Pages 写成 Sites 的预览层或降级版。
 
@@ -100,7 +100,7 @@ flowchart LR
 
 视觉规范与组件约束见 [UI 设计系统](docs/UI_DESIGN_SYSTEM.md)。
 
-后台不是装饰页：Provider、Model、Base URL、API Key、项目、角色、规则、能力来源与 API 测试都有明确入口。Pages 中显示“在线版 · 浏览器本地数据”；连接同源或自部署 API 后，再启用对应的服务端能力。
+后台不是装饰页：Provider、Model、Base URL、API Key、项目、角色、规则、能力来源与 API 测试都有明确入口。Pages 中的模型配置保存在当前浏览器并可直接测试自定义接口；项目、Skill、规则和 SSE 等服务端能力仍需连接同源或自部署后端。
 
 ![Writing Workshop 能力控制台](docs/images/ability-console.jpg)
 
@@ -147,10 +147,11 @@ Writing Workshop 明确区分两类 Skill：
 
 - Pages 和工作台中的项目、章节、大纲、人物、笔记与记忆以当前域名的 IndexedDB / `localStorage` 为浏览器数据源；清除站点数据前应导出 v4 项目包。
 - Go 后端工作目录与浏览器数据库是两套明确存储。浏览器不会把每次编辑静默镜像到单个后端项目；需要后端资料时，由作者在项目操作台显式执行“从自部署后端导入”。
-- 浏览器模型请求使用同源 `/api/`，不直接把厂商密钥写进公开前端，从根源上避开 CORS 密钥暴露。
+- Pages 可选浏览器 BYOK：Key 与自定义 Base URL 只写入当前 origin 的 `localStorage`，不会进入仓库或 Pages 构建产物；请求直达目标服务，因此目标服务必须允许 CORS。不要在公共设备使用此模式。
+- 本地或自部署版默认使用同源 `/api/`，由 Go 后端保管密钥并请求模型，适合长期使用。
 - 默认监听回环地址；如使用 `0.0.0.0`，请只在可信网络或反向代理鉴权后开放。
 - API Key 可使用环境变量，不必写入仓库；配置读取时会对外隐藏密钥。
-- 多模型槽位只保留 Provider / Model，不在浏览器 `localStorage` 持久化真实 Key；所用 Provider 应先在自部署后端配置。
+- 多模型槽位仍只保留 Provider / Model；多 Provider 对比需要在自部署后端分别配置相应服务，Pages 的单个浏览器 Key 不会被静默复制到其他 Provider。
 - 保存 GitHub URL 不等于执行仓库代码。
 
 详见 [配置指南](CONFIG.md) 与 [安全策略](SECURITY.md)。
@@ -173,6 +174,7 @@ docs/               协议、来源与设计说明
 - `v0.2`：项目导入/导出包 v4 已覆盖项目、章节、大纲、人物、笔记、记忆、自定义分类与浏览器 Prompt Skill 覆盖值；Playwright 产品烟雾测试已进入 CI。
 - `v0.2.1`：稳定性维护版；补旧项目包迁移、候选历史恢复、跨文档写入保护、OpenAI/Anthropic 本地模拟契约和 Go 格式门禁。
 - `v0.2.2`：公开能力目录来源校正版；采用现行 `openai/plugins`，把旧 `openai/skills` 明确标成弃用迁移参考。
+- `v0.2.3`：恢复 Pages 浏览器 BYOK 自定义 API；保存与测试不再误请求静态 `/api/config`，并补双模式回归测试。
 - `v0.3`：最小权限的本地 Skill 沙箱与增量资料摄取。
 
 公开任务请使用 [GitHub Issues](https://github.com/zizegak916-glitch/writing-workshop/issues)。提交代码前阅读 [CONTRIBUTING.md](CONTRIBUTING.md)。

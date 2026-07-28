@@ -65,7 +65,7 @@
           <article class="bento-card"><span class="feature-no">02</span><h3>候选与正文隔离</h3><p>模型输出先进入候选区。替换、插入、追加和写入记忆各自确认，运行期间正文变更还会触发坐标保护。</p><div class="safe-write"><div><b>AI 候选</b><br>不自动覆盖作品</div><span>→</span><div><b>作者确认</b><br>选择明确去向</div></div></article>
           <article class="bento-card"><span class="feature-no">03</span><h3>多项目资料管理</h3><p>章节、大纲、人物、笔记、规则与记忆在同一个本地工作区组织，支持 Markdown、文本与 DOCX 导入导出。</p></article>
           <article class="bento-card"><span class="feature-no">04</span><h3>可组合 Skill</h3><p>能力清单声明来源、版本、步骤、权限、输入与输出。登记链接不会偷偷执行第三方代码。</p></article>
-          <article class="bento-card"><span class="feature-no">05</span><h3>同源 API，避开 CORS</h3><p>浏览器只连接自己的 <code>/api/</code> 后端；密钥留在服务端或环境变量，不暴露给页面与第三方站点。</p></article>
+          <article class="bento-card"><span class="feature-no">05</span><h3>双通道 API</h3><p>Pages 可把自定义 API 配置留在当前浏览器并直接调用；自部署版则用同源 <code>/api/</code> 在后端保管密钥。</p></article>
         </div>
       </div>
     </section>
@@ -84,7 +84,7 @@
 
     <section class="section tint" id="run">
       <div class="site-shell">
-        <div class="section-heading"><span class="eyebrow">在线即可写作</span><h2>Pages 是正式在线站，后端是可选增强层。</h2><p>直接打开 GitHub Pages 就能管理浏览器本地项目、笔记、编辑与导入导出；密钥托管、后端项目导入与 Skill 执行按需接入自部署后端。</p></div>
+        <div class="section-heading"><span class="eyebrow">在线即可写作</span><h2>Pages 是正式在线站，后端是可选增强层。</h2><p>直接打开 GitHub Pages 就能管理浏览器本地项目、编辑、导入导出并配置浏览器 BYOK；服务端密钥托管、后端项目导入与 Skill 执行按需接入自部署后端。</p></div>
         <div class="runtime-grid">
           <div class="code-card"><header><b>Docker · 60 秒启动</b><span>无需 API Key</span></header><pre><span class="cmd">git clone</span> https://github.com/zizegak916-glitch/writing-workshop.git
 <span class="cmd">cd</span> writing-workshop

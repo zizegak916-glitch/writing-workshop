@@ -40,7 +40,7 @@ pre{white-space:pre-wrap;background:var(--card);border:1px solid var(--border);b
   <div id="runtimeNotice" class="notice" hidden></div>
   <section id="config" class="panel active card">
     <h2>模型与 API 配置</h2>
-    <p style="color:var(--muted);margin-top:0">密钥由同源后端保存，浏览器不直接请求模型厂商，因此无需处理跨域暴露。</p>
+    <p id="configStorageHelp" style="color:var(--muted);margin-top:0">自部署版由同源后端保存密钥；Pages 版会把配置保存在当前浏览器并直接请求模型接口。</p>
     <div class="grid">
       <div><label>Provider</label><input id="provider"></div>
       <div><label>Model</label><input id="model"></div>
@@ -166,8 +166,9 @@ async function api(url,opt={}){const r=await fetch(url,{headers:{'Content-Type':
 function showTab(id,btn){document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));document.getElementById(id).classList.add('active');btn.classList.add('active')}
 function showRuntimeNotice(message){runtimeNotice.hidden=false;runtimeNotice.innerHTML=message}
 async function loadAll(){await Promise.all([loadConfig(),loadProjects(),loadChars(),loadRules(),loadCapabilities(),loadExternalCatalog(),loadSkillPacks(),loadCategories()])}
-async function loadConfig(){const d=await api('/api/config');const c=d.config||d;provider.value=c.provider||'';model.value=c.model||'';const pc=(c.providers||{})[c.provider]||{};ptype.value=pc.type||'';baseUrl.value=pc.base_url||''}
-async function saveConfig(){try{await api('/api/config',{method:'POST',body:JSON.stringify({provider:provider.value,model:model.value,type:ptype.value,base_url:baseUrl.value,api_key:apiKey.value})});configMsg.textContent='已保存'}catch(e){configMsg.textContent=e.message}}
+function browserConfig(){try{return JSON.parse(localStorage.getItem('ww_api')||'{}')||{}}catch{return{}}}
+async function loadConfig(){if(isPages){const c=browserConfig();provider.value=c.provider||'custom';model.value=c.model||'';ptype.value=c.type||'openai';baseUrl.value=c.baseUrl||'';apiKey.value=c.key||'';return}const d=await api('/api/config');const c=d.config||d;provider.value=c.provider||'';model.value=c.model||'';const pc=(c.providers||{})[c.provider]||{};ptype.value=pc.type||'';baseUrl.value=pc.base_url||''}
+async function saveConfig(){try{if(isPages){const c={provider:provider.value||'custom',model:model.value,type:ptype.value||'openai',baseUrl:baseUrl.value,key:apiKey.value,transport:'browser'};if(!c.key)throw new Error('Pages 浏览器直连模式需要填写 API Key');if(!c.baseUrl)throw new Error('Pages 自定义 API 需要填写 Base URL');localStorage.setItem('ww_api',JSON.stringify(c));configMsg.textContent='已保存到当前浏览器；没有请求 /api/config';return}await api('/api/config',{method:'POST',body:JSON.stringify({provider:provider.value,model:model.value,type:ptype.value,base_url:baseUrl.value,api_key:apiKey.value})});configMsg.textContent='已保存到后端'}catch(e){configMsg.textContent=e.message}}
 async function loadProjects(){const ps=await api('/api/projects');projectList.innerHTML=(ps||[]).map(p=>`<div class="list-item"><b>${safe(p.name)}</b><br><small>${safe(p.store_dir||'')}</small></div>`).join('')||'<p style="color:var(--muted)">暂无项目</p>';const p=ps[0];if(p){projectName.value=p.name||'';projectPremise.value=p.premise||'';totalChapters.value=p.total_chapters||0}}
 async function saveProject(){await api('/api/projects',{method:'POST',body:JSON.stringify({name:projectName.value,premise:projectPremise.value,total_chapters:Number(totalChapters.value||0)})});loadProjects()}
 async function deleteProject(){if(confirm('确认删除当前输出目录中的项目文件？')){await api('/api/projects',{method:'DELETE'});loadProjects()}}
@@ -181,7 +182,9 @@ async function loadRules(){const d=await api('/api/rules');rulesRaw.value=d.cust
 function applyPreset(index){rulesRaw.value=presetCache[index]?.content||''}
 async function saveRules(){await api('/api/rules',{method:'POST',body:JSON.stringify({raw:rulesRaw.value})});loadRules()}
 async function deleteRules(){await api('/api/rules',{method:'DELETE'});loadRules()}
-async function testAI(){testResult.textContent='请求中...';try{const d=await api('/api/ai',{method:'POST',body:JSON.stringify({message:testPrompt.value})});testResult.textContent=d.choices?.[0]?.message?.content||JSON.stringify(d,null,2)}catch(e){testResult.textContent=e.message}}
+function browserModelEndpoint(base,type){const clean=String(base||'').replace(/\/+$/,'');if(/\/(?:chat\/completions|messages)(?:\?|$)/.test(clean))return clean;if(type==='anthropic')return clean+(clean.endsWith('/v1')?'/messages':'/v1/messages');return clean+'/chat/completions'}
+async function testBrowserAI(){const c=browserConfig();if(!c.key||!c.baseUrl)throw new Error('请先保存 Pages 浏览器 API 配置');const type=c.type||'openai';const headers={'Content-Type':'application/json'};let body;if(type==='anthropic'){headers['x-api-key']=c.key;headers['anthropic-version']='2023-06-01';body={model:c.model,max_tokens:64,messages:[{role:'user',content:testPrompt.value}]}}else{headers.Authorization='Bearer '+c.key;body={model:c.model,max_tokens:64,messages:[{role:'user',content:testPrompt.value}]}}let response;try{response=await fetch(browserModelEndpoint(c.baseUrl,type),{method:'POST',headers,body:JSON.stringify(body)})}catch(error){throw new Error('浏览器直连失败：请检查 Base URL、网络和目标服务的 CORS 设置')}const data=await response.json().catch(()=>({}));if(!response.ok)throw new Error(data.error?.message||('HTTP '+response.status));return data.choices?.[0]?.message?.content||data.content?.[0]?.text||JSON.stringify(data,null,2)}
+async function testAI(){testResult.textContent='请求中...';try{if(isPages){testResult.textContent=await testBrowserAI();return}const d=await api('/api/ai',{method:'POST',body:JSON.stringify({message:testPrompt.value})});testResult.textContent=d.choices?.[0]?.message?.content||JSON.stringify(d,null,2)}catch(e){testResult.textContent=e.message}}
 let capabilityCache=[];let externalCatalogCache=[];let skillPackCache=[];let categoryCache=[];let runAbortController=null;
 function safe(value){return String(value==null?'':value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 async function loadCapabilities(){const d=await api('/api/capabilities');capabilityCache=d.capabilities||[];capabilityList.innerHTML=capabilityCache.map(c=>`<div class="list-item"><b>${safe(c.name)}</b> <small>${safe(c.id)} · ${safe(c.type)} · ${safe(c.version)} · ${c.enabled?'启用':'停用'}${c.read_only?' · 内置':''}</small><br><small>${safe(c.source)}</small><p class="row" style="margin:8px 0 0"><button class="primary" onclick="useCapability('${c.id}')">用于测试</button>${c.read_only?'':`<button class="primary" onclick="editCapability('${c.id}')">编辑</button><button class="danger" onclick="deleteCapability('${c.id}')">删除</button>`}</p></div>`).join('')||'<p style="color:var(--muted)">暂无能力</p>'}
@@ -210,8 +213,10 @@ function appendRunStream(chunk){chunk.split('\n').forEach(line=>{if(line.startsW
 async function abortRun(){try{if(runAbortController)runAbortController.abort();const d=await api('/api/abort',{method:'POST'});testResult.textContent+='\n已发送中断：'+JSON.stringify(d)}catch(e){testResult.textContent=e.message}}
 const isPages = location.hostname.endsWith('github.io');
 if(isPages){
-  apiStatus.textContent='Pages 在线版 · 本地数据';
-  showRuntimeNotice('<b>当前是 GitHub Pages 正式在线版。</b> 公开域名与浏览器本地功能正常可用；默认 Pages 部署未附带仓库的 Go API。保存服务端 GitHub 项目、skill、自定义能力，执行任务和实时回传结果时，需要另行接入本地或自部署后端。');
+  apiStatus.textContent='Pages 在线版 · 浏览器 API';
+  configStorageHelp.textContent='Pages 模式：Provider、Model、Type、Base URL 和 API Key 保存在当前浏览器；模型测试直接请求目标接口，不会 POST /api/config。目标接口必须允许此 Pages 域名跨域访问。';
+  loadConfig();
+  showRuntimeNotice('<b>当前是 GitHub Pages 正式在线版。</b> “模型与 API 配置”可使用浏览器本地 BYOK；后端项目、Skill、自定义能力和 SSE 仍需要本地或自部署 Go 服务。');
 }else{
   loadAll().then(()=>{apiStatus.textContent='后端已连接'}).catch(e=>{
     apiStatus.textContent='后端未连接';
