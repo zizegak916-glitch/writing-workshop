@@ -2870,10 +2870,16 @@ function editMemory(id){
 function toggleMemCat(el){el.parentElement.querySelectorAll('.genre-chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');}
 function selectProvider(el,p){el.parentElement.querySelectorAll('.provider-chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');S.selectedProvider=p;const cur=el.closest('.provider-grid').id;const urlRow=cur==='sProviderGrid'?'sCustomUrlRow':'customUrlRow';document.getElementById(urlRow).style.display=p==='custom'?'block':'none';const d={claude:'claude-sonnet-4-20250514',openai:'gpt-4o',deepseek:'deepseek-chat',xiaomi:'mimo-v2.5-pro',qwen:'qwen-plus',zhipu:'glm-4-flash',moonshot:'moonshot-v1-8k',siliconflow:'deepseek-ai/DeepSeek-V3',openrouter:'anthropic/claude-sonnet-4',gemini:'gemini-2.0-flash',grok:'grok-3',custom:''};const modelEl=cur==='sProviderGrid'?document.getElementById('sApiModel'):document.getElementById('apiModel');if(modelEl)modelEl.placeholder=d[p]||'';}
 function apiFormConfig(prefix=''){
-  const key=document.getElementById(prefix+'ApiKey').value.trim();
-  const baseUrl=document.getElementById(prefix+'ApiBaseUrl').value.trim();
+  const fieldStem=prefix?prefix+'Api':'api';
+  const fieldValue=name=>{
+    const field=document.getElementById(fieldStem+name);
+    if(!field)throw new Error('API 设置表单不完整：缺少 '+fieldStem+name);
+    return field.value.trim();
+  };
+  const key=fieldValue('Key');
+  const baseUrl=fieldValue('BaseUrl');
   const provider=S.selectedProvider||'claude';
-  return{provider,key:key||(WW_BROWSER_API_MODE?'':'backend'),model:document.getElementById(prefix+'ApiModel').value.trim(),baseUrl,type:PROVIDERS[provider]?.type||'openai',transport:WW_BROWSER_API_MODE?'browser':'backend'};
+  return{provider,key:key||(WW_BROWSER_API_MODE?'':'backend'),model:fieldValue('Model'),baseUrl,type:PROVIDERS[provider]?.type||'openai',transport:WW_BROWSER_API_MODE?'browser':'backend'};
 }
 async function persistApiConfig(conf){
   if(WW_BROWSER_API_MODE){
