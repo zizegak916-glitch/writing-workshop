@@ -1,6 +1,6 @@
 # Writing Workshop 更新时间线
 
-> 状态：现行产品事实账本。更新时间统一使用 UTC+8；提交、CI、Pages 和公开页面证据必须能相互对应。最后同步：2026-07-29 00:13 UTC+8。
+> 状态：现行产品事实账本。更新时间统一使用 UTC+8；提交、CI、Pages 和公开页面证据必须能相互对应。最后同步：2026-07-29 01:23 UTC+8。
 
 这份时间线只记录已经发生且可验证的产品事件，不用计划代替完成。详细功能说明仍以对应文档和代码为准；机器可读证据见 [`RELEASE_EVIDENCE.json`](RELEASE_EVIDENCE.json)。
 
@@ -54,6 +54,8 @@
 |---|---|---|---|
 | 00:00 | 发布 [`v0.2.1`](https://github.com/zizegak916-glitch/writing-workshop/releases/tag/v0.2.1)，提供 Linux、macOS、Windows 的 amd64 / arm64 构建和 SHA-256 校验文件 | [`5dcdedb`](https://github.com/zizegak916-glitch/writing-workshop/commit/5dcdedb4361c8cec2ed007e655986aa0f2182e2d) | [Release 30376002767](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/30376002767)、[CI 30376002708](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/30376002708)、[Pages 30376002806](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/30376002806) 均为 `success`；Release 非草稿、非预发布，共 7 个资产 |
 | 00:12 | 发布 [`v0.2.2`](https://github.com/zizegak916-glitch/writing-workshop/releases/tag/v0.2.2)：采用现行 `openai/plugins` 和 Agent Skills 开放标准，把已弃用的 `openai/skills` 降为迁移参考；目录扩为 12 个停用元数据入口 | [`92ea556`](https://github.com/zizegak916-glitch/writing-workshop/commit/92ea556c2a349c8f0321d7ae6b4404c939e9331c) | [Release 30376945660](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/30376945660)、[CI 30376946186](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/30376946186)、[Pages 30376945474](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/30376945474) 均为 `success`；7 个发布资产齐全，Pages 的工作台、教程和后台均为 HTTP 200 且与源文件 SHA-256 一致 |
+| 01:18 | 修复 Pages 自定义 API 的 405 回归：静态站改回浏览器本地 BYOK 与直连，自部署版继续使用后端托管；同时修正主 API 弹窗把 `apiKey` 错读成 `ApiKey` 的大小写缺陷 | [`00380ef`](https://github.com/zizegak916-glitch/writing-workshop/commit/00380efa094fe75de87ba55865feab71a587ebba)、[`31bcf60`](https://github.com/zizegak916-glitch/writing-workshop/commit/31bcf60b2886460228154bb4c2329595761690f0) | 首轮 [CI 30381568015](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/30381568015) 与第二轮 [CI 30381993013](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/30381993013) 的失败均保留：前者暴露异步测试等待问题，后者定位到字段 ID 大小写错误；最终 [CI 30382297907](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/30382297907) 与 [Pages 30382294498](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/30382294498) 均成功。真实 Chromium 断言保存时零次 POST `/api/config`、配置写入当前浏览器、直连请求的 URL / Authorization / Model / Body 正确 |
+| 01:23 | 发布 [`v0.2.3`](https://github.com/zizegak916-glitch/writing-workshop/releases/tag/v0.2.3)，交付 Pages 自定义 API 回归修复及 Linux、macOS、Windows 构建 | [`fdfc148`](https://github.com/zizegak916-glitch/writing-workshop/commit/fdfc14839bdebbb82000dc198edf368cc6b3bb45) | [Release 30382489031](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/30382489031)、[CI 30382489435](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/30382489435)、[Pages 30382489294](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/30382489294) 均为 `success`；Release 非草稿、非预发布，共 7 个资产；公开 `app.html`、`workbench.js` 与 `admin.html` 的 SHA-256 同源文件一致 |
 
 ## Prompt Skill 验证账
 
@@ -64,7 +66,7 @@
 | 正式域名交互 | “流程 → 内置 Prompt Skill → 查看与修改”可打开 32 项；修改后刷新仍显示“1 个已修改” | GitHub Pages 浏览器实测 |
 | 部署内容 | 正式站 Prompt JS、快捷图标 SVG 与提交内容校验和一致 | Prompt JS `e2f45ae2…2e3e`；图标 SVG `a6d7ac2f…e02d` |
 | 自动回归 | Skill 清单、图标映射、SVG symbol、入口资源、孤立脚本/样式、核心函数唯一性、浏览器明文 Key 回归、静态链接和证据 JSON | 本地 `scripts/check-static.mjs` 已通过；[CI 30191114231](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/30191114231) 的 Playwright 产品烟雾测试已通过 |
-| 服务端边界 | Pages 是正式静态在线版；浏览器本地管理可用，模型执行仍取决于实际接入的 `/api` | README、教程、API、配置和审计文档一致 |
+| 运行边界 | Pages 是正式静态在线版，主 API 配置采用当前浏览器 BYOK 并直连用户填写的服务；自部署版使用同源 Go 后端托管密钥和执行 Skill | README、教程、API、配置和审计文档一致 |
 
 ## 文档同步规则
 

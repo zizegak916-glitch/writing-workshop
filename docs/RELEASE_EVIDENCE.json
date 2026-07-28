@@ -1,7 +1,7 @@
 {
   "schema": "writing-workshop/release-evidence",
   "version": 1,
-  "updated_at": "2026-07-28T16:13:35Z",
+  "updated_at": "2026-07-28T17:23:16Z",
   "timezone_for_timeline": "UTC+8",
   "repository": "https://github.com/zizegak916-glitch/writing-workshop",
   "public_pages": "https://zizegak916-glitch.github.io/writing-workshop/",
@@ -16,6 +16,42 @@
     "source": "GitHub repository API"
   },
   "verified_releases": [
+    {
+      "commit": "fdfc14839bdebbb82000dc198edf368cc6b3bb45",
+      "summary": "Restore GitHub Pages browser-local BYOK custom API configuration while preserving self-hosted backend key custody",
+      "ci_run": 30382489435,
+      "pages_run": 30382489294,
+      "ci_conclusion": "success",
+      "pages_conclusion": "success",
+      "release_tag": "v0.2.3",
+      "release_run": 30382489031,
+      "release_conclusion": "success",
+      "release_url": "https://github.com/zizegak916-glitch/writing-workshop/releases/tag/v0.2.3",
+      "release_asset_count": 7,
+      "pre_release_failures": [
+        {
+          "commit": "00380efa094fe75de87ba55865feab71a587ebba",
+          "ci_run": 30381568015,
+          "reason": "The first Pages regression test timed out while waiting for the API modal save action; Pages deployment itself succeeded."
+        },
+        {
+          "commit": "8ced25787aef6b6471c9592354f853c79b6fca89",
+          "ci_run": 30381993013,
+          "reason": "The awaited save check exposed that the main modal looked up ApiKey instead of the actual apiKey field; the product bug was then fixed."
+        }
+      ],
+      "live_checks": [
+        "Chromium Pages mode stored Provider, Model, Base URL and API Key in the current browser origin and made zero POST requests to static /api/config",
+        "The Pages model test sent a direct OpenAI-compatible request to the configured endpoint with the expected Authorization header, model and message body",
+        "Self-hosted mode retained same-origin /api/config and /api/ai with backend key custody",
+        "The public Pages app, canonical workbench JavaScript and admin console returned HTTP 200 and matched the current source SHA-256 values"
+      ],
+      "sha256": {
+        "web/static/app.html": "cf0b70449f4874b6da21c680dd6d323b4838141dcdfc7f927f68510a75ee2866",
+        "web/static/js/workbench.js": "d2996d29d826d35a3f17518c13ef7ea63b4936b3ab3fa9d18275af9d3323d757",
+        "web/static/admin.html": "c812207f5604e2dfdfc25de97f319fa6d749d5c8453abac64a9062faed243885"
+      }
+    },
     {
       "commit": "92ea556c2a349c8f0321d7ae6b4404c939e9331c",
       "summary": "Current OpenAI Plugins and Agent Skills sources, explicit legacy-catalog deprecation and a 12-item metadata-only external catalog",
@@ -171,7 +207,7 @@
   ],
   "truth_boundaries": [
     "GitHub Pages is the formal public static deployment, not an OpenAI Sites preview.",
-    "Browser-local features are usable on Pages; model execution requires an actually available API endpoint.",
+    "Pages uses browser-local BYOK and direct model requests; endpoint CORS policy still determines whether a chosen service can be called from the Pages origin.",
     "The external catalog only registers disabled metadata; third-party Skill and MCP execution is not implemented.",
     "Local provider mock tests verify protocol translation, not live provider availability, latency or billing behavior.",
     "Repository CI and this evidence file are maintainer-run checks, not independent third-party validation.",
