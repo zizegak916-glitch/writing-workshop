@@ -1,6 +1,6 @@
 # Writing Workshop 更新时间线
 
-> 状态：现行产品事实账本。更新时间统一使用 UTC+8；提交、CI、Pages 和公开页面证据必须能相互对应。最后同步：2026-07-29 00:02 UTC+8。
+> 状态：现行产品事实账本。更新时间统一使用 UTC+8；提交、CI、Pages 和公开页面证据必须能相互对应。最后同步：2026-07-29 00:13 UTC+8。
 
 这份时间线只记录已经发生且可验证的产品事件，不用计划代替完成。详细功能说明仍以对应文档和代码为准；机器可读证据见 [`RELEASE_EVIDENCE.json`](RELEASE_EVIDENCE.json)。
 
@@ -53,6 +53,7 @@
 | 时间 | 事件 | Git 痕迹 | 验证 |
 |---|---|---|---|
 | 00:00 | 发布 [`v0.2.1`](https://github.com/zizegak916-glitch/writing-workshop/releases/tag/v0.2.1)，提供 Linux、macOS、Windows 的 amd64 / arm64 构建和 SHA-256 校验文件 | [`5dcdedb`](https://github.com/zizegak916-glitch/writing-workshop/commit/5dcdedb4361c8cec2ed007e655986aa0f2182e2d) | [Release 30376002767](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/30376002767)、[CI 30376002708](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/30376002708)、[Pages 30376002806](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/30376002806) 均为 `success`；Release 非草稿、非预发布，共 7 个资产 |
+| 00:12 | 发布 [`v0.2.2`](https://github.com/zizegak916-glitch/writing-workshop/releases/tag/v0.2.2)：采用现行 `openai/plugins` 和 Agent Skills 开放标准，把已弃用的 `openai/skills` 降为迁移参考；目录扩为 12 个停用元数据入口 | [`92ea556`](https://github.com/zizegak916-glitch/writing-workshop/commit/92ea556c2a349c8f0321d7ae6b4404c939e9331c) | [Release 30376945660](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/30376945660)、[CI 30376946186](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/30376946186)、[Pages 30376945474](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/30376945474) 均为 `success`；7 个发布资产齐全，Pages 的工作台、教程和后台均为 HTTP 200 且与源文件 SHA-256 一致 |
 
 ## Prompt Skill 验证账
 
