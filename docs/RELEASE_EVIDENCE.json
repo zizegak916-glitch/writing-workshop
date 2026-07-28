@@ -1,7 +1,7 @@
 {
   "schema": "writing-workshop/release-evidence",
   "version": 1,
-  "updated_at": "2026-07-28T15:53:28Z",
+  "updated_at": "2026-07-28T16:02:26Z",
   "timezone_for_timeline": "UTC+8",
   "repository": "https://github.com/zizegak916-glitch/writing-workshop",
   "public_pages": "https://zizegak916-glitch.github.io/writing-workshop/",
@@ -23,6 +23,11 @@
       "pages_run": 30375358581,
       "ci_conclusion": "success",
       "pages_conclusion": "success",
+      "release_tag": "v0.2.1",
+      "release_run": 30376002767,
+      "release_conclusion": "success",
+      "release_url": "https://github.com/zizegak916-glitch/writing-workshop/releases/tag/v0.2.1",
+      "release_asset_count": 7,
       "live_checks": [
         "CI passed Go formatting, Go tests, vet, release build, JavaScript syntax, static product contract, offline server smoke and Chromium Playwright product smoke",
         "Chromium covered v1-v3 to v4 project migration, candidate generation, wrong-document write blocking, candidate recovery after reload and pre-write snapshot restoration",
