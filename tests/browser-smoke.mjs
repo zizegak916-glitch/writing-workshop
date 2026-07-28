@@ -155,6 +155,7 @@ try {
   assert.equal(await page.locator('#importPreviewContent img').count(), 0);
   await page.evaluate(() => closeModal('importPreviewModal'));
 
+  await page.locator('.ai-tab', { hasText: '助手' }).click();
   await page.waitForFunction(() => document.getElementById('desktopContextMeter')?.offsetParent !== null);
   assert.match(await page.locator('#ctxText').textContent(), /tokens/);
   assert.deepEqual(errors, [], `desktop browser errors:\n${errors.join('\n')}`);
