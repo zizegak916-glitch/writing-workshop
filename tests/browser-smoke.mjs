@@ -210,8 +210,22 @@ try {
   await pagesPage.locator('#apiBaseUrl').fill('https://mock-api.example/v1');
   await pagesPage.locator('#apiKey').fill('browser-test-key');
   await pagesPage.locator('#apiModel').fill('test-model');
-  await pagesPage.locator('#apiModal .btn-confirm').click();
-  await pagesPage.waitForFunction(() => !document.getElementById('apiModal')?.classList.contains('show'));
+  assert.equal(
+    await pagesPage.locator('#apiModal .btn-confirm').getAttribute('onclick'),
+    'saveApi()',
+    'Pages API modal save button should invoke saveApi()',
+  );
+  const preparedPagesConfig = await pagesPage.evaluate(() => apiFormConfig());
+  assert.equal(preparedPagesConfig.provider, 'custom');
+  assert.equal(preparedPagesConfig.transport, 'browser');
+  assert.equal(preparedPagesConfig.baseUrl, 'https://mock-api.example/v1');
+  assert.equal(preparedPagesConfig.model, 'test-model');
+  await pagesPage.evaluate(() => saveApi());
+  assert.equal(
+    await pagesPage.locator('#apiModal').evaluate((element) => element.classList.contains('show')),
+    false,
+    'Pages API modal should close after saving browser-local config',
+  );
   const browserConfig = await pagesPage.evaluate(() => JSON.parse(localStorage.getItem('ww_api') || '{}'));
   assert.deepEqual(browserConfig, {
     provider: 'custom',
