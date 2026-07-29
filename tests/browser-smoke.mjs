@@ -249,6 +249,7 @@ try {
   assert.equal(directRequest.body.model, 'test-model');
   assert.match(directRequest.body.messages[0].content, /Reply with exactly: OK/);
 
+  await pagesPage.locator('#apiModal .api-advanced > summary').click();
   await pagesPage.locator('#apiProtocol').selectOption('ollama');
   await pagesPage.locator('#apiAuthMode').selectOption('none');
   await pagesPage.locator('#apiBaseUrl').fill('http://127.0.0.1:11434');
