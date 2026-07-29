@@ -2,7 +2,7 @@
 
 更新：2026-07-29（UTC+8）
 
-这不是一篇可以把 Markdown 原样复制到 LINUX DO 的 AI 代写稿。它是一份发布装配清单：固定合规声明照社区格式填写；项目介绍使用已经做成图片的四张卡；开头、实际体验和结尾由维护者本人用自己的话写。
+这不是一篇可以把 Markdown 原样复制到 LINUX DO 的 AI 代写稿。它是一份发布装配清单：固定合规声明照社区格式填写；项目介绍、完整使用流程和佬友视频工具索引使用已经做成图片的六张卡；开头、实际体验和结尾由维护者本人用自己的话写。
 
 ## 为什么不用上一版长文
 
@@ -48,14 +48,16 @@
 
 不要把这三条问题本身粘贴到帖子里；请直接用自己的经历作答。
 
-## AI 项目介绍图片
+## AI 项目介绍与使用教程图片
 
-这四张图就是 AI 生成/整理的项目介绍正文。发布时按顺序上传图片，不要把图中文字复制为正文。
+这六张图就是 AI 生成/整理的项目介绍与教程正文。发布时按顺序上传图片，不要把图中文字复制为正文。
 
 1. [01 · 项目是什么](../web/static/images/linux-do-v025/01-overview.svg)
 2. [02 · Pages 怎么用](../web/static/images/linux-do-v025/02-pages-guide.svg)
 3. [03 · 自部署怎么用](../web/static/images/linux-do-v025/03-selfhost-guide.svg)
 4. [04 · 来源、证据和边界](../web/static/images/linux-do-v025/04-boundaries.svg)
+5. [05 · 从空项目到完成一次安全写入](../web/static/images/linux-do-v025/05-workshop-tutorial.svg)
+6. [06 · 佬友视频工具索引](../web/static/images/linux-do-v025/06-community-video-tools.svg)
 
 Pages 部署后也可直接打开：
 
@@ -63,8 +65,36 @@ Pages 部署后也可直接打开：
 - <https://zizegak916-glitch.github.io/writing-workshop/images/linux-do-v025/02-pages-guide.svg>
 - <https://zizegak916-glitch.github.io/writing-workshop/images/linux-do-v025/03-selfhost-guide.svg>
 - <https://zizegak916-glitch.github.io/writing-workshop/images/linux-do-v025/04-boundaries.svg>
+- <https://zizegak916-glitch.github.io/writing-workshop/images/linux-do-v025/05-workshop-tutorial.svg>
+- <https://zizegak916-glitch.github.io/writing-workshop/images/linux-do-v025/06-community-video-tools.svg>
 
 如果论坛不接受 SVG，就在浏览器打开上述地址后逐张截图为 PNG 再上传。不要用外链图片代替论坛上传，避免预览失效。
+
+## 佬友视频工具：为什么放、怎么放
+
+这一段是给佬友项目补曝光，不是 Writing Workshop 的合作方列表。维护者与以下项目没有 AFF、返佣或交换推广；只按 2026-07-29 可以核验的公开话题和入口整理，额度、注册、模型和可用性以各项目原帖为准。
+
+| 类型 | 项目 | 已核验能力 | 最短用法 | 原帖/来源 |
+|---|---|---|---|---|
+| 公益站 | ZTU.AI | 文生视频、图生视频；原帖说明使用 Wan 2.2 | 不传图片为文生视频；传一张为首帧；传两张为首尾帧，再填写动作描述 | [LINUX DO 原帖](https://linux.do/t/topic/1507837) · [站点](https://ztu.ai/) |
+| 公益站 | l0veyou | LTX 图生视频、数字人等；入口当前可打开 | 从模型列表选择视频能力并上传参考图；数字人按原帖上传超过 2 秒的音频。注册开放时间和额度可能变化 | [公益站原帖](https://linux.do/t/topic/2287218) · [数字人教程](https://linux.do/t/topic/2306233) · [站点](https://l0veyou.com/) |
+| 开源推广 | 小野 AI | Seedance、Veo 3.1，支持文生视频和图生视频；有在线站和自部署仓库 | 在线站选择视频模型后输入提示词或参考图；需要自主托管时按仓库配置供应商 Key、数据库和对象存储 | [LINUX DO 原帖](https://linux.do/t/topic/1802932) · [在线站](https://xiaoye.io/) · [仓库](https://github.com/capybara-zy/xiaoye-ai) |
+| 公益推广 / 开源 | 派奇绘画 | Wan 2.2 的图片转短视频“Live 图” | 先生成或上传图片，再切换到支持 Live 的 Hugging Face / Gitee AI 服务商生成短视频；免费额度受上游算力限制 | [LINUX DO 原帖](https://linux.do/t/topic/1312332) · [仓库](https://github.com/Amery2010/peinture) |
+
+需要从零做长视频而不是只生成一个片段，可以继续看佬友的[长视频小白教程](https://linux.do/t/topic/1833016)；使用 Seedance 时的裁切、运镜与首尾帧问题可参考[实际踩坑记录](https://linux.do/t/topic/1834572)。这些链接只作社区资源索引，不宣称 Writing Workshop 已经集成视频生成。
+
+## 教使用：本人发帖时需要补的实际操作
+
+第 05 张图已经给出完整主链路。本人最好再用自己的项目补一张真实截图，并按实际操作回答：
+
+1. 从 Pages 直接打开还是 Docker 启动。
+2. 新建项目还是导入现有 TXT / Markdown / DOCX / v5 JSON。
+3. 使用哪种协议、Base URL 是否需要补完整端点、连接测试是否成功。
+4. 选择了哪段正文、哪些上下文和哪个 Prompt Skill。
+5. 候选生成后选择了替换、插入还是追加。
+6. 写入前快照是否可恢复，最后是否导出了 v5 项目包。
+
+不要只写“点击生成即可”。佬友真正需要知道的是：数据存在哪里、API 为什么可能 CORS、结果为什么先到候选区、失败后怎样不丢正文。
 
 ## 图片之后放这些真实链接
 
@@ -86,6 +116,12 @@ https://github.com/zizegak916-glitch/writing-workshop/releases/tag/v0.2.5
 
 7 天真实写作反馈：
 https://github.com/zizegak916-glitch/writing-workshop/issues/new?template=field-test.yml
+
+佬友视频工具原帖：
+https://linux.do/t/topic/1507837
+https://linux.do/t/topic/2287218
+https://linux.do/t/topic/1802932
+https://linux.do/t/topic/1312332
 ```
 
 ## 上游致谢
@@ -100,9 +136,9 @@ Writing Workshop 的 Go 写作引擎源自 Apache-2.0 的 `voocel/ainovel-cli`�
 1. 本人填写标题。
 2. 固定开源推广声明。
 3. 本人用三到六句话说明原话题、这轮实际问题和为什么重做。
-4. 上传四张项目介绍图片。
+4. 上传六张项目介绍、使用教程与佬友视频工具图片。
 5. 粘贴真实链接块。
-6. 本人补一段实际使用情况。
+6. 本人补一段自己的实际操作，至少说明导入、API 测试、上下文选择、候选确认和备份。
 7. 只征集可复现问题和完整使用反馈，不求 Star。
 8. 放上游致谢。
 
@@ -116,5 +152,6 @@ Writing Workshop 的 Go 写作引擎源自 Apache-2.0 的 `voocel/ainovel-cli`�
 - [ ] Pages 写清“浏览器 BYOK + 目标接口需允许 CORS”，没有再写成只能预览。
 - [ ] 自部署写清“后端托管密钥 + 同源 API”，没有把 Key 放进截图或日志。
 - [ ] AI 生成/润色的介绍只以图片上传。
+- [ ] 佬友视频工具明确标注类型、原帖、动态可用性和“无 AFF / 无合作”。
+- [ ] 没有把视频站写成 Writing Workshop 已集成的功能。
 - [ ] 本人亲自补了实际体验和要佬友验证的问题。
-
