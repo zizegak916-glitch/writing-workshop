@@ -1,7 +1,7 @@
 {
   "schema": "writing-workshop/release-evidence",
   "version": 1,
-  "updated_at": "2026-07-29T14:35:26Z",
+  "updated_at": "2026-07-29T15:40:04Z",
   "timezone_for_timeline": "UTC+8",
   "repository": "https://github.com/zizegak916-glitch/writing-workshop",
   "public_pages": "https://zizegak916-glitch.github.io/writing-workshop/",
@@ -16,6 +16,29 @@
     "source": "GitHub repository API"
   },
   "documentation_syncs": [
+    {
+      "commit": "5f4708e65dd2add7bc7b8b86d617b5b1a09ba2e8",
+      "pull_request": 13,
+      "summary": "A complete screenshot-ready usage tutorial and a no-affiliate index of four community video tools with original LINUX DO source topics",
+      "pre_merge_ci_run": 30466149858,
+      "main_ci_run": 30466756097,
+      "pages_run": 30466753322,
+      "pre_merge_ci_conclusion": "success",
+      "main_ci_conclusion": "success",
+      "pages_conclusion": "success",
+      "live_checks": [
+        "The public usage-tutorial and community-video SVG cards both returned HTTP 200",
+        "Both live SVG cards matched the merged source Git blob values",
+        "The tutorial covers project creation, material placement, API testing, explicit context selection, candidate review, recovery and v5 backup",
+        "The video-resource index links four original LINUX DO topics and states that it has no collaboration, affiliate relationship or paid ranking",
+        "The publication kit does not claim that Writing Workshop integrates video generation and tells readers to verify changing quotas and availability in the original topics"
+      ],
+      "sha256": {
+        "docs/LINUX_DO_POST_V025.md": "87f62d1d316849ab4eefcd0fd9f98b64d28a25b88384cf93b85a5264f7563ec3",
+        "web/static/images/linux-do-v025/05-workshop-tutorial.svg": "3b65a341e9e05b8f97824edf6f8600d878299ccd896960121bbcb0c06710e0ac",
+        "web/static/images/linux-do-v025/06-community-video-tools.svg": "2acbfb098c62bb3f242e895218360aac7cb8bbfd6e2a28d9bd066c0b63522600"
+      }
+    },
     {
       "commit": "90218395e1362fd9b95b609241d99e6493d4fc64",
       "pull_request": 11,
