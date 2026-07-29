@@ -1,7 +1,7 @@
 {
   "schema": "writing-workshop/release-evidence",
   "version": 1,
-  "updated_at": "2026-07-28T17:23:16Z",
+  "updated_at": "2026-07-29T03:05:40Z",
   "timezone_for_timeline": "UTC+8",
   "repository": "https://github.com/zizegak916-glitch/writing-workshop",
   "public_pages": "https://zizegak916-glitch.github.io/writing-workshop/",
@@ -16,6 +16,40 @@
     "source": "GitHub repository API"
   },
   "verified_releases": [
+    {
+      "commit": "bc18e5de4d6975386be04dd38f697c64f20cf229",
+      "release_source_commit": "91cfcc5b3c58983e7c182f0a0b712eb76bcb7a05",
+      "summary": "Protocol-aware Pages and self-hosted API adapter with normalized endpoints, explicit auth, streaming, timeouts and diagnostic upstream errors",
+      "ci_run": 30418506571,
+      "pages_run": 30418506586,
+      "ci_conclusion": "success",
+      "pages_conclusion": "success",
+      "release_tag": "v0.2.4",
+      "release_run": 30418281198,
+      "release_conclusion": "success",
+      "release_url": "https://github.com/zizegak916-glitch/writing-workshop/releases/tag/v0.2.4",
+      "release_asset_count": 7,
+      "pre_release_failures": [
+        {
+          "commit": "91cfcc5b3c58983e7c182f0a0b712eb76bcb7a05",
+          "ci_run": 30418281146,
+          "reason": "All product, Go and adapter checks passed, but Chromium tried to select fields inside a closed advanced-settings details element; the test was corrected to follow the visible user interaction."
+        }
+      ],
+      "live_checks": [
+        "Adapter contract tests cover endpoint normalization, Chat Completions, Responses, Anthropic Messages, Ollama Chat, authentication modes, response usage and streaming event parsing",
+        "Chromium Pages mode made zero POST requests to static /api/config, completed a direct OpenAI-compatible request and stored a keyless Ollama configuration",
+        "Custom request headers reject browser-controlled or unsafe headers instead of silently accepting them",
+        "Self-hosted mode retained same-origin backend key custody and preserved adapter network options in backend configuration",
+        "The public Pages app, adapter, workbench JavaScript and admin console returned HTTP 200 and matched the current source SHA-256 values"
+      ],
+      "sha256": {
+        "web/static/app.html": "902fcf7ff4ac00cf148eaacba58f462a925d6e5cd906826826239652e986a77e",
+        "web/static/js/api-adapter.js": "5e394479fbed89b20de78a8212654b14e3de935e05a4baf99ba57475aa0b4456",
+        "web/static/js/workbench.js": "e2518cfe718ab8d1b873c91a1c2946ec4b3aed72d6dcf7ce4af56d04e8891a65",
+        "web/static/admin.html": "11a906d39eaae446576f0577e5e5f6ec3592a48238f8433189f745e888068216"
+      }
+    },
     {
       "commit": "fdfc14839bdebbb82000dc198edf368cc6b3bb45",
       "summary": "Restore GitHub Pages browser-local BYOK custom API configuration while preserving self-hosted backend key custody",
@@ -207,7 +241,8 @@
   ],
   "truth_boundaries": [
     "GitHub Pages is the formal public static deployment, not an OpenAI Sites preview.",
-    "Pages uses browser-local BYOK and direct model requests; endpoint CORS policy still determines whether a chosen service can be called from the Pages origin.",
+    "Pages uses browser-local BYOK and direct model requests; endpoint CORS policy and browser HTTPS mixed-content rules still determine whether a chosen service can be called from the Pages origin.",
+    "Custom headers and browser-local API keys are stored in the current browser profile; a shared or untrusted browser is not a secure secret store.",
     "The external catalog only registers disabled metadata; third-party Skill and MCP execution is not implemented.",
     "Local provider mock tests verify protocol translation, not live provider availability, latency or billing behavior.",
     "Repository CI and this evidence file are maintainer-run checks, not independent third-party validation.",
