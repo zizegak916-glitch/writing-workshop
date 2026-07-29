@@ -1,7 +1,7 @@
 {
   "schema": "writing-workshop/release-evidence",
   "version": 1,
-  "updated_at": "2026-07-29T11:19:22Z",
+  "updated_at": "2026-07-29T11:25:57Z",
   "timezone_for_timeline": "UTC+8",
   "repository": "https://github.com/zizegak916-glitch/writing-workshop",
   "public_pages": "https://zizegak916-glitch.github.io/writing-workshop/",
@@ -24,6 +24,14 @@
       "pages_run": 30447033462,
       "ci_conclusion": "success",
       "pages_conclusion": "success",
+      "release_source_commit": "77564969224554f516d9b60372c59ce2bfe2ba90",
+      "release_ci_run": 30447414243,
+      "release_pages_run": 30447414156,
+      "release_tag": "v0.2.5",
+      "release_run": 30447412739,
+      "release_conclusion": "success",
+      "release_url": "https://github.com/zizegak916-glitch/writing-workshop/releases/tag/v0.2.5",
+      "release_asset_count": 7,
       "pre_merge_ci_run": 30446893056,
       "pre_merge_ci_conclusion": "success",
       "pre_merge_failures": [

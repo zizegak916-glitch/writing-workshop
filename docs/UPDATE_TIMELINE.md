@@ -1,6 +1,6 @@
 # Writing Workshop 更新时间线
 
-> 状态：现行产品事实账本。更新时间统一使用 UTC+8；提交、CI、Pages 和公开页面证据必须能相互对应。最后同步：2026-07-29 19:19 UTC+8。
+> 状态：现行产品事实账本。更新时间统一使用 UTC+8；提交、CI、Pages 和公开页面证据必须能相互对应。最后同步：2026-07-29 19:26 UTC+8。
 
 这份时间线只记录已经发生且可验证的产品事件，不用计划代替完成。详细功能说明仍以对应文档和代码为准；机器可读证据见 [`RELEASE_EVIDENCE.json`](RELEASE_EVIDENCE.json)。
 
@@ -59,6 +59,7 @@
 | 10:58 | 将 Pages 与自部署 API 接入统一到协议感知适配器：支持 Chat Completions、Responses、Anthropic Messages、Ollama Chat，补齐域名/API 根路径/完整端点归一化、Bearer / `x-api-key` / 无鉴权、连接超时、安全自定义请求头、SSE/NDJSON 真流式解析和可诊断上游错误 | [`91cfcc5`](https://github.com/zizegak916-glitch/writing-workshop/commit/91cfcc5b3c58983e7c182f0a0b712eb76bcb7a05) | 首轮 [CI 30418281146](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/30418281146) 只有 Chromium 在操作折叠的高级字段时失败；Go 格式、测试、vet、构建、JS、适配器契约、静态契约和离线服务均通过，[Pages 30418281148](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/30418281148) 成功。失败未冒充产品通过 |
 | 11:03 | 修正浏览器验收脚本，先展开高级网络设置再验证无密钥 Ollama；发布 [`v0.2.4`](https://github.com/zizegak916-glitch/writing-workshop/releases/tag/v0.2.4) | [`bc18e5d`](https://github.com/zizegak916-glitch/writing-workshop/commit/bc18e5de4d6975386be04dd38f697c64f20cf229) | [CI 30418506571](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/30418506571)、[Pages 30418506586](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/30418506586)、[Release 30418281198](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/30418281198) 均为 `success`；Release 共 7 个资产。真实 Chromium 覆盖 Pages 直连、零 POST 静态 `/api/config` 和无密钥 Ollama 配置；正式页 4 个关键文件与源码 SHA-256 一致 |
 | 19:18 | 完成核心数据完整性与后端协议对齐：项目包升级到 v5，导入/删除按项目单事务处理，候选历史隔离并重映射坐标，切换与导出前强制完成稳定保存；自定义静态域名通过健康签名识别 Pages 模式，自部署后端统一支持四类协议和真实流 | [`6e254ac`](https://github.com/zizegak916-glitch/writing-workshop/commit/6e254ac6345b33d94d116050e7dfc25b59493a79)、[PR #8](https://github.com/zizegak916-glitch/writing-workshop/pull/8) | PR 首轮 [CI 30446509343](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/30446509343) 暴露静态探测用例把预期 404 记成控制台错误；第二轮 [CI 30446700927](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/30446700927) 暴露移动端仍等待重命名前标题；两项测试均按真实状态修正。最终 PR [CI 30446893056](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/30446893056)、main [CI 30447033350](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/30447033350)、[Pages 30447033462](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/30447033462) 均为 `success`；正式站 5 个关键文件与合并源码 SHA-256 一致 |
+| 19:26 | 发布 [`v0.2.5`](https://github.com/zizegak916-glitch/writing-workshop/releases/tag/v0.2.5)，交付核心数据完整性、静态域名识别和自部署协议流式修复 | [`7756496`](https://github.com/zizegak916-glitch/writing-workshop/commit/77564969224554f516d9b60372c59ce2bfe2ba90)、[PR #9](https://github.com/zizegak916-glitch/writing-workshop/pull/9) | [Release 30447412739](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/30447412739)、[CI 30447414243](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/30447414243)、[Pages 30447414156](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/30447414156) 均为 `success`；Release 非草稿、非预发布，共 7 个资产 |
 
 ## Prompt Skill 验证账
 
