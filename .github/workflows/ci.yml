@@ -47,7 +47,9 @@ jobs:
         run: find web/static -name '*.js' -print0 | xargs -0 -n1 node --check
 
       - name: Static product contract
-        run: node scripts/check-static.mjs
+        run: |
+          node scripts/check-static.mjs
+          npm run test:api-adapter
 
       - name: Offline server smoke test
         run: |

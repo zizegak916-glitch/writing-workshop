@@ -767,13 +767,15 @@ type projectPayload struct {
 }
 
 type configUpdate struct {
-	Config   *bootstrap.Config `json:"config"`
-	Provider string            `json:"provider"`
-	Model    string            `json:"model"`
-	APIKey   string            `json:"api_key"`
-	BaseURL  string            `json:"base_url"`
-	Type     string            `json:"type"`
-	Models   []string          `json:"models"`
+	Config    *bootstrap.Config `json:"config"`
+	Provider  string            `json:"provider"`
+	Model     string            `json:"model"`
+	APIKey    string            `json:"api_key"`
+	BaseURL   string            `json:"base_url"`
+	Type      string            `json:"type"`
+	Models    []string          `json:"models"`
+	Extra     map[string]any    `json:"extra"`
+	ExtraBody map[string]any    `json:"extra_body"`
 }
 
 type rulesUpdate struct {
@@ -821,10 +823,27 @@ func applyConfigUpdate(cfg *bootstrap.Config, req configUpdate) {
 	if len(req.Models) > 0 {
 		pc.Models = append([]string(nil), req.Models...)
 	}
+	if req.Extra != nil {
+		pc.Extra = cloneAnyMap(req.Extra)
+	}
+	if req.ExtraBody != nil {
+		pc.ExtraBody = cloneAnyMap(req.ExtraBody)
+	}
 	if model != "" && !containsString(pc.Models, model) {
 		pc.Models = append(pc.Models, model)
 	}
 	cfg.Providers[provider] = pc
+}
+
+func cloneAnyMap(source map[string]any) map[string]any {
+	if source == nil {
+		return nil
+	}
+	cloned := make(map[string]any, len(source))
+	for key, value := range source {
+		cloned[key] = value
+	}
+	return cloned
 }
 
 func (s *Server) webRulesPath() string {
@@ -1078,6 +1097,10 @@ func redactConfig(cfg bootstrap.Config) bootstrap.Config {
 	for name, provider := range cfg.Providers {
 		if provider.APIKey != "" {
 			provider.APIKey = "********"
+		}
+		if provider.Extra != nil {
+			provider.Extra = cloneAnyMap(provider.Extra)
+			delete(provider.Extra, "headers")
 		}
 		cfg.Providers[name] = provider
 	}

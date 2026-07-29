@@ -147,7 +147,8 @@ Writing Workshop 明确区分两类 Skill：
 
 - Pages 和工作台中的项目、章节、大纲、人物、笔记与记忆以当前域名的 IndexedDB / `localStorage` 为浏览器数据源；清除站点数据前应导出 v4 项目包。
 - Go 后端工作目录与浏览器数据库是两套明确存储。浏览器不会把每次编辑静默镜像到单个后端项目；需要后端资料时，由作者在项目操作台显式执行“从自部署后端导入”。
-- Pages 可选浏览器 BYOK：Key 与自定义 Base URL 只写入当前 origin 的 `localStorage`，不会进入仓库或 Pages 构建产物；请求直达目标服务，因此目标服务必须允许 CORS。不要在公共设备使用此模式。
+- Pages 可选浏览器 BYOK：Key、Base URL 与网络适配选项只写入当前 origin 的 `localStorage`，不会进入仓库或 Pages 构建产物；请求直达目标服务，因此目标服务必须允许 CORS。不要在公共设备使用此模式。
+- 浏览器直连支持 OpenAI Chat Completions、OpenAI Responses、Anthropic Messages 与 Ollama `/api/chat`；可选择鉴权方式、请求超时和自定义请求头。域名、API 根路径和完整端点都可填写。
 - 本地或自部署版默认使用同源 `/api/`，由 Go 后端保管密钥并请求模型，适合长期使用。
 - 默认监听回环地址；如使用 `0.0.0.0`，请只在可信网络或反向代理鉴权后开放。
 - API Key 可使用环境变量，不必写入仓库；配置读取时会对外隐藏密钥。
@@ -175,6 +176,7 @@ docs/               协议、来源与设计说明
 - `v0.2.1`：稳定性维护版；补旧项目包迁移、候选历史恢复、跨文档写入保护、OpenAI/Anthropic 本地模拟契约和 Go 格式门禁。
 - `v0.2.2`：公开能力目录来源校正版；采用现行 `openai/plugins`，把旧 `openai/skills` 明确标成弃用迁移参考。
 - `v0.2.3`：恢复 Pages 浏览器 BYOK 自定义 API；保存与测试不再误请求静态 `/api/config`，并补双模式回归测试。
+- `v0.2.4`：加入独立 API 网络适配层，支持四类协议、地址补全、无密钥服务、真实浏览器流式解析和可诊断的上游错误。
 - `v0.3`：最小权限的本地 Skill 沙箱与增量资料摄取。
 
 公开任务请使用 [GitHub Issues](https://github.com/zizegak916-glitch/writing-workshop/issues)。提交代码前阅读 [CONTRIBUTING.md](CONTRIBUTING.md)。

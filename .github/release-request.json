@@ -1,5 +1,5 @@
 {
-  "version": "v0.2.3",
-  "requested_at": "2026-07-28T17:23:00Z",
-  "reason": "Restore GitHub Pages browser-local BYOK custom API configuration and direct model requests, fix the static /api/config HTTP 405 regression, and preserve self-hosted backend key custody."
+  "version": "v0.2.4",
+  "requested_at": "2026-07-29T02:52:00Z",
+  "reason": "Add a protocol-aware API network adapter for OpenAI Chat Completions, OpenAI Responses, Anthropic Messages and Ollama; improve endpoint normalization, keyless auth, browser streaming, upstream diagnostics and relay compatibility."
 }

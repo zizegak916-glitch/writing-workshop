@@ -15,6 +15,7 @@ fmt-check:
 check: fmt-check test vet build
 	find web/static -name '*.js' -print0 | xargs -0 -n1 node --check
 	node scripts/check-static.mjs
+	npm run test:api-adapter
 
 check-browser:
 	npm run test:browser

@@ -457,7 +457,7 @@
     <div style="text-align:center;padding:24px 0 16px">
       <img src="icons/app-icon.svg" alt="Writing Workshop 图标" style="width:64px;height:64px;display:inline-block;margin-bottom:12px;filter:drop-shadow(0 8px 16px rgba(49,85,217,.24))">
       <div style="font-size:20px;font-weight:600;color:var(--text-primary);margin-bottom:4px">AI 写作工坊</div>
-      <div style="font-size:12px;color:var(--text-muted)">v0.2.3 · 2026-07-28</div>
+      <div style="font-size:12px;color:var(--text-muted)">v0.2.4 · 2026-07-29</div>
     </div>
     <h3>✨ 功能特色</h3>
     <ul>
@@ -700,9 +700,19 @@
     <div class="provider-chip" onclick="selectProvider(this,'grok')"><img src="data:image/svg+xml;base64,PHN2ZyBoZWlnaHQ9IjIzNDQiIHZpZXdCb3g9IjAgMSA0OCA0NiIgd2lkdGg9IjI1MDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0ibTE4LjU0MiAzMC41MzIgMTUuOTU2LTExLjc3NmMuNzgzLS41NzYgMS45MDItLjM1NCAyLjI3NC41NDUgMS45NjIgNC43MjggMS4wODQgMTAuNDExLTIuODE5IDE0LjMxNS0zLjkwMyAzLjkwMS05LjMzMyA0Ljc1Ni0xNC4yOTkgMi44MDhsLTUuNDIzIDIuNTExYzcuNzc4IDUuMzE1IDE3LjIyNCA0IDIzLjEyNS0xLjkwMyA0LjY4Mi00LjY3OSA2LjEzMS0xMS4wNTggNC43NzUtMTYuODEybC4wMTEuMDExYy0xLjk2Ni04LjQ1Mi40ODItMTEuODI5IDUuNTAxLTE4LjczNS4xMTYtLjE2NC4yMzctLjMzLjM1Ny0uNDk2bC02LjYwMiA2LjU5OXYtLjAyMmwtMjIuODYgMjIuOTU4bS0zLjI5IDIuODU3Yy01LjU4Mi01LjMyOS00LjYxOS0xMy41NzkuMTQyLTE4LjMzOSAzLjUyMS0zLjUyMiA5LjI5NC00Ljk1OCAxNC4zMzEtMi44NDdsNS40MTItMi40OTdjLS45NzQtLjcwNC0yLjIyNC0xLjQ2LTMuNjU5LTEuOTk0LTYuNDc4LTIuNjY2LTE0LjIzOC0xLjM0LTE5LjUwNSAzLjkyMi01LjA2NSA1LjA2NC02LjY1OSAxMi44NTEtMy45MjQgMTkuNDk2IDIuMDQ0IDQuOTY1LTEuMzA3IDguNDgtNC42ODIgMTIuMDIzLTEuMTk5IDEuMjU1LTIuMzk2IDIuNTE0LTMuMzYzIDMuODQ0bDE1LjI0MS0xMy42MDgiLz48L3N2Zz4=" style="width:22px;height:22px" alt=""> Grok</div>
     <div class="provider-chip" onclick="selectProvider(this,'custom')"><svg class="ic" style="width:22px;height:22px"><use href="#ic-logo"/></svg> 自定义</div>
   </div></div>
-  <div class="form-row" id="customUrlRow" style="display:none"><div class="form-label" data-i18n="mod-api-url">Base URL</div><input class="form-input" id="apiBaseUrl" placeholder="https://api.example.com/v1"></div>
+  <div class="form-row" id="customUrlRow"><div class="form-label">Base URL（可选，可填中转地址或完整接口）</div><input class="form-input" id="apiBaseUrl" placeholder="留空使用所选服务商默认地址"></div>
   <div class="form-row"><div class="form-label" data-i18n="form-api-key-label">API Key</div><div class="test-row"><input class="form-input" id="apiKey" type="password" placeholder="sk-..."><button class="btn-test" data-i18n="form-api-test" onclick="testApi()">测试</button></div><div class="test-result" id="testResult"></div></div>
   <div class="form-row"><div class="form-label" data-i18n="form-api-model-label">模型</div><input class="form-input" id="apiModel" data-i18n-ph="form-api-model-ph" placeholder="留空使用默认"></div>
+  <details class="api-advanced">
+    <summary>高级网络适配</summary>
+    <div class="api-advanced-grid">
+      <label>接口协议<select class="form-input" id="apiProtocol"><option value="auto">自动识别</option><option value="openai-chat">OpenAI Chat Completions</option><option value="openai-responses">OpenAI Responses</option><option value="anthropic">Anthropic Messages</option><option value="ollama">Ollama /api/chat</option></select></label>
+      <label>鉴权方式<select class="form-input" id="apiAuthMode"><option value="auto">自动</option><option value="bearer">Bearer Token</option><option value="x-api-key">x-api-key</option><option value="none">无鉴权</option></select></label>
+      <label>超时（秒）<input class="form-input" id="apiTimeout" type="number" min="5" max="600" value="60"></label>
+    </div>
+    <label class="api-header-field">自定义请求头（JSON）<textarea class="form-input" id="apiHeaders" rows="3" placeholder='{"HTTP-Referer":"https://example.com"}'></textarea></label>
+    <p class="api-advanced-help">地址可填域名、兼容层 Base URL 或完整接口；系统会按协议补全路径。无密钥的 Ollama、局域网服务请选择“无鉴权”。Pages 直连仍要求目标服务允许 CORS。</p>
+  </details>
   <div class="modal-footer"><button class="btn-cancel" data-i18n="form-cancel" onclick="closeModal('apiModal')">取消</button><button class="btn-confirm" data-i18n="form-save" onclick="saveApi()">保存 ✓</button></div>
 </div></div>
 <div class="modal-overlay" id="settingsModal"><div class="modal" style="width:min(520px,94vw)">
@@ -741,9 +751,19 @@
       <div class="provider-chip" onclick="selectProvider(this,'grok')"><img src="data:image/svg+xml;base64,PHN2ZyBoZWlnaHQ9IjIzNDQiIHZpZXdCb3g9IjAgMSA0OCA0NiIgd2lkdGg9IjI1MDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZD0ibTE4LjU0MiAzMC41MzIgMTUuOTU2LTExLjc3NmMuNzgzLS41NzYgMS45MDItLjM1NCAyLjI3NC41NDUgMS45NjIgNC43MjggMS4wODQgMTAuNDExLTIuODE5IDE0LjMxNS0zLjkwMyAzLjkwMS05LjMzMyA0Ljc1Ni0xNC4yOTkgMi44MDhsLTUuNDIzIDIuNTExYzcuNzc4IDUuMzE1IDE3LjIyNCA0IDIzLjEyNS0xLjkwMyA0LjY4Mi00LjY3OSA2LjEzMS0xMS4wNTggNC43NzUtMTYuODEybC4wMTEuMDExYy0xLjk2Ni04LjQ1Mi40ODItMTEuODI5IDUuNTAxLTE4LjczNS4xMTYtLjE2NC4yMzctLjMzLjM1Ny0uNDk2bC02LjYwMiA2LjU5OXYtLjAyMmwtMjIuODYgMjIuOTU4bS0zLjI5IDIuODU3Yy01LjU4Mi01LjMyOS00LjYxOS0xMy41NzkuMTQyLTE4LjMzOSAzLjUyMS0zLjUyMiA5LjI5NC00Ljk1OCAxNC4zMzEtMi44NDdsNS40MTItMi40OTdjLS45NzQtLjcwNC0yLjIyNC0xLjQ2LTMuNjU5LTEuOTk0LTYuNDc4LTIuNjY2LTE0LjIzOC0xLjM0LTE5LjUwNSAzLjkyMi01LjA2NSA1LjA2NC02LjY1OSAxMi44NTEtMy45MjQgMTkuNDk2IDIuMDQ0IDQuOTY1LTEuMzA3IDguNDgtNC42ODIgMTIuMDIzLTEuMTk5IDEuMjU1LTIuMzk2IDIuNTE0LTMuMzYzIDMuODQ0bDE1LjI0MS0xMy42MDgiLz48L3N2Zz4=" style="width:22px;height:22px" alt=""> Grok</div>
       <div class="provider-chip" onclick="selectProvider(this,'custom')"><svg class="ic" style="width:22px;height:22px"><use href="#ic-logo"/></svg> 自定义</div>
     </div></div>
-    <div class="form-row" id="sCustomUrlRow" style="display:none"><div class="form-label" data-i18n="mod-api-url">Base URL</div><input class="form-input" id="sApiBaseUrl" placeholder="https://api.example.com/v1"></div>
+    <div class="form-row" id="sCustomUrlRow"><div class="form-label">Base URL（可选，可填中转地址或完整接口）</div><input class="form-input" id="sApiBaseUrl" placeholder="留空使用所选服务商默认地址"></div>
     <div class="form-row"><div class="form-label" data-i18n="form-api-key-label">API Key</div><div class="test-row"><input class="form-input" id="sApiKey" type="password" placeholder="sk-..."><button class="btn-test" data-i18n="form-api-test" onclick="settingsTestApi()">测试</button></div><div class="test-result" id="sTestResult"></div></div>
     <div class="form-row"><div class="form-label" data-i18n="form-api-model-label">模型</div><input class="form-input" id="sApiModel" data-i18n-ph="form-api-model-ph" placeholder="留空使用默认"></div>
+    <details class="api-advanced">
+      <summary>高级网络适配</summary>
+      <div class="api-advanced-grid">
+        <label>接口协议<select class="form-input" id="sApiProtocol"><option value="auto">自动识别</option><option value="openai-chat">OpenAI Chat Completions</option><option value="openai-responses">OpenAI Responses</option><option value="anthropic">Anthropic Messages</option><option value="ollama">Ollama /api/chat</option></select></label>
+        <label>鉴权方式<select class="form-input" id="sApiAuthMode"><option value="auto">自动</option><option value="bearer">Bearer Token</option><option value="x-api-key">x-api-key</option><option value="none">无鉴权</option></select></label>
+        <label>超时（秒）<input class="form-input" id="sApiTimeout" type="number" min="5" max="600" value="60"></label>
+      </div>
+      <label class="api-header-field">自定义请求头（JSON）<textarea class="form-input" id="sApiHeaders" rows="3" placeholder='{"HTTP-Referer":"https://example.com"}'></textarea></label>
+      <p class="api-advanced-help">地址可填域名、兼容层 Base URL 或完整接口；系统会按协议补全路径。无密钥的 Ollama、局域网服务请选择“无鉴权”。Pages 直连仍要求目标服务允许 CORS。</p>
+    </details>
   </div>
   <div id="settingsTab-theme" style="display:none">
     <div class="theme-grid">
@@ -869,6 +889,7 @@
 
 <script src="js/ai-mode-icons.js"></script>
 <script src="js/prompt-skills.js"></script>
+<script src="js/api-adapter.js"></script>
 <script src="js/workbench.js"></script>
 <script src="js/workflows.js"></script>
 <script src="js/recursive.js"></script>

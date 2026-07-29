@@ -1,6 +1,6 @@
 # Security Policy
 
-> 安全边界最后复核：2026-07-28（UTC+8）。
+> 安全边界最后复核：2026-07-29（UTC+8）。
 
 ## Supported version
 
@@ -17,7 +17,8 @@
 - 服务默认监听 `127.0.0.1`；`--host 0.0.0.0` 只适合可信网络或有鉴权、TLS 的反向代理。
 - `--demo` 不需要 API Key，但 AI 生成任务仍需用户配置真实模型。
 - 自部署版浏览器只访问同源 `/api/`，密钥由后端配置或环境变量保管。不要把供应商密钥写入前端代码或提交到仓库。
-- GitHub Pages 支持用户主动启用的浏览器 BYOK。此模式把 Key、Base URL、Provider 与 Model 保存到当前 origin 的 `localStorage`，并直接请求目标服务；页面脚本、浏览器扩展及能读取该 origin 数据的人都可能接触 Key。不要在公共设备使用，发现异常应立即在服务商后台撤销 Key。
+- GitHub Pages 支持用户主动启用的浏览器 BYOK。此模式把 Key、Base URL、Provider、Model、协议与自定义请求头保存到当前 origin 的 `localStorage`，并直接请求目标服务；页面脚本、浏览器扩展及能读取该 origin 数据的人都可能接触这些凭据。不要在公共设备使用，发现异常应立即在服务商后台撤销 Key。
+- 自定义请求头禁止覆盖 `Host`、`Cookie`、`Origin`、`Content-Length`、`Sec-*` 等浏览器或传输层控制字段。自部署配置读取接口必须移除 `extra.headers`，不能把其中的令牌回传到浏览器。
 - Pages BYOK 只使用主配置；多模型槽位不得持久化单独的 Key，也不得静默复制主 Key 到其他 Provider。
 - 跨域请求默认拒绝；分离部署必须用 `WRITING_WORKSHOP_ALLOWED_ORIGINS` 精确列出来源，禁止 `*`。
 - JSON 请求体限制为 8 MiB，并拒绝一个请求中拼接多个 JSON 值；新增接口不得绕过统一读取器。

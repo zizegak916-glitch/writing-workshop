@@ -37,6 +37,8 @@ const workbenchSource = read('web/static/js/workbench.js');
 const promptLookups = workbenchSource.match(/wwPromptText\(/g)?.length || 0;
 assert(promptLookups >= 6, `expected Prompt Skill injection in at least 6 request paths, found ${promptLookups}`);
 assert(appHtml.includes('js/ai-mode-icons.js') && appHtml.includes('js/prompt-skills.js'), 'workbench must load icon and Prompt Skill scripts');
+assert(appHtml.includes('js/api-adapter.js'), 'workbench must load the shared API adapter');
+assert(appHtml.indexOf('js/api-adapter.js') < appHtml.indexOf('js/workbench.js'), 'API adapter must load before workbench');
 assert(appHtml.includes('css/main.css') && appHtml.includes('js/workbench.js'), 'workbench must load its canonical CSS and JavaScript entrypoints');
 assert(!/<style[\s>]/i.test(appHtml), 'workbench must not contain inline style blocks');
 assert(!/<script(?![^>]*\bsrc=)[^>]*>/i.test(appHtml), 'workbench must not contain inline script blocks');
@@ -45,7 +47,12 @@ assert(workbenchSource.includes('function loadStoredApiConfig()'), 'browser API 
 assert(workbenchSource.includes('function loadSlot(n)'), 'multi-model slots must use the canonical scrubbed loader');
 assert(workbenchSource.includes('WW_BROWSER_API_MODE') && workbenchSource.includes("?'browser':'backend'"), 'Pages browser API mode is missing');
 assert(workbenchSource.includes('function persistApiConfig('), 'dual-mode API persistence is missing');
-assert(workbenchSource.includes('browserDirect=false') && workbenchSource.includes('return await fetch(url'), 'browser-direct provider transport is missing');
+assert(workbenchSource.includes('WWApiAdapter.request') && workbenchSource.includes('WWApiAdapter.stream'), 'browser-direct request and stream adapters are missing');
+const adapterSource = read('web/static/js/api-adapter.js');
+for (const protocol of ['openai-chat', 'openai-responses', 'anthropic', 'ollama']) {
+  assert(adapterSource.includes(protocol), `API adapter protocol is missing: ${protocol}`);
+}
+assert(adapterSource.includes('parseCustomHeaders') && adapterSource.includes('normalizeEndpoint'), 'API network compatibility helpers are missing');
 assert(!/slotKey|placeholder="API Key" value="'\+\(s\.key/.test(workbenchSource), 'multi-model slots must not render or persist browser API keys');
 for (const coreFunction of ['renderCharList', 'countWords', 'escapeHtml']) {
   const declarations = workbenchSource.match(new RegExp(`function\\s+${coreFunction}\\s*\\(`, 'g')) || [];

@@ -2712,81 +2712,95 @@ function setLen(v,btn){btn.parentElement.querySelectorAll('.seg-btn').forEach(b=
 
 
 // ═══ API ═══
-const PROVIDERS={claude:{url:'https://api.anthropic.com/v1/messages',model:'claude-sonnet-4-20250514',type:'claude'},openai:{url:'https://api.openai.com/v1/chat/completions',model:'gpt-4o',type:'openai'},deepseek:{url:'https://api.deepseek.com/v1/chat/completions',model:'deepseek-chat',type:'openai'},xiaomi:{url:'https://api.xiaomimimo.com/v1/chat/completions',model:'mimo-v2.5-pro',type:'openai'},qwen:{url:'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',model:'qwen-plus',type:'openai'},zhipu:{url:'https://open.bigmodel.cn/api/paas/v4/chat/completions',model:'glm-4-flash',type:'openai'},moonshot:{url:'https://api.moonshot.cn/v1/chat/completions',model:'moonshot-v1-8k',type:'openai'},siliconflow:{url:'https://api.siliconflow.cn/v1/chat/completions',model:'deepseek-ai/DeepSeek-V3',type:'openai'},openrouter:{url:'https://openrouter.ai/api/v1/chat/completions',model:'anthropic/claude-sonnet-4',type:'openai'},gemini:{url:'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',model:'gemini-2.0-flash',type:'gemini'},grok:{url:'https://api.x.ai/v1/chat/completions',model:'grok-3',type:'openai'},custom:{url:'',model:'',type:'openai'}};
+const PROVIDERS={claude:{url:'https://api.anthropic.com/v1/messages',model:'claude-sonnet-4-20250514',type:'anthropic'},openai:{url:'https://api.openai.com/v1/chat/completions',model:'gpt-4o',type:'openai'},deepseek:{url:'https://api.deepseek.com/v1/chat/completions',model:'deepseek-chat',type:'openai'},xiaomi:{url:'https://api.xiaomimimo.com/v1/chat/completions',model:'mimo-v2.5-pro',type:'openai'},qwen:{url:'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',model:'qwen-plus',type:'openai'},zhipu:{url:'https://open.bigmodel.cn/api/paas/v4/chat/completions',model:'glm-4-flash',type:'openai'},moonshot:{url:'https://api.moonshot.cn/v1/chat/completions',model:'moonshot-v1-8k',type:'openai'},siliconflow:{url:'https://api.siliconflow.cn/v1/chat/completions',model:'deepseek-ai/DeepSeek-V3',type:'openai'},openrouter:{url:'https://openrouter.ai/api/v1/chat/completions',model:'anthropic/claude-sonnet-4',type:'openai'},gemini:{url:'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',model:'gemini-2.0-flash',type:'openai'},grok:{url:'https://api.x.ai/v1/chat/completions',model:'grok-3',type:'openai'},custom:{url:'',model:'',type:'openai'}};
 const TRANSIENT_ERRORS=[429,500,502,503,504];
 function _isTransient(err){const m=err.message?.match?.(/HTTP (\d+)/);return m&&TRANSIENT_ERRORS.includes(+m[1]);}
 async function _sleep(ms){return new Promise(r=>setTimeout(r,ms));}
 function aiHasConfig(conf){
   if(!conf)return false;
-  if(usesBrowserAPI(conf))return !!(conf.key&&conf.provider&&(conf.provider!=='custom'||(conf.baseUrl&&conf.model)));
+  if(usesBrowserAPI(conf)){
+    const p=PROVIDERS[conf.provider]||PROVIDERS.custom;
+    const protocol=WWApiAdapter.inferProtocol({...conf,type:conf.type||p.type});
+    const auth=WWApiAdapter.resolveAuthMode(conf,protocol);
+    const hasAuth=auth==='none'||!!conf.key;
+    return !!(hasAuth&&conf.provider&&(conf.provider!=='custom'||(conf.baseUrl&&conf.model)));
+  }
   return !!conf.provider;
 }
 function providerEndpoint(conf,p){
-  const configured=(conf.baseUrl||'').trim();
-  if(!configured)return p.url;
-  if(PROVIDERS[conf.provider]&&conf.provider!=='custom')return configured;
-  if(/\/(?:chat\/completions|messages)(?:\?|$)/.test(configured))return configured;
-  const clean=configured.replace(/\/+$/,'');
-  if(p.type==='claude')return clean+(clean.endsWith('/v1')?'/messages':'/v1/messages');
-  return clean+'/chat/completions';
+  const protocol=WWApiAdapter.inferProtocol({...conf,type:conf.type||p.type});
+  return WWApiAdapter.normalizeEndpoint(conf.baseUrl,protocol,p.url);
 }
-function browserAPIError(error){
-  if(error?.name==='AbortError')return error;
-  if(error instanceof TypeError)return new Error('浏览器直连失败：请检查 Base URL、网络和服务端 CORS；目标接口必须允许当前 Pages 域名发起请求。');
-  return error;
-}
-async function _fetchWithTimeout(url,opts,timeoutMs=60000,browserDirect=false){
+async function _fetchWithTimeout(url,opts,timeoutMs=60000){
   const ac=new AbortController();const id=setTimeout(()=>ac.abort(),timeoutMs);
   try{
-    if(browserDirect){
-      try{return await fetch(url,{...opts,signal:ac.signal});}
-      catch(error){throw browserAPIError(error);}
-    }
-    const original=opts.body?JSON.parse(opts.body):{};
-    const providerEntry=Object.entries(PROVIDERS).find(([,p])=>p.url===url)?.[0];
-    const aiBody={...original,provider:providerEntry||original.provider,signal:undefined};
-    const r=await fetch('/api/ai',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(aiBody),signal:ac.signal});
-    const data=await r.json();
-    return{ok:r.ok&&(!data.error||r.status===200),status:r.status,json:async()=>data,
-      _proxyError:data.error?new Error('HTTP '+(data.error.code||r.status)+': '+(data.error.message||'Unknown')):null};
+    return await fetch(url,{...opts,signal:ac.signal});
   }finally{clearTimeout(id);}}
-function _buildHeaders(conf,p,browserDirect=false){const h={'Content-Type':'application/json'};if(p.type==='claude'){h['x-api-key']=conf.key;h['anthropic-version']='2023-06-01';if(browserDirect)h['anthropic-dangerous-direct-browser-access']='true';}else{h['Authorization']='Bearer '+conf.key;}return h;}
-function _buildBody(conf,p,msgs,systemPrompt,stream,browserDirect=false){
-  if(p.type==='claude'){
-    const claudeBody={model:conf.model||p.model,max_tokens:2000,messages:msgs.filter(m=>m.role!=='system')};
-    if(!browserDirect)claudeBody.provider=conf.provider;
-    if(systemPrompt)claudeBody.system=systemPrompt;
-    if(stream)claudeBody.stream=true;
-    return JSON.stringify(claudeBody);
-  }
-  const b={model:conf.model||p.model,max_tokens:2000,messages:msgs};
-  if(!browserDirect)b.provider=conf.provider;
-  if(stream)b.stream=true;
-  return JSON.stringify(b);
-}
 function _parseMessages(prompt,systemPrompt){const msgs=[];if(systemPrompt)msgs.push({role:'system',content:systemPrompt});msgs.push({role:'user',content:prompt});return msgs;}
+function _runtimeConfig(conf,p){
+  return{
+    ...conf,
+    model:conf.model||p.model,
+    type:conf.type||p.type,
+    fallbackUrl:p.url,
+    timeoutMs:Number(conf.timeout||60000),
+    browserDirect:true
+  };
+}
+async function _backendRequest(conf,msgs){
+  const timeout=Number(conf.timeout||60000);
+  let response;
+  try{
+    response=await _fetchWithTimeout('/api/ai',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({provider:conf.provider,model:conf.model||'',messages:msgs})
+    },timeout);
+  }catch(error){
+    if(error?.name==='AbortError')throw new Error('请求超时或已中断');
+    throw new Error('无法连接同源后端：请检查服务是否启动、反向代理和网络设置');
+  }
+  const raw=await response.text();
+  let data={};
+  try{data=raw?JSON.parse(raw):{};}catch(_){data=raw;}
+  if(!response.ok||data?.error){
+    const detail=typeof data==='string'?data:(data?.error?.message||data?.error||data?.message||response.statusText);
+    throw new Error('HTTP '+response.status+': '+String(detail||'后端请求失败').slice(0,600));
+  }
+  const text=WWApiAdapter.parseResponse(data);
+  if(!text)throw new Error('后端返回成功，但没有识别到文本内容');
+  return{text,usage:WWApiAdapter.parseUsage(data)};
+}
 async function callAI(prompt,conf,systemPrompt){
-  const pr=conf.provider||'claude',p=PROVIDERS[pr]||{url:'',model:conf.model||'',type:conf.type==='anthropic'?'claude':'openai'},url=providerEndpoint(conf,p);
+  const pr=conf.provider||'claude',p=PROVIDERS[pr]||PROVIDERS.custom;
   const msgs=_parseMessages(prompt,systemPrompt);
   const direct=usesBrowserAPI(conf);
-  const h=_buildHeaders(conf,p,direct),body=_buildBody(conf,p,msgs,systemPrompt,false,direct);
   let lastErr=null;
   for(let attempt=0;attempt<3;attempt++){
-    try{const r=await _fetchWithTimeout(url,{method:'POST',headers:h,body},conf.timeout||60000,direct);
-      if(r._proxyError)throw r._proxyError;
-      if(!r.ok)throw new Error('HTTP '+r.status);
-      const d=await r.json();let result='',usage=null;
-      if(d.error)throw new Error(d.error.message||JSON.stringify(d.error));
-      if(p.type==='claude'){result=d.content?.[0]?.text||'（无返回）';usage=d.usage?{input:d.usage.input_tokens,output:d.usage.output_tokens}:null;}
-      else{result=d.choices?.[0]?.message?.content||'（无返回）';usage=d.usage?{input:d.usage.prompt_tokens,output:d.usage.completion_tokens}:null;}
-      if(usage)updateUsageDisplay(usage);return result;
+    try{
+      const result=direct
+        ?await WWApiAdapter.request(_runtimeConfig(conf,p),msgs,{maxTokens:2000})
+        :await _backendRequest(conf,msgs);
+      if(result.usage)updateUsageDisplay(result.usage);
+      return result.text;
     }catch(e){lastErr=e;if(_isTransient(e)&&attempt<2){await _sleep(1000*Math.pow(2,attempt));continue;}throw e;}
   }
   throw lastErr;
 }
 async function callAIStream(prompt,conf,systemPrompt,onChunk){
-  const text=await callAI(prompt,conf,systemPrompt);
-  if(text&&onChunk)onChunk(text);
+  if(!usesBrowserAPI(conf)){
+    const text=await callAI(prompt,conf,systemPrompt);
+    if(text&&onChunk)onChunk(text);
+    return text;
+  }
+  const pr=conf.provider||'claude',p=PROVIDERS[pr]||PROVIDERS.custom;
+  const result=await WWApiAdapter.stream(
+    _runtimeConfig(conf,p),
+    _parseMessages(prompt,systemPrompt),
+    {maxTokens:2000,onChunk}
+  );
+  if(result.usage)updateUsageDisplay(result.usage);
+  return result.text;
 }
 function showStreamingResult(elementId){const el=document.getElementById(elementId);if(!el)return;el.textContent='';el.classList.add('streaming-cursor');}
 function hideStreamingCursor(){const el=document.getElementById('arpText');if(el)el.classList.remove('streaming-cursor');}
@@ -2868,7 +2882,7 @@ function editMemory(id){
   openModal('memoryModal');
 }
 function toggleMemCat(el){el.parentElement.querySelectorAll('.genre-chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');}
-function selectProvider(el,p){el.parentElement.querySelectorAll('.provider-chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');S.selectedProvider=p;const cur=el.closest('.provider-grid').id;const urlRow=cur==='sProviderGrid'?'sCustomUrlRow':'customUrlRow';document.getElementById(urlRow).style.display=p==='custom'?'block':'none';const d={claude:'claude-sonnet-4-20250514',openai:'gpt-4o',deepseek:'deepseek-chat',xiaomi:'mimo-v2.5-pro',qwen:'qwen-plus',zhipu:'glm-4-flash',moonshot:'moonshot-v1-8k',siliconflow:'deepseek-ai/DeepSeek-V3',openrouter:'anthropic/claude-sonnet-4',gemini:'gemini-2.0-flash',grok:'grok-3',custom:''};const modelEl=cur==='sProviderGrid'?document.getElementById('sApiModel'):document.getElementById('apiModel');if(modelEl)modelEl.placeholder=d[p]||'';}
+function selectProvider(el,p){el.parentElement.querySelectorAll('.provider-chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');S.selectedProvider=p;const cur=el.closest('.provider-grid').id;const d={claude:'claude-sonnet-4-20250514',openai:'gpt-4o',deepseek:'deepseek-chat',xiaomi:'mimo-v2.5-pro',qwen:'qwen-plus',zhipu:'glm-4-flash',moonshot:'moonshot-v1-8k',siliconflow:'deepseek-ai/DeepSeek-V3',openrouter:'anthropic/claude-sonnet-4',gemini:'gemini-2.0-flash',grok:'grok-3',custom:''};const modelEl=cur==='sProviderGrid'?document.getElementById('sApiModel'):document.getElementById('apiModel');const urlEl=cur==='sProviderGrid'?document.getElementById('sApiBaseUrl'):document.getElementById('apiBaseUrl');if(modelEl)modelEl.placeholder=d[p]||'填写目标模型名';if(urlEl)urlEl.placeholder=PROVIDERS[p]?.url||'https://api.example.com/v1';}
 function apiFormConfig(prefix=''){
   const fieldStem=prefix?prefix+'Api':'api';
   const fieldValue=name=>{
@@ -2879,23 +2893,34 @@ function apiFormConfig(prefix=''){
   const key=fieldValue('Key');
   const baseUrl=fieldValue('BaseUrl');
   const provider=S.selectedProvider||'claude';
-  return{provider,key:key||(WW_BROWSER_API_MODE?'':'backend'),model:fieldValue('Model'),baseUrl,type:PROVIDERS[provider]?.type||'openai',transport:WW_BROWSER_API_MODE?'browser':'backend'};
+  const protocol=fieldValue('Protocol')||'auto';
+  const authMode=fieldValue('AuthMode')||'auto';
+  const timeoutSeconds=Math.max(5,Math.min(600,Number(fieldValue('Timeout')||60)));
+  const customHeaders=fieldValue('Headers');
+  WWApiAdapter.parseCustomHeaders(customHeaders);
+  const providerType=PROVIDERS[provider]?.type||'openai';
+  const inferred=WWApiAdapter.inferProtocol({provider,protocol,type:providerType,baseUrl});
+  return{provider,key:key||(WW_BROWSER_API_MODE?'':'backend'),model:fieldValue('Model'),baseUrl,type:WWApiAdapter.protocolType(inferred),protocol,authMode,timeout:timeoutSeconds*1000,customHeaders,transport:WW_BROWSER_API_MODE?'browser':'backend'};
 }
 async function persistApiConfig(conf){
   if(WW_BROWSER_API_MODE){
-    if(!conf.key)throw new Error('Pages 浏览器直连模式需要填写 API Key');
+    const protocol=WWApiAdapter.inferProtocol(conf);
+    if(WWApiAdapter.resolveAuthMode(conf,protocol)!=='none'&&!conf.key)throw new Error('当前鉴权方式需要填写 API Key；无密钥服务请选择“无鉴权”');
     if(conf.provider==='custom'&&!conf.baseUrl)throw new Error('自定义服务需要填写 Base URL');
+    if(conf.provider==='custom'&&!conf.model)throw new Error('自定义服务需要填写模型名称');
     S.apiConfig=conf;
     localStorage.setItem('ww_api',JSON.stringify(conf));
     return;
   }
-  await apiJSON('/api/config',{method:'POST',body:JSON.stringify({provider:conf.provider,model:conf.model,type:conf.type,api_key:conf.key==='backend'?'':conf.key,base_url:conf.baseUrl})});
-  S.apiConfig={provider:conf.provider,key:'backend',model:conf.model,baseUrl:'',type:conf.type,transport:'backend'};
+  const headers=WWApiAdapter.parseCustomHeaders(conf.customHeaders);
+  await apiJSON('/api/config',{method:'POST',body:JSON.stringify({provider:conf.provider,model:conf.model,type:conf.type,api_key:conf.key==='backend'?'':conf.key,base_url:conf.baseUrl,extra:Object.keys(headers).length?{headers}:undefined})});
+  S.apiConfig={provider:conf.provider,key:'backend',model:conf.model,baseUrl:conf.baseUrl,type:conf.type,protocol:conf.protocol,authMode:conf.authMode,timeout:conf.timeout,customHeaders:'',transport:'backend'};
   localStorage.setItem('ww_api',JSON.stringify(S.apiConfig));
 }
 async function testApi(){const r=document.getElementById('testResult');r.className='test-result ok';r.textContent='⟳ '+t('mod-api-test')+'...';try{const conf=apiFormConfig();if(!WW_BROWSER_API_MODE)await persistApiConfig(conf);const result=await callAI('Reply with exactly: OK',conf);r.className='test-result ok';r.textContent='✓ '+result.slice(0,30);}catch(e){r.className='test-result fail';r.textContent='✗ '+e.message;}}
 async function saveApi(){try{await persistApiConfig(apiFormConfig());if(!WW_BROWSER_API_MODE)document.getElementById('apiKey').value='';closeModal('apiModal');showToast('✓',t('toast-saved'));}catch(e){showToast('✕',e.message);}}
-function loadApiUI(){const c=S.apiConfig;if(c.provider){const el=document.querySelector('.provider-chip[onclick*="'+c.provider+'"]');if(el)selectProvider(el,c.provider);}document.getElementById('apiKey').value=c.key==='backend'?'':(c.key||'');document.getElementById('apiModel').value=c.model||'';document.getElementById('apiBaseUrl').value=c.baseUrl||'';const notice=document.getElementById('apiStorageNotice');if(notice)notice.textContent=apiStorageDescription();}
+function loadApiFields(prefix,c){const stem=prefix?prefix+'Api':'api';document.getElementById(stem+'Key').value=c.key==='backend'?'':(c.key||'');document.getElementById(stem+'Model').value=c.model||'';document.getElementById(stem+'BaseUrl').value=c.baseUrl||'';document.getElementById(stem+'Protocol').value=c.protocol||'auto';document.getElementById(stem+'AuthMode').value=c.authMode||'auto';document.getElementById(stem+'Timeout').value=Math.round(Number(c.timeout||60000)/1000);document.getElementById(stem+'Headers').value=c.customHeaders||'';}
+function loadApiUI(){const c=S.apiConfig;if(c.provider){const el=document.querySelector('.provider-chip[onclick*="'+c.provider+'"]');if(el)selectProvider(el,c.provider);}loadApiFields('',c);const notice=document.getElementById('apiStorageNotice');if(notice)notice.textContent=apiStorageDescription();}
 
 function makeEditorSnapshot(){
   const ed=document.getElementById('mainEditor');
@@ -3786,9 +3811,7 @@ function initSettingsModal(){
   // Load API settings into settings modal fields
   const c=S.apiConfig;
   if(c.provider){const el=document.querySelector('#sProviderGrid .provider-chip[onclick*="'+c.provider+'"]');if(el)selectProvider(el,c.provider);}
-  document.getElementById('sApiKey').value=c.key==='backend'?'':(c.key||'');
-  document.getElementById('sApiModel').value=c.model||'';
-  document.getElementById('sApiBaseUrl').value=c.baseUrl||'';
+  loadApiFields('s',c);
   const notice=document.getElementById('settingsApiStorageNotice');if(notice)notice.textContent=apiStorageDescription();
   // Highlight current theme
   const isLight=document.body.classList.contains('light');

@@ -2,6 +2,7 @@
   "name": "writing-workshop-web-checks",
   "private": true,
   "scripts": {
+    "test:api-adapter": "node tests/api-adapter.test.mjs",
     "test:browser": "node tests/browser-smoke.mjs"
   },
   "devDependencies": {

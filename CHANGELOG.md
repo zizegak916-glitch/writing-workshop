@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.2.4 — 2026-07-29 — API 网络适配层
+
+- 将 Pages 与能力后台的浏览器直连统一到同一适配层，支持 OpenAI Chat Completions、OpenAI Responses、Anthropic Messages 和 Ollama `/api/chat`。
+- Base URL 现在可填写域名、带前缀的兼容层地址或完整端点；按所选协议补全路径，不再把所有自定义服务都硬拼成 `/chat/completions`。
+- 增加自动/Bearer/x-api-key/无鉴权、自定义请求头和 5–600 秒请求超时；无密钥的本地或局域网服务可以保存。
+- 浏览器直连增加真实 SSE / NDJSON 增量解析，兼容四类文本响应和 usage 字段；非流式接口仍可回退为完整候选。
+- 上游错误会保留 HTTP 状态、可读错误正文和请求 ID；网络错误区分地址、DNS/代理、HTTPS 与 CORS。
+- 后端 `/api/config` 接受 provider `extra` / `extra_body`，配置读取会移除自定义请求头，避免把其中的凭据回传到浏览器。
+- 新增 API 适配器契约测试和 Pages 无密钥配置回归断言。
+
 ## v0.2.3 — 2026-07-28 — Pages 自定义 API 回归修复
 
 - 恢复 GitHub Pages 浏览器 BYOK：Provider、Model、Base URL 与 API Key 保存在当前浏览器，并直连用户配置的模型接口。

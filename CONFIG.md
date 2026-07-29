@@ -16,18 +16,33 @@ Web 管理后台保存配置时写入 `~/.ainovel/config.json`。
 
 主应用默认使用本地游客模式，不要求设置密码。配置和密钥由本地配置文件、环境变量或你部署的数据管理服务负责；当前本地模式不提供账号密码体系。
 
-自部署版保存配置后只在浏览器保留 Provider、Model 和“由后端托管”的状态，真实 Key 写入后端配置。GitHub Pages 版没有 `/api/config` 服务，因此使用浏览器 BYOK：用户主动填写的 Provider、Model、Base URL 与 Key 写入当前 Pages origin 的 `ww_api`，并由浏览器直接请求目标接口。多模型槽位仍只保存 Provider / Model，不复制主配置的 Key。
+自部署版保存配置后只在浏览器保留 Provider、Model 和“由后端托管”的状态，真实 Key 写入后端配置。GitHub Pages 版没有 `/api/config` 服务，因此使用浏览器 BYOK：用户主动填写的 Provider、Model、Base URL、Key 与网络适配选项写入当前 Pages origin 的 `ww_api`，并由浏览器直接请求目标接口。多模型槽位仍只保存 Provider / Model，不复制主配置的 Key。
 
 ## GitHub Pages 浏览器 BYOK
 
 1. 打开 Pages 工作台，进入“设置 → API”或 API 设置弹窗。
-2. 选择已有服务商；使用 OpenAI 兼容代理时选择“自定义”。
-3. 填写 API Key、模型 ID 和 Base URL。Base URL 可填到 `/v1`，程序会为自定义 OpenAI 兼容接口补上 `/chat/completions`；也可以直接填写完整端点。
-4. 点击“测试”。成功后保存，配置会随当前浏览器站点数据保留。
+2. 选择已有服务商；使用中转、自建或本地接口时可选择“自定义”。任何服务商都可以用 Base URL 覆盖默认地址。
+3. 填写模型 ID 和 Base URL。Base URL 可填单纯域名、带厂商前缀的 API 根路径或完整端点。
+4. 常见 OpenAI 兼容接口保持“自动识别”。其他接口展开“高级网络适配”，选择 OpenAI Responses、Anthropic Messages 或 Ollama `/api/chat`。
+5. 鉴权默认自动：OpenAI 兼容接口使用 Bearer，Anthropic 使用 `x-api-key`。Ollama、局域网代理等无密钥服务选择“无鉴权”，API Key 可以留空。
+6. 中转服务需要额外请求头时填写 JSON；连接较慢时调整 5–600 秒超时。点击“测试”，成功后保存。
 
 Pages 不会再对静态 `/api/config` 发起 POST，因此不会因配置保存本身返回 405。浏览器直连仍受目标服务的 CORS 策略约束：对方必须允许 `https://zizegak916-glitch.github.io` 发起请求并允许 `Authorization` / `Content-Type` 等必要请求头。
 
+地址补全规则：
+
+| 协议 | 只填域名时补全 | 可直接填写 |
+|---|---|---|
+| OpenAI Chat Completions | `/v1/chat/completions` | 任意以 `/chat/completions` 结尾的地址 |
+| OpenAI Responses | `/v1/responses` | 任意以 `/responses` 结尾的地址 |
+| Anthropic Messages | `/v1/messages` | 任意以 `/messages` 结尾的地址 |
+| Ollama | `/api/chat` | 以 `/api/chat` 结尾的完整地址 |
+
+浏览器流式模式会解析 OpenAI/Gemini 兼容 SSE、Responses 事件、Anthropic SSE 与 Ollama NDJSON。接口返回普通 JSON 时会自动按完整响应读取。
+
 `localStorage` 不是加密保险箱。不要在公共设备使用浏览器 BYOK；清除当前站点数据会同时删除配置。长期使用或服务商不允许浏览器跨域时，改用下方的自部署后端模式。
+
+自定义请求头可能本身包含凭据。Pages 模式会把它们和 Key 一样保存在当前浏览器；自部署模式写入后端配置，但 `GET /api/config` 会移除 `extra.headers`，不会把请求头内容回传到管理页面。
 
 ## 工作目录中的产品数据
 
@@ -98,6 +113,8 @@ Ollama/OpenAI 兼容本地服务可不配置 API key：
   }
 }
 ```
+
+Pages 直接连接 Ollama 时，把协议选为“Ollama `/api/chat`”、鉴权选为“无鉴权”，Base URL 可填 `http://127.0.0.1:11434`。浏览器页面为 HTTPS 时，浏览器可能阻止访问 HTTP 混合内容；这种情况应使用本地打开的工作台或通过 HTTPS 反向代理访问 Ollama。
 
 ## Web 启动
 

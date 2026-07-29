@@ -127,11 +127,22 @@ go build -o writing-workshop ./cmd/writing-workshop
         <h3>Pages 浏览器 BYOK</h3>
         <ol>
           <li>打开工作台右上角“设置 → API”，或进入 Pages 的“能力后台 → 模型与 API 配置”。</li>
-          <li>常见官方服务可直接选择；OpenAI 兼容中转或自建接口选择“自定义”。</li>
-          <li>填写 API Key、实际模型 ID 与 Base URL。Base URL 可填到 <code>/v1</code>，也可直接填完整 <code>/chat/completions</code> 端点。</li>
+          <li>常见官方服务可直接选择；中转、自建或本地接口选择“自定义”。已有服务商也可以用 Base URL 覆盖默认地址。</li>
+          <li>填写实际模型 ID 与 Base URL。可以填域名、带前缀的 API 根路径，也可以填完整接口地址。</li>
+          <li>OpenAI 兼容接口保持“自动识别”。其他接口展开“高级网络适配”，选择 OpenAI Responses、Anthropic Messages 或 Ollama <code>/api/chat</code>。</li>
+          <li>有 Key 的接口保持“自动”鉴权；无密钥的 Ollama 或局域网服务选“无鉴权”。中转要求额外请求头时填写 JSON，并按网络情况调整超时。</li>
           <li>先点“测试”，成功后保存。配置只跟随当前浏览器的当前域名，不会上传到 GitHub。</li>
         </ol>
         <div class="doc-callout info"><b>405 已处理：</b>Pages 保存与测试不会再 POST 静态 <code>/api/config</code>；只有自部署模式才使用该端点。</div>
+        <table>
+          <thead><tr><th>接口类型</th><th>只填域名时使用的路径</th><th>流式格式</th></tr></thead>
+          <tbody>
+            <tr><td>OpenAI Chat Completions</td><td><code>/v1/chat/completions</code></td><td>SSE chat delta</td></tr>
+            <tr><td>OpenAI Responses</td><td><code>/v1/responses</code></td><td>SSE response events</td></tr>
+            <tr><td>Anthropic Messages</td><td><code>/v1/messages</code></td><td>SSE content block delta</td></tr>
+            <tr><td>Ollama</td><td><code>/api/chat</code></td><td>NDJSON</td></tr>
+          </tbody>
+        </table>
         <h3>自部署后端托管</h3>
         <p>从 <code>http://127.0.0.1:8080/admin.html</code> 打开能力后台，在“配置”页填写：</p>
         <table>
@@ -154,10 +165,10 @@ go build -o writing-workshop ./cmd/writing-workshop
 
       <section id="cors">
         <h2>浏览器直连、CORS 与密钥边界</h2>
-        <p>Pages BYOK 会从浏览器直接请求目标 API。目标接口必须允许当前 Pages origin、请求方法和 <code>Authorization</code> / <code>Content-Type</code> 等请求头；这些由目标服务决定，Writing Workshop 不能替第三方服务器放开 CORS。</p>
+        <p>Pages BYOK 会从浏览器直接请求目标 API。目标接口必须允许当前 Pages origin、请求方法和 <code>Authorization</code> / <code>x-api-key</code> / <code>Content-Type</code> 等实际使用的请求头；这些由目标服务决定，Writing Workshop 不能替第三方服务器放开 CORS。</p>
         <div class="doc-flow"><span>Pages 工作台</span><span>浏览器本地配置</span><span>自定义 API</span><span>候选返回</span></div>
         <p>自部署模式仍采用同源桥接：浏览器访问自己的 <code>/api/</code>，后端读取密钥并请求模型。这一模式不受模型厂商浏览器 CORS 限制，也更适合长期使用。</p>
-        <div class="doc-callout"><b>不要混淆：</b>把 Key 存进当前浏览器是用户主动选择的 BYOK；把 Key 硬编码进 Pages 文件、仓库 JavaScript、公开环境变量、Issue 或截图仍然是泄露。</div>
+        <div class="doc-callout"><b>不要混淆：</b>把 Key 和自定义请求头存进当前浏览器是用户主动选择的 BYOK；把凭据硬编码进 Pages 文件、仓库 JavaScript、公开环境变量、Issue 或截图仍然是泄露。HTTPS Pages 访问 HTTP 本地接口还可能被浏览器按混合内容拦截。</div>
       </section>
 
       <section id="skills">
@@ -213,9 +224,11 @@ go build -o writing-workshop ./cmd/writing-workshop
           <thead><tr><th>现象</th><th>原因</th><th>处理</th></tr></thead>
           <tbody>
             <tr><td>Pages 显示“当前未连接后端”</td><td>公开域名正常；只是默认 Pages 部署没有同时运行 Go API</td><td>本地项目和浏览器 BYOK 可继续使用；Skill 等服务端能力需启动兼容后端</td></tr>
-            <tr><td>Pages 保存 API 返回 405</td><td>仍在使用修复前的缓存脚本</td><td>强制刷新或清除该站点缓存；v0.2.3 保存配置不会请求 <code>/api/config</code></td></tr>
+            <tr><td>Pages 保存 API 返回 405</td><td>仍在使用修复前的缓存脚本</td><td>强制刷新或清除该站点缓存；v0.2.4 保存配置不会请求 <code>/api/config</code></td></tr>
             <tr><td>模型测试 401</td><td>Key 无效或未加载</td><td>检查环境变量/后台配置并重启服务</td></tr>
-            <tr><td>模型测试 404</td><td>Base URL 或 Model 不存在</td><td>确认 URL 含正确 API 根路径与模型 ID</td></tr>
+            <tr><td>模型测试 404</td><td>Base URL、接口协议或 Model 不匹配</td><td>先确认协议，再检查自动补全后的接口类型和模型 ID；完整端点也可直接填写</td></tr>
+            <tr><td>返回成功但没有文字</td><td>接口响应结构与所选协议不一致</td><td>在“高级网络适配”切换 Chat Completions、Responses、Anthropic 或 Ollama</td></tr>
+            <tr><td>本地 Ollama 无法从 Pages 访问</td><td>未开放 CORS，或 HTTPS 页面访问 HTTP 接口被混合内容策略拦截</td><td>改用本地工作台，或给 Ollama 配置允许来源的 HTTPS 反向代理；鉴权选择“无鉴权”</td></tr>
             <tr><td>浏览器报 CORS</td><td>目标接口没有允许当前 Pages 域名或必要请求头</td><td>换用明确支持浏览器跨域的接口，或改用同源 Go 后端；前端不能代替目标服务放开 CORS</td></tr>
             <tr><td>项目消失</td><td>浏览器站点数据被清除</td><td>导入最近的项目备份；以后定期导出</td></tr>
             <tr><td>Prompt Skill 修改丢失</td><td>换了域名、浏览器或清除了当前 origin 的 localStorage</td><td>从 Prompt Skill 备份导入，或导入带覆盖值的项目 v4 备份</td></tr>

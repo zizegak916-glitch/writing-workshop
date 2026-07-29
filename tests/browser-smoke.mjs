@@ -233,6 +233,10 @@ try {
     model: 'test-model',
     baseUrl: 'https://mock-api.example/v1',
     type: 'openai',
+    protocol: 'auto',
+    authMode: 'auto',
+    timeout: 60000,
+    customHeaders: '',
     transport: 'browser'
   });
   assert.equal(configPosts, 0, 'Pages save must not POST to static /api/config');
@@ -244,6 +248,17 @@ try {
   assert.equal(directRequest.body.provider, undefined, 'browser request must not leak internal proxy fields');
   assert.equal(directRequest.body.model, 'test-model');
   assert.match(directRequest.body.messages[0].content, /Reply with exactly: OK/);
+
+  await pagesPage.locator('#apiProtocol').selectOption('ollama');
+  await pagesPage.locator('#apiAuthMode').selectOption('none');
+  await pagesPage.locator('#apiBaseUrl').fill('http://127.0.0.1:11434');
+  await pagesPage.locator('#apiKey').fill('');
+  await pagesPage.evaluate(() => saveApi());
+  const keylessConfig = await pagesPage.evaluate(() => JSON.parse(localStorage.getItem('ww_api') || '{}'));
+  assert.equal(keylessConfig.authMode, 'none');
+  assert.equal(keylessConfig.protocol, 'ollama');
+  assert.equal(keylessConfig.key, '');
+  assert.equal(configPosts, 0, 'keyless Pages save must not POST to static /api/config');
   assert.deepEqual(pagesErrors, [], `Pages browser API errors:\n${pagesErrors.join('\n')}`);
   await pagesContext.close();
 

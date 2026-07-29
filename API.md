@@ -1,6 +1,6 @@
 # Writing Workshop 后端 API 契约
 
-> 状态：现行产品接口，更新于 2026-07-26（UTC+8）。继承引擎的历史接口另见 `docs/UPSTREAM_ENGINE.md`；变更证据见 `docs/UPDATE_TIMELINE.md`。
+> 状态：现行产品接口，更新于 2026-07-29（UTC+8）。继承引擎的历史接口另见 `docs/UPSTREAM_ENGINE.md`；变更证据见 `docs/UPDATE_TIMELINE.md`。
 
 写作工坊前端通过同源 `/api/` 与本地或自部署后端通信。底层写作引擎源自 `ainovel-cli`；其他 skill 或自定义后端也可以实现同一组能力契约。
 
@@ -194,7 +194,7 @@ curl -X POST http://127.0.0.1:8080/api/external-catalog \
 
 `POST /api/config` / `PUT /api/config`
 
-保存 provider、model、base_url、api_key 等配置到本地 `~/.ainovel/config.json`。
+保存 provider、model、base_url、api_key、provider 级 `extra` 和请求体 `extra_body` 到本地 `~/.ainovel/config.json`。
 
 ```json
 {
@@ -202,9 +202,21 @@ curl -X POST http://127.0.0.1:8080/api/external-catalog \
   "model": "anthropic/claude-sonnet-4",
   "type": "openai",
   "base_url": "https://openrouter.ai/api/v1",
-  "api_key": "sk-or-v1-..."
+  "api_key": "sk-or-v1-...",
+  "extra": {
+    "headers": {
+      "HTTP-Referer": "https://writer.example"
+    }
+  },
+  "extra_body": {
+    "temperature": 0.7
+  }
 }
 ```
+
+`extra` 与 `extra_body` 为整组覆盖：省略表示保留已有值，显式传空对象表示清空。`GET /api/config` 会隐藏 API Key，并删除 `extra.headers` 后再返回，避免自定义鉴权头泄露给浏览器。
+
+Pages 模式不调用这一写接口。浏览器端使用 `web/static/js/api-adapter.js` 直连目标服务，支持 OpenAI Chat Completions、OpenAI Responses、Anthropic Messages 与 Ollama `/api/chat`。这是静态站本地配置，不是新增的服务端端点。
 
 ## 项目
 

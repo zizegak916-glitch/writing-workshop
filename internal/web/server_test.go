@@ -448,6 +448,38 @@ func TestAIProviderContractsWithLocalMocks(t *testing.T) {
 	}
 }
 
+func TestApplyConfigUpdatePreservesNetworkOptions(t *testing.T) {
+	cfg := bootstrap.Config{
+		Provider:  "custom",
+		ModelName: "old-model",
+		Providers: map[string]bootstrap.ProviderConfig{"custom": {
+			Type:   "openai",
+			APIKey: "old-key",
+		}},
+	}
+	applyConfigUpdate(&cfg, configUpdate{
+		Provider: "custom",
+		Model:    "new-model",
+		BaseURL:  "https://relay.example/v1",
+		Type:     "anthropic",
+		Extra: map[string]any{
+			"headers": map[string]any{"X-Relay-Route": "cn-a"},
+		},
+		ExtraBody: map[string]any{"temperature": 0.4},
+	})
+	pc := cfg.Providers["custom"]
+	if pc.Type != "anthropic" || pc.BaseURL != "https://relay.example/v1" {
+		t.Fatalf("network options not applied: %#v", pc)
+	}
+	headers, ok := pc.Extra["headers"].(map[string]any)
+	if !ok || headers["X-Relay-Route"] != "cn-a" {
+		t.Fatalf("custom headers not applied: %#v", pc.Extra)
+	}
+	if pc.ExtraBody["temperature"] != 0.4 {
+		t.Fatalf("extra body not applied: %#v", pc.ExtraBody)
+	}
+}
+
 func newTestServer(t *testing.T) (*Server, http.Handler) {
 	t.Helper()
 	cfg := bootstrap.Config{
