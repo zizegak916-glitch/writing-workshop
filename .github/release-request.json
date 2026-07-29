@@ -1,5 +1,5 @@
 {
-  "version": "v0.2.4",
-  "requested_at": "2026-07-29T02:52:00Z",
-  "reason": "Add a protocol-aware API network adapter for OpenAI Chat Completions, OpenAI Responses, Anthropic Messages and Ollama; improve endpoint normalization, keyless auth, browser streaming, upstream diagnostics and relay compatibility."
+  "version": "v0.2.5",
+  "requested_at": "2026-07-29T11:19:22Z",
+  "reason": "Ship project bundle v5, transaction-safe browser persistence, project-scoped recovery history, custom-static runtime detection and protocol-aware self-hosted streaming."
 }

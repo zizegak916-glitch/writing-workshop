@@ -1,7 +1,7 @@
 {
   "schema": "writing-workshop/release-evidence",
   "version": 1,
-  "updated_at": "2026-07-29T03:05:40Z",
+  "updated_at": "2026-07-29T11:19:22Z",
   "timezone_for_timeline": "UTC+8",
   "repository": "https://github.com/zizegak916-glitch/writing-workshop",
   "public_pages": "https://zizegak916-glitch.github.io/writing-workshop/",
@@ -16,6 +16,43 @@
     "source": "GitHub repository API"
   },
   "verified_releases": [
+    {
+      "commit": "6e254ac6345b33d94d116050e7dfc25b59493a79",
+      "pull_request": 8,
+      "summary": "Project bundle v5, transaction-safe browser persistence, project-scoped recovery history, custom-static runtime detection and protocol-aware self-hosted streaming",
+      "ci_run": 30447033350,
+      "pages_run": 30447033462,
+      "ci_conclusion": "success",
+      "pages_conclusion": "success",
+      "pre_merge_ci_run": 30446893056,
+      "pre_merge_ci_conclusion": "success",
+      "pre_merge_failures": [
+        {
+          "commit": "909c2728d4544000bd7e45d2e04540c6f389684f",
+          "ci_run": 30446509343,
+          "reason": "The custom-static runtime test intentionally returned 404 for /api/health but also treated Chromium's expected resource error as an application console failure; the test was changed to use a successful non-backend health signature."
+        },
+        {
+          "commit": "a2b70da6180115ce3f3902a567782c6b7de3401f",
+          "ci_run": 30446700927,
+          "reason": "The mobile assertion still expected the note title from before the same test renamed and persisted it; the assertion was corrected to verify the stored new title."
+        }
+      ],
+      "live_checks": [
+        "Main CI passed Go formatting, tests, vet, release build, JavaScript syntax, static and adapter contracts, offline server smoke and the full Chromium product smoke",
+        "Chromium covered stable editor flush, save-race protection, Esc safety, character persistence, v1-v4 to v5 migration, imported history ID remapping, candidate recovery, custom-static runtime detection, mobile notes and atomic project deletion",
+        "The public Pages workbench exposes v0.2.5, IndexedDB v5, static runtime detection and the shared API adapter",
+        "The public Pages app, adapter, workbench JavaScript, admin console and product guide returned HTTP 200 and matched the merged source SHA-256 values",
+        "No live paid-provider request or independent third-party field test is claimed by this record"
+      ],
+      "sha256": {
+        "web/static/app.html": "247270598e8c604ce1f82a9ffaa59c6e7d654ddcd2987255c764ac9847ed1646",
+        "web/static/js/api-adapter.js": "d066bada899ce1ab089502cd3a190312304d33d6ad412635a94848ce95ccb77c",
+        "web/static/js/workbench.js": "76f8d39c1fbbb8b75bb3b85ced0c461def20dd22136553326a56522545565bbe",
+        "web/static/admin.html": "61ea2f2d980aa3b807799b2d03b29766d938291dc4f1f7b22fc3381348c9760a",
+        "web/static/docs.html": "98ac6a37b07d06a2230ec605e3b222a4f2f78e42bd7f198d65b8442ccb7b750b"
+      }
+    },
     {
       "commit": "bc18e5de4d6975386be04dd38f697c64f20cf229",
       "release_source_commit": "91cfcc5b3c58983e7c182f0a0b712eb76bcb7a05",
