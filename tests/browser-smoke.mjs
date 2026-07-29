@@ -375,13 +375,21 @@ try {
   const staticContext = await browser.newContext({ viewport: { width: 1100, height: 800 } });
   const staticPage = await staticContext.newPage();
   const staticErrors = await collectErrors(staticPage);
-  await staticPage.route('**/api/health', route => route.fulfill({ status: 404, body: 'not found' }));
+  await staticPage.route('**/api/health', route => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ status: 'static-host-without-go-backend' })
+  }));
   await staticPage.goto(`${baseURL}/app.html`, { waitUntil: 'networkidle' });
   await staticPage.waitForFunction(() => WW_BROWSER_API_MODE === true);
   assert.equal(await staticPage.evaluate(() => apiStorageDescription().includes('当前浏览器')), true, 'custom static host should use browser API mode');
   const staticAdmin = await staticContext.newPage();
   const staticAdminErrors = await collectErrors(staticAdmin);
-  await staticAdmin.route('**/api/health', route => route.fulfill({ status: 404, body: 'not found' }));
+  await staticAdmin.route('**/api/health', route => route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ status: 'static-host-without-go-backend' })
+  }));
   await staticAdmin.goto(`${baseURL}/admin.html`, { waitUntil: 'networkidle' });
   await staticAdmin.waitForFunction(() => document.getElementById('apiStatus')?.textContent === '静态在线版 · 浏览器 API');
   assert.deepEqual(staticErrors, [], `custom static-host detection errors:\n${staticErrors.join('\n')}`);
