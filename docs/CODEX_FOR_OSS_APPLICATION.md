@@ -1,6 +1,6 @@
 # Codex for Open Source — application working draft
 
-Updated: 2026-07-26 (UTC+8). This remains an evidence draft, not a submission receipt or a claim of acceptance.
+Updated: 2026-07-29 (UTC+8). This remains an evidence draft, not a submission receipt or a claim of acceptance.
 
 Official form: <https://openai.com/form/codex-for-oss/>
 
@@ -30,14 +30,16 @@ API credits would fund open-source maintenance rather than hidden product usage:
 | Evidence | Public location |
 |---|---|
 | Push/PR test pipeline | `.github/workflows/ci.yml` |
-| Latest verified CI and Pages deployment | [CI 30191114231](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/30191114231), [Pages 30191114238](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/30191114238) |
+| Latest verified release / CI / Pages deployment | [v0.2.4](https://github.com/zizegak916-glitch/writing-workshop/releases/tag/v0.2.4), [CI 30418506571](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/30418506571), [Pages 30418506586](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/30418506586) |
 | Go tests, vet, build, JS checks, browser product tests and service smoke test | GitHub Actions CI |
 | Keyless runnable mode | `writing-workshop serve --demo` |
 | Docker health check | `/api/health` |
 | Capability contract | `docs/CAPABILITY_PROTOCOL.md` |
 | Multi-Skill packs and custom categories | `internal/web/catalog.go`, `internal/web/server_test.go` |
 | Browser-local project management and safe export/delete | `web/static/js/product-extensions.js` |
-| 32 editable browser Prompt Skills and v4 project backup | `web/static/js/prompt-skills.js`, `web/static/css/prompt-skills.css`, `web/static/js/workbench.js` |
+| 32 editable browser Prompt Skills and v5 project backup | `web/static/js/prompt-skills.js`, `web/static/css/prompt-skills.css`, `web/static/js/workbench.js` |
+| Four-protocol browser/self-host adapter and real upstream streaming | `web/static/js/api-adapter.js`, `internal/web/provider_http.go`, `internal/web/server_test.go`, `tests/api-adapter.test.mjs` |
+| Transactional editor switching/import/delete and project-scoped recovery history | `web/static/js/workbench.js`, `web/static/js/product-extensions.js`, `tests/browser-smoke.mjs` |
 | Desktop/mobile notes and Playwright product smoke suite | `web/static/js/workbench.js`, `tests/browser-smoke.mjs` |
 | Persistent request controls and audited context-budget display | `web/static/app.html`, `web/static/css/product-extensions.css`, `scripts/check-static.mjs` |
 | Documentation status and historical boundaries | `docs/README.md` |
@@ -49,7 +51,7 @@ API credits would fund open-source maintenance rather than hidden product usage:
 
 Point-in-time repository metrics captured from the GitHub API at `2026-07-22T17:04:25Z`: **1 star, 0 forks, 0 open issues and 0 subscribers**. This is a truthful snapshot, not evidence of broad adoption, and it must be refreshed immediately before submission.
 
-- Publish the first signed or checksummed release and verify installer assets.
+- Keep producing checksummed releases and record real downloads; the existence of a release alone is not adoption evidence.
 - Obtain real external usage evidence; the current repository does not yet have meaningful star, download or dependent-project numbers.
 - Collect reproducible user reports or outside contributions that show the project solves a shared open-source need.
 - Record at least one downstream Skill or integration maintained outside this repository.

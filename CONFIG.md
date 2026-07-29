@@ -1,6 +1,6 @@
 # 配置说明
 
-> 状态：现行产品配置，更新于 2026-07-28（UTC+8）。`.ainovel` 仍是继承引擎兼容目录名，不代表产品仍叫 ainovel-cli。
+> 状态：现行产品配置，更新于 2026-07-29（UTC+8）。`.ainovel` 仍是继承引擎兼容目录名，不代表产品仍叫 ainovel-cli。
 
 本页说明 Writing Workshop 的模型、密钥与监听地址配置。底层 Go 引擎源自 `ainovel-cli`，但本仓库发布的可执行文件名为 `writing-workshop`。
 
@@ -27,7 +27,7 @@ Web 管理后台保存配置时写入 `~/.ainovel/config.json`。
 5. 鉴权默认自动：OpenAI 兼容接口使用 Bearer，Anthropic 使用 `x-api-key`。Ollama、局域网代理等无密钥服务选择“无鉴权”，API Key 可以留空。
 6. 中转服务需要额外请求头时填写 JSON；连接较慢时调整 5–600 秒超时。点击“测试”，成功后保存。
 
-Pages 不会再对静态 `/api/config` 发起 POST，因此不会因配置保存本身返回 405。浏览器直连仍受目标服务的 CORS 策略约束：对方必须允许 `https://zizegak916-glitch.github.io` 发起请求并允许 `Authorization` / `Content-Type` 等必要请求头。
+Pages 不会再对静态 `/api/config` 发起 POST，因此不会因配置保存本身返回 405。运行时不只依赖 `github.io` 域名：自定义静态域名若没有同源 `/api/health` 也会进入浏览器 API 模式；可用 `?api_mode=browser` 或 `?api_mode=backend` 显式覆盖探测。浏览器直连仍受目标服务的 CORS 策略约束：对方必须允许当前站点 origin 发起请求并允许 `Authorization` / `Content-Type` 等必要请求头。
 
 地址补全规则：
 
@@ -53,9 +53,11 @@ Pages 不会再对静态 `/api/config` 发起 POST，因此不会因配置保存
 | `.ainovel/categories.json` | 后端自定义分类 | 与浏览器本地项目分类分开保存 |
 | `.ainovel/rules/web.rules.md` | 后台编辑的项目规则 | 参与规则合并 |
 
-工作台中的项目自定义分类保存在当前站点的 `localStorage`，项目与分类关联保存在 IndexedDB 的 project 记录。项目、章节、大纲、人物、项目笔记与写作记忆也保存在 IndexedDB。浏览器 Prompt Skill 覆盖值单独保存在 `localStorage` 键 `ww_prompt_skills_v1`。这些数据不会自动与后端分类、项目或 capability 文件互相覆盖；项目 v4 备份会带上笔记、分类、记忆和 Prompt Skill 覆盖值。
+工作台中的项目自定义分类保存在当前站点的 `localStorage`，项目与分类关联保存在 IndexedDB 的 project 记录。项目、章节、大纲、人物、项目笔记、写作记忆、AI 候选和恢复快照也保存在 IndexedDB。浏览器 Prompt Skill 覆盖值单独保存在 `localStorage` 键 `ww_prompt_skills_v1`。这些数据不会自动与后端分类、项目或 capability 文件互相覆盖；项目 v5 备份会带上笔记、分类、记忆、本项目 AI 历史和 Prompt Skill 覆盖值。
 
-浏览器存储按来源域名隔离：`github.io`、自定义域名、`127.0.0.1` 与 `localhost` 彼此不是同一份数据。迁移域名、清除站点数据或换浏览器前，先在项目操作台导出 v4 项目包，或在 Prompt Skill 管理中单独导出提示词备份。连接 Go 后端不会自动合并这两套数据；需要后端内容时，应在项目操作台显式导入为新的浏览器项目。
+浏览器存储按来源域名隔离：`github.io`、自定义域名、`127.0.0.1` 与 `localhost` 彼此不是同一份数据。迁移域名、清除站点数据或换浏览器前，先在项目操作台导出 v5 项目包，或在 Prompt Skill 管理中单独导出提示词备份。连接 Go 后端不会自动合并这两套数据；需要后端内容时，应在项目操作台显式导入为新的浏览器项目。
+
+工作台会请求 `navigator.storage.persist()` 并在个人页显示占用、配额和持久化状态，但是否批准由浏览器决定。切换文档、切换项目和导出会等待当前编辑事务完成；导入与项目级联删除也使用单个 IndexedDB 事务。浏览器持久化不是云备份，仍应定期导出。
 
 ## 最小配置
 
@@ -66,14 +68,27 @@ Pages 不会再对静态 `/api/config` 发起 POST，因此不会因配置保存
   "providers": {
     "openrouter": {
       "type": "openai",
+      "protocol": "openai-chat",
+      "auth_mode": "bearer",
       "api_key": "sk-or-v1-...",
       "base_url": "https://openrouter.ai/api/v1",
+      "request_timeout_ms": 120000,
       "models": ["anthropic/claude-sonnet-4"]
     }
   },
   "style": "default"
 }
 ```
+
+自部署后台和 Pages 高级网络设置使用同一组协议语义：
+
+- `protocol`: `auto` / `openai-chat` / `openai-responses` / `anthropic` / `ollama`
+- `auth_mode`: `auto` / `bearer` / `x-api-key` / `none`
+- `request_timeout_ms`: 5000–600000，覆盖连接、响应头和完整响应体/流
+- `context_window`: 可选的模型上下文上限；未知模型留空，不伪造固定值
+- `extra.headers`: 需要中转路由头时使用；读取配置时会脱敏
+
+保存时留空 API Key 表示保留后端已有密钥；勾选“清除已保存 API Key”才会删除。自定义请求头同样需要显式清除，避免一次普通保存意外抹掉凭据。
 
 ## 无密钥 demo
 

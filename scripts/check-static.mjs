@@ -42,12 +42,14 @@ assert(appHtml.indexOf('js/api-adapter.js') < appHtml.indexOf('js/workbench.js')
 assert(appHtml.includes('css/main.css') && appHtml.includes('js/workbench.js'), 'workbench must load its canonical CSS and JavaScript entrypoints');
 assert(!/<style[\s>]/i.test(appHtml), 'workbench must not contain inline style blocks');
 assert(!/<script(?![^>]*\bsrc=)[^>]*>/i.test(appHtml), 'workbench must not contain inline script blocks');
-assert(workbenchSource.includes("DB_VER=4") && workbenchSource.includes("'notes'"), 'project notes store must be part of the v4 browser database');
+assert(workbenchSource.includes("DB_VER=5") && workbenchSource.includes("'notes'") && workbenchSource.includes("ensureIndex(st,'project_id','project_id')"), 'v5 browser database must include project-scoped notes and AI history');
+assert(workbenchSource.includes('flushActiveDocument') && workbenchSource.includes('importProjectBundleAtomic'), 'transactional editor switching and project import guards are missing');
 assert(workbenchSource.includes('function loadStoredApiConfig()'), 'browser API configuration loader is missing');
 assert(workbenchSource.includes('function loadSlot(n)'), 'multi-model slots must use the canonical scrubbed loader');
 assert(workbenchSource.includes('WW_BROWSER_API_MODE') && workbenchSource.includes("?'browser':'backend'"), 'Pages browser API mode is missing');
 assert(workbenchSource.includes('function persistApiConfig('), 'dual-mode API persistence is missing');
 assert(workbenchSource.includes('WWApiAdapter.request') && workbenchSource.includes('WWApiAdapter.stream'), 'browser-direct request and stream adapters are missing');
+assert(workbenchSource.includes("'/api/ai/stream'"), 'self-hosted AI must use the streaming endpoint');
 const adapterSource = read('web/static/js/api-adapter.js');
 for (const protocol of ['openai-chat', 'openai-responses', 'anthropic', 'ollama']) {
   assert(adapterSource.includes(protocol), `API adapter protocol is missing: ${protocol}`);

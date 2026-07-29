@@ -68,6 +68,7 @@ assert.equal(A.parseResponse({ choices: [{ message: { content: 'chat ok' } }] })
 assert.equal(A.parseResponse({ output_text: 'responses ok' }), 'responses ok');
 assert.equal(A.parseResponse({ content: [{ type: 'text', text: 'anthropic ok' }] }), 'anthropic ok');
 assert.equal(A.parseResponse({ message: { content: 'ollama ok' } }), 'ollama ok');
+assert.deepEqual(A.parseUsage({ message: { usage: { input_tokens: 9, output_tokens: 2 } } }), { input: 9, output: 2 });
 
 assert.equal(
   A.parseStreamRecord('data: {"choices":[{"delta":{"content":"甲"}}]}').delta,
@@ -86,4 +87,60 @@ assert.equal(
   '丁'
 );
 
-console.log('API adapter contract OK: endpoints, auth, request bodies, response formats and stream deltas.');
+const originalFetch = globalThis.fetch;
+try {
+  const chunks = [];
+  globalThis.fetch = async () => new Response(new ReadableStream({
+    start(controller) {
+      controller.enqueue(new TextEncoder().encode('data: {"choices":[{"delta":{"content":"真"}}]}\n\n'));
+      controller.enqueue(new TextEncoder().encode('data: {"choices":[{"delta":{"content":"流"}}]}\n\n'));
+      controller.enqueue(new TextEncoder().encode('data: [DONE]\n\n'));
+      controller.close();
+    }
+  }), { status: 200, headers: { 'content-type': 'text/event-stream' } });
+  const streamed = await A.stream(
+    { protocol: 'openai-chat', model: 'stream-test', baseUrl: 'https://relay.example/v1', timeout: 2000 },
+    messages,
+    { onChunk: chunk => chunks.push(chunk) }
+  );
+  assert.equal(streamed.text, '真流');
+  assert.deepEqual(chunks, ['真', '流']);
+
+  globalThis.fetch = async () => new Response(
+    'data: {"type":"response.completed","response":{"output_text":"完整回退","usage":{"input_tokens":5,"output_tokens":2}}}\n\n',
+    { status: 200, headers: { 'content-type': 'text/event-stream' } }
+  );
+  const finalOnly = await A.stream(
+    { protocol: 'openai-responses', model: 'stream-test', baseUrl: 'https://relay.example/v1', timeout: 2000 },
+    messages,
+    {}
+  );
+  assert.equal(finalOnly.text, '完整回退');
+  assert.deepEqual(finalOnly.usage, { input: 5, output: 2 });
+
+  globalThis.fetch = async (_url, options) => new Response(new ReadableStream({
+    start(controller) {
+      options.signal.addEventListener('abort', () => controller.error(new DOMException('aborted', 'AbortError')));
+    }
+  }), { status: 200, headers: { 'content-type': 'text/event-stream' } });
+  await assert.rejects(
+    A.request(
+      { protocol: 'openai-chat', model: 'timeout-test', baseUrl: 'https://relay.example/v1', timeout: 1000 },
+      messages,
+      {}
+    ),
+    /超时或已中断/
+  );
+  await assert.rejects(
+    A.stream(
+      { protocol: 'openai-chat', model: 'stream-test', baseUrl: 'https://relay.example/v1', timeout: 1000 },
+      messages,
+      {}
+    ),
+    /超时或已中断/
+  );
+} finally {
+  globalThis.fetch = originalFetch;
+}
+
+console.log('API adapter contract OK: endpoints, auth, request bodies, response formats, true stream deltas and whole-stream timeout.');

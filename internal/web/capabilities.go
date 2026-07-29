@@ -159,10 +159,84 @@ func (s *Server) streamRun(ctx context.Context, w http.ResponseWriter, runID str
 		httpError(w, fmt.Errorf("streaming is not supported"), http.StatusInternalServerError)
 		return
 	}
+	caps, err := s.resolveRunCapabilities(req)
+	if err != nil {
+		httpError(w, err, http.StatusBadRequest)
+		return
+	}
+	task := resolveRunTask(req.Task, caps)
+	usesAI := task == "ai" || task == "generate" || (task == "rewrite" && wantsAI(req))
+	if usesAI {
+		input := runInputText(req)
+		req.Message = capabilityRunMessage(input, caps)
+		if task == "rewrite" {
+			req.Message = "请改写以下内容，保持含义但优化表达：\n\n" + req.Message
+		}
+		if strings.TrimSpace(req.Message) == "" {
+			httpError(w, fmt.Errorf("message or context.selection is required"), http.StatusBadRequest)
+			return
+		}
+		resolved, modelErr := s.resolveAIProvider("", "")
+		if modelErr != nil {
+			httpError(w, modelErr, http.StatusBadRequest)
+			return
+		}
+		providerKey, modelName := resolved.Key, resolved.Model
+		streamCtx, cancel := s.aiRequestContext(ctx, providerKey)
+		defer cancel()
+		w.Header().Set("Content-Type", "text/event-stream; charset=utf-8")
+		w.Header().Set("Cache-Control", "no-cache")
+		w.Header().Set("Connection", "keep-alive")
+		writeSSE(w, "start", map[string]any{
+			"run_id":   runID,
+			"task":     task,
+			"provider": providerKey,
+			"model":    modelName,
+		})
+		h.Flush()
+		messages := []agentcore.Message{{
+			Role:    agentcore.RoleUser,
+			Content: []agentcore.ContentBlock{agentcore.TextBlock(req.Message)},
+		}}
+		text, usage, streamErr := s.generateAIStream(streamCtx, providerKey, modelName, messages, func(delta string) {
+			writeSSE(w, "delta", map[string]any{"run_id": runID, "text": delta})
+			h.Flush()
+		})
+		if streamErr != nil {
+			event := "error"
+			if streamCtx.Err() != nil {
+				event = "aborted"
+			}
+			writeSSE(w, event, map[string]any{"run_id": runID, "error": streamErr.Error()})
+			h.Flush()
+			return
+		}
+		result := map[string]any{
+			"run_id":       runID,
+			"task":         task,
+			"backend_id":   firstNonEmpty(req.BackendID, "builtin"),
+			"skill_ids":    req.SkillIDs,
+			"capabilities": caps,
+			"output":       text,
+			"content": []map[string]any{{
+				"type": "text",
+				"text": text,
+			}},
+			"usage": map[string]int{
+				"prompt_tokens":     usageInput(usage),
+				"completion_tokens": usageOutput(usage),
+				"total_tokens":      usageTotal(usage),
+			},
+			"finished": true,
+		}
+		writeSSE(w, "done", result)
+		h.Flush()
+		return
+	}
 	w.Header().Set("Content-Type", "text/event-stream; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Connection", "keep-alive")
-	writeSSE(w, "start", map[string]any{"run_id": runID})
+	writeSSE(w, "start", map[string]any{"run_id": runID, "task": task})
 	h.Flush()
 	result, err := s.executeRun(ctx, runID, req)
 	if err != nil {
@@ -189,18 +263,20 @@ func (s *Server) runAI(ctx context.Context, req runRequest) (string, error) {
 	if strings.TrimSpace(message) == "" {
 		return "", fmt.Errorf("message or context.selection is required")
 	}
-	model, _, _, err := s.aiModel("", "")
+	resolved, err := s.resolveAIProvider("", "")
 	if err != nil {
 		return "", err
 	}
-	resp, err := model.Generate(ctx, []agentcore.Message{{
+	requestCtx, cancel := s.aiRequestContext(ctx, resolved.Key)
+	defer cancel()
+	text, _, _, _, err := s.generateAI(requestCtx, resolved.Key, resolved.Model, []agentcore.Message{{
 		Role:    agentcore.RoleUser,
 		Content: []agentcore.ContentBlock{agentcore.TextBlock(message)},
-	}}, nil)
+	}})
 	if err != nil {
 		return "", err
 	}
-	return resp.Message.TextContent(), nil
+	return text, nil
 }
 
 func (s *Server) runRewrite(ctx context.Context, req runRequest) (string, error) {

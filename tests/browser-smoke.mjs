@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import { chromium } from 'playwright';
 
 const baseURL = process.env.WW_TEST_BASE_URL || 'http://127.0.0.1:8080';
@@ -64,7 +65,7 @@ try {
   const bundle = await page.evaluate(async () => {
     const project = S.proj.project;
     return {
-      version: 4,
+      version: 5,
       project,
       notes: await dbByIndex('notes', 'project_id', project.id)
     };
@@ -72,11 +73,73 @@ try {
   assert.equal(bundle.notes.length, 1);
   assert.equal(bundle.notes[0].title, '设定核对');
 
+  const saveRace = await page.evaluate(async () => {
+    const originalPut = dbPut;
+    dbPut = async (store, value) => {
+      if (store === 'notes') await new Promise(resolve => setTimeout(resolve, 60));
+      return originalPut(store, value);
+    };
+    document.getElementById('mainEditor').value = '较早的保存快照';
+    onEditorInput();
+    const pending = saveDoc({ silent: true });
+    await new Promise(resolve => setTimeout(resolve, 10));
+    document.getElementById('mainEditor').value = '保存期间继续输入的最新内容';
+    onEditorInput();
+    const firstWasCurrent = await pending;
+    const remainedDirty = S.unsaved;
+    dbPut = originalPut;
+    await saveDoc({ silent: true });
+    const stored = await dbGet('notes', S.active.id);
+    return { firstWasCurrent, remainedDirty, content: stored.content, finalDirty: S.unsaved };
+  });
+  assert.equal(saveRace.firstWasCurrent, false, 'an older async save must not clear a newer dirty revision');
+  assert.equal(saveRace.remainedDirty, true);
+  assert.equal(saveRace.content, '保存期间继续输入的最新内容');
+  assert.equal(saveRace.finalDirty, false);
+
   await page.reload({ waitUntil: 'networkidle' });
   await page.waitForFunction(() => document.getElementById('currentProjectName')?.textContent === '浏览器验收项目');
   await page.locator('.nav-tab', { hasText: '笔记' }).click();
   await page.waitForFunction(() => document.querySelector('#noteList .oi-text')?.textContent === '设定核对');
   await page.locator('#noteList .outline-item', { hasText: '设定核对' }).click();
+
+  await page.locator('#chapterTitle').fill('未手动保存的设定核对');
+  await page.locator('#mainEditor').fill('切换资料前必须先完成 IndexedDB 事务，不能等待三秒防抖。');
+  await page.keyboard.press('Escape');
+  assert.match(await page.locator('#mainEditor').inputValue(), /不能等待三秒防抖/, 'Esc outside focus mode must not overwrite the editor');
+  await page.locator('.nav-tab', { hasText: '大纲' }).click();
+  await page.locator('#outlineList .outline-item').first().click();
+  await page.waitForFunction(() => S.active?.type === 'outline');
+  await page.locator('.nav-tab', { hasText: '笔记' }).click();
+  await page.locator('#noteList .outline-item', { hasText: '未手动保存的设定核对' }).click();
+  assert.equal(await page.locator('#chapterTitle').inputValue(), '未手动保存的设定核对');
+  assert.match(await page.locator('#mainEditor').inputValue(), /不能等待三秒防抖/);
+
+  await page.locator('.nav-tab', { hasText: '人物' }).click();
+  await page.locator('#tab-chars .add-item-btn').click();
+  await page.locator('#charName').fill('事务测试人物');
+  await page.locator('#charPers').fill('谨慎');
+  await page.locator('#charModal .btn-confirm').click();
+  await page.waitForFunction(() => document.querySelector('#charList .char-card')?.textContent.includes('事务测试人物'));
+  await page.locator('.nav-tab', { hasText: '人物' }).click();
+  await page.locator('#charList .char-card', { hasText: '事务测试人物' }).click();
+  await page.locator('#chapterTitle').fill('事务测试人物·修订');
+  await page.locator('#mainEditor').fill('【主角】事务测试人物·修订\n\n性格：克制而敏锐\n\n背景：用于验证中央编辑器写回\n\n外貌：黑发\n\n技能：识别未保存切换');
+  await page.locator('.nav-tab', { hasText: '大纲' }).click();
+  await page.locator('#outlineList .outline-item').first().click();
+  await page.locator('.nav-tab', { hasText: '人物' }).click();
+  await page.locator('#charList .char-card', { hasText: '事务测试人物·修订' }).click();
+  assert.match(await page.locator('#mainEditor').inputValue(), /识别未保存切换/);
+  const persistedCharacter = await page.evaluate(async () => (await dbByIndex('characters', 'project_id', S.proj.project.id)).find(item => item.name === '事务测试人物·修订'));
+  assert.equal(persistedCharacter.skills, '识别未保存切换');
+
+  await page.locator('#mainEditor').fill('【主角】事务测试人物·修订\n\n性格：克制而敏锐\n\n背景：用于验证中央编辑器写回\n\n外貌：黑发\n\n技能：导出前即时保存');
+  const downloadPromise = page.waitForEvent('download');
+  await page.locator('.topbar button[title="导出"]').click();
+  const download = await downloadPromise;
+  const exportedBundle = JSON.parse(await readFile(await download.path(), 'utf8'));
+  assert.equal(exportedBundle.version, 5);
+  assert.equal(exportedBundle.characters.find(item => item.name === '事务测试人物·修订')?.skills, '导出前即时保存');
 
   const migrations = await page.evaluate(() => {
     const fixtures = [
@@ -87,7 +150,8 @@ try {
         project: { name: 'v3', category_ids: ['history'] },
         custom_categories: [{ id: 'history', name: '考据' }],
         promptSkills: { overrides: { '润色': { prompt: '保留事实' } } }
-      }
+      },
+      { version: 4, project: { name: 'v4' }, notes: [{ title: '旧笔记' }], aiHistory: [{ mode: '旧候选', text: '保留' }] }
     ];
     return fixtures.map(fixture => {
       const migrated = validateProjectBundle(fixture);
@@ -98,16 +162,42 @@ try {
         memories: migrated.memories.length,
         categories: migrated.categories.length,
         prompt: migrated.prompt_skills?.overrides?.['润色']?.prompt || '',
-        notes: migrated.notes.length
+        notes: migrated.notes.length,
+        history: migrated.history.length
       };
     });
   });
   assert.deepEqual(migrations, [
-    { version: 4, sourceVersion: 1, chapters: 1, memories: 0, categories: 0, prompt: '', notes: 0 },
-    { version: 4, sourceVersion: 2, chapters: 0, memories: 1, categories: 0, prompt: '', notes: 0 },
-    { version: 4, sourceVersion: 3, chapters: 0, memories: 0, categories: 1, prompt: '保留事实', notes: 0 }
+    { version: 5, sourceVersion: 1, chapters: 1, memories: 0, categories: 0, prompt: '', notes: 0, history: 0 },
+    { version: 5, sourceVersion: 2, chapters: 0, memories: 1, categories: 0, prompt: '', notes: 0, history: 0 },
+    { version: 5, sourceVersion: 3, chapters: 0, memories: 0, categories: 1, prompt: '保留事实', notes: 0, history: 0 },
+    { version: 5, sourceVersion: 4, chapters: 0, memories: 0, categories: 0, prompt: '', notes: 1, history: 1 }
   ]);
+  const remappedImport = await page.evaluate(async () => {
+    const projectId = await importProjectBundleAtomic({
+      version: 5,
+      project: { name: 'ID 映射验收' },
+      outlines: [],
+      characters: [],
+      chapters: [],
+      notes: [{ id: 777, title: '来源笔记', content: '正文' }],
+      memories: [],
+      history: [{ id: 888, mode: '来源候选', text: '候选', active_type: 'note', active_id: 777 }],
+      categories: []
+    });
+    const note = (await dbByIndex('notes', 'project_id', projectId))[0];
+    const history = (await dbByIndex('aiHistory', 'project_id', projectId))[0];
+    for (const store of ['outlines', 'characters', 'chapters', 'notes', 'aiMemories', 'aiHistory']) {
+      for (const row of await dbByIndex(store, 'project_id', projectId)) await dbDel(store, row.id);
+    }
+    await dbDel('projects', projectId);
+    return { oldId: 777, noteId: note.id, activeId: history.active_id };
+  });
+  assert.notEqual(remappedImport.noteId, remappedImport.oldId);
+  assert.equal(remappedImport.activeId, remappedImport.noteId, 'imported recovery snapshots must target remapped document IDs');
 
+  await page.locator('.nav-tab', { hasText: '笔记' }).click();
+  await page.locator('#noteList .outline-item', { hasText: '设定核对' }).click();
   await page.locator('.workflow-tab').click();
   await page.waitForFunction(() => document.getElementById('workflowStatus')?.textContent === '后端已连接');
   await page.locator('#workflowTaskType').selectOption('echo');
@@ -158,6 +248,18 @@ try {
   await page.locator('.ai-tab', { hasText: '助手' }).click();
   await page.waitForFunction(() => document.getElementById('desktopContextMeter')?.offsetParent !== null);
   assert.match(await page.locator('#ctxText').textContent(), /tokens/);
+  assert.match(await page.locator('#ctxText').textContent(), /上限未知/, 'unknown model must not claim a fabricated context limit');
+  await page.locator('.ai-tab', { hasText: '对比' }).click();
+  await page.evaluate(() => {
+    S.multiRunSnapshot = makeEditorSnapshot();
+    const failed = document.getElementById('slotResult1');
+    failed.textContent = '✕ 模拟网络失败';
+    failed.dataset.state = 'error';
+    failed.classList.remove('has-content');
+  });
+  const beforeFailedApply = await page.locator('#mainEditor').inputValue();
+  await page.evaluate(() => applySlotToEditor(1));
+  assert.equal(await page.locator('#mainEditor').inputValue(), beforeFailedApply, 'failed multi-model output must not be insertable');
   assert.deepEqual(errors, [], `desktop browser errors:\n${errors.join('\n')}`);
 
   const adminPage = await desktop.newPage();
@@ -189,6 +291,7 @@ try {
     const request = route.request();
     directRequest = {
       authorization: request.headers().authorization,
+      route: request.headers()['x-route'],
       body: request.postDataJSON()
     };
     await route.fulfill({
@@ -210,6 +313,9 @@ try {
   await pagesPage.locator('#apiBaseUrl').fill('https://mock-api.example/v1');
   await pagesPage.locator('#apiKey').fill('browser-test-key');
   await pagesPage.locator('#apiModel').fill('test-model');
+  await pagesPage.locator('#apiModal .api-advanced > summary').click();
+  await pagesPage.locator('#apiContextLimit').fill('32768');
+  await pagesPage.locator('#apiHeaders').fill('{"X-Route":"pages"}');
   assert.equal(
     await pagesPage.locator('#apiModal .btn-confirm').getAttribute('onclick'),
     'saveApi()',
@@ -236,7 +342,8 @@ try {
     protocol: 'auto',
     authMode: 'auto',
     timeout: 60000,
-    customHeaders: '',
+    contextLimit: 32768,
+    customHeaders: '{"X-Route":"pages"}',
     transport: 'browser'
   });
   assert.equal(configPosts, 0, 'Pages save must not POST to static /api/config');
@@ -245,23 +352,41 @@ try {
   await pagesPage.waitForFunction(() => document.getElementById('testResult')?.textContent.includes('✓ OK'));
   assert.equal(configPosts, 0, 'Pages API test must not POST to static /api/config');
   assert.equal(directRequest.authorization, 'Bearer browser-test-key');
+  assert.equal(directRequest.route, 'pages');
   assert.equal(directRequest.body.provider, undefined, 'browser request must not leak internal proxy fields');
   assert.equal(directRequest.body.model, 'test-model');
   assert.match(directRequest.body.messages[0].content, /Reply with exactly: OK/);
 
-  await pagesPage.locator('#apiModal .api-advanced > summary').click();
   await pagesPage.locator('#apiProtocol').selectOption('ollama');
   await pagesPage.locator('#apiAuthMode').selectOption('none');
   await pagesPage.locator('#apiBaseUrl').fill('http://127.0.0.1:11434');
-  await pagesPage.locator('#apiKey').fill('');
+  await pagesPage.locator('#apiClearKey').check();
+  await pagesPage.locator('#apiClearHeaders').check();
   await pagesPage.evaluate(() => saveApi());
   const keylessConfig = await pagesPage.evaluate(() => JSON.parse(localStorage.getItem('ww_api') || '{}'));
   assert.equal(keylessConfig.authMode, 'none');
   assert.equal(keylessConfig.protocol, 'ollama');
   assert.equal(keylessConfig.key, '');
+  assert.equal(keylessConfig.customHeaders, '');
   assert.equal(configPosts, 0, 'keyless Pages save must not POST to static /api/config');
   assert.deepEqual(pagesErrors, [], `Pages browser API errors:\n${pagesErrors.join('\n')}`);
   await pagesContext.close();
+
+  const staticContext = await browser.newContext({ viewport: { width: 1100, height: 800 } });
+  const staticPage = await staticContext.newPage();
+  const staticErrors = await collectErrors(staticPage);
+  await staticPage.route('**/api/health', route => route.fulfill({ status: 404, body: 'not found' }));
+  await staticPage.goto(`${baseURL}/app.html`, { waitUntil: 'networkidle' });
+  await staticPage.waitForFunction(() => WW_BROWSER_API_MODE === true);
+  assert.equal(await staticPage.evaluate(() => apiStorageDescription().includes('当前浏览器')), true, 'custom static host should use browser API mode');
+  const staticAdmin = await staticContext.newPage();
+  const staticAdminErrors = await collectErrors(staticAdmin);
+  await staticAdmin.route('**/api/health', route => route.fulfill({ status: 404, body: 'not found' }));
+  await staticAdmin.goto(`${baseURL}/admin.html`, { waitUntil: 'networkidle' });
+  await staticAdmin.waitForFunction(() => document.getElementById('apiStatus')?.textContent === '静态在线版 · 浏览器 API');
+  assert.deepEqual(staticErrors, [], `custom static-host detection errors:\n${staticErrors.join('\n')}`);
+  assert.deepEqual(staticAdminErrors, [], `custom static admin detection errors:\n${staticAdminErrors.join('\n')}`);
+  await staticContext.close();
 
   const mobilePage = await desktop.newPage();
   await mobilePage.setViewportSize({ width: 390, height: 844 });
@@ -273,8 +398,28 @@ try {
   await mobilePage.waitForFunction(() => document.querySelector('#mpNoteList .oi-text')?.textContent === '设定核对');
   assert.deepEqual(mobileErrors, [], `mobile browser errors:\n${mobileErrors.join('\n')}`);
 
+  const doomedProjectId = await page.evaluate(async () => {
+    const id = await dbPut('projects', { name: '待原子删除项目', genre: 'test', created_at: Date.now(), updated_at: Date.now() });
+    for (const store of ['outlines', 'characters', 'chapters', 'notes', 'aiMemories', 'aiHistory']) {
+      await dbPut(store, { project_id: id, title: store, name: store, content: store, text: store, time: Date.now() });
+    }
+    await loadProjects();
+    return id;
+  });
+  await page.evaluate(() => openModal('projectModal'));
+  const doomedCard = page.locator('#projectList .project-list-item', { hasText: '待原子删除项目' });
+  page.once('dialog', dialog => dialog.accept());
+  await doomedCard.getByRole('button', { name: '删除' }).click();
+  await page.waitForFunction(async id => {
+    if (await dbGet('projects', id)) return false;
+    const stores = ['outlines', 'characters', 'chapters', 'notes', 'aiMemories', 'aiHistory'];
+    const rows = await Promise.all(stores.map(store => dbByIndex(store, 'project_id', id)));
+    return rows.every(items => items.length === 0);
+  }, doomedProjectId);
+  assert.deepEqual(errors, [], `desktop browser errors after project cleanup:\n${errors.join('\n')}`);
+
   await desktop.close();
-  console.log('Browser smoke OK: v1-v3 migration, guarded candidate recovery, Pages browser BYOK, desktop project/notes/import/context and mobile notes navigation.');
+  console.log('Browser smoke OK: transactional editor switching/export, v1-v4 to v5 migration, guarded candidates, Pages/custom-static BYOK, desktop context and mobile notes navigation.');
 } finally {
   await browser.close();
 }

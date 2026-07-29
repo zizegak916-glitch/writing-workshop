@@ -705,8 +705,11 @@
 
   async function renderHistory() {
     const root = document.getElementById('workflowHistory');
-    if (!root || typeof dbAll !== 'function' || typeof db === 'undefined' || !db) return;
-    const items = (await dbAll('aiHistory')).filter(item => item.workflow).sort((a, b) => (b.time || 0) - (a.time || 0)).slice(0, 12);
+    if (!root || typeof dbByIndex !== 'function' || typeof db === 'undefined' || !db) return;
+    const projectId = typeof S !== 'undefined' && S.proj ? S.proj.project.id : null;
+    const items = projectId
+      ? (await dbByIndex('aiHistory', 'project_id', projectId)).filter(item => item.workflow).sort((a, b) => (b.time || 0) - (a.time || 0)).slice(0, 12)
+      : [];
     if (!items.length) {
       root.innerHTML = '<div class="workflow-muted">暂无流程记录</div>';
       return;

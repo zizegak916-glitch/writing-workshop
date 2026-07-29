@@ -3,6 +3,7 @@ package web
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -449,6 +450,7 @@ func TestAIProviderContractsWithLocalMocks(t *testing.T) {
 }
 
 func TestApplyConfigUpdatePreservesNetworkOptions(t *testing.T) {
+	contextWindow := 32768
 	cfg := bootstrap.Config{
 		Provider:  "custom",
 		ModelName: "old-model",
@@ -458,10 +460,14 @@ func TestApplyConfigUpdatePreservesNetworkOptions(t *testing.T) {
 		}},
 	}
 	applyConfigUpdate(&cfg, configUpdate{
-		Provider: "custom",
-		Model:    "new-model",
-		BaseURL:  "https://relay.example/v1",
-		Type:     "anthropic",
+		Provider:       "custom",
+		Model:          "new-model",
+		BaseURL:        "https://relay.example/v1",
+		Type:           "anthropic",
+		Protocol:       "anthropic",
+		AuthMode:       "x-api-key",
+		RequestTimeout: 90000,
+		ContextWindow:  &contextWindow,
 		Extra: map[string]any{
 			"headers": map[string]any{"X-Relay-Route": "cn-a"},
 		},
@@ -471,12 +477,220 @@ func TestApplyConfigUpdatePreservesNetworkOptions(t *testing.T) {
 	if pc.Type != "anthropic" || pc.BaseURL != "https://relay.example/v1" {
 		t.Fatalf("network options not applied: %#v", pc)
 	}
+	if pc.Protocol != "anthropic" || pc.AuthMode != "x-api-key" || pc.RequestTimeoutMS != 90000 || cfg.ContextWindow != contextWindow {
+		t.Fatalf("protocol options not applied: provider=%#v context=%d", pc, cfg.ContextWindow)
+	}
 	headers, ok := pc.Extra["headers"].(map[string]any)
 	if !ok || headers["X-Relay-Route"] != "cn-a" {
 		t.Fatalf("custom headers not applied: %#v", pc.Extra)
 	}
 	if pc.ExtraBody["temperature"] != 0.4 {
 		t.Fatalf("extra body not applied: %#v", pc.ExtraBody)
+	}
+	applyConfigUpdate(&cfg, configUpdate{Provider: "custom", AuthMode: "none"})
+	if cfg.Providers["custom"].APIKey != "old-key" {
+		t.Fatalf("changing auth mode must not implicitly clear the saved key")
+	}
+	applyConfigUpdate(&cfg, configUpdate{
+		Provider:    "custom",
+		ClearAPIKey: true,
+		Extra:       map[string]any{},
+	})
+	pc = cfg.Providers["custom"]
+	if pc.APIKey != "" || len(pc.Extra) != 0 {
+		t.Fatalf("explicit clear did not remove secrets: %#v", pc)
+	}
+}
+
+func TestValidateConfigUpdateRejectsTransportHeaders(t *testing.T) {
+	err := validateConfigUpdate(configUpdate{Extra: map[string]any{
+		"headers": map[string]any{"Sec-Fetch-Site": "cross-site"},
+	}})
+	if err == nil || !strings.Contains(err.Error(), "not allowed") {
+		t.Fatalf("error=%v", err)
+	}
+}
+
+func TestRawProviderProtocolsAndAuthentication(t *testing.T) {
+	tests := []struct {
+		name         string
+		protocol     string
+		authMode     string
+		apiKey       string
+		response     string
+		wantPath     string
+		wantAuth     string
+		wantAPIKey   string
+		wantBodyKey  string
+		wantResponse string
+	}{
+		{
+			name: "responses", protocol: "openai-responses", authMode: "bearer", apiKey: "responses-key",
+			response: `{"output_text":"responses raw ok","usage":{"input_tokens":4,"output_tokens":3,"total_tokens":7}}`,
+			wantPath: "/v1/responses", wantAuth: "Bearer responses-key", wantBodyKey: "input", wantResponse: "responses raw ok",
+		},
+		{
+			name: "anthropic", protocol: "anthropic", authMode: "x-api-key", apiKey: "anthropic-key",
+			response: `{"content":[{"type":"text","text":"anthropic raw ok"}],"usage":{"input_tokens":4,"output_tokens":3}}`,
+			wantPath: "/v1/messages", wantAPIKey: "anthropic-key", wantBodyKey: "messages", wantResponse: "anthropic raw ok",
+		},
+		{
+			name: "ollama", protocol: "ollama", authMode: "none",
+			response: `{"message":{"role":"assistant","content":"ollama raw ok"},"done":true}`,
+			wantPath: "/api/chat", wantBodyKey: "messages", wantResponse: "ollama raw ok",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var gotBody map[string]any
+			upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.URL.Path != tt.wantPath {
+					t.Errorf("path=%q want=%q", r.URL.Path, tt.wantPath)
+				}
+				if got := r.Header.Get("Authorization"); got != tt.wantAuth {
+					t.Errorf("authorization=%q want=%q", got, tt.wantAuth)
+				}
+				if got := r.Header.Get("x-api-key"); got != tt.wantAPIKey {
+					t.Errorf("x-api-key=%q want=%q", got, tt.wantAPIKey)
+				}
+				if got := r.Header.Get("X-Relay-Route"); got != "cn-a" {
+					t.Errorf("custom header=%q", got)
+				}
+				if err := json.NewDecoder(r.Body).Decode(&gotBody); err != nil {
+					t.Errorf("decode request: %v", err)
+				}
+				w.Header().Set("Content-Type", "application/json")
+				_, _ = w.Write([]byte(tt.response))
+			}))
+			defer upstream.Close()
+			provider := resolvedAIProvider{
+				Key:      tt.name,
+				Model:    "contract-model",
+				Protocol: tt.protocol,
+				Config: bootstrap.ProviderConfig{
+					Protocol: tt.protocol,
+					AuthMode: tt.authMode,
+					APIKey:   tt.apiKey,
+					BaseURL:  upstream.URL,
+					Extra: map[string]any{
+						"headers": map[string]any{"X-Relay-Route": "cn-a"},
+					},
+				},
+			}
+			text, usage, err := rawProviderRequest(t.Context(), provider, nil, false, nil)
+			if err != nil {
+				t.Fatalf("raw request: %v", err)
+			}
+			if text != tt.wantResponse {
+				t.Fatalf("text=%q usage=%#v", text, usage)
+			}
+			if tt.name != "ollama" && (usageInput(usage) != 4 || usageOutput(usage) != 3) {
+				t.Fatalf("usage=%#v", usage)
+			}
+			if _, ok := gotBody[tt.wantBodyKey]; !ok {
+				t.Fatalf("request body missing %q: %#v", tt.wantBodyKey, gotBody)
+			}
+		})
+	}
+}
+
+func TestRawUsageAcceptsAnthropicStreamingMessageUsage(t *testing.T) {
+	usage := rawUsage(map[string]any{
+		"type": "message_start",
+		"message": map[string]any{
+			"usage": map[string]any{
+				"input_tokens":  11.0,
+				"output_tokens": 3.0,
+			},
+		},
+	})
+	if usageInput(usage) != 11 || usageOutput(usage) != 3 || usage.TotalTokens != 14 {
+		t.Fatalf("usage=%#v", usage)
+	}
+}
+
+func TestRawProviderStreamAcceptsResponsesFinalOnlyEvent(t *testing.T) {
+	stream := "data: {\"type\":\"response.completed\",\"response\":{\"output_text\":\"完整回退\",\"usage\":{\"input_tokens\":5,\"output_tokens\":2}}}\n\n"
+	text, usage, err := readRawProviderStream(strings.NewReader(stream), nil)
+	if err != nil {
+		t.Fatalf("stream: %v", err)
+	}
+	if text != "完整回退" || usageInput(usage) != 5 || usageOutput(usage) != 2 {
+		t.Fatalf("text=%q usage=%#v", text, usage)
+	}
+}
+
+func TestAIAndCapabilityRunsUseRealUpstreamStream(t *testing.T) {
+	var requests []map[string]any
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var body map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Errorf("decode stream request: %v", err)
+		}
+		requests = append(requests, body)
+		w.Header().Set("Content-Type", "text/event-stream")
+		flusher, _ := w.(http.Flusher)
+		_, _ = w.Write([]byte("data: {\"choices\":[{\"delta\":{\"content\":\"真\"}}]}\n\n"))
+		flusher.Flush()
+		_, _ = w.Write([]byte("data: {\"choices\":[{\"delta\":{\"content\":\"流\"}}]}\n\n"))
+		flusher.Flush()
+		_, _ = w.Write([]byte("data: [DONE]\n\n"))
+		flusher.Flush()
+	}))
+	defer upstream.Close()
+	cfg := bootstrap.Config{
+		OutputDir: t.TempDir(),
+		Provider:  "raw",
+		ModelName: "stream-model",
+		Providers: map[string]bootstrap.ProviderConfig{
+			"raw": {
+				Type:     "openai",
+				Protocol: "openai-chat",
+				AuthMode: "none",
+				BaseURL:  upstream.URL,
+				Models:   []string{"stream-model"},
+			},
+		},
+		Style: "default",
+	}
+	h, err := host.New(cfg, assets.Load(cfg.Style))
+	if err != nil {
+		t.Fatalf("host.New: %v", err)
+	}
+	defer h.Close()
+	s := NewServer(h, "127.0.0.1:0")
+	mux := http.NewServeMux()
+	s.routes(mux)
+
+	req := httptest.NewRequest(http.MethodPost, "/api/ai/stream", bytes.NewBufferString(`{"message":"stream directly"}`))
+	rec := httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+	for _, want := range []string{"event: start", "event: delta", `"text":"真"`, `"text":"流"`, "event: done"} {
+		if !strings.Contains(rec.Body.String(), want) {
+			t.Fatalf("AI stream missing %q: %s", want, rec.Body.String())
+		}
+	}
+
+	runBody := bytes.NewBufferString(`{
+		"skill_ids":["builtin-continuity"],
+		"task":"rewrite",
+		"context":{"selection":"检查人物连续性"},
+		"params":{"stream":true,"use_ai":true}
+	}`)
+	req = httptest.NewRequest(http.MethodPost, "/api/run", runBody)
+	rec = httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+	for _, want := range []string{"event: start", `"text":"真"`, `"text":"流"`, "event: done"} {
+		if !strings.Contains(rec.Body.String(), want) {
+			t.Fatalf("capability stream missing %q: %s", want, rec.Body.String())
+		}
+	}
+	if len(requests) != 2 {
+		t.Fatalf("upstream requests=%d want=2", len(requests))
+	}
+	messages, _ := requests[1]["messages"].([]any)
+	if len(messages) == 0 || !strings.Contains(fmt.Sprint(messages[0]), "已选择能力") || !strings.Contains(fmt.Sprint(messages[0]), "请改写") {
+		t.Fatalf("capability instructions missing from upstream request: %#v", requests[1])
 	}
 }
 

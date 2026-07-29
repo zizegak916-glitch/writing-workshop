@@ -190,7 +190,7 @@
   }
 
   function parseUsage(data) {
-    const usage = data?.usage;
+    const usage = data?.usage || data?.response?.usage || data?.message?.usage;
     if (!usage) return null;
     const input = Number(usage.prompt_tokens ?? usage.input_tokens ?? usage.prompt_eval_count ?? 0);
     const output = Number(usage.completion_tokens ?? usage.output_tokens ?? usage.eval_count ?? 0);
@@ -224,16 +224,16 @@
     return response.headers.get('x-request-id') || response.headers.get('request-id') || response.headers.get('cf-ray') || '';
   }
 
-  async function fetchWithTimeout(url, options, timeoutMs) {
+  async function beginTimedStreamFetch(url, options, timeoutMs) {
     const controller = new AbortController();
     const timeout = Math.max(1000, Number(timeoutMs || 60000));
     const timer = setTimeout(() => controller.abort(), timeout);
     try {
-      return await fetch(url, { ...options, signal: controller.signal });
+      const response = await fetch(url, { ...options, signal: controller.signal });
+      return { response, dispose: () => clearTimeout(timer) };
     } catch (error) {
-      throw networkError(error);
-    } finally {
       clearTimeout(timer);
+      throw networkError(error);
     }
   }
 
@@ -242,20 +242,27 @@
     const url = normalizeEndpoint(config.baseUrl, protocol, config.fallbackUrl);
     const headers = buildHeaders(config, protocol, false);
     const body = buildBody(config, messages, { ...options, stream: false });
-    const response = await fetchWithTimeout(url, {
+    const timed = await beginTimedStreamFetch(url, {
       method: 'POST',
       headers,
       body: JSON.stringify(body)
     }, config.timeoutMs || config.timeout);
-    const data = await responseData(response);
-    if (!response.ok || data?.error) {
-      const id = requestId(response);
-      const detail = upstreamErrorText(data, response.statusText || '上游接口返回错误');
-      throw new Error('HTTP ' + response.status + ': ' + detail + (id ? '（请求 ID：' + id + '）' : ''));
+    const response = timed.response;
+    try {
+      const data = await responseData(response);
+      if (!response.ok || data?.error) {
+        const id = requestId(response);
+        const detail = upstreamErrorText(data, response.statusText || '上游接口返回错误');
+        throw new Error('HTTP ' + response.status + ': ' + detail + (id ? '（请求 ID：' + id + '）' : ''));
+      }
+      const text = parseResponse(data);
+      if (!text) throw new Error('接口返回成功，但没有识别到文本内容；请检查协议类型是否选对');
+      return { text, usage: parseUsage(data), data, endpoint: url, protocol };
+    } catch (error) {
+      throw networkError(error);
+    } finally {
+      timed.dispose();
     }
-    const text = parseResponse(data);
-    if (!text) throw new Error('接口返回成功，但没有识别到文本内容；请检查协议类型是否选对');
-    return { text, usage: parseUsage(data), data, endpoint: url, protocol };
   }
 
   function streamDelta(data) {
@@ -279,7 +286,8 @@
     if (!payload || payload === '[DONE]') return { done: true, delta: '', data: null };
     try {
       const data = JSON.parse(payload);
-      return { done: !!data.done, delta: streamDelta(data), usage: parseUsage(data), data };
+      const done = !!data.done || data.type === 'response.completed' || data.type === 'message_stop';
+      return { done, delta: streamDelta(data), usage: parseUsage(data), data };
     } catch (_) {
       return null;
     }
@@ -290,57 +298,71 @@
     const url = normalizeEndpoint(config.baseUrl, protocol, config.fallbackUrl);
     const headers = buildHeaders(config, protocol, true);
     const body = buildBody(config, messages, { ...options, stream: true });
-    const response = await fetchWithTimeout(url, {
+    const timed = await beginTimedStreamFetch(url, {
       method: 'POST',
       headers,
       body: JSON.stringify(body)
     }, config.timeoutMs || config.timeout);
-    if (!response.ok) {
-      const data = await responseData(response);
-      const id = requestId(response);
-      const detail = upstreamErrorText(data, response.statusText || '上游接口返回错误');
-      throw new Error('HTTP ' + response.status + ': ' + detail + (id ? '（请求 ID：' + id + '）' : ''));
-    }
-
-    const contentType = response.headers.get('content-type') || '';
-    if (!response.body || contentType.includes('application/json') && !contentType.includes('ndjson')) {
-      const data = await responseData(response);
-      const text = parseResponse(data);
-      if (!text) throw new Error('接口返回成功，但没有识别到文本内容；请检查协议类型是否选对');
-      if (options.onChunk) options.onChunk(text);
-      return { text, usage: parseUsage(data), data, endpoint: url, protocol };
-    }
-
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = '';
-    let text = '';
-    let usage = null;
-    const sse = contentType.includes('text/event-stream');
-
-    function consume(record) {
-      const parsed = parseStreamRecord(record);
-      if (!parsed) return;
-      if (parsed.usage) usage = parsed.usage;
-      if (parsed.delta) {
-        text += parsed.delta;
-        if (options.onChunk) options.onChunk(parsed.delta);
+    const response = timed.response;
+    try {
+      if (!response.ok) {
+        const data = await responseData(response);
+        const id = requestId(response);
+        const detail = upstreamErrorText(data, response.statusText || '上游接口返回错误');
+        throw new Error('HTTP ' + response.status + ': ' + detail + (id ? '（请求 ID：' + id + '）' : ''));
       }
-    }
 
-    while (true) {
-      const { value, done } = await reader.read();
-      if (done) break;
-      buffer += decoder.decode(value, { stream: true });
-      const separator = sse ? /\r?\n\r?\n/ : /\r?\n/;
-      const records = buffer.split(separator);
-      buffer = records.pop() || '';
-      records.forEach(consume);
+      const contentType = response.headers.get('content-type') || '';
+      if (!response.body || contentType.includes('application/json') && !contentType.includes('ndjson')) {
+        const data = await responseData(response);
+        const text = parseResponse(data);
+        if (!text) throw new Error('接口返回成功，但没有识别到文本内容；请检查协议类型是否选对');
+        if (options.onChunk) options.onChunk(text);
+        return { text, usage: parseUsage(data), data, endpoint: url, protocol };
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let text = '';
+      let usage = null;
+      const sse = contentType.includes('text/event-stream');
+
+      function consume(record) {
+        const parsed = parseStreamRecord(record);
+        if (!parsed) return;
+        if (parsed.data?.error) throw new Error(upstreamErrorText(parsed.data, '上游流式请求失败'));
+        if (parsed.usage) usage = parsed.usage;
+        if (parsed.delta) {
+          text += parsed.delta;
+          if (options.onChunk) options.onChunk(parsed.delta);
+        } else if (parsed.done && !text && parsed.data) {
+          const finalText = parseResponse(parsed.data.response || parsed.data);
+          if (finalText) {
+            text = finalText;
+            if (options.onChunk) options.onChunk(finalText);
+          }
+        }
+      }
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const separator = sse ? /\r?\n\r?\n/ : /\r?\n/;
+        const records = buffer.split(separator);
+        buffer = records.pop() || '';
+        records.forEach(consume);
+      }
+      buffer += decoder.decode();
+      if (buffer.trim()) consume(buffer);
+      if (!text) throw new Error('流式连接已结束，但没有识别到文本增量；可尝试关闭流式或切换协议类型');
+      return { text, usage, endpoint: url, protocol };
+    } catch (error) {
+      throw networkError(error);
+    } finally {
+      timed.dispose();
     }
-    buffer += decoder.decode();
-    if (buffer.trim()) consume(buffer);
-    if (!text) throw new Error('流式连接已结束，但没有识别到文本增量；可尝试关闭流式或切换协议类型');
-    return { text, usage, endpoint: url, protocol };
   }
 
   return {

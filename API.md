@@ -8,17 +8,26 @@
 
 润色、续写、人物、校对、标题、实时灵感等 32 个功能使用浏览器 Prompt Skill。默认文本来自 `web/static/js/prompt-skills.js`，用户覆盖值保存在当前域名的 `localStorage`；点击功能后，前端在调用 `/api/ai` 前组装提示词。它们不通过 `/api/capabilities` CRUD，也不会写入 `.ainovel/capabilities.json`。
 
-项目导出格式 v4 可包含：
+项目导出格式 v5 可包含：
 
 ```json
 {
-  "version": 4,
+  "version": 5,
   "project": {},
   "outlines": [],
   "characters": [],
   "chapters": [],
   "notes": [],
   "memories": [],
+  "ai_history": [
+    {
+      "type": "candidate",
+      "project_id": 1,
+      "active_type": "chapter",
+      "active_id": 12,
+      "content": "待确认候选"
+    }
+  ],
   "categories": [],
   "prompt_skills": {
     "schema": "writing-workshop/prompt-skills",
@@ -30,7 +39,7 @@
 }
 ```
 
-导入 v1/v2/v3 项目仍然兼容；存在 `categories` 时合并合法自定义分类，存在 `prompt_skills` 时只合并已知名称和合法文本，不覆盖未出现在包中的浏览器设置。浏览器项目包、分类与 Prompt Skill 的导入导出是前端本地数据操作，不应误写成新的服务端接口。
+导入 v1/v2/v3/v4 项目仍然兼容；存在 `categories` 时合并合法自定义分类，存在 `prompt_skills` 时只合并已知名称和合法文本，不覆盖未出现在包中的浏览器设置。v5 恢复会在同一个 IndexedDB 事务中写入项目及其子记录，并把 AI 历史里的旧文档 ID 重映射到新记录；失败时整批回滚，不留下半个项目。浏览器项目包、分类与 Prompt Skill 的导入导出是前端本地数据操作，不应误写成新的服务端接口。
 
 浏览器项目与 Go 后端项目是两套明确存储。前端不会在每次保存时静默调用项目写接口；当前工作台仅在用户点击“从自部署后端导入”时读取 `/api/projects`、`/api/chapters` 和 `/api/characters`，建立新的浏览器项目副本。
 
@@ -123,7 +132,7 @@
 }
 ```
 
-普通响应会返回 `run_id`、`task`、`backend_id`、`skill_ids`、`capabilities`、`output` 和 `content`。传 `params.stream=true` 或请求头 `Accept: text/event-stream` 时返回 SSE，事件包括 `start`、`delta`、`done`、`error`、`aborted`。
+普通响应会返回 `run_id`、`task`、`backend_id`、`skill_ids`、`capabilities`、`output` 和 `content`。传 `params.stream=true` 或请求头 `Accept: text/event-stream` 时返回 SSE，事件包括 `start`、`delta`、`done`、`error`、`aborted`。AI 生成和 AI 改写会转发上游真实增量；只有本地 outline / echo 这类没有上游流的确定性任务才在本地分块。
 
 `skill_ids` 可以包含多个 ID。服务会按请求顺序解析所有已启用能力，把各自的 `instructions` 或 `steps` 组合进同一次运行；不存在或停用的 ID 返回 `400`，不会静默跳过。
 
@@ -186,6 +195,10 @@ curl -X POST http://127.0.0.1:8080/api/external-catalog \
 
 响应包含 `choices[0].message.content`、`content[0].text` 和 `usage`，兼容写作工坊前端。
 
+`POST /api/ai/stream`
+
+请求体与 `/api/ai` 相同，返回 `text/event-stream`。事件为 `start`、零到多个 `delta`、`done` 或 `error`。后端支持 OpenAI Chat Completions、OpenAI Responses、Anthropic Messages 和 Ollama Chat 的 SSE / NDJSON 增量，不会先缓冲完整回答再按固定长度切片。
+
 ## 配置
 
 `GET /api/config`
@@ -194,15 +207,19 @@ curl -X POST http://127.0.0.1:8080/api/external-catalog \
 
 `POST /api/config` / `PUT /api/config`
 
-保存 provider、model、base_url、api_key、provider 级 `extra` 和请求体 `extra_body` 到本地 `~/.ainovel/config.json`。
+保存 provider、model、base_url、api_key、协议、鉴权、请求超时、上下文上限、provider 级 `extra` 和请求体 `extra_body` 到本地 `~/.ainovel/config.json`。
 
 ```json
 {
   "provider": "openrouter",
   "model": "anthropic/claude-sonnet-4",
   "type": "openai",
+  "protocol": "openai-chat",
+  "auth_mode": "bearer",
   "base_url": "https://openrouter.ai/api/v1",
   "api_key": "sk-or-v1-...",
+  "request_timeout_ms": 120000,
+  "context_window": 131072,
   "extra": {
     "headers": {
       "HTTP-Referer": "https://writer.example"
@@ -214,7 +231,9 @@ curl -X POST http://127.0.0.1:8080/api/external-catalog \
 }
 ```
 
-`extra` 与 `extra_body` 为整组覆盖：省略表示保留已有值，显式传空对象表示清空。`GET /api/config` 会隐藏 API Key，并删除 `extra.headers` 后再返回，避免自定义鉴权头泄露给浏览器。
+`protocol` 可为 `auto`、`openai-chat`、`openai-responses`、`anthropic` 或 `ollama`；`auth_mode` 可为 `auto`、`bearer`、`x-api-key` 或 `none`。`request_timeout_ms` 限制在 5–600 秒，并覆盖读取完整响应/流的整个生命周期。未知模型不会再假定固定上下文上限；需要百分比预算时显式填写 `context_window`。
+
+`api_key` 省略或留空表示保留已有值，`clear_api_key: true` 才会明确删除。`extra` 与 `extra_body` 为整组覆盖：省略表示保留已有值，显式传空对象表示清空；管理页另有“清除已保存请求头”的显式动作。`GET /api/config` 会隐藏 API Key，并删除 `extra.headers` 后再返回，避免自定义鉴权头泄露给浏览器。
 
 Pages 模式不调用这一写接口。浏览器端使用 `web/static/js/api-adapter.js` 直连目标服务，支持 OpenAI Chat Completions、OpenAI Responses、Anthropic Messages 与 Ollama `/api/chat`。这是静态站本地配置，不是新增的服务端端点。
 

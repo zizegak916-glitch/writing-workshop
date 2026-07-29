@@ -48,9 +48,11 @@ pre{white-space:pre-wrap;background:var(--card);border:1px solid var(--border);b
       <div><label>Base URL</label><input id="baseUrl"></div>
       <div><label>鉴权方式</label><select id="authMode"><option value="auto">自动</option><option value="bearer">Bearer Token</option><option value="x-api-key">x-api-key</option><option value="none">无鉴权</option></select></div>
       <div><label>超时（秒）</label><input id="apiTimeout" type="number" min="5" max="600" value="60"></div>
+      <div><label>上下文上限（tokens）</label><input id="contextLimit" type="number" min="0" step="1024" placeholder="未知模型请填写"></div>
     </div>
     <label>API Key</label><input id="apiKey" type="password" placeholder="留空则保持原值或使用环境变量">
     <label>自定义请求头（JSON）</label><textarea id="customHeaders" placeholder='{"HTTP-Referer":"https://example.com"}'></textarea>
+    <p class="row"><label><input id="clearAPIKey" type="checkbox" style="width:auto"> 清除已保存 API Key</label><label><input id="clearHeaders" type="checkbox" style="width:auto"> 清除已保存请求头</label></p>
     <p class="status">Base URL 可填域名、兼容层地址或完整接口。Pages 直连无密钥服务时请选择“无鉴权”；是否可用仍取决于目标服务的 CORS。</p>
     <p class="row"><button class="primary" onclick="saveConfig()">保存配置</button><span id="configMsg"></span></p>
   </section>
@@ -173,9 +175,9 @@ function showRuntimeNotice(message){runtimeNotice.hidden=false;runtimeNotice.inn
 async function loadAll(){await Promise.all([loadConfig(),loadProjects(),loadChars(),loadRules(),loadCapabilities(),loadExternalCatalog(),loadSkillPacks(),loadCategories()])}
 function browserConfig(){try{return JSON.parse(localStorage.getItem('ww_api')||'{}')||{}}catch{return{}}}
 function protocolFromType(type){if(type==='anthropic')return'anthropic';if(type==='ollama')return'ollama';return'openai-chat'}
-function formConfig(){const protocol=ptype.value||'auto';const c={provider:provider.value||'custom',model:model.value.trim(),protocol,authMode:authMode.value||'auto',baseUrl:baseUrl.value.trim(),key:apiKey.value,timeout:Number(apiTimeout.value||60)*1000,customHeaders:customHeaders.value.trim(),transport:isPages?'browser':'backend'};c.type=WWApiAdapter.protocolType(WWApiAdapter.inferProtocol(c));WWApiAdapter.parseCustomHeaders(c.customHeaders);return c}
-async function loadConfig(){if(isPages){const c=browserConfig();provider.value=c.provider||'custom';model.value=c.model||'';ptype.value=c.protocol||protocolFromType(c.type);authMode.value=c.authMode||'auto';baseUrl.value=c.baseUrl||'';apiKey.value=c.key||'';apiTimeout.value=Math.round(Number(c.timeout||60000)/1000);customHeaders.value=c.customHeaders||'';return}const d=await api('/api/config');const c=d.config||d;provider.value=c.provider||'';model.value=c.model||'';const pc=(c.providers||{})[c.provider]||{};ptype.value=protocolFromType(pc.type);authMode.value='auto';baseUrl.value=pc.base_url||'';apiTimeout.value=60;customHeaders.value=JSON.stringify(pc.extra?.headers||{},null,2).replace(/^\{\s*\}$/,'')}
-async function saveConfig(){try{const c=formConfig();const protocol=WWApiAdapter.inferProtocol(c);if(isPages){if(WWApiAdapter.resolveAuthMode(c,protocol)!=='none'&&!c.key)throw new Error('当前鉴权方式需要 API Key；无密钥服务请选择“无鉴权”');if(!c.baseUrl)throw new Error('Pages 浏览器直连需要 Base URL');if(!c.model)throw new Error('请填写模型名称');localStorage.setItem('ww_api',JSON.stringify(c));configMsg.textContent='已保存到当前浏览器；没有请求 /api/config';return}const headers=WWApiAdapter.parseCustomHeaders(c.customHeaders);await api('/api/config',{method:'POST',body:JSON.stringify({provider:c.provider,model:c.model,type:c.type,base_url:c.baseUrl,api_key:c.key,extra:Object.keys(headers).length?{headers}:undefined})});configMsg.textContent='已保存到后端'}catch(e){configMsg.textContent=e.message}}
+function formConfig(){const protocol=ptype.value||'auto';const c={provider:provider.value||'custom',model:model.value.trim(),protocol,authMode:authMode.value||'auto',baseUrl:baseUrl.value.trim(),key:apiKey.value,timeout:Number(apiTimeout.value||60)*1000,contextLimit:Math.max(0,Number(contextLimit.value||0)),customHeaders:customHeaders.value.trim(),clearKey:clearAPIKey.checked,clearHeaders:clearHeaders.checked,transport:isPages?'browser':'backend'};c.type=WWApiAdapter.protocolType(WWApiAdapter.inferProtocol(c));WWApiAdapter.parseCustomHeaders(c.customHeaders);return c}
+async function loadConfig(){if(isPages){const c=browserConfig();provider.value=c.provider||'custom';model.value=c.model||'';ptype.value=c.protocol||protocolFromType(c.type);authMode.value=c.authMode||'auto';baseUrl.value=c.baseUrl||'';apiKey.value=c.key||'';apiTimeout.value=Math.round(Number(c.timeout||60000)/1000);contextLimit.value=Number(c.contextLimit||0)||'';customHeaders.value=c.customHeaders||'';clearAPIKey.checked=false;clearHeaders.checked=false;return}const d=await api('/api/config');const c=d.config||d;provider.value=c.provider||'';model.value=c.model||'';const pc=(c.providers||{})[c.provider]||{};ptype.value=pc.protocol||protocolFromType(pc.type);authMode.value=pc.auth_mode||'auto';baseUrl.value=pc.base_url||'';apiTimeout.value=Math.round(Number(pc.request_timeout_ms||60000)/1000);contextLimit.value=Number(c.context_window||0)||'';customHeaders.value='';clearAPIKey.checked=false;clearHeaders.checked=false}
+async function saveConfig(){try{const c=formConfig();const protocol=WWApiAdapter.inferProtocol(c);if(isPages){if(c.clearKey)c.key='';if(c.clearHeaders)c.customHeaders='';if(WWApiAdapter.resolveAuthMode(c,protocol)!=='none'&&!c.key)throw new Error('当前鉴权方式需要 API Key；无密钥服务请选择“无鉴权”');if(!c.baseUrl)throw new Error('Pages 浏览器直连需要 Base URL');if(!c.model)throw new Error('请填写模型名称');delete c.clearKey;delete c.clearHeaders;localStorage.setItem('ww_api',JSON.stringify(c));configMsg.textContent='已保存到当前浏览器；没有请求 /api/config';return}const headers=WWApiAdapter.parseCustomHeaders(c.customHeaders);await api('/api/config',{method:'POST',body:JSON.stringify({provider:c.provider,model:c.model,type:c.type,protocol:c.protocol,auth_mode:c.authMode,request_timeout_ms:c.timeout,context_window:c.contextLimit,base_url:c.baseUrl,api_key:c.key,clear_api_key:c.clearKey,extra:c.clearHeaders?{}:(Object.keys(headers).length?{headers}:undefined)})});apiKey.value='';clearAPIKey.checked=false;clearHeaders.checked=false;configMsg.textContent='已保存到后端'}catch(e){configMsg.textContent=e.message}}
 async function loadProjects(){const ps=await api('/api/projects');projectList.innerHTML=(ps||[]).map(p=>`<div class="list-item"><b>${safe(p.name)}</b><br><small>${safe(p.store_dir||'')}</small></div>`).join('')||'<p style="color:var(--muted)">暂无项目</p>';const p=ps[0];if(p){projectName.value=p.name||'';projectPremise.value=p.premise||'';totalChapters.value=p.total_chapters||0}}
 async function saveProject(){await api('/api/projects',{method:'POST',body:JSON.stringify({name:projectName.value,premise:projectPremise.value,total_chapters:Number(totalChapters.value||0)})});loadProjects()}
 async function deleteProject(){if(confirm('确认删除当前输出目录中的项目文件？')){await api('/api/projects',{method:'DELETE'});loadProjects()}}
@@ -217,18 +219,37 @@ async function deleteCategory(id){if(!confirm('删除分类 '+id+'？现有记�
 async function testRun(){if(runAbortController)runAbortController.abort();runAbortController=new AbortController();const body={backend_id:runBackend.value,skill_ids:runSkills.value.split(',').map(s=>s.trim()).filter(Boolean),task:runTask.value,context:{selection:testPrompt.value},params:{stream:runStream.checked,use_ai:runUseAI.checked}};testResult.textContent='执行中...\n';try{if(runStream.checked){const r=await fetch('/api/run',{method:'POST',headers:{'Content-Type':'application/json','Accept':'text/event-stream'},body:JSON.stringify(body),signal:runAbortController.signal});if(!r.ok)throw new Error('HTTP '+r.status);const reader=r.body.getReader();const dec=new TextDecoder();while(true){const {value,done}=await reader.read();if(done)break;appendRunStream(dec.decode(value,{stream:true}))}}else{const d=await api('/api/run',{method:'POST',body:JSON.stringify(body),signal:runAbortController.signal});testResult.textContent=d.output||JSON.stringify(d,null,2)}}catch(e){testResult.textContent+='\n'+(e.name==='AbortError'?'前端已中断':e.message)}finally{runAbortController=null}}
 function appendRunStream(chunk){chunk.split('\n').forEach(line=>{if(line.startsWith('data: ')){try{const d=JSON.parse(line.slice(6));if(d.text)testResult.textContent+=d.text;if(d.error)testResult.textContent+='\n错误：'+d.error}catch{}}})}
 async function abortRun(){try{if(runAbortController)runAbortController.abort();const d=await api('/api/abort',{method:'POST'});testResult.textContent+='\n已发送中断：'+JSON.stringify(d)}catch(e){testResult.textContent=e.message}}
-const isPages = location.hostname.endsWith('github.io');
-if(isPages){
-  apiStatus.textContent='Pages 在线版 · 浏览器 API';
-  configStorageHelp.textContent='Pages 模式：Provider、Model、Type、Base URL 和 API Key 保存在当前浏览器；模型测试直接请求目标接口，不会 POST /api/config。目标接口必须允许此 Pages 域名跨域访问。';
-  loadConfig();
-  showRuntimeNotice('<b>当前是 GitHub Pages 正式在线版。</b> “模型与 API 配置”可使用浏览器本地 BYOK；后端项目、Skill、自定义能力和 SSE 仍需要本地或自部署 Go 服务。');
-}else{
-  loadAll().then(()=>{apiStatus.textContent='后端已连接'}).catch(e=>{
+let isPages = location.hostname.endsWith('github.io')||new URLSearchParams(location.search).get('api_mode')==='browser';
+async function detectAdminRuntime(){
+  const forced=new URLSearchParams(location.search).get('api_mode');
+  if(forced==='browser')return true;
+  if(forced==='backend')return false;
+  if(location.hostname.endsWith('github.io'))return true;
+  try{
+    const response=await fetch('/api/health',{cache:'no-store'});
+    if(!response.ok)return true;
+    const data=await response.json().catch(()=>null);
+    return data?.status!=='ok';
+  }catch{return true}
+}
+async function bootAdmin(){
+  isPages=await detectAdminRuntime();
+  if(isPages){
+    apiStatus.textContent='静态在线版 · 浏览器 API';
+    configStorageHelp.textContent='静态托管模式：Provider、Model、Protocol、Base URL 和 API Key 保存在当前浏览器；模型测试直接请求目标接口，不会 POST /api/config。目标接口必须允许当前域名跨域访问。';
+    await loadConfig();
+    showRuntimeNotice('<b>当前页面未检测到同源 Go 后端。</b> “模型与 API 配置”可使用浏览器本地 BYOK；后端项目、Skill、自定义能力和 SSE 仍需要本地或自部署 Go 服务。');
+    return;
+  }
+  try{
+    await loadAll();
+    apiStatus.textContent='后端已连接';
+  }catch(e){
     apiStatus.textContent='后端未连接';
     showRuntimeNotice('<b>后端 API 不可用。</b> 请确认已启动可兼容 <code>/api/</code> 的后端服务，并通过服务地址打开本页面。错误：<code>'+String(e.message).replace(/[<>&]/g,s=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[s]))+'</code>');
-  });
+  }
 }
+bootAdmin();
 </script>
 </body>
 </html>
