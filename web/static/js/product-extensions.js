@@ -229,17 +229,22 @@
   }
 
   async function projectBundle(id) {
+    if (S.proj?.project?.id === id && typeof flushActiveDocument === 'function') {
+      const saved = await flushActiveDocument();
+      if (!saved) throw new Error('当前修改保存失败，已取消导出');
+    }
     const project = await dbGet('projects', id);
     if (!project) throw new Error('项目不存在');
-    const [outlines, characters, chapters, notes, memories] = await Promise.all([
+    const [outlines, characters, chapters, notes, memories, history] = await Promise.all([
       dbByIndex('outlines', 'project_id', id),
       dbByIndex('characters', 'project_id', id),
       dbByIndex('chapters', 'project_id', id),
       dbByIndex('notes', 'project_id', id),
-      dbByIndex('aiMemories', 'project_id', id)
+      dbByIndex('aiMemories', 'project_id', id),
+      dbByIndex('aiHistory', 'project_id', id)
     ]);
     return {
-      version: 4,
+      version: 5,
       exported_at: new Date().toISOString(),
       project,
       outlines,
@@ -247,9 +252,32 @@
       chapters,
       notes,
       memories,
+      history,
       categories: getCategories(),
       prompt_skills: window.wwPromptSkillsExport?.() || null
     };
+  }
+
+  function deleteProjectDataAtomic(id) {
+    const stores = ['projects', 'outlines', 'characters', 'chapters', 'notes', 'aiMemories', 'aiHistory'];
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(stores, 'readwrite');
+      tx.oncomplete = () => resolve();
+      tx.onabort = () => reject(tx.error || new Error('项目删除事务已中止'));
+      tx.onerror = () => reject(tx.error || new Error('项目删除失败'));
+      tx.objectStore('projects').delete(id);
+      for (const name of stores.slice(1)) {
+        const store = tx.objectStore(name);
+        const source = store.indexNames.contains('project_id') ? store.index('project_id') : store;
+        const request = source.openCursor(IDBKeyRange.only(id));
+        request.onsuccess = event => {
+          const cursor = event.target.result;
+          if (!cursor) return;
+          cursor.delete();
+          cursor.continue();
+        };
+      }
+    });
   }
 
   async function exportProjectById(id) {
@@ -280,14 +308,7 @@
       const source = bundle.project;
       const copy = { ...source, name: `${source.name || '未命名项目'} · 副本`, created_at: now, updated_at: now };
       delete copy.id;
-      const newId = await dbPut('projects', copy);
-      for (const store of ['outlines', 'characters', 'chapters', 'notes', 'aiMemories']) {
-        for (const entry of bundle[store === 'aiMemories' ? 'memories' : store] || []) {
-          const next = { ...entry, project_id: newId };
-          delete next.id;
-          await dbPut(store, next);
-        }
-      }
+      await importProjectBundleAtomic({ ...bundle, project: copy, history: [] });
       await loadProjects();
       window.renderProjectList();
       window.showToast('✓', '项目副本已创建');
@@ -312,28 +333,37 @@
 
   async function deleteProjectById(id) {
     const project = await dbGet('projects', id);
-    if (!project || !confirm(`删除项目“${project.name}”及其大纲、人物、章节、笔记和记忆？此操作不可撤销，建议先导出。`)) return;
-    for (const store of ['outlines', 'characters', 'chapters', 'notes', 'aiMemories']) {
-      const rows = await dbByIndex(store, 'project_id', id);
-      for (const row of rows) await dbDel(store, row.id);
+    if (!project || !confirm(`删除项目“${project.name}”及其大纲、人物、章节、笔记、记忆、AI 候选和恢复快照？此操作不可撤销，建议先导出。`)) return;
+    try {
+      const deletedActive = S.proj?.project?.id === id;
+      await deleteProjectDataAtomic(id);
+      if (deletedActive) {
+        S.proj = null;
+        S.active = null;
+        S.unsaved = false;
+        clearTimeout(editorTimer);
+      }
+      await loadProjects();
+      if (deletedActive && S.projects.length && !S.proj) await loadProject(S.projects[0].id);
+      else if (!S.projects.length) {
+        S.active = null;
+        document.getElementById('currentProjectName').textContent = '选择项目...';
+        if (typeof setEditorDocument === 'function') setEditorDocument('', '');
+        else {
+          document.getElementById('mainEditor').value = '';
+          document.getElementById('chapterTitle').value = '';
+          S.unsaved = false;
+        }
+        ['outlineList', 'chapterList', 'charList', 'noteList', 'mpOutlineList', 'mpChapterList', 'mpCharList', 'mpNoteList'].forEach(id => {
+          const node = document.getElementById(id);
+          if (node) node.replaceChildren();
+        });
+      }
+      window.renderProjectList();
+      window.showToast('✕', '项目已删除');
+    } catch (error) {
+      window.showToast('✕', `删除失败，数据未完整移除：${error.message || error}`);
     }
-    await dbDel('projects', id);
-    if (S.proj?.project?.id === id) S.proj = null;
-    await loadProjects();
-    if (S.projects.length) await loadProject(S.projects[0].id);
-    else {
-      S.active = null;
-      document.getElementById('currentProjectName').textContent = '选择项目...';
-      document.getElementById('mainEditor').value = '';
-      document.getElementById('chapterTitle').value = '';
-      ['outlineList', 'chapterList', 'charList', 'noteList', 'mpOutlineList', 'mpChapterList', 'mpCharList', 'mpNoteList'].forEach(id => {
-        const node = document.getElementById(id);
-        if (node) node.replaceChildren();
-      });
-      window.onEditorInput?.();
-    }
-    window.renderProjectList();
-    window.showToast('✕', '项目已删除');
   }
 
   function projectAction(label, handler, danger) {
@@ -378,7 +408,9 @@
     projects.forEach(project => {
       const item = document.createElement('div');
       item.className = 'project-list-item project-managed-item';
-      item.addEventListener('click', async () => { await loadProject(project.id); closeModal('projectModal'); });
+      item.addEventListener('click', async () => {
+        if (await loadProject(project.id)) closeModal('projectModal');
+      });
       const head = document.createElement('div');
       head.className = 'project-managed-head';
       const name = document.createElement('div');

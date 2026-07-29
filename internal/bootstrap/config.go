@@ -48,10 +48,13 @@ func CompactReserveTokens(window int) int {
 
 // ProviderConfig 定义单个 LLM 提供商的凭证。
 type ProviderConfig struct {
-	Type    string   `json:"type,omitempty"`     // API 协议类型（openai/anthropic/gemini），自定义代理时指定
-	APIKey  string   `json:"api_key,omitempty"`  // API Key
-	BaseURL string   `json:"base_url,omitempty"` // API Base URL
-	Models  []string `json:"models,omitempty"`   // 可选模型列表，供 TUI 切换时展示
+	Type             string   `json:"type,omitempty"`               // 引擎协议类型（openai/anthropic/gemini），自定义代理时指定
+	Protocol         string   `json:"protocol,omitempty"`           // Web 网络协议（openai-chat/openai-responses/anthropic/ollama）
+	AuthMode         string   `json:"auth_mode,omitempty"`          // Web 鉴权方式（auto/bearer/x-api-key/none）
+	RequestTimeoutMS int      `json:"request_timeout_ms,omitempty"` // Web 请求总超时；0 使用默认值
+	APIKey           string   `json:"api_key,omitempty"`            // API Key
+	BaseURL          string   `json:"base_url,omitempty"`           // API Base URL
+	Models           []string `json:"models,omitempty"`             // 可选模型列表，供 TUI 切换时展示
 	// ExtraBody 透传给该 provider 每次请求的额外参数（如 temperature/top_p/min_p/
 	// presence_penalty，或厂商特有键如 nvidia 开 think 的 chat_template_kwargs）。
 	// OpenAI 兼容端逐字并入请求体（即 extra_body 约定）；值由用户自负其责。

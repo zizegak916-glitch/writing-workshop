@@ -1,6 +1,6 @@
 # 开发指南
 
-> 状态：现行开发指南，更新于 2026-07-26（UTC+8）。
+> 状态：现行开发指南，更新于 2026-07-29（UTC+8）。
 
 ## 本地构建
 
@@ -39,8 +39,10 @@ npm run test:browser
 - `web/static/js/ai-mode-icons.js` 与 `web/static/icons/ai-mode-icons.svg` 是功能图标映射和符号源；Prompt Skill 管理器也复用这套映射。
 - `web/static/icons/app-icon.svg` 是全站图标源；所有公开 HTML 页面都应保留 favicon 引用。
 - `/admin` 使用 `web/static/admin.html`。
-- 自部署模式的前端 AI 调用必须走 `/api/ai`。Pages 浏览器 BYOK 是明确例外：仅在运行时判定为浏览器 API 模式且用户主动保存本地配置时直连目标端点；不得把 Key 写入源码、构建产物或测试日志。
+- 自部署模式的前端 AI 调用必须走 `/api/ai` 或 `/api/ai/stream`。Pages 浏览器 BYOK 是明确例外：仅在运行时判定为浏览器 API 模式且用户主动保存本地配置时直连目标端点；不得把 Key 写入源码、构建产物或测试日志。
 - 浏览器项目是 IndexedDB 中的本地工作副本。日常保存不得静默写入后端；项目操作台中的“从自部署后端导入”是当前唯一显式后端导入入口。
+- 切换项目/文档和导出前必须等待当前编辑事务完成。新增浏览器存储写操作不能以 `IDBRequest.onsuccess` 代替 `IDBTransaction.oncomplete`。
+- 项目导入、级联删除和其他跨 store 变更必须在单个 IndexedDB 事务中完成；项目级 AI 历史必须带 `project_id`，恢复备份时重映射文档 ID。
 - 规则包使用 `/api/rules`，项目级规则落盘到 `.ainovel/rules/web.rules.md`。
 - 新的通用能力入口使用 `/api/capabilities` 和 `/api/run`。前端传递 `backend_id`、`skill_ids`、上下文和参数；后端输出直接回传前端。
 - 技能包与分类分别使用 `/api/skill-packs`、`/api/categories`，实现在 `internal/web/catalog.go`。技能包只能引用已启用的非后端能力。
@@ -49,10 +51,11 @@ npm run test:browser
 ## 后端约定
 
 - Web API 实现在 `internal/web/server.go`。
+- 四协议原始 HTTP / SSE / NDJSON 适配实现在 `internal/web/provider_http.go`；地址、鉴权、超时、usage 和上游错误变更必须补本地模拟契约测试。
 - 通用能力 API 实现在 `internal/web/capabilities.go`，能力清单保存到 `.ainovel/capabilities.json`。
 - 产品目录 API 实现在 `internal/web/catalog.go`，分类和技能包分别保存到 `.ainovel/categories.json`、`.ainovel/skill-packs.json`。
 - 第三方 GitHub 项目和 skill manifest 只做登记、校验和选择；不要在 Web 层直接执行未沙箱化的远程代码。
-- `/api/run` 支持 JSON 响应和 SSE 响应。新增长任务时必须使用 request context，并注册取消函数，保证 `/api/abort` 可中断。
+- `/api/run` 支持 JSON 响应和 SSE 响应。AI 任务必须转发上游真实增量，不得先缓冲完整结果再按字符数切片伪装成流。新增长任务时必须使用 request context，并注册取消函数，保证 `/api/abort` 可中断。
 - 运行时配置由 `host.UpdateConfig` 持久化到本地配置文件。
 - 章节读写复用 `internal/store`，不要绕过 Store 写入核心小说数据。
 - 规则解析复用 `internal/rules`，不要在 Web 层重新实现规则合并逻辑。
@@ -66,5 +69,6 @@ npm run test:browser
 5. 启动 `serve --demo` 后检查 `/api/health`，再访问 `/app.html` 和 `/admin`。
 6. 在管理后台测试 `/api/capabilities`、`/api/run` 和 `/api/ai`，确认能力保存、执行和 provider/model/key 配置有效。
 7. 运行 `node scripts/check-static.mjs`：确认 32 个 Prompt Skill、图标映射、SVG symbol、入口资源、无孤立脚本/样式、函数唯一性、静态链接和证据 JSON 一致。
-8. 运行 `npm run test:browser`：确认桌面/移动端项目创建、笔记持久化、导入预览安全与上下文预算可用。
-9. 影响公开行为后更新 `CHANGELOG.md`、`CODE_REVIEW.md` 和 `docs/UPDATE_TIMELINE.md`；有新的 CI/Pages 证据时同步 `docs/RELEASE_EVIDENCE.json`。
+8. 运行 `npm run test:api-adapter`：确认四协议地址、鉴权、响应/流解析和完整响应生命周期超时。
+9. 运行 `npm run test:browser`：确认事务保存、人物保存、v1–v4→v5、历史坐标重映射、候选保护、级联删除、Pages 配置和移动端入口。
+10. 影响公开行为后更新 `CHANGELOG.md` 和真正受影响的用户/协议文档；`CODE_REVIEW.md` 只在阶段审计时补充，`docs/UPDATE_TIMELINE.md` 只记录可验证里程碑。有新的 CI/Pages/Release 证据时再同步 `docs/RELEASE_EVIDENCE.json`。

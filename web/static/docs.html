@@ -24,7 +24,7 @@
     </aside>
 
     <main class="docs-main">
-      <span class="eyebrow">Product guide · 2026-07-28</span>
+      <span class="eyebrow">Product guide · 2026-07-29</span>
       <h1>从打开页面，到完成一次安全写作。</h1>
       <p class="docs-lead">这份文档不假设你已经懂 API、Docker 或 Skill。先选择你的使用方式，再按一条完整路线跑通。</p>
 
@@ -116,10 +116,11 @@ go build -o writing-workshop ./cmd/writing-workshop
         <div class="doc-grid">
           <article class="doc-card"><h3>导入单篇内容</h3><p>在新建/导入入口选择 Markdown、TXT 或 DOCX。先检查解析后的标题与正文，再放入当前项目。</p></article>
           <article class="doc-card"><h3>导出当前正文</h3><p>编辑工具栏的“导出”用于保存正在编辑的章节，适合送审、分享或进入其他排版工具。</p></article>
-          <article class="doc-card"><h3>导出完整项目</h3><p>顶部下载按钮或项目操作台“导出”会打包项目、章节、大纲、人物、笔记、记忆、自定义分类和已修改的 Prompt Skill。长期创作建议每个重要阶段保存一份带日期的 v4 备份。</p></article>
+          <article class="doc-card"><h3>导出完整项目</h3><p>顶部下载按钮或项目操作台“导出”会先保存当前编辑，再打包项目、章节、大纲、人物、笔记、记忆、本项目候选/恢复快照、自定义分类和已修改的 Prompt Skill。长期创作建议每个重要阶段保存一份带日期的 v5 备份。</p></article>
           <article class="doc-card"><h3>增量资料</h3><p>新增资料应按文件 hash 只处理一次；脚本负责去重和分类，AI 只总结新文件，避免每次重读全库。</p></article>
         </div>
-        <p>如果浏览器提示下载被阻止，请允许当前站点下载文件。若导入失败，先确认文件未加密，并用 UTF-8 保存纯文本或 Markdown。一次最多导入 50 个文件；单文件最多 25 MiB、总计最多 100 MiB。v1-v3 项目包会先迁移到 v4 结构，缺少的新字段使用空值，旧记忆、分类和 Prompt Skill 别名会按已知规则保留；高于 v4 的未知版本会被拒绝，避免静默丢字段。项目备份恢复不会追加 AI 分析结果；普通文本只有在预览页显式开启分析时才会补结构。</p>
+        <p>如果浏览器提示下载被阻止，请允许当前站点下载文件。若导入失败，先确认文件未加密，并用 UTF-8 保存纯文本或 Markdown。一次最多导入 50 个文件；单文件最多 25 MiB、总计最多 100 MiB。v1–v4 项目包会先迁移到 v5 结构，缺少的新字段使用空值，旧记忆、分类和 Prompt Skill 别名会按已知规则保留；高于 v5 的未知版本会被拒绝。v5 导入在一个事务中写入全部项目记录，并重映射历史候选指向的文档 ID；失败时不会留下半个项目。项目备份恢复不会追加 AI 分析结果；普通文本只有在预览页显式开启分析时才会补结构。</p>
+        <div class="doc-callout"><b>浏览器存储不是云盘：</b>工作台会申请持久化存储，并在“我的”页显示占用、配额和是否获批；浏览器仍可能拒绝或在清理站点数据时删除全部内容，所以重要阶段必须导出备份。</div>
       </section>
 
       <section id="api">
@@ -133,7 +134,7 @@ go build -o writing-workshop ./cmd/writing-workshop
           <li>有 Key 的接口保持“自动”鉴权；无密钥的 Ollama 或局域网服务选“无鉴权”。中转要求额外请求头时填写 JSON，并按网络情况调整超时。</li>
           <li>先点“测试”，成功后保存。配置只跟随当前浏览器的当前域名，不会上传到 GitHub。</li>
         </ol>
-        <div class="doc-callout info"><b>405 已处理：</b>Pages 保存与测试不会再 POST 静态 <code>/api/config</code>；只有自部署模式才使用该端点。</div>
+        <div class="doc-callout info"><b>405 已处理：</b>Pages 保存与测试不会再 POST 静态 <code>/api/config</code>；只有检测到同源 <code>/api/health</code> 的自部署模式才使用后端配置端点。自定义静态域名也会自动进入浏览器 API 模式。</div>
         <table>
           <thead><tr><th>接口类型</th><th>只填域名时使用的路径</th><th>流式格式</th></tr></thead>
           <tbody>
@@ -150,12 +151,16 @@ go build -o writing-workshop ./cmd/writing-workshop
           <tbody>
             <tr><td>Provider</td><td><code>openai</code></td><td>当前提供商名称，可自行命名</td></tr>
             <tr><td>Type</td><td><code>openai</code></td><td>兼容类型：openai / anthropic / gemini</td></tr>
+            <tr><td>Protocol</td><td><code>openai-chat</code></td><td>自动、Chat Completions、Responses、Anthropic Messages 或 Ollama Chat</td></tr>
+            <tr><td>Auth</td><td><code>bearer</code></td><td>自动、Bearer、x-api-key 或无鉴权</td></tr>
             <tr><td>Model</td><td><code>gpt-4.1-mini</code></td><td>必须是你的服务实际支持的模型 ID</td></tr>
-            <tr><td>Base URL</td><td><code>https://api.openai.com/v1</code></td><td>API 根地址，不要填 ChatGPT 网页地址</td></tr>
-            <tr><td>API Key</td><td><code>••••••</code></td><td>留空可保持原值或改用环境变量</td></tr>
+            <tr><td>Base URL</td><td><code>https://api.openai.com/v1</code></td><td>可填域名、API 根路径或完整端点，不要填 ChatGPT 网页地址</td></tr>
+            <tr><td>API Key</td><td><code>••••••</code></td><td>留空保持原值；只有勾选清除才删除，也可改用环境变量</td></tr>
+            <tr><td>Timeout</td><td><code>120</code> 秒</td><td>覆盖连接和完整响应体/流，范围 5–600 秒</td></tr>
+            <tr><td>Context limit</td><td><code>131072</code></td><td>未知模型可手动填写；留空时界面显示上限未知</td></tr>
           </tbody>
         </table>
-        <p>保存后切到“API 测试”，先执行“模型直连测试”；成功后再用“执行能力”验证 Skill 组合、流式回传和中断。</p>
+        <p>保存后切到“API 测试”，先执行“模型直连测试”；成功后再用“执行能力”验证 Skill 组合、上游真实流式回传和中断。自部署后台现在和 Pages 使用相同的四协议、鉴权、地址补全、自定义请求头与超时语义。</p>
         <p>需要“对比”中的多个 Provider 时，先在自部署后端分别保存这些 Provider 的 Key / Base URL。槽位只选择 Provider 与 Model，不在浏览器保存每个槽位的密钥；未配置的 Provider 会明确返回错误。</p>
         <h3>使用环境变量（更适合长期部署）</h3>
         <pre><code>export OPENAI_API_KEY="your-key"
@@ -180,7 +185,7 @@ go build -o writing-workshop ./cmd/writing-workshop
           <li>在“组合能力”底部找到“内置 Prompt Skill”，点击“查看与修改”。</li>
           <li>按分类或关键词找到功能。左侧“内置”表示使用仓库默认版本，“已修改”表示当前浏览器有覆盖值。</li>
           <li>在右侧改写提示词并保存。下一次点击该功能生成时立即使用新版本，不需要刷新。</li>
-          <li>需要撤销时点击“恢复默认”。“导出/导入”可单独备份；完整项目 v4 备份也会携带覆盖值，导入项目时以合并方式恢复。</li>
+          <li>需要撤销时点击“恢复默认”。“导出/导入”可单独备份；完整项目 v5 备份也会携带覆盖值，导入项目时以合并方式恢复。</li>
         </ol>
         <div class="doc-callout info"><b>存储边界：</b>自定义 Prompt Skill 保存在当前域名的 <code>localStorage</code>，不会上传到 GitHub，也不会自动同步到另一台设备、另一个浏览器或另一个域名。清除站点数据前先导出项目或提示词备份。</div>
         <p>实际请求按以下顺序组装：内置/自定义 Prompt Skill → 当前选区或正文 → 输出长度与创意要求 → 项目信息和写作记忆 → 额外指令。普通模式、多模型模式、移动端与六个快捷工具都使用同一份浏览器配置。</p>
@@ -224,15 +229,15 @@ go build -o writing-workshop ./cmd/writing-workshop
           <thead><tr><th>现象</th><th>原因</th><th>处理</th></tr></thead>
           <tbody>
             <tr><td>Pages 显示“当前未连接后端”</td><td>公开域名正常；只是默认 Pages 部署没有同时运行 Go API</td><td>本地项目和浏览器 BYOK 可继续使用；Skill 等服务端能力需启动兼容后端</td></tr>
-            <tr><td>Pages 保存 API 返回 405</td><td>仍在使用修复前的缓存脚本</td><td>强制刷新或清除该站点缓存；v0.2.4 保存配置不会请求 <code>/api/config</code></td></tr>
+            <tr><td>Pages 保存 API 返回 405</td><td>仍在使用修复前的缓存脚本</td><td>强制刷新或清除该站点缓存；v0.2.5 保存配置不会请求 <code>/api/config</code></td></tr>
             <tr><td>模型测试 401</td><td>Key 无效或未加载</td><td>检查环境变量/后台配置并重启服务</td></tr>
             <tr><td>模型测试 404</td><td>Base URL、接口协议或 Model 不匹配</td><td>先确认协议，再检查自动补全后的接口类型和模型 ID；完整端点也可直接填写</td></tr>
             <tr><td>返回成功但没有文字</td><td>接口响应结构与所选协议不一致</td><td>在“高级网络适配”切换 Chat Completions、Responses、Anthropic 或 Ollama</td></tr>
             <tr><td>本地 Ollama 无法从 Pages 访问</td><td>未开放 CORS，或 HTTPS 页面访问 HTTP 接口被混合内容策略拦截</td><td>改用本地工作台，或给 Ollama 配置允许来源的 HTTPS 反向代理；鉴权选择“无鉴权”</td></tr>
             <tr><td>浏览器报 CORS</td><td>目标接口没有允许当前 Pages 域名或必要请求头</td><td>换用明确支持浏览器跨域的接口，或改用同源 Go 后端；前端不能代替目标服务放开 CORS</td></tr>
-            <tr><td>项目消失</td><td>浏览器站点数据被清除</td><td>导入最近的项目备份；以后定期导出</td></tr>
-            <tr><td>Prompt Skill 修改丢失</td><td>换了域名、浏览器或清除了当前 origin 的 localStorage</td><td>从 Prompt Skill 备份导入，或导入带覆盖值的项目 v4 备份</td></tr>
-            <tr><td>在浏览器编辑后端文件没变化</td><td>浏览器和 Go 后端是两套存储，不做静默双向同步</td><td>这是数据边界；使用项目操作台显式导入，导出 v4 包迁移浏览器内容</td></tr>
+            <tr><td>项目消失</td><td>浏览器站点数据被清除</td><td>在“我的”页检查存储状态，导入最近的 v5 项目备份；以后定期导出</td></tr>
+            <tr><td>Prompt Skill 修改丢失</td><td>换了域名、浏览器或清除了当前 origin 的 localStorage</td><td>从 Prompt Skill 备份导入，或导入带覆盖值的项目 v5 备份</td></tr>
+            <tr><td>在浏览器编辑后端文件没变化</td><td>浏览器和 Go 后端是两套存储，不做静默双向同步</td><td>这是数据边界；使用项目操作台显式导入，导出 v5 包迁移浏览器内容</td></tr>
             <tr><td>上下文预算一直很小</td><td>普通助手只取当前选区或正文末尾 1000 字，并叠加所选 Prompt Skill、项目和记忆</td><td>这是本次请求估算，不是整个项目总字数；需要更多材料时使用“流程”显式选择上下文</td></tr>
             <tr><td>旧候选不能替换</td><td>生成期间正文已变化</td><td>这是坐标保护；复制候选并手动确认位置</td></tr>
             <tr><td>历史候选显示“只读”</td><td>当前打开的不是生成候选时的项目/文档，或记录来自未保存目标坐标的旧版本</td><td>返回产生候选的原文档再打开历史；不能定位的旧记录只能复制或整理为记忆</td></tr>

@@ -128,6 +128,7 @@ func (s *Server) routes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/resume", s.handleResume)
 	mux.HandleFunc("POST /api/abort", s.handleAbort)
 	mux.HandleFunc("POST /api/ai", s.handleAI)
+	mux.HandleFunc("POST /api/ai/stream", s.handleAIStream)
 	mux.HandleFunc("GET /api/models", s.handleModels)
 	mux.HandleFunc("POST /api/models/switch", s.handleSwitchModel)
 	mux.HandleFunc("POST /api/style/check", s.handleStyleCheck)
@@ -181,6 +182,10 @@ func (s *Server) handleConfig(w http.ResponseWriter, r *http.Request) {
 		cfg := s.host.Config()
 		var req configUpdate
 		if err := readJSON(r, &req); err != nil {
+			httpError(w, err, http.StatusBadRequest)
+			return
+		}
+		if err := validateConfigUpdate(req); err != nil {
 			httpError(w, err, http.StatusBadRequest)
 			return
 		}
@@ -524,40 +529,23 @@ func (s *Server) handleAbort(w http.ResponseWriter, _ *http.Request) {
 }
 
 func (s *Server) handleAI(w http.ResponseWriter, r *http.Request) {
-	var req struct {
-		Provider string      `json:"provider"`
-		Model    string      `json:"model"`
-		Messages []aiMessage `json:"messages"`
-		Message  string      `json:"message"`
-		Mode     string      `json:"mode"`
-	}
-	if err := readJSON(r, &req); err != nil {
-		httpError(w, err, http.StatusBadRequest)
-		return
-	}
-	messages := convertAIMessages(req.Messages)
-	if len(messages) == 0 && strings.TrimSpace(req.Message) != "" {
-		messages = []agentcore.Message{{
-			Role:    agentcore.RoleUser,
-			Content: []agentcore.ContentBlock{agentcore.TextBlock(strings.TrimSpace(req.Message))},
-		}}
-	}
-	if len(messages) == 0 {
-		httpError(w, fmt.Errorf("messages or message is required"), http.StatusBadRequest)
-		return
-	}
-	model, providerKey, modelName, err := s.aiModel(req.Provider, req.Model)
+	req, messages, err := decodeAIRequest(r)
 	if err != nil {
 		httpError(w, err, http.StatusBadRequest)
 		return
 	}
-	resp, err := model.Generate(r.Context(), messages, nil)
+	resolved, err := s.resolveAIProvider(req.Provider, req.Model)
+	if err != nil {
+		httpError(w, err, http.StatusBadRequest)
+		return
+	}
+	ctx, cancel := s.aiRequestContext(r.Context(), resolved.Key)
+	defer cancel()
+	text, usage, providerKey, modelName, err := s.generateAI(ctx, resolved.Key, resolved.Model, messages)
 	if err != nil {
 		respond(w, nil, err)
 		return
 	}
-	text := resp.Message.TextContent()
-	usage := resp.Message.Usage
 	writeJSON(w, map[string]any{
 		"id":       "writing-workshop",
 		"object":   "chat.completion",
@@ -569,7 +557,7 @@ func (s *Server) handleAI(w http.ResponseWriter, r *http.Request) {
 				"role":    "assistant",
 				"content": text,
 			},
-			"finish_reason": resp.Message.StopReason,
+			"finish_reason": "stop",
 		}},
 		"content": []map[string]any{{
 			"type": "text",
@@ -583,6 +571,133 @@ func (s *Server) handleAI(w http.ResponseWriter, r *http.Request) {
 			"total_tokens":      usageTotal(usage),
 		},
 	})
+}
+
+func decodeAIRequest(r *http.Request) (aiRequest, []agentcore.Message, error) {
+	var req aiRequest
+	if err := readJSON(r, &req); err != nil {
+		return req, nil, err
+	}
+	messages := convertAIMessages(req.Messages)
+	if len(messages) == 0 && strings.TrimSpace(req.Message) != "" {
+		messages = []agentcore.Message{{
+			Role:    agentcore.RoleUser,
+			Content: []agentcore.ContentBlock{agentcore.TextBlock(strings.TrimSpace(req.Message))},
+		}}
+	}
+	if len(messages) == 0 {
+		return req, nil, fmt.Errorf("messages or message is required")
+	}
+	return req, messages, nil
+}
+
+func (s *Server) aiRequestContext(parent context.Context, provider string) (context.Context, context.CancelFunc) {
+	timeout := 60 * time.Second
+	if pc, ok := s.host.Config().Providers[provider]; ok && pc.RequestTimeoutMS > 0 {
+		timeout = time.Duration(pc.RequestTimeoutMS) * time.Millisecond
+	}
+	return context.WithTimeout(parent, timeout)
+}
+
+func (s *Server) generateAIStream(ctx context.Context, provider, modelName string, messages []agentcore.Message, onDelta func(string)) (string, *agentcore.Usage, error) {
+	resolved, err := s.resolveAIProvider(provider, modelName)
+	if err != nil {
+		return "", nil, err
+	}
+	if useRawProvider(resolved) {
+		return rawProviderRequest(ctx, resolved, messages, true, onDelta)
+	}
+	model, _, _, err := s.aiModel(resolved.Key, resolved.Model)
+	if err != nil {
+		return "", nil, err
+	}
+	stream, err := model.GenerateStream(ctx, messages, nil)
+	if err != nil {
+		resp, fallbackErr := model.Generate(ctx, messages, nil)
+		if fallbackErr != nil {
+			return "", nil, errors.Join(err, fallbackErr)
+		}
+		text := resp.Message.TextContent()
+		if text != "" {
+			onDelta(text)
+		}
+		return text, resp.Message.Usage, nil
+	}
+	var text strings.Builder
+	var usage *agentcore.Usage
+	streamed := false
+	for event := range stream {
+		switch event.Type {
+		case agentcore.StreamEventTextDelta:
+			if event.Delta == "" {
+				continue
+			}
+			streamed = true
+			text.WriteString(event.Delta)
+			onDelta(event.Delta)
+		case agentcore.StreamEventDone:
+			usage = event.Message.Usage
+			if !streamed {
+				if final := event.Message.TextContent(); final != "" {
+					text.WriteString(final)
+					onDelta(final)
+				}
+			}
+		case agentcore.StreamEventError:
+			if event.Err != nil {
+				return text.String(), usage, event.Err
+			}
+			return text.String(), usage, errors.New("model stream failed")
+		}
+	}
+	if strings.TrimSpace(text.String()) == "" {
+		return "", usage, errors.New("model stream ended without text")
+	}
+	return text.String(), usage, nil
+}
+
+func (s *Server) handleAIStream(w http.ResponseWriter, r *http.Request) {
+	req, messages, err := decodeAIRequest(r)
+	if err != nil {
+		httpError(w, err, http.StatusBadRequest)
+		return
+	}
+	resolved, err := s.resolveAIProvider(req.Provider, req.Model)
+	if err != nil {
+		httpError(w, err, http.StatusBadRequest)
+		return
+	}
+	providerKey, modelName := resolved.Key, resolved.Model
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		httpError(w, errors.New("streaming is not supported"), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "text/event-stream; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
+	writeSSE(w, "start", map[string]any{"provider": providerKey, "model": modelName})
+	flusher.Flush()
+	ctx, cancel := s.aiRequestContext(r.Context(), providerKey)
+	defer cancel()
+	text, usage, err := s.generateAIStream(ctx, providerKey, modelName, messages, func(delta string) {
+		writeSSE(w, "delta", map[string]any{"text": delta})
+		flusher.Flush()
+	})
+	if err != nil {
+		writeSSE(w, "error", map[string]any{"error": err.Error()})
+		flusher.Flush()
+		return
+	}
+	writeSSE(w, "done", map[string]any{
+		"text": text,
+		"usage": map[string]int{
+			"prompt_tokens":     usageInput(usage),
+			"completion_tokens": usageOutput(usage),
+			"total_tokens":      usageTotal(usage),
+		},
+	})
+	flusher.Flush()
 }
 
 func (s *Server) handleModels(w http.ResponseWriter, _ *http.Request) {
@@ -767,15 +882,20 @@ type projectPayload struct {
 }
 
 type configUpdate struct {
-	Config    *bootstrap.Config `json:"config"`
-	Provider  string            `json:"provider"`
-	Model     string            `json:"model"`
-	APIKey    string            `json:"api_key"`
-	BaseURL   string            `json:"base_url"`
-	Type      string            `json:"type"`
-	Models    []string          `json:"models"`
-	Extra     map[string]any    `json:"extra"`
-	ExtraBody map[string]any    `json:"extra_body"`
+	Config         *bootstrap.Config `json:"config"`
+	Provider       string            `json:"provider"`
+	Model          string            `json:"model"`
+	APIKey         string            `json:"api_key"`
+	ClearAPIKey    bool              `json:"clear_api_key"`
+	BaseURL        string            `json:"base_url"`
+	Type           string            `json:"type"`
+	Protocol       string            `json:"protocol"`
+	AuthMode       string            `json:"auth_mode"`
+	RequestTimeout int               `json:"request_timeout_ms"`
+	ContextWindow  *int              `json:"context_window"`
+	Models         []string          `json:"models"`
+	Extra          map[string]any    `json:"extra"`
+	ExtraBody      map[string]any    `json:"extra_body"`
 }
 
 type rulesUpdate struct {
@@ -790,9 +910,54 @@ type rulesUpdate struct {
 	Preset           string           `json:"preset"`
 }
 
+func validateConfigUpdate(req configUpdate) error {
+	if protocol := strings.ToLower(strings.TrimSpace(req.Protocol)); protocol != "" {
+		switch protocol {
+		case "auto", "openai-chat", "openai-responses", "anthropic", "ollama":
+		default:
+			return fmt.Errorf("unsupported protocol %q", req.Protocol)
+		}
+	}
+	if authMode := strings.ToLower(strings.TrimSpace(req.AuthMode)); authMode != "" {
+		switch authMode {
+		case "auto", "bearer", "x-api-key", "none":
+		default:
+			return fmt.Errorf("unsupported auth_mode %q", req.AuthMode)
+		}
+	}
+	if baseURL := strings.TrimSpace(req.BaseURL); baseURL != "" {
+		u, err := url.Parse(baseURL)
+		if err != nil || u.Host == "" || (u.Scheme != "http" && u.Scheme != "https") {
+			return fmt.Errorf("base_url must be an http(s) URL")
+		}
+	}
+	if req.Extra != nil {
+		if rawHeaders, ok := req.Extra["headers"]; ok {
+			headers, ok := rawHeaders.(map[string]any)
+			if !ok {
+				return fmt.Errorf("extra.headers must be an object")
+			}
+			for name := range headers {
+				if isForbiddenCustomHeader(name) {
+					return fmt.Errorf("custom header %q is not allowed", name)
+				}
+			}
+		}
+	}
+	return nil
+}
+
 type aiMessage struct {
 	Role    string `json:"role"`
 	Content any    `json:"content"`
+}
+
+type aiRequest struct {
+	Provider string      `json:"provider"`
+	Model    string      `json:"model"`
+	Messages []aiMessage `json:"messages"`
+	Message  string      `json:"message"`
+	Mode     string      `json:"mode"`
 }
 
 func applyConfigUpdate(cfg *bootstrap.Config, req configUpdate) {
@@ -804,6 +969,9 @@ func applyConfigUpdate(cfg *bootstrap.Config, req configUpdate) {
 	if model != "" {
 		cfg.ModelName = model
 	}
+	if req.ContextWindow != nil {
+		cfg.ContextWindow = max(0, *req.ContextWindow)
+	}
 	if cfg.Providers == nil {
 		cfg.Providers = make(map[string]bootstrap.ProviderConfig)
 	}
@@ -811,7 +979,9 @@ func applyConfigUpdate(cfg *bootstrap.Config, req configUpdate) {
 		provider = cfg.Provider
 	}
 	pc := cfg.Providers[provider]
-	if req.APIKey != "" {
+	if req.ClearAPIKey {
+		pc.APIKey = ""
+	} else if req.APIKey != "" {
 		pc.APIKey = req.APIKey
 	}
 	if req.BaseURL != "" {
@@ -819,6 +989,15 @@ func applyConfigUpdate(cfg *bootstrap.Config, req configUpdate) {
 	}
 	if req.Type != "" {
 		pc.Type = req.Type
+	}
+	if req.Protocol != "" {
+		pc.Protocol = req.Protocol
+	}
+	if req.AuthMode != "" {
+		pc.AuthMode = req.AuthMode
+	}
+	if req.RequestTimeout > 0 {
+		pc.RequestTimeoutMS = min(max(req.RequestTimeout, 5000), 600000)
 	}
 	if len(req.Models) > 0 {
 		pc.Models = append([]string(nil), req.Models...)

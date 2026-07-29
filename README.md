@@ -3,7 +3,7 @@
 [![CI](https://github.com/zizegak916-glitch/writing-workshop/actions/workflows/ci.yml/badge.svg)](https://github.com/zizegak916-glitch/writing-workshop/actions/workflows/ci.yml)
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-black.svg)](LICENSE)
 
-> 用户文档最后同步：2026-07-28（UTC+8）。完整演进记录见 [更新时间线](docs/UPDATE_TIMELINE.md)；自审记录不能替代第三方使用反馈。
+> 用户文档最后同步：2026-07-29（UTC+8）。完整演进记录见 [更新时间线](docs/UPDATE_TIMELINE.md)；自审记录不能替代第三方使用反馈。
 
 一个本地优先、可审计的长篇写作工作台。它把“选哪些上下文、运行哪些 Skill、结果写到哪里”变成显式操作：AI 只生成候选，作者确认后才写入正文或记忆。
 
@@ -23,12 +23,12 @@
 
 - 管理项目、章节、大纲、人物卡、项目笔记、规则和写作记忆。
 - 为一次任务显式选择正文、项目、大纲、人物与记忆；桌面请求栏始终显示当前 token 估算、模型上限和上次实际用量，未配置 API 时也可先估算。
-- 组合后端与 Skill 执行任务；支持 SSE 流式结果和中断。
+- 组合后端与 Skill 执行任务；AI 任务使用上游真实 SSE / NDJSON 增量流并支持中断，不再把完整响应切片伪装成流式。
 - 逐项多选 Skill，或一键应用“长篇规划校准 / 章节修订 / 角色与对白”技能包；自定义技能包会持久化保存。
 - 32 个 AI 功能都有可直接使用的内置 Prompt Skill；点击功能卡或快捷工具后，请求会隐形使用对应提示词，作者可在“流程 → Prompt Skill 管理”查看、改写或恢复默认。
 - 搜索、筛选、重命名、复制、分类、导出和删除浏览器本地项目；自定义分类可修改名称、范围和颜色，也可用于写作记忆。
 - 候选结果与正文分离；替换、插入、追加、写入记忆均需独立确认。
-- 保存写入前快照和流程历史，避免 AI 输出静默覆盖创作内容。
+- 按项目保存候选、写入前快照和流程历史，避免 AI 输出静默覆盖创作内容。
 - 在能力后台查看经过来源、许可证与权限初筛的 Agent Skills / MCP 公开目录；登记只生成停用元数据，不下载、不安装、不执行第三方代码。
 - 在无 API Key 模式下运行本地链路测试和大纲拆分；需要模型时再配置 OpenAI 兼容服务、OpenRouter、Ollama 等后端。
 
@@ -108,7 +108,7 @@ flowchart LR
 
 Writing Workshop 明确区分两类 Skill：
 
-- **浏览器 Prompt Skill**：对应润色、续写、对白、校对、标题、实时灵感等 32 个 AI 功能。选择功能后，其提示词在请求组装时自动加入，普通创作界面不显示全文；“流程 → Prompt Skill 管理”可搜索、查看、编辑、恢复、单独导入导出。自定义值写入当前域名的 `localStorage`，项目 v4 备份也会携带这些覆盖值并在导入时合并恢复。
+- **浏览器 Prompt Skill**：对应润色、续写、对白、校对、标题、实时灵感等 32 个 AI 功能。选择功能后，其提示词在请求组装时自动加入，普通创作界面不显示全文；“流程 → Prompt Skill 管理”可搜索、查看、编辑、恢复、单独导入导出。自定义值写入当前域名的 `localStorage`，项目 v5 备份也会携带这些覆盖值并在导入时合并恢复。
 - **后端能力 Skill**：由 manifest 声明步骤、权限和入口，可多选并通过 `/api/run` 执行；这类能力仍遵循下面的协议和服务端安全边界。
 
 修改浏览器 Prompt Skill 不会改变内置源文件，也不会把提示词显示在正文或结果中。额外指令仍会附加在所选 Skill 之后，因此一次请求的实际顺序是“功能 Prompt Skill → 当前文本 → 输出长度/创意要求 → 项目上下文 → 作者额外指令”。
@@ -145,11 +145,13 @@ Writing Workshop 明确区分两类 Skill：
 
 ## 数据与安全边界
 
-- Pages 和工作台中的项目、章节、大纲、人物、笔记与记忆以当前域名的 IndexedDB / `localStorage` 为浏览器数据源；清除站点数据前应导出 v4 项目包。
+- Pages 和工作台中的项目、章节、大纲、人物、笔记、记忆、候选与恢复快照以当前域名的 IndexedDB / `localStorage` 为浏览器数据源；清除站点数据前应导出 v5 项目包。
+- 切换项目或文档、导出和页面隐藏前会先提交当前编辑；保存、导入和级联删除以 IndexedDB 事务完成。项目 v5 包会携带本项目的 AI 历史，并在恢复时重映射文档 ID，避免候选指向旧坐标。
+- 工作台会申请浏览器持久化存储，并在“我的”页显示已用空间、配额和持久化状态；浏览器仍可能按自身策略拒绝，项目备份仍是必要的数据保险。
 - Go 后端工作目录与浏览器数据库是两套明确存储。浏览器不会把每次编辑静默镜像到单个后端项目；需要后端资料时，由作者在项目操作台显式执行“从自部署后端导入”。
 - Pages 可选浏览器 BYOK：Key、Base URL 与网络适配选项只写入当前 origin 的 `localStorage`，不会进入仓库或 Pages 构建产物；请求直达目标服务，因此目标服务必须允许 CORS。不要在公共设备使用此模式。
-- 浏览器直连支持 OpenAI Chat Completions、OpenAI Responses、Anthropic Messages 与 Ollama `/api/chat`；可选择鉴权方式、请求超时和自定义请求头。域名、API 根路径和完整端点都可填写。
-- 本地或自部署版默认使用同源 `/api/`，由 Go 后端保管密钥并请求模型，适合长期使用。
+- 浏览器直连支持 OpenAI Chat Completions、OpenAI Responses、Anthropic Messages 与 Ollama `/api/chat`；可选择鉴权方式、整个响应生命周期的请求超时和自定义请求头。域名、API 根路径和完整端点都可填写。
+- 本地或自部署版默认使用同源 `/api/`，由 Go 后端保管密钥并请求模型；同一组协议、鉴权、地址补全、自定义头、超时和真流式能力也适用于后端托管模式。
 - 默认监听回环地址；如使用 `0.0.0.0`，请只在可信网络或反向代理鉴权后开放。
 - API Key 可使用环境变量，不必写入仓库；配置读取时会对外隐藏密钥。
 - 多模型槽位仍只保留 Provider / Model；多 Provider 对比需要在自部署后端分别配置相应服务，Pages 的单个浏览器 Key 不会被静默复制到其他 Provider。
@@ -172,11 +174,12 @@ docs/               协议、来源与设计说明
 ## 路线图
 
 - `v0.1`：无密钥启动、显式上下文包、候选确认、Skill manifest、CI 与跨平台发布。
-- `v0.2`：项目导入/导出包 v4 已覆盖项目、章节、大纲、人物、笔记、记忆、自定义分类与浏览器 Prompt Skill 覆盖值；Playwright 产品烟雾测试已进入 CI。
+- `v0.2`：项目导入/导出包 v5 已覆盖项目、章节、大纲、人物、笔记、记忆、AI 候选/恢复快照、自定义分类与浏览器 Prompt Skill 覆盖值；Playwright 产品烟雾测试已进入 CI。
 - `v0.2.1`：稳定性维护版；补旧项目包迁移、候选历史恢复、跨文档写入保护、OpenAI/Anthropic 本地模拟契约和 Go 格式门禁。
 - `v0.2.2`：公开能力目录来源校正版；采用现行 `openai/plugins`，把旧 `openai/skills` 明确标成弃用迁移参考。
 - `v0.2.3`：恢复 Pages 浏览器 BYOK 自定义 API；保存与测试不再误请求静态 `/api/config`，并补双模式回归测试。
 - `v0.2.4`：加入独立 API 网络适配层，支持四类协议、地址补全、无密钥服务、真实浏览器流式解析和可诊断的上游错误。
+- `v0.2.5`：修复编辑切换丢失、人物编辑假保存、项目历史串库、非原子导入/删除、多模型失败候选误写；把协议适配和真实流扩展到自部署 Go 后端。
 - `v0.3`：最小权限的本地 Skill 沙箱与增量资料摄取。
 
 公开任务请使用 [GitHub Issues](https://github.com/zizegak916-glitch/writing-workshop/issues)。提交代码前阅读 [CONTRIBUTING.md](CONTRIBUTING.md)。
@@ -184,8 +187,8 @@ docs/               协议、来源与设计说明
 ## 当前验证边界
 
 - 仓库有 65 个 Go `_test.go` 文件，覆盖后端多个包；这不等于“核心业务 100% 单元测试覆盖”，仓库目前没有发布覆盖率数字。
-- Playwright 验证项目/笔记持久化、v1-v3 → v4 迁移、候选生成/确认写入/刷新恢复/写入前恢复、跨文档保护、导入预览安全、上下文预算和移动端入口；它仍不是像素级 UI 回归测试。
-- OpenAI 与 Anthropic 适配在 CI 中使用本地模拟服务校验请求/响应契约，不消耗真实密钥，也不能替代各供应商生产网络的兼容性测试。
+- Playwright 验证立即切换时的标题/正文事务保存、人物编辑、v1–v4 → v5 迁移和历史坐标重映射、候选恢复/跨文档保护、失败槽位阻止写入、级联删除、Pages 配置清除语义、上下文预算和移动端入口；它仍不是像素级 UI 回归测试。
+- OpenAI Chat Completions、Responses、Anthropic Messages 与 Ollama 适配在 CI 中使用本地模拟服务校验普通响应、请求体、鉴权、用量和真实流式契约，不消耗真实密钥，也不能替代各供应商生产网络的兼容性测试。
 - 第三方用户数、连续一周使用和数据完整性仍缺独立证据。愿意测试者可提交 [7 天真实写作反馈](https://github.com/zizegak916-glitch/writing-workshop/issues/new?template=field-test.yml)，不需要提供私稿。
 
 [Releases](https://github.com/zizegak916-glitch/writing-workshop/releases) 提供版本化二进制与校验和；从源码或 Docker 使用仍然受支持。

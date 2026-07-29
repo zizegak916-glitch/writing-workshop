@@ -1,6 +1,6 @@
 # Writing Workshop 文档地图
 
-更新：2026-07-26（UTC+8）
+更新：2026-07-29（UTC+8）
 
 本目录同时保留“现行产品文档”和“继承引擎历史文档”。状态以本表为准；文件名或文档中的旧项目名不能单独证明它仍是当前执行层。
 
@@ -32,5 +32,5 @@
 - GitHub Pages 是当前正式公开在线版，与 OpenAI Sites 无从属关系。它以静态文件托管，浏览器本地能力与 BYOK 自定义 API 可正式使用；默认部署本身没有常驻 Go API。工作台在 Pages 显示技能目录不等于技能已执行。
 - 浏览器项目（含章节、大纲、人物、笔记、记忆）和后端项目是两套明确存储；仅在用户点击导入时建立浏览器副本，不做静默双向同步。
 - 浏览器项目分类和后端能力分类也是两套明确存储：前者属于当前站点 IndexedDB/localStorage，后者属于工作目录 `.ainovel/categories.json`。
-- 浏览器 Prompt Skill 是第三套明确边界：默认定义在 `web/static/js/prompt-skills.js`，用户覆盖值在当前域名 `localStorage` 的 `ww_prompt_skills_v1`，项目包 v4 携带合法覆盖值。
+- 浏览器 Prompt Skill 是第三套明确边界：默认定义在 `web/static/js/prompt-skills.js`，用户覆盖值在当前域名 `localStorage` 的 `ww_prompt_skills_v1`，项目包 v5 携带合法覆盖值。
 - 历史文档继续保留，用状态标签避免把旧引擎设计误认成当前产品执行层。
