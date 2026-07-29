@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1350" viewBox="0 0 1080 1350" role="img" aria-labelledby="title desc">
+  <title id="title">Writing Workshop GitHub Pages 使用指南</title>
+  <desc id="desc">说明 Pages 在线版如何创建项目、配置 BYOK 自定义 API 与处理 CORS。</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#121a31"/><stop offset="1" stop-color="#26304f"/></linearGradient>
+    <filter id="shadow"><feDropShadow dx="0" dy="16" stdDeviation="20" flood-color="#000" flood-opacity=".25"/></filter>
+    <style>
+      .sans{font-family:Inter,"Noto Sans SC","Microsoft YaHei",sans-serif}
+      .eyebrow{font-size:24px;font-weight:800;letter-spacing:4px;fill:#87e7d8}
+      .h1{font-size:65px;font-weight:900;fill:#fff}
+      .h2{font-size:32px;font-weight:850;fill:#fff}
+      .body{font-size:26px;font-weight:520;fill:#dce4ff}
+      .dark{font-size:26px;font-weight:600;fill:#202840}
+      .small{font-size:21px;font-weight:650;fill:#9faacc}
+      .num{font-size:31px;font-weight:900;fill:#11182b}
+    </style>
+  </defs>
+  <rect width="1080" height="1350" rx="52" fill="url(#bg)"/>
+  <circle cx="958" cy="126" r="205" fill="#6557d9" opacity=".78"/>
+  <circle cx="92" cy="1280" r="230" fill="#ff8c66" opacity=".25"/>
+  <g class="sans" transform="translate(76 78)">
+    <text class="eyebrow" x="0" y="0">02 / 不部署后端，先在 PAGES 用</text>
+    <text class="h1" x="0" y="92">静态站也能配置 API</text>
+    <text class="body" x="2" y="146">Pages 是正式 HTTPS 在线站。项目数据与配置保存在当前浏览器，</text>
+    <text class="body" x="2" y="184">模型请求从浏览器直达你填写的接口。</text>
+
+    <g transform="translate(0 236)">
+      <rect width="928" height="572" rx="38" fill="#fff" filter="url(#shadow)"/>
+      <circle cx="60" cy="66" r="28" fill="#ffd66b"/><text class="num" x="60" y="77" text-anchor="middle">1</text>
+      <text class="dark" x="108" y="75">打开在线工作台，点顶部「＋」新建或导入项目</text>
+      <line x1="60" y1="110" x2="60" y2="493" stroke="#d9dded" stroke-width="4"/>
+      <circle cx="60" cy="180" r="28" fill="#dcd6ff"/><text class="num" x="60" y="191" text-anchor="middle">2</text>
+      <text class="dark" x="108" y="189">进入「设置 → API」或「能力后台 → 模型与 API 配置」</text>
+      <circle cx="60" cy="294" r="28" fill="#9eebdf"/><text class="num" x="60" y="305" text-anchor="middle">3</text>
+      <text class="dark" x="108" y="303">填写 Provider、Model、Base URL；需要时再填 Key</text>
+      <circle cx="60" cy="408" r="28" fill="#ffc0ae"/><text class="num" x="60" y="419" text-anchor="middle">4</text>
+      <text class="dark" x="108" y="417">高级适配可选 Chat / Responses / Anthropic / Ollama</text>
+      <circle cx="60" cy="522" r="28" fill="#a8d8ff"/><text class="num" x="60" y="533" text-anchor="middle">5</text>
+      <text class="dark" x="108" y="531">先「测试连接」，成功后再回工作台生成候选</text>
+    </g>
+
+    <rect x="0" y="850" width="928" height="126" rx="30" fill="#87e7d8"/>
+    <text x="34" y="900" font-size="29" font-weight="900" fill="#11182b">405 已修复</text>
+    <text class="dark" x="34" y="944">v0.2.5 不会再向静态 /api/config POST；自定义静态域名也会探测运行模式。</text>
+
+    <rect x="0" y="1008" width="448" height="180" rx="30" fill="#fff" opacity=".98"/>
+    <text x="30" y="1058" font-size="28" font-weight="850" fill="#11182b">仍然要过 CORS</text>
+    <text class="dark" x="30" y="1101">目标 API 必须允许 Pages 域名、</text>
+    <text class="dark" x="30" y="1138">方法和实际请求头。前端无法</text>
+    <text class="dark" x="30" y="1175">替第三方服务器放开跨域。</text>
+
+    <rect x="480" y="1008" width="448" height="180" rx="30" fill="#ffd66b"/>
+    <text x="510" y="1058" font-size="28" font-weight="850" fill="#11182b">数据只在这个浏览器</text>
+    <text class="dark" x="510" y="1101">清站点数据前导出 v5 项目包。</text>
+    <text class="dark" x="510" y="1138">不要在公共设备保存 Key，</text>
+    <text class="dark" x="510" y="1175">Key 不会进入仓库或构建产物。</text>
+
+    <text class="small" x="0" y="1250">zizegak916-glitch.github.io/writing-workshop/app.html</text>
+  </g>
+</svg>

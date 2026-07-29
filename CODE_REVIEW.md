@@ -22,7 +22,7 @@ GitHub Pages 正式在线版与后端增强模式有明确运行时边界。Page
 | 高 | 多模型、降 AI 和递归创作可在生成后切换文档再应用，部分写入没有快照 | 所有 AI 写入绑定生成时项目/文档；替换类操作校验正文未变化，写入前统一保存恢复快照 | `web/static/js/workbench.js`、`web/static/js/workflows.js` |
 | 高 | 导入标题、差异文本和模型返回的递归规划内容存在 HTML 拼接路径 | 导入预览和模型文本统一转义或使用 `textContent`，并增加恶意标题浏览器回归用例 | `web/static/js/workbench.js`、`tests/browser-smoke.mjs` |
 | 中 | 项目备份 JSON 导入后会无条件执行结构“自动分析”，即使用户只想原样恢复也可能新增内容；文件导入没有浏览器侧体积上限 | v1-v4 备份恢复不再自动改写内容；文本/DOCX 只在预览中显式勾选时分析，并限制文件数、单文件/总大小和 DOCX 解压体积 | `web/static/js/workbench.js` |
-| 中 | 项目笔记入口是占位，导出、复制、删除和上下文都无法覆盖笔记 | IndexedDB 升至 v4，补齐桌面/移动笔记 CRUD、显式上下文开关、统计和 v4 项目包全链路 | `web/static/js/workbench.js`、`web/static/js/workflows.js` |
+| 中 | 项目笔记入口是占位，导出、复制、删除和上下文都无法覆盖笔记 | IndexedDB 先升至 v4 补齐桌面/移动笔记 CRUD；当前 v5 又加入项目级 AI 候选与恢复快照、事务导入和级联删除 | `web/static/js/workbench.js`、`web/static/js/workflows.js` |
 | 中 | 后端 JSON 读取没有统一体积上限，也可能接受尾随的第二个 JSON 值 | 统一限制 8 MiB 并拒绝多个 JSON 值，增加单元测试 | `internal/web/server.go`、`internal/web/json_test.go` |
 | 中 | Docker 默认端口绑定会直接暴露到所有网卡 | compose 默认改为 `127.0.0.1:8080:8080`；公开访问必须显式配置反向代理、TLS 与鉴权 | `docker-compose.yml`、`SECURITY.md` |
 | 质量 | 核心浏览器交互此前只能靠人工点验 | 增加 Playwright 桌面/移动产品烟雾测试并接入 CI；当前受限容器无法创建 Chromium 单例 socket，因此本地不伪造通过，最终以 GitHub CI 记录为准 | `tests/browser-smoke.mjs`、`.github/workflows/ci.yml` |
@@ -33,7 +33,7 @@ GitHub Pages 正式在线版与后端增强模式有明确运行时边界。Page
 | 中 | 项目列表只能“点击打开”，没有维护操作台 | 增加搜索、分类筛选、重命名、复制、分类、导出和精确级联删除 | `web/static/js/product-extensions.js` |
 | 中 | UI 已允许多个 Skill，但缺少组合预设和分类筛选 | 增加选中数量、分类过滤、清空和三个内置技能包；隐藏分类中的选择不会丢失 | `web/static/js/workflows.js` |
 | 中 | 技能包和自定义分类没有后端事实层 | 新增 `.ainovel/skill-packs.json`、`.ainovel/categories.json` 与 CRUD；校验只读项、重复 ID 和未知 Skill | `internal/web/catalog.go`、`internal/web/server_test.go` |
-| 中 | 项目 JSON 导出未包含记忆与浏览器 Prompt Skill 覆盖值 | 先升级为版本 3，现已继续升级为 v4 并加入笔记和分类；旧版本继续兼容 | `web/static/js/workbench.js`、`web/static/js/product-extensions.js`、`web/static/js/prompt-skills.js` |
+| 中 | 项目 JSON 导出未包含记忆与浏览器 Prompt Skill 覆盖值 | 先升级为版本 3/4 补齐记忆、笔记和分类；当前 v5 加入项目级 AI 候选与恢复快照，v1–v4 继续迁移兼容 | `web/static/js/workbench.js`、`web/static/js/product-extensions.js`、`web/static/js/prompt-skills.js` |
 | 中 | 桌面“上下文用量”和生成按钮排在全部 30 个能力卡之后，常见屏幕首次打开看不到；功能目录与请求操作共用一个滚动层 | 将补充指令、上下文预算和生成按钮移入 AI 面板固定请求栏；能力目录单独滚动；切换标签时同步显示状态，并为低高度桌面压缩而不隐藏关键信息 | `web/static/app.html`、`web/static/css/product-extensions.css`、`web/static/js/workflows.js` |
 | 中 | `updateContextBar()` 在没有 API 配置时提前返回，Pages 正式在线版显示“-”，把本地可完成的估算错误绑定到模型连接 | 上下文估算改为始终可用，显示 token / 上限 / 百分比；桌面与手机共用状态，服务端返回 usage 后再显示实际输入输出 | `web/static/js/workbench.js`、`web/static/js/workflows.js` |
 | 低 | URL 导入按钮只显示“即将推出” | 从当前入口删除；本轮继续移除未被运行时读取的旧 `parts/body.html` 副本 | `web/static/app.html`、`web/static/static.go` |
@@ -48,9 +48,9 @@ GitHub Pages 正式在线版与后端增强模式有明确运行时边界。Page
 
 - 浏览器项目、章节、大纲、人物、笔记和记忆保存在当前站点 IndexedDB。
 - 浏览器自定义项目/记忆分类保存在 localStorage；项目记录保存 `category_ids`。
-- 浏览器 Prompt Skill 覆盖值保存在当前 origin 的 localStorage 键 `ww_prompt_skills_v1`；项目 v4 备份携带合法覆盖值，不改写仓库默认提示词。
+- 浏览器 Prompt Skill 覆盖值保存在当前 origin 的 localStorage 键 `ww_prompt_skills_v1`；项目 v5 备份携带合法覆盖值，不改写仓库默认提示词。
 - 后端能力、技能包和分类分别保存在当前工作目录的 `.ainovel/capabilities.json`、`.ainovel/skill-packs.json`、`.ainovel/categories.json`。
-- 删除一个浏览器项目会先明确确认，再按该项目 ID 删除大纲、人物、章节、笔记和记忆。删除分类不会删除项目，也不会静默重写后端历史记录。
+- 删除一个浏览器项目会先明确确认，再在一个 IndexedDB 事务中按该项目 ID 删除大纲、人物、章节、笔记、记忆、AI 候选与恢复快照；事务失败不会留下半删项目。删除分类不会删除项目，也不会静默重写后端历史记录。
 - 浏览器日常保存不写入 Go 后端；“从自部署后端导入”会建立新的浏览器副本，不宣称双向同步。
 - GitHub URL 和 capability manifest 仍只登记元数据，不执行远程仓库代码。
 
@@ -126,4 +126,4 @@ git diff --check
 - 响应式 CSS 已覆盖三栏桌面、窄笔记本和手机，但 CI 仍缺少 1366×768、1024×768 与 390×844 的截图差异基线；结构测试不能替代像素级布局验收。
 - 当前第三方 capability 只登记 manifest；公开 Agent Skills / MCP 目录也只创建停用的 `external:*` 元数据，服务端明确拒绝启用和执行。远程代码型 Skill 沙箱尚未实现，不能宣称“粘贴链接即可运行”。
 - 浏览器项目与后端项目有意分开存储；当前只有后端→浏览器显式导入，尚无经过冲突检测的反向迁移。
-- 2026-07-22 17:04:25 UTC 的 GitHub API 指标快照已经过期。申请前必须刷新，并只使用真实的 Release 下载、独立用户、外部贡献或下游集成证据。
+- 证据账本当前保存的是 2026-07-28 16:13:35 UTC 的 GitHub API 时间点指标。申请前仍必须刷新，并只使用真实的 Release 下载、独立用户、外部贡献或下游集成证据。

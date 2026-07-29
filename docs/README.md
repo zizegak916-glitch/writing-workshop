@@ -13,9 +13,10 @@
 | [`../CONTRIBUTING.md`](../CONTRIBUTING.md) | 现行产品 | 贡献流程与变更约束 |
 | [`../SECURITY.md`](../SECURITY.md) | 现行产品 | 漏洞报告、部署和用户输入安全 |
 | [`../CODE_REVIEW.md`](../CODE_REVIEW.md) | 现行审计记录 | 最近一次全仓检查范围、发现与实测结果 |
-| [`../CHANGELOG.md`](../CHANGELOG.md) | 现行变更记录 | 已加入但尚未发布的产品变化 |
+| [`../CHANGELOG.md`](../CHANGELOG.md) | 现行变更记录 | 已发布版本与尚未发布的产品变化 |
 | [`UPDATE_TIMELINE.md`](UPDATE_TIMELINE.md) | 现行事实账本 | 产品事件、提交、CI、Pages 与公开实测时间线 |
 | [`RELEASE_EVIDENCE.json`](RELEASE_EVIDENCE.json) | 机器可读证据 | 已验证提交、Actions、校验和和时间点指标 |
+| [`LINUX_DO_POST_V025.md`](LINUX_DO_POST_V025.md) | 社区发布包 | LINUX DO 规则核对、发帖顺序、图片正文与真实链接 |
 | [`CAPABILITY_PROTOCOL.md`](CAPABILITY_PROTOCOL.md) | 现行协议 | Skill manifest、多 Skill 与技能包 |
 | [`UI_DESIGN_SYSTEM.md`](UI_DESIGN_SYSTEM.md) | 现行设计 | 彩色编辑部、图标、响应式与状态语义 |
 | [`CODEX_FOR_OSS_APPLICATION.md`](CODEX_FOR_OSS_APPLICATION.md) | 申请工作稿 | 只记录可验证证据和仍缺失的证据 |
