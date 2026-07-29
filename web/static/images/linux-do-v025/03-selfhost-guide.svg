@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1350" viewBox="0 0 1080 1350" role="img" aria-labelledby="title desc">
+  <title id="title">Writing Workshop 自部署指南</title>
+  <desc id="desc">使用 Docker 部署 Writing Workshop 以及自部署模式与 Pages 的差别。</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f9f3e7"/><stop offset=".5" stop-color="#fff"/><stop offset="1" stop-color="#e9f7f3"/></linearGradient>
+    <filter id="shadow"><feDropShadow dx="0" dy="18" stdDeviation="22" flood-color="#242943" flood-opacity=".16"/></filter>
+    <style>
+      .sans{font-family:Inter,"Noto Sans SC","Microsoft YaHei",sans-serif}
+      .eyebrow{font-size:24px;font-weight:800;letter-spacing:4px;fill:#de654c}
+      .h1{font-size:66px;font-weight:900;fill:#141c34}
+      .h2{font-size:32px;font-weight:850;fill:#141c34}
+      .body{font-size:26px;font-weight:540;fill:#414a60}
+      .code{font-family:"Nimbus Mono PS",Consolas,monospace;font-size:22px;font-weight:600;fill:#eaf0ff}
+      .small{font-size:21px;font-weight:650;fill:#6a7284}
+    </style>
+  </defs>
+  <rect width="1080" height="1350" rx="52" fill="url(#bg)"/>
+  <circle cx="970" cy="100" r="180" fill="#ff8c66" opacity=".45"/>
+  <circle cx="72" cy="1270" r="210" fill="#6557d9" opacity=".2"/>
+  <g class="sans" transform="translate(76 78)">
+    <text class="eyebrow" x="0" y="0">03 / 要密钥托管和后端 SKILL</text>
+    <text class="h1" x="0" y="94">再部署 Go 后端</text>
+    <text class="body" x="2" y="150">Pages 适合先用；自部署把模型密钥、同源 API、Skill 执行和</text>
+    <text class="body" x="2" y="190">后端资料放到自己控制的机器上。</text>
+
+    <rect x="0" y="242" width="928" height="264" rx="34" fill="#141c34" filter="url(#shadow)"/>
+    <text x="34" y="294" font-size="22" font-weight="800" fill="#87e7d8">DOCKER</text>
+    <text class="code" x="34" y="344">git clone https://github.com/zizegak916-glitch/</text>
+    <text class="code" x="34" y="380">writing-workshop.git</text>
+    <text class="code" x="34" y="424">cd writing-workshop</text>
+    <text class="code" x="34" y="468">docker compose up --build</text>
+
+    <text class="h2" x="0" y="576">启动后检查三个入口</text>
+    <g transform="translate(0 610)">
+      <rect width="928" height="202" rx="32" fill="#fff" filter="url(#shadow)"/>
+      <text class="body" x="34" y="58">工作台　　http://127.0.0.1:8080/app.html</text>
+      <text class="body" x="34" y="112">能力后台　http://127.0.0.1:8080/admin.html</text>
+      <text class="body" x="34" y="166">健康检查　http://127.0.0.1:8080/api/health</text>
+    </g>
+
+    <text class="h2" x="0" y="888">自部署多出的是真实后端边界</text>
+    <g transform="translate(0 924)">
+      <rect width="288" height="176" rx="28" fill="#dcd6ff"/>
+      <rect x="320" width="288" height="176" rx="28" fill="#9eebdf"/>
+      <rect x="640" width="288" height="176" rx="28" fill="#ffd66b"/>
+      <text class="h2" x="28" y="58">密钥托管</text><text class="body" x="28" y="103">浏览器不直拿 Key</text><text class="body" x="28" y="142">同源 /api/ 转发</text>
+      <text class="h2" x="348" y="58">后端能力</text><text class="body" x="348" y="103">多 Skill、技能包</text><text class="body" x="348" y="142">配置和运行记录</text>
+      <text class="h2" x="668" y="58">真实流式</text><text class="body" x="668" y="103">四协议、SSE</text><text class="body" x="668" y="142">中断与错误诊断</text>
+    </g>
+
+    <rect x="0" y="1140" width="928" height="106" rx="27" fill="#fff0ec" stroke="#ffb5a4" stroke-width="2"/>
+    <text class="body" x="30" y="1183">默认只绑定 127.0.0.1。公开到 VPS 前请加 HTTPS、鉴权、访问限制，</text>
+    <text class="body" x="30" y="1222">不要把 8080 端口和 API Key 直接暴露到公网。</text>
+    <text class="small" x="0" y="1258">完整教程：zizegak916-glitch.github.io/writing-workshop/docs.html</text>
+  </g>
+</svg>

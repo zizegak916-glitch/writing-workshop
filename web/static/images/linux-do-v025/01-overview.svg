@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1350" viewBox="0 0 1080 1350" role="img" aria-labelledby="title desc">
+  <title id="title">Writing Workshop v0.2.5 项目概览</title>
+  <desc id="desc">Writing Workshop 的定位、核心闭环与主要能力。</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fff8e8"/>
+      <stop offset=".58" stop-color="#f6f2ff"/>
+      <stop offset="1" stop-color="#e8f5ff"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="18" stdDeviation="24" flood-color="#17203a" flood-opacity=".16"/>
+    </filter>
+    <style>
+      .sans{font-family:Inter,"Noto Sans SC","Microsoft YaHei",sans-serif}
+      .eyebrow{font-size:24px;font-weight:800;letter-spacing:4px;fill:#6557d9}
+      .h1{font-size:68px;font-weight:900;fill:#11182b}
+      .h2{font-size:34px;font-weight:800;fill:#11182b}
+      .body{font-size:27px;font-weight:520;fill:#3e465c}
+      .small{font-size:21px;font-weight:650;fill:#667087}
+      .flow{font-size:25px;font-weight:850;fill:#11182b}
+    </style>
+  </defs>
+  <rect width="1080" height="1350" rx="52" fill="url(#bg)"/>
+  <circle cx="950" cy="120" r="190" fill="#ffd66b" opacity=".72"/>
+  <circle cx="90" cy="1240" r="250" fill="#7ce2cf" opacity=".44"/>
+  <g class="sans" transform="translate(76 78)">
+    <text class="eyebrow" x="0" y="0">01 / 这次到底做成了什么</text>
+    <text class="h1" x="0" y="94">Writing Workshop</text>
+    <text class="h2" x="2" y="148">v0.2.5 · 本地优先的长篇写作工作台</text>
+    <rect x="0" y="202" width="928" height="188" rx="34" fill="#141c34" filter="url(#shadow)"/>
+    <text x="38" y="262" font-size="29" font-weight="780" fill="#fff">不是“输入一句话，直接覆盖正文”的页面。</text>
+    <text x="38" y="314" font-size="26" font-weight="520" fill="#dbe3ff">项目资料、显式上下文、Prompt Skill、模型候选</text>
+    <text x="38" y="354" font-size="26" font-weight="520" fill="#dbe3ff">和确认写入被放进同一个可回退的闭环。</text>
+
+    <text class="h2" x="0" y="468">核心闭环</text>
+    <g transform="translate(0 500)">
+      <rect x="0" y="0" width="212" height="118" rx="26" fill="#fff" stroke="#c9c4ef" stroke-width="3"/>
+      <rect x="238" y="0" width="212" height="118" rx="26" fill="#dcd6ff"/>
+      <rect x="476" y="0" width="212" height="118" rx="26" fill="#fff" stroke="#c9c4ef" stroke-width="3"/>
+      <rect x="714" y="0" width="212" height="118" rx="26" fill="#ffd66b"/>
+      <text class="flow" x="106" y="51" text-anchor="middle">选择资料</text><text class="small" x="106" y="85" text-anchor="middle">正文 / 人物 / 记忆</text>
+      <text class="flow" x="344" y="51" text-anchor="middle">执行能力</text><text class="small" x="344" y="85" text-anchor="middle">单功能 / 多 Skill</text>
+      <text class="flow" x="582" y="51" text-anchor="middle">检查候选</text><text class="small" x="582" y="85" text-anchor="middle">不中途覆盖正文</text>
+      <text class="flow" x="820" y="51" text-anchor="middle">确认写入</text><text class="small" x="820" y="85" text-anchor="middle">替换 / 插入 / 追加</text>
+    </g>
+
+    <text class="h2" x="0" y="706">目前能管什么</text>
+    <g transform="translate(0 744)">
+      <rect x="0" y="0" width="446" height="142" rx="30" fill="#fff" filter="url(#shadow)"/>
+      <rect x="482" y="0" width="446" height="142" rx="30" fill="#fff" filter="url(#shadow)"/>
+      <rect x="0" y="170" width="446" height="142" rx="30" fill="#fff" filter="url(#shadow)"/>
+      <rect x="482" y="170" width="446" height="142" rx="30" fill="#fff" filter="url(#shadow)"/>
+      <circle cx="54" cy="52" r="20" fill="#6557d9"/><text class="h2" x="91" y="62">一个项目</text>
+      <text class="body" x="36" y="106">章节、大纲、人物、笔记、记忆</text>
+      <circle cx="536" cy="52" r="20" fill="#ff8c66"/><text class="h2" x="573" y="62">32 个提示词</text>
+      <text class="body" x="518" y="106">可查看、修改、恢复和迁移</text>
+      <circle cx="54" cy="222" r="20" fill="#38b9a5"/><text class="h2" x="91" y="232">项目包 v5</text>
+      <text class="body" x="36" y="276">含候选、快照、分类与覆盖值</text>
+      <circle cx="536" cy="222" r="20" fill="#efb42d"/><text class="h2" x="573" y="232">安全应用</text>
+      <text class="body" x="518" y="276">跨文档阻止、写前快照、恢复</text>
+    </g>
+
+    <rect x="0" y="1104" width="928" height="112" rx="28" fill="#fff" stroke="#d8ddea" stroke-width="2"/>
+    <text class="body" x="32" y="1150">当前目标很窄：先把“写完一章不丢数据”这条链路做稳，</text>
+    <text class="body" x="32" y="1190">再谈更多生态。没有把功能数量当成第三方认可。</text>
+    <text class="small" x="0" y="1262">github.com/zizegak916-glitch/writing-workshop</text>
+  </g>
+</svg>

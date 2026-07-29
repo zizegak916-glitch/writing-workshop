@@ -72,7 +72,7 @@ go build -o writing-workshop ./cmd/writing-workshop
           <li>左侧切到“章节”，点击“添加章节”，输入标题。</li>
           <li>切到“人物”，录入姓名、定位、描述与角色弧线；临时考据、场景材料和会议记录可放到“笔记”。</li>
           <li>在中间编辑区写作。自动保存开启时，数据写入浏览器 IndexedDB；点击顶部保存可以立即保存。</li>
-          <li>第一次重要编辑后，点击顶部下载图标导出项目备份。项目包版本 4 包含项目、章节、大纲、人物、笔记、记忆、自定义分类与 Prompt Skill。</li>
+          <li>第一次重要编辑后，点击顶部下载图标导出项目备份。项目包版本 5 包含项目、章节、大纲、人物、笔记、记忆、当前项目的 AI 候选与恢复快照、自定义分类及 Prompt Skill 覆盖值。</li>
         </ol>
         <div class="doc-callout info"><b>本地优先：</b>Pages 正式在线版与后端增强模式都可以使用浏览器数据库。清除浏览器站点数据会删除这部分内容，因此长期项目务必定期导出。</div>
       </section>
@@ -209,7 +209,7 @@ go build -o writing-workshop ./cmd/writing-workshop
         <p>当前实现会登记、校验和组合能力清单，但<b>不会因为你粘贴 GitHub URL 就执行仓库代码</b>。第三方代码需要明确的沙箱执行器与最小权限机制；这是安全边界，不是缺少一个按钮。</p>
         <h3>从公开 Agent Skills / MCP 目录登记来源</h3>
         <ol>
-          <li>必须通过 Docker 或本地 Go 后端打开 <code>admin.html</code>；Pages 默认没有该服务端 API。</li>
+          <li>Pages 上的 <code>admin.html</code> 可以配置并测试浏览器 BYOK 自定义 API；本节的“登记元数据”、服务端 Skill、技能包与后台分类操作需要 Docker 或本地 Go 后端，因为 Pages 默认没有这些服务端接口。</li>
           <li>切到“公开能力目录”，先看维护者、许可证、核验日期、所需权限和风险。现行 OpenAI 示例入口是 <code>openai/plugins</code>；旧 <code>openai/skills</code> 已按上游状态标为弃用参考。</li>
           <li>“查看上游”只打开原仓库；“复制示例”只复制文本，不会执行命令。</li>
           <li>点击“登记元数据”后，到“能力来源”可以看到一条停用的 <code>external:*</code> 记录。</li>
@@ -254,6 +254,7 @@ go build -o writing-workshop ./cmd/writing-workshop
         <table>
           <thead><tr><th>日期</th><th>已验证事件</th><th>公开证据</th></tr></thead>
           <tbody>
+            <tr><td>2026-07-29</td><td>v0.2.5：项目包 v5、事务保存与删除、项目级候选恢复、四协议后端适配和真实流式链路</td><td><a href="https://github.com/zizegak916-glitch/writing-workshop/releases/tag/v0.2.5">Release</a> · <a href="https://github.com/zizegak916-glitch/writing-workshop/actions/runs/30447761904">CI</a> · <a href="https://github.com/zizegak916-glitch/writing-workshop/actions/runs/30447761763">Pages</a></td></tr>
             <tr><td>2026-07-26</td><td>唯一工作台入口、项目笔记、v4 备份、分类修改、安全 AI 写入与浏览器产品测试完成发布验收</td><td><a href="https://github.com/zizegak916-glitch/writing-workshop/commit/10d3a2a7549c80e2dc64cd7000bb3d1563c15606">commit</a> · <a href="https://github.com/zizegak916-glitch/writing-workshop/actions/runs/30191114231">CI</a> · <a href="https://github.com/zizegak916-glitch/writing-workshop/actions/runs/30191114238">Pages</a></td></tr>
             <tr><td>2026-07-23</td><td>桌面固定请求栏、API 无关上下文估算与桌面/手机预算同步</td><td><a href="https://github.com/zizegak916-glitch/writing-workshop/commit/00c988300b54b3cbe8ef226202ba760587e836a3">commit</a> · <a href="https://github.com/zizegak916-glitch/writing-workshop/actions/runs/29945400780">CI</a> · <a href="https://github.com/zizegak916-glitch/writing-workshop/actions/runs/29945400654">Pages</a></td></tr>
             <tr><td>2026-07-23</td><td>全量文档与证据账本同步；查 AI、安全渲染、快捷图标与静态契约优化</td><td><a href="https://github.com/zizegak916-glitch/writing-workshop/commit/aceeb9571f5b3a0eec835efbc05a8192e322276e">commit</a> · <a href="https://github.com/zizegak916-glitch/writing-workshop/actions/runs/29941672602">CI</a> · <a href="https://github.com/zizegak916-glitch/writing-workshop/actions/runs/29941672654">Pages</a></td></tr>

@@ -30,7 +30,7 @@ API credits would fund open-source maintenance rather than hidden product usage:
 | Evidence | Public location |
 |---|---|
 | Push/PR test pipeline | `.github/workflows/ci.yml` |
-| Latest verified release / CI / Pages deployment | [v0.2.4](https://github.com/zizegak916-glitch/writing-workshop/releases/tag/v0.2.4), [CI 30418506571](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/30418506571), [Pages 30418506586](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/30418506586) |
+| Latest verified release / CI / Pages deployment | [v0.2.5](https://github.com/zizegak916-glitch/writing-workshop/releases/tag/v0.2.5), [Release 30447412739](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/30447412739), [CI 30447761904](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/30447761904), [Pages 30447761763](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/30447761763) |
 | Go tests, vet, build, JS checks, browser product tests and service smoke test | GitHub Actions CI |
 | Keyless runnable mode | `writing-workshop serve --demo` |
 | Docker health check | `/api/health` |
@@ -49,7 +49,7 @@ API credits would fund open-source maintenance rather than hidden product usage:
 
 ## Evidence still required before a strong application
 
-Point-in-time repository metrics captured from the GitHub API at `2026-07-22T17:04:25Z`: **1 star, 0 forks, 0 open issues and 0 subscribers**. This is a truthful snapshot, not evidence of broad adoption, and it must be refreshed immediately before submission.
+Point-in-time repository metrics captured from the GitHub API at `2026-07-28T16:13:35Z`: **1 star, 0 forks, 0 open issues and 0 subscribers**. This is a truthful snapshot, not evidence of broad adoption, and it must be refreshed immediately before submission.
 
 - Keep producing checksummed releases and record real downloads; the existence of a release alone is not adoption evidence.
 - Obtain real external usage evidence; the current repository does not yet have meaningful star, download or dependent-project numbers.
