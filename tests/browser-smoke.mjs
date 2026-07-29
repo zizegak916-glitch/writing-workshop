@@ -403,7 +403,7 @@ try {
   await mobilePage.waitForFunction(() => document.getElementById('currentProjectName')?.textContent === '浏览器验收项目');
   await mobilePage.locator('#bottomNav .btab', { hasText: '笔记' }).click();
   await mobilePage.waitForFunction(() => document.getElementById('mp-notes')?.classList.contains('on'));
-  await mobilePage.waitForFunction(() => document.querySelector('#mpNoteList .oi-text')?.textContent === '设定核对');
+  await mobilePage.waitForFunction(() => document.querySelector('#mpNoteList .oi-text')?.textContent === '未手动保存的设定核对');
   assert.deepEqual(mobileErrors, [], `mobile browser errors:\n${mobileErrors.join('\n')}`);
 
   const doomedProjectId = await page.evaluate(async () => {
