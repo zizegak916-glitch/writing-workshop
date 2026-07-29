@@ -1,7 +1,7 @@
 {
   "schema": "writing-workshop/release-evidence",
   "version": 1,
-  "updated_at": "2026-07-29T11:25:57Z",
+  "updated_at": "2026-07-29T14:35:26Z",
   "timezone_for_timeline": "UTC+8",
   "repository": "https://github.com/zizegak916-glitch/writing-workshop",
   "public_pages": "https://zizegak916-glitch.github.io/writing-workshop/",
@@ -15,6 +15,32 @@
     "subscribers": 0,
     "source": "GitHub repository API"
   },
+  "documentation_syncs": [
+    {
+      "commit": "90218395e1362fd9b95b609241d99e6493d4fc64",
+      "pull_request": 11,
+      "summary": "v0.2.5 guide and evidence synchronization, corrected Pages/server boundary, upstream community attribution and a LINUX DO publication kit with four screenshot-ready cards",
+      "pre_merge_ci_run": 30461240418,
+      "main_ci_run": 30461448959,
+      "pages_run": 30461453376,
+      "pre_merge_ci_conclusion": "success",
+      "main_ci_conclusion": "success",
+      "pages_conclusion": "success",
+      "live_checks": [
+        "The public product guide and all four community-post SVG cards returned HTTP 200",
+        "The live product guide and four SVG cards matched the merged source SHA-256 values",
+        "The publication kit links the user's original LINUX DO topic and the upstream maintainer's LINUX DO topic",
+        "The publication kit does not ask for stars and keeps AI-written project introduction text inside image assets"
+      ],
+      "sha256": {
+        "web/static/docs.html": "df979c88ff968f91acd088559f426e26a323d2c55cd4f9d436adb0d65b2a8a20",
+        "web/static/images/linux-do-v025/01-overview.svg": "523af28b9fef1a1dc38005c84ed5dbaaab7b33fccfbb19295a3522d6dce228fc",
+        "web/static/images/linux-do-v025/02-pages-guide.svg": "e45dbdc587c9ebaa6e28be785e1eeb91c5e2ba4d088107a5b1d765abbb2c9c95",
+        "web/static/images/linux-do-v025/03-selfhost-guide.svg": "c3b3b920bc5ed96396d3f9417c83ef3ea77c588c2da7a0bbae53db5ca28933d4",
+        "web/static/images/linux-do-v025/04-boundaries.svg": "58b5e8d43be279949dde134ca949029da23f34238533b40256acb9c1ba7aaa2a"
+      }
+    }
+  ],
   "verified_releases": [
     {
       "commit": "6e254ac6345b33d94d116050e7dfc25b59493a79",
