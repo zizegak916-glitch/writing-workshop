@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1350" viewBox="0 0 1080 1350" role="img" aria-labelledby="title desc">
+  <title id="title">Writing Workshop 完整使用流程</title>
+  <desc id="desc">从打开工作台、创建项目、配置 API 到生成候选、确认写入和导出备份的完整步骤。</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff8e9"/><stop offset=".52" stop-color="#f6f3ff"/><stop offset="1" stop-color="#e9fbf7"/></linearGradient>
+    <filter id="shadow"><feDropShadow dx="0" dy="14" stdDeviation="20" flood-color="#17203a" flood-opacity=".14"/></filter>
+    <style>
+      .sans{font-family:Inter,"Noto Sans SC","Microsoft YaHei",sans-serif}
+      .eyebrow{font-size:24px;font-weight:800;letter-spacing:4px;fill:#6557d9}
+      .h1{font-size:61px;font-weight:900;fill:#11182b}
+      .h2{font-size:29px;font-weight:850;fill:#11182b}
+      .body{font-size:24px;font-weight:540;fill:#414a60}
+      .small{font-size:20px;font-weight:650;fill:#6b7387}
+      .num{font-size:28px;font-weight:900;fill:#11182b}
+    </style>
+  </defs>
+  <rect width="1080" height="1350" rx="52" fill="url(#bg)"/>
+  <circle cx="960" cy="112" r="190" fill="#87e7d8" opacity=".5"/>
+  <circle cx="70" cy="1270" r="210" fill="#ffd66b" opacity=".45"/>
+  <g class="sans" transform="translate(76 76)">
+    <text class="eyebrow" x="0" y="0">05 / 真正从头用一次</text>
+    <text class="h1" x="0" y="90">从空项目到安全写入</text>
+    <text class="body" x="2" y="142">核心不是“点一下生成”，而是知道发送了什么、结果去了哪里，</text>
+    <text class="body" x="2" y="180">以及写坏后怎么恢复。</text>
+
+    <g transform="translate(0 224)">
+      <rect width="928" height="740" rx="38" fill="#fff" filter="url(#shadow)"/>
+      <line x1="65" y1="82" x2="65" y2="657" stroke="#daddEC" stroke-width="5"/>
+
+      <circle cx="65" cy="76" r="31" fill="#ffd66b"/><text class="num" x="65" y="87" text-anchor="middle">1</text>
+      <text class="h2" x="119" y="69">打开与建项目</text>
+      <text class="body" x="119" y="107">Pages 直接打开，或 Docker 启动；点「＋」新建，也可导入文件。</text>
+
+      <circle cx="65" cy="190" r="31" fill="#dcd6ff"/><text class="num" x="65" y="201" text-anchor="middle">2</text>
+      <text class="h2" x="119" y="183">先把资料放对位置</text>
+      <text class="body" x="119" y="221">章节放正文，大纲管结构，人物卡管事实，考据与临时材料放笔记。</text>
+
+      <circle cx="65" cy="304" r="31" fill="#9eebdf"/><text class="num" x="65" y="315" text-anchor="middle">3</text>
+      <text class="h2" x="119" y="297">配置并测试 API（可选）</text>
+      <text class="body" x="119" y="335">设置 → API：协议、模型、Base URL、鉴权；先测试成功再写正文。</text>
+
+      <circle cx="65" cy="418" r="31" fill="#ffc0ae"/><text class="num" x="65" y="429" text-anchor="middle">4</text>
+      <text class="h2" x="119" y="411">明确选择本次请求</text>
+      <text class="body" x="119" y="449">选正文/选区、项目、大纲、人物、记忆，再点润色、续写或流程 Skill。</text>
+
+      <circle cx="65" cy="532" r="31" fill="#a8d8ff"/><text class="num" x="65" y="543" text-anchor="middle">5</text>
+      <text class="h2" x="119" y="525">先看候选，不直接覆盖</text>
+      <text class="body" x="119" y="563">检查模型结果，再决定替换选区、插入光标、追加正文或存为记忆。</text>
+
+      <circle cx="65" cy="646" r="31" fill="#f3b92d"/><text class="num" x="65" y="657" text-anchor="middle">6</text>
+      <text class="h2" x="119" y="639">确认写入、恢复与备份</text>
+      <text class="body" x="119" y="677">写入前会留快照；完成一轮后导出 v5 项目包，不把浏览器当唯一备份。</text>
+    </g>
+
+    <g transform="translate(0 1008)">
+      <rect width="448" height="174" rx="30" fill="#141c34"/>
+      <text x="30" y="53" font-size="27" font-weight="850" fill="#87e7d8">快速任务</text>
+      <text x="30" y="98" font-size="24" font-weight="540" fill="#e4e9ff">选一段正文 → 点功能 →</text>
+      <text x="30" y="136" font-size="24" font-weight="540" fill="#e4e9ff">看候选 → 确认写入</text>
+
+      <rect x="480" width="448" height="174" rx="30" fill="#dcd6ff"/>
+      <text class="h2" x="510" y="53">复杂任务</text>
+      <text class="body" x="510" y="98">切到「流程」→ 选多 Skill / 技能包 →</text>
+      <text class="body" x="510" y="136">核对上下文预算和执行记录</text>
+    </g>
+
+    <rect x="0" y="1200" width="928" height="70" rx="24" fill="#fff" stroke="#d9ddea" stroke-width="2"/>
+    <text class="small" x="28" y="1244">遇到 CORS：换支持浏览器跨域的接口，或改用同源 Go 后端；前端无法替接口放行。</text>
+  </g>
+</svg>
