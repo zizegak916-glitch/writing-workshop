@@ -62,6 +62,21 @@ try {
   await page.locator('#saveBtn').click();
   await page.waitForFunction(() => document.querySelector('#noteList .oi-text')?.textContent === '设定核对');
 
+  await page.locator('#mainEditor').fill('并发保存只应写入一次最新内容。');
+  await page.evaluate(async () => {
+    const originalPut = window.dbPut;
+    window.__savePutCount = 0;
+    window.dbPut = async (...args) => {
+      window.__savePutCount += 1;
+      await new Promise(resolve => setTimeout(resolve, 25));
+      return originalPut(...args);
+    };
+    await Promise.all([saveDoc({ silent: true }), saveDoc({ silent: true })]);
+    window.dbPut = originalPut;
+  });
+  assert.equal(await page.evaluate(() => window.__savePutCount), 2, 'concurrent saves should perform one document write and one project write');
+  assert.equal(await page.evaluate(() => S.unsaved), false);
+
   const bundle = await page.evaluate(async () => {
     const project = S.proj.project;
     return {

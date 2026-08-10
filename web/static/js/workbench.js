@@ -3024,7 +3024,31 @@ async function delChar(id){
 
 
 // ═══ Save ═══
-async function saveDoc(options={}){
+let saveInFlight=null;
+let saveInFlightRevision=-1;
+let queuedSaveOptions=null;
+function saveDoc(options={}){
+  if(!S.active||!S.proj)return Promise.resolve(true);
+  const revision=S.editorRevision||0;
+  if(saveInFlight){
+    if(revision!==saveInFlightRevision){
+      queuedSaveOptions={silent:options?.silent===true};
+    }
+    return saveInFlight;
+  }
+  saveInFlightRevision=revision;
+  const task=saveDocOnce(options);
+  saveInFlight=task.finally(()=>{
+    saveInFlight=null;
+    if(queuedSaveOptions){
+      const next=queuedSaveOptions;
+      queuedSaveOptions=null;
+      saveDoc(next).catch(error=>console.error('queued save failed',error));
+    }
+  });
+  return saveInFlight;
+}
+async function saveDocOnce(options={}){
   if(!S.active||!S.proj)return true;
   const silent=options?.silent===true;
   const btn=document.getElementById('saveBtn');
