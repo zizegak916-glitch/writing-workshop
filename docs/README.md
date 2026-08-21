@@ -1,6 +1,6 @@
 # Writing Workshop 文档地图
 
-更新：2026-07-29（UTC+8）
+更新：2026-08-21（UTC）
 
 本目录同时保留“现行产品文档”和“继承引擎历史文档”。状态以本表为准；文件名或文档中的旧项目名不能单独证明它仍是当前执行层。
 
@@ -16,6 +16,7 @@
 | [`../CHANGELOG.md`](../CHANGELOG.md) | 现行变更记录 | 已发布版本与尚未发布的产品变化 |
 | [`UPDATE_TIMELINE.md`](UPDATE_TIMELINE.md) | 现行事实账本 | 产品事件、提交、CI、Pages 与公开实测时间线 |
 | [`RELEASE_EVIDENCE.json`](RELEASE_EVIDENCE.json) | 机器可读证据 | 已验证提交、Actions、校验和和时间点指标 |
+| [`PRODUCT_BOUNDARY.md`](PRODUCT_BOUNDARY.md) | 现行产品规则 | 产品层、可选本地服务、外部社区与上游的归属边界 |
 | [`LINUX_DO_POST_V025.md`](LINUX_DO_POST_V025.md) | 社区发布包 | LINUX DO 规则核对、发帖顺序、图片正文与真实链接 |
 | [`CAPABILITY_PROTOCOL.md`](CAPABILITY_PROTOCOL.md) | 现行协议 | Skill manifest、多 Skill 与技能包 |
 | [`UI_DESIGN_SYSTEM.md`](UI_DESIGN_SYSTEM.md) | 现行设计 | 彩色编辑部、图标、响应式与状态语义 |

@@ -52,7 +52,7 @@ go build -o ainovel-cli ./cmd/ainovel-cli
 访问地址：
 
 - 写作工坊：`http://127.0.0.1:8080/app.html`
-- 管理后台：`http://127.0.0.1:8080/admin.html`
+- 可选本地服务控制台：`http://127.0.0.1:8080/admin.html`
 - API：`http://127.0.0.1:8080/api/...`
 
 自部署版浏览器请求同源 `/api/`，由后端保管密钥。GitHub Pages 正式在线版另有浏览器 BYOK 通道：Provider、Model、Base URL 与 Key 保存在当前 origin，模型请求直接发往用户配置的接口；是否成功取决于端点、认证与 CORS。Pages 默认仍没有 `/api/run` 等 Go 服务，因此后端 Skill、项目同步和能力管理需要另行部署兼容后端。
@@ -672,5 +672,3 @@ output/{novel_name}/
 
 Apache-2.0. The earlier copy of this page incorrectly said MIT; the repository
 `LICENSE` file and upstream repository are authoritative.
-
-维护者社区账号：[Linux DO · The_Fo0l](https://linux.do/u/The_Fo0l)。

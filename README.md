@@ -3,15 +3,13 @@
 [![CI](https://github.com/zizegak916-glitch/writing-workshop/actions/workflows/ci.yml/badge.svg)](https://github.com/zizegak916-glitch/writing-workshop/actions/workflows/ci.yml)
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-black.svg)](LICENSE)
 
-> 用户文档最后同步：2026-07-29（UTC+8）。完整演进记录见 [更新时间线](docs/UPDATE_TIMELINE.md)；自审记录不能替代第三方使用反馈。
+> 用户文档最后同步：2026-08-21（UTC）。完整演进记录见 [更新时间线](docs/UPDATE_TIMELINE.md)；自审记录不能替代第三方使用反馈。
 
 一个本地优先、可审计的长篇写作工作台。它把“选哪些上下文、运行哪些 Skill、结果写到哪里”变成显式操作：AI 只生成候选，作者确认后才写入正文或记忆。
 
 它不是聊天框的换皮，也不会把整部作品在每次调用时重新发送给模型。
 
-> 社区认可：Writing Workshop 认可并感谢 [LINUX DO](https://linux.do/) 开源技术社区及其佬友提供的交流、测试与反馈环境。维护者的社区账号为 [The_Fo0l](https://linux.do/u/The_Fo0l)。
-
-**正式在线版：** [GitHub Pages](https://zizegak916-glitch.github.io/writing-workshop/) · [完整使用文档](https://zizegak916-glitch.github.io/writing-workshop/docs.html) · [能力后台](https://zizegak916-glitch.github.io/writing-workshop/admin.html)
+**正式在线版：** [GitHub Pages](https://zizegak916-glitch.github.io/writing-workshop/) · [完整使用文档](https://zizegak916-glitch.github.io/writing-workshop/docs.html) · [GitHub Issues](https://github.com/zizegak916-glitch/writing-workshop/issues)
 
 > GitHub Pages 是本项目当前正式发布的公开在线站点，`github.io` 是真实可访问的 HTTPS 域名，不是临时预览。它采用静态托管，但浏览器本地项目、编辑、笔记、分类、导入导出和浏览器 BYOK 自定义 API 均可正式使用。Pages 会把用户主动填写的 Key 与 Base URL 存在当前浏览器并直连目标服务；接口必须允许该 Pages 域名跨域访问。需要服务端密钥托管、Skill 执行或后端项目导入时，再运行本地或自部署后端。
 
@@ -23,13 +21,13 @@
 
 - 管理项目、章节、大纲、人物卡、项目笔记、规则和写作记忆。
 - 为一次任务显式选择正文、项目、大纲、人物与记忆；桌面请求栏始终显示当前 token 估算、模型上限和上次实际用量，未配置 API 时也可先估算。
-- 组合后端与 Skill 执行任务；AI 任务使用上游真实 SSE / NDJSON 增量流并支持中断，不再把完整响应切片伪装成流式。
+- 自部署时组合后端与 Skill 执行任务；AI 任务使用上游真实 SSE / NDJSON 增量流并支持中断，不再把完整响应切片伪装成流式。
 - 逐项多选 Skill，或一键应用“长篇规划校准 / 章节修订 / 角色与对白”技能包；自定义技能包会持久化保存。
 - 32 个 AI 功能都有可直接使用的内置 Prompt Skill；点击功能卡或快捷工具后，请求会隐形使用对应提示词，作者可在“流程 → Prompt Skill 管理”查看、改写或恢复默认。
 - 搜索、筛选、重命名、复制、分类、导出和删除浏览器本地项目；自定义分类可修改名称、范围和颜色，也可用于写作记忆。
 - 候选结果与正文分离；替换、插入、追加、写入记忆均需独立确认。
 - 按项目保存候选、写入前快照和流程历史，避免 AI 输出静默覆盖创作内容。
-- 在能力后台查看经过来源、许可证与权限初筛的 Agent Skills / MCP 公开目录；登记只生成停用元数据，不下载、不安装、不执行第三方代码。
+- 在本地服务控制台查看经过来源、许可证与权限初筛的 Agent Skills / MCP 公开目录；登记只生成停用元数据，不下载、不安装、不执行第三方代码。
 - 在无 API Key 模式下运行本地链路测试和大纲拆分；需要模型时再配置 OpenAI 兼容服务、OpenRouter、Ollama 等后端。
 
 ## 60 秒启动
@@ -42,7 +40,7 @@ cd writing-workshop
 docker compose up --build
 ```
 
-打开 <http://127.0.0.1:8080/app.html>。首次以无密钥 demo 模式启动；可在管理页配置模型。配置保存后，容器重启会自动加载它。
+打开 <http://127.0.0.1:8080/app.html>。首次以无密钥 demo 模式启动；模型可在工作台“设置 → API”配置。需要管理服务端项目、规则和后端 Skill 时，再打开 <http://127.0.0.1:8080/admin.html>。配置保存后，容器重启会自动加载它。
 
 健康检查：
 
@@ -87,22 +85,26 @@ flowchart LR
 
 新版界面采用“彩色编辑部”设计：深色资料栏、暖纸张编辑器和淡紫 AI 区承担不同职责，钴蓝、珊瑚、薄荷和琥珀只用于表达动作和状态。桌面保留三栏生产布局，移动端切换为底部任务导航。
 
-![Writing Workshop 三栏写作工作台](docs/images/workbench.jpg)
-
 | 页面 | 作用 |
 |---|---|
 | `index.html` | 产品说明、运行模式和 60 秒启动入口 |
 | `app.html` | 项目、章节、大纲、人物、笔记、记忆、分类、导入导出、多 Skill 与候选写入 |
-| `admin.html` | Provider、Model、Base URL、API Key、项目、规则、能力、公开 Agent Skills / MCP 目录、技能包、分类与 API 调试 |
-| `docs.html` | 从 Pages 在线版 / 后端增强模式到 CORS、Skill 与故障排查的完整教程 |
+| `admin.html` | 仅供本地/自部署服务使用：Provider、密钥、服务端项目、规则、后端 Skill、外部目录、技能包、分类与 API 调试 |
+| `docs.html` | 从 Pages 在线版 / 可选本地服务到 CORS、Skill 与故障排查的完整教程 |
 
 代码、文档、CI、Pages 与公开实测的对应关系见 [更新时间线](docs/UPDATE_TIMELINE.md)，避免只凭截图、文件名或聊天记录判断功能是否已经上线。
 
 视觉规范与组件约束见 [UI 设计系统](docs/UI_DESIGN_SYSTEM.md)。
 
-后台不是装饰页：Provider、Model、Base URL、API Key、项目、角色、规则、能力来源与 API 测试都有明确入口。Pages 中的模型配置保存在当前浏览器并可直接测试自定义接口；项目、Skill、规则和 SSE 等服务端能力仍需连接同源或自部署后端。
+本地服务控制台不是在线产品的第二套导航。它只在检测到同源 Go 服务时从工作台显示入口，用来管理服务端配置、项目、角色、规则和后端 Skill。Pages 的模型配置统一从工作台“设置 → API”进入；直接访问静态 `admin.html` 时只保留浏览器 API 配置与测试，其余服务端栏目隐藏。
 
-![Writing Workshop 能力控制台](docs/images/ability-console.jpg)
+## 产品归属边界
+
+- **Writing Workshop 自己的产品层**：浏览器项目与资料管理、编辑器、Prompt Skill、显式上下文、候选区、写前快照、导入导出、API 适配和界面。
+- **仓库内的可选服务层**：在已署名的上游 Go 引擎基础上维护同源 API、服务端密钥托管、后端项目和后端 Skill 集成。它服务于工作台，但不是 Pages 必须依赖的“后台站”，也不改变上游作者归属。
+- **外部依赖与社区**：GitHub、模型供应商、上游引擎和任何论坛社区都不属于 Writing Workshop，也不代表本项目提供支持或背书。
+
+更完整的页面、命名和运行时规则见 [产品归属说明](docs/PRODUCT_BOUNDARY.md)。
 
 ## Skill / 能力协议
 
@@ -115,7 +117,7 @@ Writing Workshop 明确区分两类 Skill：
 
 能力清单不是任意远程代码执行入口。仓库当前只登记、校验和组合 manifest；第三方代码必须经过未来的沙箱执行器才允许运行。
 
-能力后台的“公开能力目录”包含官方或可核验上游入口、许可证提示、权限和风险。目录以现行 `openai/plugins`、Agent Skills 开放标准、Anthropic Skills、SkillPort 和 MCP 官方来源为主；已弃用的 `openai/skills` 只保留迁移警告。`POST /api/external-catalog` 只把选中条目登记为 `enabled=false` 的 `external:*` 元数据；后端会拒绝启用或运行这种入口。它用于审查和规划接入，不是假装已经完成第三方 Skill 沙箱。
+本地服务控制台的“外部能力目录”包含官方或可核验上游入口、许可证提示、权限和风险。目录以现行 `openai/plugins`、Agent Skills 开放标准、Anthropic Skills、SkillPort 和 MCP 官方来源为主；已弃用的 `openai/skills` 只保留迁移警告。`POST /api/external-catalog` 只把选中条目登记为 `enabled=false` 的 `external:*` 元数据；后端会拒绝启用或运行这种入口。它用于审查和规划接入，不是假装已经完成第三方 Skill 沙箱。
 
 最小 manifest：
 
@@ -141,7 +143,7 @@ Writing Workshop 明确区分两类 Skill：
 
 完整字段和 API 示例见 [能力协议](docs/CAPABILITY_PROTOCOL.md) 与 [API 文档](API.md)。
 
-技能包不是新的执行权限，而是一组可见的 `skill_ids` 预设。工作台应用技能包后，仍会显示选中数量，并把所有 Skill ID 显式传给 `/api/run`。分类有两处真实存储边界：工作台项目分类保存在当前浏览器，能力后台分类保存在当前后端工作目录的 `.ainovel/categories.json`。
+技能包不是新的执行权限，而是一组可见的 `skill_ids` 预设。工作台应用技能包后，仍会显示选中数量，并把所有 Skill ID 显式传给 `/api/run`。分类有两处真实存储边界：工作台项目分类保存在当前浏览器，本地服务分类保存在当前后端工作目录的 `.ainovel/categories.json`。
 
 ## 数据与安全边界
 
@@ -193,10 +195,8 @@ docs/               协议、来源与设计说明
 
 [Releases](https://github.com/zizegak916-glitch/writing-workshop/releases) 提供版本化二进制与校验和；从源码或 Docker 使用仍然受支持。
 
-维护者社区账号：[Linux DO · The_Fo0l](https://linux.do/u/The_Fo0l)。
-
 维护者可使用 `make check` 运行与 CI 对齐的本地检查。Codex for Open Source 的证据清单与申请草稿见 [docs/CODEX_FOR_OSS_APPLICATION.md](docs/CODEX_FOR_OSS_APPLICATION.md)。
 
 ## 来源与许可证
 
-本项目的 Go 写作引擎源自 Apache-2.0 许可的 [`voocel/ainovel-cli`](https://github.com/voocel/ainovel-cli)。感谢上游作者 voocel；原项目在 LINUX DO 的介绍可见[《【AI小说】多余的 token 用不完怎么办？当然是拿来写小说了》](https://linux.do/t/topic/2267839)。本仓库保留原作者版权、提交历史和 Apache-2.0 许可证，并在其上开发独立的 Writing Workshop Web 产品层、能力协议、显式上下文工作流与发布设施。继承引擎的历史技术说明保存在 [docs/UPSTREAM_ENGINE.md](docs/UPSTREAM_ENGINE.md)。
+本项目的 Go 写作引擎源自 Apache-2.0 许可的 [`voocel/ainovel-cli`](https://github.com/voocel/ainovel-cli)。感谢上游作者 voocel；原项目在外部社区 LINUX DO 的介绍可见[《【AI小说】多余的 token 用不完怎么办？当然是拿来写小说了》](https://linux.do/t/topic/2267839)。本仓库保留原作者版权、提交历史和 Apache-2.0 许可证，并在其上开发独立的 Writing Workshop Web 产品层、能力协议、显式上下文工作流与发布设施。LINUX DO 是外部讨论社区，不是本项目的后台、官网、客服或所有者。继承引擎的历史技术说明保存在 [docs/UPSTREAM_ENGINE.md](docs/UPSTREAM_ENGINE.md)。
