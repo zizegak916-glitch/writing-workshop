@@ -1,8 +1,14 @@
 # Writing Workshop 更新时间线
 
-> 状态：现行产品事实账本。更新时间统一使用 UTC+8；提交、CI、Pages 和公开页面证据必须能相互对应。最后同步：2026-07-29 23:40 UTC+8。
+> 状态：现行产品事实账本。更新时间统一使用 UTC+8；提交、CI、Pages 和公开页面证据必须能相互对应。最后同步：2026-08-21 08:18 UTC+8。
 
 这份时间线只记录已经发生且可验证的产品事件，不用计划代替完成。详细功能说明仍以对应文档和代码为准；机器可读证据见 [`RELEASE_EVIDENCE.json`](RELEASE_EVIDENCE.json)。
+
+## 2026-08-21：纠正产品归属边界
+
+| 时间 | 事件 | Git 痕迹 | 验证 |
+|---|---|---|---|
+| 08:18 | 明确 GitHub Pages 是 Writing Workshop 浏览器产品；将 `admin.html` 降级为自部署环境中的“本地服务控制台”，并在 Pages 模式隐藏服务端能力；从公开导航、联系入口和产品身份中移除 LINUX DO，只在历史与致谢位置保留外部社区出处；补充产品边界文档和相应静态、浏览器回归 | [`9950ffa`](https://github.com/zizegak916-glitch/writing-workshop/commit/9950ffa429755cb449b9396d0bf940a1a6159db2)、[PR #15](https://github.com/zizegak916-glitch/writing-workshop/pull/15) | [PR CI 32431865044](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/32431865044)、[main CI 32432000586](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/32432000586)、[Pages 32432000593](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/32432000593) 均为 `success`；公开 6 个页面均为 HTTP 200，`index.html` 与 `admin.html` 的 SHA-256 同合并源码一致 |
 
 ## 2026-07-22：从上游引擎整理为独立产品
 
