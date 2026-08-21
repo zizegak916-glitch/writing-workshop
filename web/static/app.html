@@ -374,7 +374,7 @@
     <h3>🌐 第三方服务</h3>
     <p>静态资源可由本地或自部署后端提供，不加载外部 CDN 字体或脚本。</p>
     <h3>📬 联系方式</h3>
-    <p>如有疑问，请通过 <span class="privacy-link" onclick="window.open('https://github.com/zizegak916-glitch/writing-workshop/issues','_blank')">GitHub Issues</span> 或 <span class="privacy-link" onclick="window.open('https://linux.do/u/The_Fo0l','_blank')">Linux DO · The_Fo0l</span> 联系。</p>
+    <p>如有疑问，请通过 <span class="privacy-link" onclick="window.open('https://github.com/zizegak916-glitch/writing-workshop/issues','_blank')">GitHub Issues</span> 联系；安全问题请按仓库中的 SECURITY.md 报告。</p>
     <p style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);font-size:13px;color:var(--text-muted)">
       更多详情请访问：<span class="privacy-link" onclick="window.open('privacy.html','_blank')">完整隐私政策</span>
     </p>
@@ -389,7 +389,7 @@
     <ol>
       <li>打开应用，默认以游客本地模式进入</li>
       <li>进入工坊后，点击顶栏「＋」创建新项目</li>
-      <li>Docker 自部署版点击「⚙」配置模型（选服务商 → 填 Key → 测试 → 保存）；Pages 可先使用本地编辑功能</li>
+      <li>点击「⚙ → API」配置模型（选服务商 → 填 Key → 测试 → 保存）；Pages 和自部署版都从工作台完成这一步</li>
       <li>开始写作！AI 功能会自动辅助你</li>
     </ol>
     <h3>🔧 API 配置</h3>
@@ -477,8 +477,6 @@
     <p>本项目基于 Apache-2.0 协议开源。欢迎贡献代码、提交 Issue。</p>
     <p style="margin-top:16px">
       <span class="privacy-link" onclick="window.open('https://github.com/zizegak916-glitch/writing-workshop','_blank')">GitHub 仓库 →</span>
-      <span style="margin:0 8px;color:var(--text-muted)">|</span>
-      <span class="privacy-link" onclick="window.open('https://linux.do/u/The_Fo0l','_blank')">Linux DO · The_Fo0l →</span>
     </p>
     </div>
   </div>
@@ -501,7 +499,7 @@
     </div>
     <div class="topbar-actions">
       <button class="icon-btn" onclick="openModal('newProjectModal')" title="新建">＋</button>
-      <button class="icon-btn" onclick="location.href='admin.html'" title="能力后台">后台</button>
+      <button class="icon-btn" id="serviceConsoleBtn" hidden onclick="location.href='admin.html'" title="本地服务控制台">服务</button>
       <button class="icon-btn" onclick="openModal('settingsModal')" data-i18n-title="tb-settings" title="设置"><svg class="ic ic-sm"><use href="#ic-settings"/></svg></button>
       <button class="icon-btn" onclick="exportProject()" title="导出"><svg class="ic ic-sm"><use href="#ic-download"/></svg></button>
       <button class="icon-btn" id="saveBtn" onclick="saveDoc()" title="保存"><svg class="ic ic-sm"><use href="#ic-save"/></svg><span class="save-badge"></span></button>

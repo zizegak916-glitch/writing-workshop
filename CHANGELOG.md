@@ -40,6 +40,13 @@ All notable Writing Workshop changes are recorded here. The project follows Sema
 
 ## Unreleased
 
+### 2026-08-21 product ownership boundary
+
+- Removed LINUX DO and the service console from public product navigation and contact surfaces; the forum remains an explicitly external acknowledgement and historical publication source.
+- Renamed `admin.html` to the local service console in user-facing copy. Static deployments now hide server-only tabs, while self-hosted deployments retain every existing server configuration and management function.
+- Made the workbench service entry runtime-dependent, moved Pages API setup to the canonical workbench settings flow, and replaced the landing-page Star request with reproducible issue reporting.
+- Added a product-boundary document and static regression rules covering public navigation, external-community placement and optional-service visibility.
+
 ### 2026-07-28 credibility and recovery pass
 
 - Added explicit v1-v3 to v4 browser bundle migration with regression fixtures for chapters, legacy memories, categories and Prompt Skill overrides.

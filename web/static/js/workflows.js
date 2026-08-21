@@ -123,7 +123,7 @@
               <div class="workflow-label" style="margin:0">组合能力</div>
               <div class="workflow-muted">步骤与权限保持可见</div>
             </div>
-            <a class="workflow-ghost" style="text-decoration:none" href="admin.html">管理</a>
+            <a class="workflow-ghost" id="workflowServiceLink" hidden style="text-decoration:none" href="admin.html">本地服务</a>
           </div>
           <div class="workflow-pack-list" id="workflowPackList"><div class="workflow-muted">正在读取技能包…</div></div>
           <div class="workflow-skill-tools">
@@ -198,6 +198,7 @@
     panel.style.display = 'none';
     panel.innerHTML = renderShell();
     body.appendChild(panel);
+    window.wwSyncServiceEntryVisibility?.();
 
     const mobilePanel = document.getElementById('mp-ai');
     if (mobilePanel) {
@@ -784,6 +785,7 @@
     const parent = root?.parentElement;
     if (!parent) return;
     parent.innerHTML = renderShell();
+    window.wwSyncServiceEntryVisibility?.();
     document.querySelectorAll('[data-workflow-context]').forEach(input => input.addEventListener('change', onContextPreferenceChange));
     document.getElementById('workflowTaskPrompt').addEventListener('input', refreshContext);
     refreshContext();

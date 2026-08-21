@@ -10,6 +10,13 @@ function dbByIndex(s,f,v){return new Promise((r,j)=>{const t=db.transaction(s,'r
 
 // ═══ Writing Workshop runtime and backend bridge ═══
 let WW_BROWSER_API_MODE=location.hostname.endsWith('github.io')||new URLSearchParams(location.search).get('api_mode')==='browser';
+function syncServiceEntryVisibility(){
+  for(const id of ['serviceConsoleBtn','workflowServiceLink']){
+    const element=document.getElementById(id);
+    if(element)element.hidden=WW_BROWSER_API_MODE;
+  }
+}
+window.wwSyncServiceEntryVisibility=syncServiceEntryVisibility;
 async function detectBrowserApiMode(){
   const forced=new URLSearchParams(location.search).get('api_mode');
   if(forced==='browser')return true;
@@ -2297,6 +2304,7 @@ function lockApp(){showToast('i','本地游客模式无需本地锁定');showApp
 // ═══ Init ═══
 async function initApp(){
   WW_BROWSER_API_MODE=await detectBrowserApiMode();
+  syncServiceEntryVisibility();
   reconcileStoredApiConfig();
   await openDB();
   if(!WW_BROWSER_API_MODE)await loadBackendConfig();

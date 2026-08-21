@@ -275,6 +275,8 @@
   transition: transform .15s ease, opacity .15s ease, background .15s ease;
 }
 
+.workflow-ghost[hidden] { display: none !important; }
+
 .workflow-primary {
   border: 1px solid var(--text-primary);
   color: var(--bg-deep);

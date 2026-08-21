@@ -48,6 +48,8 @@ assert(workbenchSource.includes('function loadStoredApiConfig()'), 'browser API 
 assert(workbenchSource.includes('function loadSlot(n)'), 'multi-model slots must use the canonical scrubbed loader');
 assert(workbenchSource.includes('WW_BROWSER_API_MODE') && workbenchSource.includes("?'browser':'backend'"), 'Pages browser API mode is missing');
 assert(workbenchSource.includes('function persistApiConfig('), 'dual-mode API persistence is missing');
+assert(appHtml.includes('id="serviceConsoleBtn" hidden') && appHtml.includes('title="本地服务控制台"'), 'self-hosted service entry must be hidden by default');
+assert(workbenchSource.includes("['serviceConsoleBtn','workflowServiceLink']") && workbenchSource.includes('element.hidden=WW_BROWSER_API_MODE'), 'service entries must follow detected runtime mode');
 assert(workbenchSource.includes('WWApiAdapter.request') && workbenchSource.includes('WWApiAdapter.stream'), 'browser-direct request and stream adapters are missing');
 assert(workbenchSource.includes("'/api/ai/stream'"), 'self-hosted AI must use the streaming endpoint');
 const adapterSource = read('web/static/js/api-adapter.js');
@@ -74,6 +76,23 @@ const extensionCss = read('web/static/css/product-extensions.css');
 assert(extensionCss.includes('.ai-request-dock') && extensionCss.includes('.ai-context-meter'), 'missing persistent context-dock layout styles');
 const workflowSource = read('web/static/js/workflows.js');
 assert(workflowSource.includes("getElementById('aiRequestDock')"), 'workflow tab must coordinate the persistent request dock');
+assert(workflowSource.includes('id="workflowServiceLink" hidden') && workflowSource.includes('wwSyncServiceEntryVisibility'), 'workflow service management link must be hidden until runtime detection completes');
+
+const publicPages = ['index.html', 'docs.html', 'privacy.html', 'app.html'];
+for (const file of publicPages) {
+  const source = read(`web/static/${file}`);
+  assert(!source.includes('linux.do'), `${file} must not present an external forum as product navigation or support`);
+}
+const indexHtml = read('web/static/index.html');
+assert(!indexHtml.includes('admin.html'), 'landing page must not expose the optional service console as public navigation');
+assert(!indexHtml.includes('点一颗 Star') && !indexHtml.includes('您的支持是我们最大的动力'), 'landing page must ask for reproducible feedback instead of stars');
+assert(indexHtml.includes('提交 Issue'), 'landing page must provide the canonical feedback route');
+const aboutHtml = read('web/static/about.html');
+assert(aboutHtml.includes('它是外部社区') && aboutHtml.includes('不是 Writing Workshop 的后台'), 'about page must state the external community boundary');
+const adminHtml = read('web/static/admin.html');
+assert(adminHtml.includes('Writing Workshop 本地服务控制台'), 'admin page must be named as the local service console');
+assert((adminHtml.match(/data-requires-service/g) || []).length >= 7, 'server-only console tabs must declare their runtime requirement');
+assert(adminHtml.includes("querySelectorAll('[data-requires-service]')") && adminHtml.includes('element.hidden=true'), 'static console must hide server-only tabs');
 
 const htmlFiles = fs.readdirSync(path.join(root, 'web/static'))
   .filter(file => file.endsWith('.html'))
@@ -112,7 +131,7 @@ assert(evidence.schema === 'writing-workshop/release-evidence', 'unexpected rele
 assert(Array.isArray(evidence.verified_releases) && evidence.verified_releases.length > 0, 'release evidence has no verified releases');
 
 const docsIndex = read('docs/README.md');
-for (const file of ['UPDATE_TIMELINE.md', 'RELEASE_EVIDENCE.json', 'CAPABILITY_PROTOCOL.md', 'UI_DESIGN_SYSTEM.md']) {
+for (const file of ['UPDATE_TIMELINE.md', 'RELEASE_EVIDENCE.json', 'PRODUCT_BOUNDARY.md', 'CAPABILITY_PROTOCOL.md', 'UI_DESIGN_SYSTEM.md']) {
   assert(docsIndex.includes(file), `documentation map does not include ${file}`);
 }
 

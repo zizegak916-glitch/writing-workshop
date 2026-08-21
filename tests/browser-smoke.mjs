@@ -31,6 +31,10 @@ try {
     document.getElementById('cookieBanner')?.classList.remove('show');
   });
   await page.waitForFunction(() => document.getElementById('app')?.classList.contains('visible'));
+  await page.waitForFunction(() => document.getElementById('serviceConsoleBtn')?.hidden === false);
+  assert.equal(await page.locator('#serviceConsoleBtn').isVisible(), true, 'self-hosted workbench must expose the local service console');
+  await page.waitForFunction(() => document.getElementById('workflowServiceLink'));
+  assert.equal(await page.locator('#workflowServiceLink').getAttribute('hidden'), null, 'self-hosted workflow may link to the local service console');
 
   await page.evaluate(() => {
     localStorage.setItem('ww_api', JSON.stringify({ provider: 'openai', model: 'legacy-model', key: 'legacy-secret', baseUrl: 'https://example.invalid/v1' }));
@@ -280,8 +284,8 @@ try {
   const adminPage = await desktop.newPage();
   const adminErrors = await collectErrors(adminPage);
   await adminPage.goto(`${baseURL}/admin.html`, { waitUntil: 'networkidle' });
-  await adminPage.waitForFunction(() => document.getElementById('apiStatus')?.textContent === '后端已连接');
-  await adminPage.getByRole('button', { name: '公开能力目录' }).click();
+  await adminPage.waitForFunction(() => document.getElementById('apiStatus')?.textContent === '本地服务已连接');
+  await adminPage.getByRole('button', { name: '外部能力目录' }).click();
   await adminPage.waitForFunction(() => document.querySelectorAll('#externalCatalogList .list-item').length >= 8);
   const filesystemSource = adminPage.locator('#externalCatalogList .list-item', { hasText: 'MCP Filesystem' });
   await filesystemSource.getByRole('button', { name: '登记元数据' }).click();
@@ -319,6 +323,9 @@ try {
     });
   });
   await pagesPage.goto(`${baseURL}/app.html?api_mode=browser`, { waitUntil: 'networkidle' });
+  await pagesPage.waitForFunction(() => WW_BROWSER_API_MODE === true);
+  assert.equal(await pagesPage.locator('#serviceConsoleBtn').isHidden(), true, 'Pages workbench must not expose the local service console');
+  assert.notEqual(await pagesPage.locator('#workflowServiceLink').getAttribute('hidden'), null, 'Pages workflow must hide the local service console link');
   await pagesPage.evaluate(() => {
     localStorage.setItem('ww_cookie_consent', '1');
     openModal('apiModal');
@@ -406,7 +413,9 @@ try {
     body: JSON.stringify({ status: 'static-host-without-go-backend' })
   }));
   await staticAdmin.goto(`${baseURL}/admin.html`, { waitUntil: 'networkidle' });
-  await staticAdmin.waitForFunction(() => document.getElementById('apiStatus')?.textContent === '静态在线版 · 浏览器 API');
+  await staticAdmin.waitForFunction(() => document.getElementById('apiStatus')?.textContent === '未连接本地服务 · 浏览器 API');
+  assert.equal(await staticAdmin.locator('[data-requires-service]:visible').count(), 0, 'static console must hide every server-only tab');
+  assert.match(await staticAdmin.locator('#runtimeNotice').textContent(), /不是 Writing Workshop 在线版的“后台”/);
   assert.deepEqual(staticErrors, [], `custom static-host detection errors:\n${staticErrors.join('\n')}`);
   assert.deepEqual(staticAdminErrors, [], `custom static admin detection errors:\n${staticAdminErrors.join('\n')}`);
   await staticContext.close();

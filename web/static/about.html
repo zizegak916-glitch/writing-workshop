@@ -5,7 +5,7 @@
   <title>关于 · Writing Workshop</title><link rel="icon" href="icons/app-icon.svg" type="image/svg+xml"><link rel="stylesheet" href="css/chromatic-site.css">
 </head>
 <body>
-  <header class="site-nav"><a class="brand" href="index.html"><img class="brand-mark" src="icons/app-icon.svg" alt=""><span class="brand-copy">写作工坊<small>About</small></span></a><nav class="nav-links"><a href="index.html">首页</a><a href="docs.html">文档</a><a href="admin.html">能力后台</a><a class="nav-cta button primary" href="app.html">打开工坊</a></nav></header>
+  <header class="site-nav"><a class="brand" href="index.html"><img class="brand-mark" src="icons/app-icon.svg" alt=""><span class="brand-copy">写作工坊<small>About</small></span></a><nav class="nav-links"><a href="index.html">首页</a><a href="docs.html">文档</a><a href="https://github.com/zizegak916-glitch/writing-workshop">GitHub</a><a class="nav-cta button primary" href="app.html">打开工坊</a></nav></header>
   <main class="site-shell docs-layout" style="grid-template-columns:minmax(0,820px);justify-content:center">
     <article class="docs-main">
       <span class="eyebrow">Open-source writing infrastructure</span>
@@ -14,13 +14,15 @@
       <div class="doc-grid">
         <section class="doc-card"><h3>我们在解决什么</h3><p>长篇项目的难点不是“再生成一段”，而是维护角色、设定、章节、记忆与修改边界，同时避免上下文成本随资料库无限增长。</p></section>
         <section class="doc-card"><h3>产品原则</h3><p>显式上下文、候选先行、作者确认、写前快照、本地默认、能力可审计。模型能力可以替换，作者控制不能消失。</p></section>
-        <section class="doc-card"><h3>能力生态</h3><p>工作台可以登记后端项目、Skill、规则包和提示能力，并把多个 Skill 保存为技能包。每项能力声明来源、版本、分类、步骤、权限与输出，不把链接误当可执行代码。</p></section>
+        <section class="doc-card"><h3>浏览器能力</h3><p>项目管理、资料分类、32 个可修改 Prompt Skill、显式上下文、候选写入保护和导入导出属于工作台本身，不依赖所谓“社区后台”。</p></section>
         <section class="doc-card"><h3>开放协作</h3><p>项目采用 Apache-2.0 许可证，包含 Go 同源后端、原生 Web 前端、协议文档、CI、Docker、Pages 与发布工作流。</p></section>
       </div>
-      <h2>项目边界</h2>
-      <p>自部署版通过同源 <code>/api/</code> 与 Go 后端通信；GitHub Pages 也可使用保存在当前浏览器中的 BYOK 自定义 API。保存 GitHub 链接不会执行第三方仓库；真实第三方代码执行需要独立的最小权限沙箱。</p>
+      <h2>归属与运行边界</h2>
+      <p>Writing Workshop 是本仓库独立维护的 Web 写作产品。GitHub Pages 是公开托管方式；仓库随附的 Go 服务是建立在已署名上游引擎上的可选连接器；模型厂商、上游作者、GitHub 与任何论坛社区都不是本产品的一部分。静态在线版可使用浏览器 BYOK，自部署版则通过同源 <code>/api/</code> 托管密钥并运行后端 Skill。完整边界见 <a href="https://github.com/zizegak916-glitch/writing-workshop/blob/main/docs/PRODUCT_BOUNDARY.md">产品归属说明</a>。</p>
+      <h2>外部社区与上游</h2>
+      <p>感谢 <a href="https://linux.do/">LINUX DO</a> 佬友曾提供交流与反馈环境；它是外部社区，不是 Writing Workshop 的后台、官网、客服或所有者。底层 Go 写作引擎源自 Apache-2.0 许可的 <a href="https://github.com/voocel/ainovel-cli">voocel/ainovel-cli</a>，本仓库保留许可证、署名与历史。</p>
       <h2>参与项目</h2>
-      <p>查看 <a href="https://github.com/zizegak916-glitch/writing-workshop">GitHub 仓库</a>、<a href="https://github.com/zizegak916-glitch/writing-workshop/issues">公开 Issues</a> 与 <a href="https://github.com/zizegak916-glitch/writing-workshop/blob/main/CONTRIBUTING.md">贡献指南</a>。维护者社区账号是 <a href="https://linux.do/u/The_Fo0l">Linux DO · The_Fo0l</a>。完整使用方式见 <a href="docs.html">产品文档</a>。</p>
+      <p>查看 <a href="https://github.com/zizegak916-glitch/writing-workshop">GitHub 仓库</a>、<a href="https://github.com/zizegak916-glitch/writing-workshop/issues">公开 Issues</a> 与 <a href="https://github.com/zizegak916-glitch/writing-workshop/blob/main/CONTRIBUTING.md">贡献指南</a>。完整使用方式见 <a href="docs.html">产品文档</a>。</p>
     </article>
   </main>
 </body>

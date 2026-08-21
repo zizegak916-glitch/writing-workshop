@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>写作工坊能力后台</title>
+<title>Writing Workshop 本地服务控制台</title>
 <link rel="icon" href="icons/app-icon.svg" type="image/svg+xml">
 <style>
 :root{--bg:#0b0c0f;--panel:#15161a;--card:#1b1d22;--border:rgba(255,255,255,.08);--text:#eceef3;--muted:#8f96a3;--accent:#5e6ad2;--red:#f87171;--green:#34d399;--amber:#fbbf24}
@@ -11,7 +11,7 @@ body.light{--bg:#f4f6fa;--panel:#fff;--card:#f8f9fc;--border:#dfe3ec;--text:#111
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 Inter,"Noto Sans SC","Microsoft YaHei",system-ui,sans-serif}
 header{height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;border-bottom:1px solid var(--border);background:var(--panel);position:sticky;top:0;z-index:2}
 h1{font-size:16px;margin:0}.wrap{display:grid;grid-template-columns:220px 1fr;min-height:calc(100vh - 52px)}
-nav{border-right:1px solid var(--border);background:var(--panel);padding:14px}.tab{width:100%;display:block;text-align:left;background:transparent;color:var(--muted);border:0;border-radius:8px;padding:10px 12px;cursor:pointer}.tab.active,.tab:hover{background:var(--card);color:var(--text)}
+nav{border-right:1px solid var(--border);background:var(--panel);padding:14px}.tab{width:100%;display:block;text-align:left;background:transparent;color:var(--muted);border:0;border-radius:8px;padding:10px 12px;cursor:pointer}.tab[hidden]{display:none!important}.tab.active,.tab:hover{background:var(--card);color:var(--text)}
 main{padding:18px;max-width:1100px}.panel{display:none}.panel.active{display:block}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.card{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:14px}
 label{display:block;color:var(--muted);font-size:12px;margin:10px 0 6px}input,select,textarea{width:100%;background:var(--card);border:1px solid var(--border);border-radius:8px;color:var(--text);padding:10px;font:inherit}textarea{min-height:150px;resize:vertical}
 button.primary,a.primary{display:inline-block;background:var(--accent);border:0;color:#fff;border-radius:8px;padding:10px 14px;cursor:pointer}button.danger{background:transparent;border:1px solid var(--red);color:var(--red);border-radius:8px;padding:9px 12px;cursor:pointer}
@@ -23,17 +23,17 @@ pre{white-space:pre-wrap;background:var(--card);border:1px solid var(--border);b
 <link rel="stylesheet" href="css/chromatic-console.css">
 </head>
 <body>
-<header><h1>Writing Workshop · 能力控制台</h1><div class="row"><span id="apiStatus" class="status">检测后端中...</span><a style="color:var(--muted)" href="docs.html">使用文档</a><a style="color:var(--muted)" href="app.html">返回工坊</a><button class="primary" onclick="document.body.classList.toggle('light')">主题</button></div></header>
+<header><h1>Writing Workshop · 本地服务控制台</h1><div class="row"><span id="apiStatus" class="status">检测本地服务中...</span><a style="color:var(--muted)" href="docs.html">使用文档</a><a style="color:var(--muted)" href="app.html">返回工坊</a><button class="primary" onclick="document.body.classList.toggle('light')">主题</button></div></header>
 <div class="wrap">
 <nav>
   <button class="tab active" onclick="showTab('config',this)">配置</button>
-  <button class="tab" onclick="showTab('projects',this)">项目</button>
-  <button class="tab" onclick="showTab('characters',this)">角色</button>
-  <button class="tab" onclick="showTab('rules',this)">规则</button>
-  <button class="tab" onclick="showTab('capabilities',this)">能力来源</button>
-  <button class="tab" onclick="showTab('external',this)">公开能力目录</button>
-  <button class="tab" onclick="showTab('skillpacks',this)">技能包</button>
-  <button class="tab" onclick="showTab('categories',this)">分类</button>
+  <button class="tab" data-requires-service onclick="showTab('projects',this)">服务端项目</button>
+  <button class="tab" data-requires-service onclick="showTab('characters',this)">服务端角色</button>
+  <button class="tab" data-requires-service onclick="showTab('rules',this)">服务端规则</button>
+  <button class="tab" data-requires-service onclick="showTab('capabilities',this)">后端能力</button>
+  <button class="tab" data-requires-service onclick="showTab('external',this)">外部能力目录</button>
+  <button class="tab" data-requires-service onclick="showTab('skillpacks',this)">后端技能包</button>
+  <button class="tab" data-requires-service onclick="showTab('categories',this)">后端分类</button>
   <button class="tab" onclick="showTab('test',this)">API 测试</button>
 </nav>
 <main>
@@ -235,18 +235,19 @@ async function detectAdminRuntime(){
 async function bootAdmin(){
   isPages=await detectAdminRuntime();
   if(isPages){
-    apiStatus.textContent='静态在线版 · 浏览器 API';
+    document.querySelectorAll('[data-requires-service]').forEach(element=>{element.hidden=true});
+    apiStatus.textContent='未连接本地服务 · 浏览器 API';
     configStorageHelp.textContent='静态托管模式：Provider、Model、Protocol、Base URL 和 API Key 保存在当前浏览器；模型测试直接请求目标接口，不会 POST /api/config。目标接口必须允许当前域名跨域访问。';
     await loadConfig();
-    showRuntimeNotice('<b>当前页面未检测到同源 Go 后端。</b> “模型与 API 配置”可使用浏览器本地 BYOK；后端项目、Skill、自定义能力和 SSE 仍需要本地或自部署 Go 服务。');
+    showRuntimeNotice('<b>这里不是 Writing Workshop 在线版的“后台”。</b> 当前没有检测到同源 Go 服务，因此只保留浏览器 API 配置与测试。项目、写作、Prompt Skill、导入导出都在<a href="app.html">写作工作台</a>完成；其余栏目只会在你自行部署并连接本地服务后出现。');
     return;
   }
   try{
     await loadAll();
-    apiStatus.textContent='后端已连接';
+    apiStatus.textContent='本地服务已连接';
   }catch(e){
-    apiStatus.textContent='后端未连接';
-    showRuntimeNotice('<b>后端 API 不可用。</b> 请确认已启动可兼容 <code>/api/</code> 的后端服务，并通过服务地址打开本页面。错误：<code>'+String(e.message).replace(/[<>&]/g,s=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[s]))+'</code>');
+    apiStatus.textContent='本地服务未连接';
+    showRuntimeNotice('<b>本地服务 API 不可用。</b> 请确认已启动本仓库的 Go 服务，并通过同一服务地址打开本页面。错误：<code>'+String(e.message).replace(/[<>&]/g,s=>({'<':'&lt;','>':'&gt;','&':'&amp;'}[s]))+'</code>');
   }
 }
 bootAdmin();

@@ -84,7 +84,7 @@
 
     <section class="section tint" id="run">
       <div class="site-shell">
-        <div class="section-heading"><span class="eyebrow">在线即可写作</span><h2>Pages 是正式在线站，后端是可选增强层。</h2><p>直接打开 GitHub Pages 就能管理浏览器本地项目、编辑、导入导出并配置浏览器 BYOK；服务端密钥托管、后端项目导入与 Skill 执行按需接入自部署后端。</p></div>
+        <div class="section-heading"><span class="eyebrow">在线即可写作</span><h2>Pages 就是完整的浏览器写作产品。</h2><p>直接打开 GitHub Pages 即可管理项目、编辑、导入导出、使用 Prompt Skill，并在工作台设置里配置浏览器 BYOK。只有服务端密钥托管、后端项目导入和后端 Skill 执行需要可选的自部署服务。</p></div>
         <div class="runtime-grid">
           <div class="code-card"><header><b>Docker · 60 秒启动</b><span>无需 API Key</span></header><pre><span class="cmd">git clone</span> https://github.com/zizegak916-glitch/writing-workshop.git
 <span class="cmd">cd</span> writing-workshop
@@ -93,8 +93,8 @@
 # 打开 http://127.0.0.1:8080/app.html</pre></div>
           <div class="mode-list">
             <div class="mode"><b>Pages 正式在线版</b><span>使用真实 HTTPS 公开域名，浏览器本地项目、笔记、编辑、分类和导入导出可直接使用。</span></div>
-            <div class="mode"><b>本地 Demo 模式</b><span>项目、能力和 API 闭环完整，无密钥即可验证。</span></div>
-            <div class="mode"><b>模型连接模式</b><span>后台配置 OpenAI 兼容 API、OpenRouter 或 Ollama。</span></div>
+            <div class="mode"><b>可选本地服务</b><span>需要服务端密钥托管、后端 Skill 或后端资料导入时，再用 Docker 启动。</span></div>
+            <div class="mode"><b>模型连接模式</b><span>在工作台“设置 → API”配置 OpenAI 兼容 API、OpenRouter、Anthropic 或 Ollama。</span></div>
           </div>
         </div>
       </div>
@@ -103,21 +103,21 @@
     <section class="section">
       <div class="site-shell">
         <div class="oss-strip">
-          <div class="oss-copy"><h3>为长期创作而开源</h3><p>Apache-2.0 · Go 同源后端 · 原生 Web 前端 · CI / Docker / Pages / Release 工作流。</p></div>
+          <div class="oss-copy"><h3>为长期创作而开源</h3><p>浏览器数据层 · 显式上下文 · Prompt Skill · 候选写入保护 · 可选 Go 本地服务。</p></div>
           <div class="oss-stat"><b>0</b><span>required cloud accounts</span></div>
           <div class="oss-stat"><b>SSE</b><span>stream + abort</span></div>
           <div class="oss-stat"><b>1 cmd</b><span>docker startup</span></div>
         </div>
-        <div class="star-ask">
+        <div class="feedback-ask">
           <img src="icons/app-icon.svg" alt="" aria-hidden="true">
-          <div><span class="eyebrow">Open source</span><h2>如果写作工坊帮到了你，欢迎点一颗 Star。</h2><p>您的支持是我们最大的动力。Star 不会解锁隐藏功能，只会让更多创作者看到这个项目。</p></div>
-          <a class="button star-button" href="https://github.com/zizegak916-glitch/writing-workshop" target="_blank" rel="noopener">去 GitHub 点 Star ★</a>
+          <div><span class="eyebrow">Open source</span><h2>遇到问题，请留下可复现的信息。</h2><p>运行方式、浏览器、操作步骤和脱敏错误，比模糊的“不能用”更能帮助项目变稳。</p></div>
+          <a class="button feedback-button" href="https://github.com/zizegak916-glitch/writing-workshop/issues" target="_blank" rel="noopener">提交 Issue ↗</a>
         </div>
         <div class="cta"><div><h2>让模型参与创作，但不接管作品。</h2><p>现在打开工作台，或用 Docker 启动完整的本地闭环。</p></div><a class="button" href="app.html">开始使用 →</a></div>
       </div>
     </section>
   </main>
 
-  <footer class="site-footer"><div class="site-shell footer-row"><span>© 2026 Writing Workshop · Apache-2.0</span><nav><a href="docs.html">文档</a><a href="admin.html">能力后台</a><a href="about.html">关于</a><a href="privacy.html">隐私</a><a href="https://linux.do/u/The_Fo0l">Linux DO · The_Fo0l</a><a href="https://github.com/zizegak916-glitch/writing-workshop">GitHub</a></nav></div></footer>
+  <footer class="site-footer"><div class="site-shell footer-row"><span>© 2026 Writing Workshop · Apache-2.0</span><nav><a href="docs.html">文档</a><a href="about.html">关于</a><a href="privacy.html">隐私</a><a href="https://github.com/zizegak916-glitch/writing-workshop/issues">反馈</a><a href="https://github.com/zizegak916-glitch/writing-workshop">GitHub</a></nav></div></footer>
 </body>
 </html>

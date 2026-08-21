@@ -20,6 +20,7 @@ body::before { content:"";position:fixed;inset:0;pointer-events:none;background:
 .project-selector { max-width:250px;background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.12); }
 .project-selector:hover { background:rgba(255,255,255,.11);border-color:var(--accent); }
 .topbar-actions .icon-btn { border-color:rgba(255,255,255,.06);background:rgba(255,255,255,.035); }
+.topbar-actions .icon-btn[hidden]{display:none!important}
 .topbar-actions .icon-btn:nth-child(1){color:#ff9a8f}.topbar-actions .icon-btn:nth-child(2){color:#f2c762;width:auto;padding:0 10px;font-size:11px}.topbar-actions .icon-btn:nth-child(3){color:#c3b1f0}.topbar-actions .icon-btn:nth-child(4){color:#7bd8b2}.topbar-actions .icon-btn:nth-child(5){color:#8fc7ef}
 .main-body { gap:8px;padding:8px;background:transparent; }
 .sidebar { border:1px solid rgba(255,255,255,.09);border-radius:17px;background:rgba(20,29,54,.88);box-shadow:var(--shadow-md);backdrop-filter:blur(18px); }
