@@ -42,6 +42,8 @@
 
 ## 验证状态
 
+GitHub PR #16 的 [CI 32591059710](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/32591059710) 已通过完整检查：`go test ./...`、`go vet ./...`、发布二进制构建、JavaScript 语法、静态产品契约、API 适配器契约、离线服务 smoke 和 Chromium Playwright 产品闭环。它是仓库自动化自测，不是第三方审计或真实供应商网络验证。
+
 本地已通过：
 
 - `go test ./internal/engine/... ./internal/corpus ./internal/bootstrap ./internal/rules ./internal/entry/tui ./internal/host/flow ./internal/agents/ctxpack`
@@ -51,17 +53,17 @@
 - `node tests/api-adapter.test.mjs`
 - 原生二进制构建与 demo 启动
 
-本地受执行环境限制未完成：
+本地受执行环境限制未完成、但已由上述 GitHub CI 完成：
 
 - 含 loopback `httptest.NewServer` 的完整 `go test ./...`；
 - Playwright 浏览器端到端测试；
 - Docker 构建。
 
-上述三项只有 GitHub Actions 成功后才能写进发布证据。`go mod tidy` 也因离线模块缓存缺少依赖测试包未完成；当前模块可编译，但 CI 仍需验证完整模块图。
+本地 `go mod tidy` 因离线模块缓存缺少依赖测试包未完成；GitHub CI 已从联网环境下载完整模块图并通过全量测试与构建。Docker 镜像仍要等版本标签触发的独立工作流，不能由本轮 PR CI 代替。
 
 ## 下一步，不再堆功能
 
-1. 让 CI/Pages 全绿，处理任何迁移或浏览器回归。
+1. 合并 PR 后验证 main CI、Pages 与正式页面，再决定是否发布 v0.3.0。
 2. 让 3–5 位真实用户使用核心闭环，不收私稿，只收复现步骤与脱敏日志。
 3. 补原生 CLI 真流式，再决定是否推进 Skill 沙箱。
 4. 对大项目先做增量资料摄取与缓存，不再增加同类功能按钮。
