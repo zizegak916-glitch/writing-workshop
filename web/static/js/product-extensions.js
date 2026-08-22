@@ -244,7 +244,7 @@
       dbByIndex('aiHistory', 'project_id', id)
     ]);
     return {
-      version: 5,
+      version: 6,
       exported_at: new Date().toISOString(),
       project,
       outlines,
@@ -254,7 +254,8 @@
       memories,
       history,
       categories: getCategories(),
-      prompt_skills: window.wwPromptSkillsExport?.() || null
+      prompt_skills: window.wwPromptSkillsExport?.() || null,
+      corpus: window.wwCorpusExport?.() || null
     };
   }
 

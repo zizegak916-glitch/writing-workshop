@@ -4,14 +4,14 @@
 #   curl -fsSL https://raw.githubusercontent.com/zizegak916-glitch/writing-workshop/main/scripts/install.sh | sh
 #   curl -fsSL https://raw.githubusercontent.com/zizegak916-glitch/writing-workshop/main/scripts/install.sh | sh -s -- v0.1.0
 #
-# 自定义安装目录： AINOVEL_INSTALL_DIR=~/.local/bin curl -fsSL ... | sh
-# 指定版本：AINOVEL_VERSION=v1.2.3 curl -fsSL ... | sh
+# 自定义安装目录： WRITING_WORKSHOP_INSTALL_DIR=~/.local/bin curl -fsSL ... | sh
+# 指定版本：WRITING_WORKSHOP_VERSION=v0.3.0 curl -fsSL ... | sh
 set -e
 
 REPO="zizegak916-glitch/writing-workshop"
 BIN="writing-workshop"
-DEST="${AINOVEL_INSTALL_DIR:-/usr/local/bin}"
-VERSION="${AINOVEL_VERSION:-${1:-latest}}"
+DEST="${WRITING_WORKSHOP_INSTALL_DIR:-${AINOVEL_INSTALL_DIR:-/usr/local/bin}}"
+VERSION="${WRITING_WORKSHOP_VERSION:-${AINOVEL_VERSION:-${1:-latest}}}"
 
 for cmd in curl tar; do
 	command -v "$cmd" >/dev/null 2>&1 || { echo "需要 $cmd，请先安装后重试"; exit 1; }

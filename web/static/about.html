@@ -18,9 +18,9 @@
         <section class="doc-card"><h3>开放协作</h3><p>项目采用 Apache-2.0 许可证，包含 Go 同源后端、原生 Web 前端、协议文档、CI、Docker、Pages 与发布工作流。</p></section>
       </div>
       <h2>归属与运行边界</h2>
-      <p>Writing Workshop 是本仓库独立维护的 Web 写作产品。GitHub Pages 是公开托管方式；仓库随附的 Go 服务是建立在已署名上游引擎上的可选连接器；模型厂商、上游作者、GitHub 与任何论坛社区都不是本产品的一部分。静态在线版可使用浏览器 BYOK，自部署版则通过同源 <code>/api/</code> 托管密钥并运行后端 Skill。完整边界见 <a href="https://github.com/zizegak916-glitch/writing-workshop/blob/main/docs/PRODUCT_BOUNDARY.md">产品归属说明</a>。</p>
+      <p>Writing Workshop 是本仓库独立维护的写作产品。GitHub Pages 是公开托管方式；仓库随附的原生 Go 引擎与本地服务负责同源 API、密钥托管、后端 Skill 和授权语料聚合分析。模型厂商、GitHub 与任何论坛社区都不是本产品的一部分。完整边界见 <a href="https://github.com/zizegak916-glitch/writing-workshop/blob/main/docs/PRODUCT_BOUNDARY.md">产品归属说明</a>。</p>
       <h2>外部社区与上游</h2>
-      <p>感谢 <a href="https://linux.do/">LINUX DO</a> 佬友曾提供交流与反馈环境；它是外部社区，不是 Writing Workshop 的后台、官网、客服或所有者。底层 Go 写作引擎源自 Apache-2.0 许可的 <a href="https://github.com/voocel/ainovel-cli">voocel/ainovel-cli</a>，本仓库保留许可证、署名与历史。</p>
+      <p>感谢 <a href="https://linux.do/">LINUX DO</a> 佬友曾提供交流与反馈环境；它是外部社区，不是 Writing Workshop 的后台、官网、客服或所有者。仓库最初 fork 自 Apache-2.0 许可的 <a href="https://github.com/voocel/ainovel-cli">voocel/ainovel-cli</a>，许可证、署名和历史继续保留；当前 <code>internal/engine</code> 已不再导入早期的 agentcore/litellm 运行时依赖。</p>
       <h2>参与项目</h2>
       <p>查看 <a href="https://github.com/zizegak916-glitch/writing-workshop">GitHub 仓库</a>、<a href="https://github.com/zizegak916-glitch/writing-workshop/issues">公开 Issues</a> 与 <a href="https://github.com/zizegak916-glitch/writing-workshop/blob/main/CONTRIBUTING.md">贡献指南</a>。完整使用方式见 <a href="docs.html">产品文档</a>。</p>
     </article>

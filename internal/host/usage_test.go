@@ -3,17 +3,17 @@ package host
 import (
 	"testing"
 
-	"github.com/voocel/agentcore"
+	"github.com/zizegak916-glitch/writing-workshop/internal/engine"
 	"github.com/zizegak916-glitch/writing-workshop/internal/models"
 )
 
 // makeUsageMsg 构造一条 OnMessage 回调能接受的消息（带 Usage）。
 // Role 必须显式置成 assistant：UsageTracker.Record 现在按角色筛，
 // 只有 assistant 消息才会被累计（其它角色天然不带 usage）。
-func makeUsageMsg(input, cacheRead, cacheWrite, output int) agentcore.AgentMessage {
-	return agentcore.Message{
-		Role: agentcore.RoleAssistant,
-		Usage: &agentcore.Usage{
+func makeUsageMsg(input, cacheRead, cacheWrite, output int) engine.AgentMessage {
+	return engine.Message{
+		Role: engine.RoleAssistant,
+		Usage: &engine.Usage{
 			Input: input, Output: output, CacheRead: cacheRead, CacheWrite: cacheWrite,
 		},
 	}
@@ -100,9 +100,9 @@ func Test_UsageTracker_ArchitectAliasNormalized(t *testing.T) {
 
 func Test_UsageTracker_PerModelAccumulates(t *testing.T) {
 	tk := NewUsageTracker(nil, nil)
-	tk.accumulate("writer", "openrouter", "model-a", agentcore.Usage{Input: 1000, Output: 200, CacheRead: 700})
-	tk.accumulate("editor", "openrouter", "model-b", agentcore.Usage{Input: 500, Output: 100})
-	tk.accumulate("writer", "openrouter", "model-a", agentcore.Usage{Input: 300, Output: 80, CacheRead: 200})
+	tk.accumulate("writer", "openrouter", "model-a", engine.Usage{Input: 1000, Output: 200, CacheRead: 700})
+	tk.accumulate("editor", "openrouter", "model-b", engine.Usage{Input: 500, Output: 100})
+	tk.accumulate("writer", "openrouter", "model-a", engine.Usage{Input: 300, Output: 80, CacheRead: 200})
 
 	perModel := tk.PerModel()
 	if len(perModel) != 2 {
@@ -129,9 +129,9 @@ func Test_UsageTracker_PerModelAccumulates(t *testing.T) {
 
 func Test_UsageTracker_RecordUsesActualUsageModel(t *testing.T) {
 	tk := NewUsageTracker(nil, nil)
-	tk.Record("writer", agentcore.Message{
-		Role: agentcore.RoleAssistant,
-		Usage: &agentcore.Usage{
+	tk.Record("writer", engine.Message{
+		Role: engine.RoleAssistant,
+		Usage: &engine.Usage{
 			Provider: "openrouter",
 			Model:    "google/gemini-2.5-pro",
 			Input:    1000,
@@ -153,9 +153,9 @@ func Test_UsageTracker_RecordUsesActualUsageModel(t *testing.T) {
 
 func Test_UsageTracker_ProviderOnlyDoesNotInventModelKey(t *testing.T) {
 	tk := NewUsageTracker(nil, nil)
-	tk.Record("writer", agentcore.Message{
-		Role: agentcore.RoleAssistant,
-		Usage: &agentcore.Usage{
+	tk.Record("writer", engine.Message{
+		Role: engine.RoleAssistant,
+		Usage: &engine.Usage{
 			Provider: "openrouter",
 			Input:    1000,
 			Output:   200,
@@ -213,31 +213,31 @@ func Test_UsageTracker_RecentWindowReflectsLatest(t *testing.T) {
 func Test_computeSaved(t *testing.T) {
 	cases := []struct {
 		name  string
-		usage agentcore.Usage
+		usage engine.Usage
 		entry models.ModelEntry
 		want  float64
 	}{
 		{
 			name:  "anthropic 5m 命中节省 90%",
-			usage: agentcore.Usage{Input: 100_000, CacheRead: 80_000},
+			usage: engine.Usage{Input: 100_000, CacheRead: 80_000},
 			entry: models.ModelEntry{InputCostPer1M: 3.0, CacheReadCostPer1M: 0.3},
 			want:  80_000 * (3.0 - 0.3) / 1_000_000, // 0.216
 		},
 		{
 			name:  "无命中 saved=0",
-			usage: agentcore.Usage{Input: 100_000, CacheRead: 0},
+			usage: engine.Usage{Input: 100_000, CacheRead: 0},
 			entry: models.ModelEntry{InputCostPer1M: 3.0, CacheReadCostPer1M: 0.3},
 			want:  0,
 		},
 		{
 			name:  "模型未标价 saved=0",
-			usage: agentcore.Usage{Input: 100_000, CacheRead: 50_000},
+			usage: engine.Usage{Input: 100_000, CacheRead: 50_000},
 			entry: models.ModelEntry{InputCostPer1M: 0, CacheReadCostPer1M: 0},
 			want:  0,
 		},
 		{
 			name:  "异常价差 saved=0",
-			usage: agentcore.Usage{Input: 100_000, CacheRead: 50_000},
+			usage: engine.Usage{Input: 100_000, CacheRead: 50_000},
 			entry: models.ModelEntry{InputCostPer1M: 1.0, CacheReadCostPer1M: 2.0}, // 缓存反而更贵
 			want:  0,
 		},
@@ -302,10 +302,10 @@ func Test_UsageTracker_PerAgentSkipsZero(t *testing.T) {
 func Test_UsageTracker_MissingAssistantUsageCounted(t *testing.T) {
 	tk := NewUsageTracker(nil, nil)
 
-	withContent := func(text string) agentcore.Message {
-		return agentcore.Message{
-			Role:    agentcore.RoleAssistant,
-			Content: []agentcore.ContentBlock{agentcore.TextBlock(text)},
+	withContent := func(text string) engine.Message {
+		return engine.Message{
+			Role:    engine.RoleAssistant,
+			Content: []engine.ContentBlock{engine.TextBlock(text)},
 		}
 	}
 
@@ -313,10 +313,10 @@ func Test_UsageTracker_MissingAssistantUsageCounted(t *testing.T) {
 	tk.Record("writer", withContent("hi"))
 	tk.Record("writer", withContent("again"))
 	// assistant 但 Content 为空 → 异常恢复路径或占位消息，不算 missing
-	tk.Record("writer", agentcore.Message{Role: agentcore.RoleAssistant})
+	tk.Record("writer", engine.Message{Role: engine.RoleAssistant})
 	// user/tool 消息天然不携带 usage，无论 Content 是否为空都不算 missing
-	tk.Record("writer", agentcore.Message{Role: agentcore.RoleUser, Content: []agentcore.ContentBlock{agentcore.TextBlock("u")}})
-	tk.Record("writer", agentcore.Message{Role: agentcore.RoleTool, Content: []agentcore.ContentBlock{agentcore.TextBlock("t")}})
+	tk.Record("writer", engine.Message{Role: engine.RoleUser, Content: []engine.ContentBlock{engine.TextBlock("u")}})
+	tk.Record("writer", engine.Message{Role: engine.RoleTool, Content: []engine.ContentBlock{engine.TextBlock("t")}})
 	// 正常带 usage → 走累加路径，不计入诊断
 	tk.Record("writer", makeUsageMsg(100, 50, 0, 20))
 
@@ -330,7 +330,7 @@ func Test_UsageTracker_MissingAssistantUsageCounted(t *testing.T) {
 }
 
 // Test_UsageTracker_CacheCapableFromFacts 验证 CacheCapable 在注册表查不到该模型时
-// 仍能根据"事实"标记为 true：自建 / 国内代理后端的模型经常不在 BerriAI/litellm
+// 仍能根据“事实”标记为 true：自建 / 国内代理后端的模型经常不在内置价格目录
 // 的 pricing 索引里，resolveCost 返回 capable=false；但只要 backend 真的返回了
 // CacheRead 或 CacheWrite > 0，就证明该模型客观支持 prompt cache，per-role 行
 // 不该显示"未启用"。
@@ -363,9 +363,9 @@ func Test_UsageTracker_CacheCapableFromFacts(t *testing.T) {
 func Test_UsageTracker_AccumulatesAnyRoleWithUsage(t *testing.T) {
 	tk := NewUsageTracker(nil, nil)
 	// 构造一条理论上不太常见的、带 Usage 的非 assistant 消息
-	hypothetical := agentcore.Message{
-		Role:  agentcore.RoleSystem,
-		Usage: &agentcore.Usage{Input: 200, Output: 50, CacheRead: 100},
+	hypothetical := engine.Message{
+		Role:  engine.RoleSystem,
+		Usage: &engine.Usage{Input: 200, Output: 50, CacheRead: 100},
 	}
 	tk.Record("writer", hypothetical)
 
@@ -385,10 +385,10 @@ func Test_UsageTracker_OnCostCallback(t *testing.T) {
 	var got []float64
 	tk.SetOnCost(func(total float64) { got = append(got, total) })
 
-	msg := func(cost float64) agentcore.AgentMessage {
-		return agentcore.Message{
-			Role:  agentcore.RoleAssistant,
-			Usage: &agentcore.Usage{Input: 100, Output: 10, Cost: &agentcore.Cost{Total: cost}},
+	msg := func(cost float64) engine.AgentMessage {
+		return engine.Message{
+			Role:  engine.RoleAssistant,
+			Usage: &engine.Usage{Input: 100, Output: 10, Cost: &engine.Cost{Total: cost}},
 		}
 	}
 	tk.Record("writer", msg(0.5))
@@ -405,7 +405,7 @@ func Test_UsageTracker_OnMissingUsageOnce(t *testing.T) {
 	fired := 0
 	tk.SetOnMissingUsage(func() { fired++ })
 
-	noUsage := agentcore.Message{Role: agentcore.RoleAssistant, Content: []agentcore.ContentBlock{agentcore.TextBlock("正文")}}
+	noUsage := engine.Message{Role: engine.RoleAssistant, Content: []engine.ContentBlock{engine.TextBlock("正文")}}
 	tk.Record("writer", noUsage)
 	tk.Record("writer", noUsage)
 	tk.Record("editor", noUsage)

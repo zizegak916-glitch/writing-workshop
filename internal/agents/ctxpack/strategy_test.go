@@ -5,9 +5,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/voocel/agentcore"
-	corecontext "github.com/voocel/agentcore/context"
 	"github.com/zizegak916-glitch/writing-workshop/internal/domain"
+	"github.com/zizegak916-glitch/writing-workshop/internal/engine"
+	corecontext "github.com/zizegak916-glitch/writing-workshop/internal/engine/context"
 	storepkg "github.com/zizegak916-glitch/writing-workshop/internal/store"
 )
 
@@ -19,16 +19,16 @@ func TestStoreSummaryCompactApplyUsesPersistentStoreData(t *testing.T) {
 		SummaryTokenBudget: 2000,
 	})
 
-	msgs := []agentcore.AgentMessage{
-		agentcore.UserMsg(strings.Repeat("旧上下文", 80)),
-		agentcore.Message{
-			Role:    agentcore.RoleAssistant,
-			Content: []agentcore.ContentBlock{agentcore.TextBlock(strings.Repeat("旧回复", 80))},
+	msgs := []engine.AgentMessage{
+		engine.UserMsg(strings.Repeat("旧上下文", 80)),
+		engine.Message{
+			Role:    engine.RoleAssistant,
+			Content: []engine.ContentBlock{engine.TextBlock(strings.Repeat("旧回复", 80))},
 		},
-		agentcore.UserMsg("继续写第三章，注意承接第二章结尾。"),
-		agentcore.Message{
-			Role:    agentcore.RoleAssistant,
-			Content: []agentcore.ContentBlock{agentcore.TextBlock("收到，我先梳理当前场景。")},
+		engine.UserMsg("继续写第三章，注意承接第二章结尾。"),
+		engine.Message{
+			Role:    engine.RoleAssistant,
+			Content: []engine.ContentBlock{engine.TextBlock("收到，我先梳理当前场景。")},
 		},
 	}
 
@@ -89,11 +89,11 @@ func TestStoreSummaryCompactApplyFallsBackWhenStoreDataInsufficient(t *testing.T
 	}
 
 	strategy := NewStoreSummaryCompact(StoreSummaryCompactConfig{Store: s, KeepRecentTokens: 20})
-	msgs := []agentcore.AgentMessage{
-		agentcore.UserMsg(strings.Repeat("旧上下文", 40)),
-		agentcore.Message{
-			Role:    agentcore.RoleAssistant,
-			Content: []agentcore.ContentBlock{agentcore.TextBlock(strings.Repeat("旧回复", 40))},
+	msgs := []engine.AgentMessage{
+		engine.UserMsg(strings.Repeat("旧上下文", 40)),
+		engine.Message{
+			Role:    engine.RoleAssistant,
+			Content: []engine.ContentBlock{engine.TextBlock(strings.Repeat("旧回复", 40))},
 		},
 	}
 

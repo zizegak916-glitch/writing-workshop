@@ -1,12 +1,16 @@
 Writing Workshop
 
-This project includes and modifies code from ainovel-cli:
+This repository began as a fork and derivative of ainovel-cli:
 https://github.com/voocel/ainovel-cli
 
-The upstream project and this derivative work are distributed under the
-Apache License, Version 2.0.
-Original copyright notices are preserved in LICENSE and source history.
+The upstream work and this repository are distributed under the Apache License,
+Version 2.0. Original copyright notices, license terms, and Git history are
+preserved. Replacing a current runtime dependency does not retroactively remove
+attribution for historical or derived portions of the repository.
 
-Writing Workshop-specific additions include the browser workshop product layer,
-explicit context workflows, capability manifests, confirmation-before-write flows,
-and project-owned packaging, CI, documentation, and release infrastructure.
+The current Writing Workshop runtime in internal/engine is maintained in this
+repository and the current Go module/import graph does not depend on the former
+agentcore or litellm modules. Writing Workshop-specific work also includes the
+browser product, explicit context and confirmation-before-write workflows,
+capability protocol, authorized corpus calibration, packaging, tests,
+documentation, and release infrastructure.

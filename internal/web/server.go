@@ -17,10 +17,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/voocel/agentcore"
-	"github.com/voocel/agentcore/llm"
 	"github.com/zizegak916-glitch/writing-workshop/internal/bootstrap"
 	"github.com/zizegak916-glitch/writing-workshop/internal/domain"
+	"github.com/zizegak916-glitch/writing-workshop/internal/engine"
+	"github.com/zizegak916-glitch/writing-workshop/internal/engine/llm"
 	"github.com/zizegak916-glitch/writing-workshop/internal/host"
 	"github.com/zizegak916-glitch/writing-workshop/internal/rules"
 	storepkg "github.com/zizegak916-glitch/writing-workshop/internal/store"
@@ -132,6 +132,10 @@ func (s *Server) routes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/models", s.handleModels)
 	mux.HandleFunc("POST /api/models/switch", s.handleSwitchModel)
 	mux.HandleFunc("POST /api/style/check", s.handleStyleCheck)
+	mux.HandleFunc("GET /api/corpus", s.handleCorpus)
+	mux.HandleFunc("POST /api/corpus", s.handleCorpus)
+	mux.HandleFunc("DELETE /api/corpus", s.handleCorpus)
+	mux.HandleFunc("POST /api/corpus/refinements", s.handleCorpusRefinements)
 }
 
 func (s *Server) handleHealth(w http.ResponseWriter, _ *http.Request) {
@@ -175,7 +179,7 @@ func (s *Server) handleConfig(w http.ResponseWriter, r *http.Request) {
 			"config":     cfg,
 			"configPath": bootstrap.DefaultConfigPath(),
 			"env": map[string]string{
-				"api_key_pattern": "AINOVEL_<PROVIDER>_API_KEY 或 <PROVIDER>_API_KEY",
+				"api_key_pattern": "WRITING_WORKSHOP_<PROVIDER>_API_KEY 或 <PROVIDER>_API_KEY（兼容旧 AINOVEL_ 前缀）",
 			},
 		})
 	case http.MethodPost, http.MethodPut:
@@ -573,16 +577,16 @@ func (s *Server) handleAI(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func decodeAIRequest(r *http.Request) (aiRequest, []agentcore.Message, error) {
+func decodeAIRequest(r *http.Request) (aiRequest, []engine.Message, error) {
 	var req aiRequest
 	if err := readJSON(r, &req); err != nil {
 		return req, nil, err
 	}
 	messages := convertAIMessages(req.Messages)
 	if len(messages) == 0 && strings.TrimSpace(req.Message) != "" {
-		messages = []agentcore.Message{{
-			Role:    agentcore.RoleUser,
-			Content: []agentcore.ContentBlock{agentcore.TextBlock(strings.TrimSpace(req.Message))},
+		messages = []engine.Message{{
+			Role:    engine.RoleUser,
+			Content: []engine.ContentBlock{engine.TextBlock(strings.TrimSpace(req.Message))},
 		}}
 	}
 	if len(messages) == 0 {
@@ -599,7 +603,7 @@ func (s *Server) aiRequestContext(parent context.Context, provider string) (cont
 	return context.WithTimeout(parent, timeout)
 }
 
-func (s *Server) generateAIStream(ctx context.Context, provider, modelName string, messages []agentcore.Message, onDelta func(string)) (string, *agentcore.Usage, error) {
+func (s *Server) generateAIStream(ctx context.Context, provider, modelName string, messages []engine.Message, onDelta func(string)) (string, *engine.Usage, error) {
 	resolved, err := s.resolveAIProvider(provider, modelName)
 	if err != nil {
 		return "", nil, err
@@ -624,18 +628,18 @@ func (s *Server) generateAIStream(ctx context.Context, provider, modelName strin
 		return text, resp.Message.Usage, nil
 	}
 	var text strings.Builder
-	var usage *agentcore.Usage
+	var usage *engine.Usage
 	streamed := false
 	for event := range stream {
 		switch event.Type {
-		case agentcore.StreamEventTextDelta:
+		case engine.StreamEventTextDelta:
 			if event.Delta == "" {
 				continue
 			}
 			streamed = true
 			text.WriteString(event.Delta)
 			onDelta(event.Delta)
-		case agentcore.StreamEventDone:
+		case engine.StreamEventDone:
 			usage = event.Message.Usage
 			if !streamed {
 				if final := event.Message.TextContent(); final != "" {
@@ -643,7 +647,7 @@ func (s *Server) generateAIStream(ctx context.Context, provider, modelName strin
 					onDelta(final)
 				}
 			}
-		case agentcore.StreamEventError:
+		case engine.StreamEventError:
 			if event.Err != nil {
 				return text.String(), usage, event.Err
 			}
@@ -1026,7 +1030,7 @@ func cloneAnyMap(source map[string]any) map[string]any {
 }
 
 func (s *Server) webRulesPath() string {
-	return filepath.Join(s.store.Dir(), ".ainovel", "rules", "web.rules.md")
+	return filepath.Join(s.store.Dir(), ".writing-workshop", "rules", "web.rules.md")
 }
 
 func (s *Server) loadWebRules() (string, error) {
@@ -1166,7 +1170,7 @@ func (s *Server) currentProject() (*projectPayload, error) {
 	}, nil
 }
 
-func (s *Server) aiModel(provider, modelName string) (agentcore.ChatModel, string, string, error) {
+func (s *Server) aiModel(provider, modelName string) (engine.ChatModel, string, string, error) {
 	cfg := s.host.Config()
 	provider = strings.TrimSpace(provider)
 	modelName = strings.TrimSpace(modelName)
@@ -1200,16 +1204,16 @@ func (s *Server) aiModel(provider, modelName string) (agentcore.ChatModel, strin
 	return m, provider, modelName, nil
 }
 
-func convertAIMessages(in []aiMessage) []agentcore.Message {
-	out := make([]agentcore.Message, 0, len(in))
+func convertAIMessages(in []aiMessage) []engine.Message {
+	out := make([]engine.Message, 0, len(in))
 	for _, msg := range in {
 		text := contentText(msg.Content)
 		if strings.TrimSpace(text) == "" {
 			continue
 		}
-		out = append(out, agentcore.Message{
+		out = append(out, engine.Message{
 			Role:    toAgentRole(msg.Role),
-			Content: []agentcore.ContentBlock{agentcore.TextBlock(text)},
+			Content: []engine.ContentBlock{engine.TextBlock(text)},
 		})
 	}
 	return out
@@ -1235,34 +1239,34 @@ func contentText(v any) string {
 	}
 }
 
-func toAgentRole(role string) agentcore.Role {
+func toAgentRole(role string) engine.Role {
 	switch strings.ToLower(strings.TrimSpace(role)) {
 	case "assistant":
-		return agentcore.RoleAssistant
+		return engine.RoleAssistant
 	case "system":
-		return agentcore.RoleSystem
+		return engine.RoleSystem
 	case "tool":
-		return agentcore.RoleTool
+		return engine.RoleTool
 	default:
-		return agentcore.RoleUser
+		return engine.RoleUser
 	}
 }
 
-func usageInput(u *agentcore.Usage) int {
+func usageInput(u *engine.Usage) int {
 	if u == nil {
 		return 0
 	}
 	return u.Input
 }
 
-func usageOutput(u *agentcore.Usage) int {
+func usageOutput(u *engine.Usage) int {
 	if u == nil {
 		return 0
 	}
 	return u.Output
 }
 
-func usageTotal(u *agentcore.Usage) int {
+func usageTotal(u *engine.Usage) int {
 	if u == nil {
 		return 0
 	}
@@ -1341,7 +1345,7 @@ func containsString(values []string, target string) bool {
 
 func providerAPIKeyFromEnv(provider string) string {
 	key := strings.ToUpper(strings.NewReplacer("-", "_", ".", "_").Replace(strings.TrimSpace(provider)))
-	for _, name := range []string{"AINOVEL_" + key + "_API_KEY", key + "_API_KEY"} {
+	for _, name := range []string{"WRITING_WORKSHOP_" + key + "_API_KEY", key + "_API_KEY", "AINOVEL_" + key + "_API_KEY"} {
 		if value := strings.TrimSpace(os.Getenv(name)); value != "" {
 			return value
 		}

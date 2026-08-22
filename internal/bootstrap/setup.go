@@ -13,7 +13,7 @@ import (
 	"github.com/zizegak916-glitch/writing-workshop/internal/utils"
 )
 
-// exampleConfig 是引导后写入 ~/.ainovel/config.example.jsonc 的带注释模板。
+// exampleConfig 是引导后写入 ~/.writing-workshop/config.example.jsonc 的带注释模板。
 // 单一数据源：直接嵌入同目录的 config.example.jsonc，避免与文档样本漂移。
 //
 //go:embed config.example.jsonc
@@ -30,7 +30,15 @@ func NeedsSetup(flagPath string) bool {
 			return false
 		}
 	}
+	if p := legacyDefaultConfigPath(); p != "" {
+		if _, err := os.Stat(p); err == nil {
+			return false
+		}
+	}
 	if _, err := os.Stat(projectConfigPath()); err == nil {
+		return false
+	}
+	if _, err := os.Stat(legacyProjectConfigPath()); err == nil {
 		return false
 	}
 	return true

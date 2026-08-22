@@ -6,13 +6,13 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/voocel/agentcore"
+	"github.com/zizegak916-glitch/writing-workshop/internal/engine"
 	storepkg "github.com/zizegak916-glitch/writing-workshop/internal/store"
 )
 
 // Dispatcher 在子代理返回的同步工具边界计算路由并下达 Host 指令。
 type Dispatcher struct {
-	coordinator *agentcore.Agent
+	coordinator *engine.Agent
 	store       *storepkg.Store
 
 	enabled atomic.Bool // 由 Host 控制是否派发（启动完成前应关）
@@ -38,7 +38,7 @@ type Dispatcher struct {
 const repeatNotifyAt = 3
 
 // NewDispatcher 创建 Dispatcher。
-func NewDispatcher(coordinator *agentcore.Agent, store *storepkg.Store) *Dispatcher {
+func NewDispatcher(coordinator *engine.Agent, store *storepkg.Store) *Dispatcher {
 	d := &Dispatcher{coordinator: coordinator, store: store}
 	return d
 }
@@ -71,7 +71,7 @@ func (d *Dispatcher) Dispatch() {
 	}
 	msg := formatDispatchMessage(inst, n)
 	slog.Debug("flow router dispatch", "module", "host.flow", "agent", inst.Agent, "reason", inst.Reason, "repeat", n)
-	d.coordinator.Steer(agentcore.UserMsg(msg))
+	d.coordinator.Steer(engine.UserMsg(msg))
 }
 
 // formatDispatchMessage 组装下达给 Coordinator 的指令消息。

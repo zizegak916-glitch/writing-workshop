@@ -10,6 +10,7 @@ function dbByIndex(s,f,v){return new Promise((r,j)=>{const t=db.transaction(s,'r
 
 // ═══ Writing Workshop runtime and backend bridge ═══
 let WW_BROWSER_API_MODE=location.hostname.endsWith('github.io')||new URLSearchParams(location.search).get('api_mode')==='browser';
+window.wwUsesBrowserStorage=()=>WW_BROWSER_API_MODE;
 function syncServiceEntryVisibility(){
   for(const id of ['serviceConsoleBtn','workflowServiceLink']){
     const element=document.getElementById(id);
@@ -2456,7 +2457,7 @@ async function loadProject(id){
   showToast('📁',p.name);
   return true;
 }
-async function createProject(){const name=document.getElementById('newProjectName').value.trim();if(!name){showToast('✕',t('toast-enter-name'));return;}if(!(await flushActiveDocument()))return;const g=[...document.querySelectorAll('#genreGrid .genre-chip.on')].map(e=>e.textContent),now=Date.now();const id=await importProjectBundleAtomic({version:5,project:{name,genre:g[0]||t('genre-uncategorized'),description:document.getElementById('newProjectDesc').value.trim(),world_setting:document.getElementById('newProjectWorld').value.trim(),goal:parseInt(document.getElementById('dailyGoal').value)||2000,created_at:now,updated_at:now},outlines:[{title:t('default-chapter-title'),content:'',sort_order:0,created_at:now}],characters:[],chapters:[],notes:[],memories:[],history:[],categories:[]});closeModal('newProjectModal');await loadProjects();await loadProject(id);showToast('📁',t('toast-created')+': '+name);document.getElementById('newProjectName').value='';}
+async function createProject(){const name=document.getElementById('newProjectName').value.trim();if(!name){showToast('✕',t('toast-enter-name'));return;}if(!(await flushActiveDocument()))return;const g=[...document.querySelectorAll('#genreGrid .genre-chip.on')].map(e=>e.textContent),now=Date.now();const id=await importProjectBundleAtomic({version:6,project:{name,genre:g[0]||t('genre-uncategorized'),description:document.getElementById('newProjectDesc').value.trim(),world_setting:document.getElementById('newProjectWorld').value.trim(),goal:parseInt(document.getElementById('dailyGoal').value)||2000,created_at:now,updated_at:now},outlines:[{title:t('default-chapter-title'),content:'',sort_order:0,created_at:now}],characters:[],chapters:[],notes:[],memories:[],history:[],categories:[]});closeModal('newProjectModal');await loadProjects();await loadProject(id);showToast('📁',t('toast-created')+': '+name);document.getElementById('newProjectName').value='';}
 async function selectProjectFromList(id){if(await loadProject(id))closeModal('projectModal');}
 function renderProjectList(){const el=document.getElementById('projectList');if(!S.projects.length){el.innerHTML='<div style="text-align:center;padding:30px;color:var(--text-muted)">'+t('ps-none')+'</div>';return;}el.innerHTML=S.projects.map(p=>'<div class="project-list-item" onclick="selectProjectFromList('+Number(p.id)+')"><div class="pli-name">'+escapeHtml(p.name)+'</div><div class="pli-meta">'+escapeHtml(p.genre)+' · '+new Date(p.created_at).toLocaleDateString(currentLang)+'</div></div>').join('');}
 async function exportProject(){
@@ -2464,7 +2465,7 @@ async function exportProject(){
   if(!(await flushActiveDocument()))return;
   const projectId=S.proj.project.id;
   const history=await dbByIndex('aiHistory','project_id',projectId);
-  const d={version:5,exported_at:new Date().toISOString(),project:S.proj.project,outlines:S.proj.outlines,characters:S.proj.characters,chapters:S.proj.chapters,notes:S.proj.notes||[],memories:S.aiMemories.filter(m=>m.project_id===projectId),history,categories:window.wwCategoriesExport?.()||[],prompt_skills:window.wwPromptSkillsExport?.()||null};
+  const d={version:6,exported_at:new Date().toISOString(),project:S.proj.project,outlines:S.proj.outlines,characters:S.proj.characters,chapters:S.proj.chapters,notes:S.proj.notes||[],memories:S.aiMemories.filter(m=>m.project_id===projectId),history,categories:window.wwCategoriesExport?.()||[],prompt_skills:window.wwPromptSkillsExport?.()||null,corpus:window.wwCorpusExport?.()||null};
   const b=new Blob([JSON.stringify(d,null,2)],{type:'application/json'}),a=document.createElement('a'),url=URL.createObjectURL(b);
   a.href=url;
   a.download=(S.proj.project.name||t('default-doc-title'))+'.json';
@@ -2482,9 +2483,9 @@ const MAX_PROJECT_BUNDLE_ENTRIES=20000;
 function migrateProjectBundle(data){
   if(!data||typeof data!=='object'||Array.isArray(data))throw new Error('无效的项目备份');
   const sourceVersion=Number.isInteger(Number(data.version))?Number(data.version):1;
-  if(sourceVersion<1||sourceVersion>5)throw new Error('不支持的项目备份版本: '+String(data.version));
+  if(sourceVersion<1||sourceVersion>6)throw new Error('不支持的项目备份版本: '+String(data.version));
   const migrated={...data};
-  migrated.version=5;
+  migrated.version=6;
   migrated.source_version=sourceVersion;
   migrated.outlines=Array.isArray(data.outlines)?data.outlines:[];
   migrated.characters=Array.isArray(data.characters)?data.characters:[];
@@ -2494,6 +2495,7 @@ function migrateProjectBundle(data){
   migrated.history=Array.isArray(data.history)?data.history:(Array.isArray(data.aiHistory)?data.aiHistory:[]);
   migrated.categories=Array.isArray(data.categories)?data.categories:(Array.isArray(data.custom_categories)?data.custom_categories:[]);
   migrated.prompt_skills=data.prompt_skills||data.promptSkills||null;
+  migrated.corpus=data.corpus||data.corpus_profiles||null;
   return migrated;
 }
 function validateProjectBundle(data){
@@ -2704,7 +2706,7 @@ async function confirmImport() {
   try {
     const now = Date.now();
     const id=await importProjectBundleAtomic({
-      version:5,
+      version:6,
       project:{
         name:projectName,
         genre:data.genre||t('genre-uncategorized'),
@@ -2751,6 +2753,10 @@ async function importProject(e) {
       if (d.prompt_skills && window.wwPromptSkillsImport) {
         try { window.wwPromptSkillsImport(d.prompt_skills, { merge: true, silent: true }); }
         catch (promptError) { importWarnings.push('Prompt Skill 未导入');console.warn('Prompt Skill import skipped:', promptError); }
+      }
+      if (d.corpus && window.wwCorpusImport) {
+        try { window.wwCorpusImport(d.corpus); }
+        catch (corpusError) { importWarnings.push('语料校准档案未导入');console.warn('Corpus import skipped:', corpusError); }
       }
       await loadProjects();
       await loadProject(id);

@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/voocel/agentcore"
+	"github.com/zizegak916-glitch/writing-workshop/internal/engine"
 )
 
 type capabilityManifest struct {
@@ -194,9 +194,9 @@ func (s *Server) streamRun(ctx context.Context, w http.ResponseWriter, runID str
 			"model":    modelName,
 		})
 		h.Flush()
-		messages := []agentcore.Message{{
-			Role:    agentcore.RoleUser,
-			Content: []agentcore.ContentBlock{agentcore.TextBlock(req.Message)},
+		messages := []engine.Message{{
+			Role:    engine.RoleUser,
+			Content: []engine.ContentBlock{engine.TextBlock(req.Message)},
 		}}
 		text, usage, streamErr := s.generateAIStream(streamCtx, providerKey, modelName, messages, func(delta string) {
 			writeSSE(w, "delta", map[string]any{"run_id": runID, "text": delta})
@@ -269,9 +269,9 @@ func (s *Server) runAI(ctx context.Context, req runRequest) (string, error) {
 	}
 	requestCtx, cancel := s.aiRequestContext(ctx, resolved.Key)
 	defer cancel()
-	text, _, _, _, err := s.generateAI(requestCtx, resolved.Key, resolved.Model, []agentcore.Message{{
-		Role:    agentcore.RoleUser,
-		Content: []agentcore.ContentBlock{agentcore.TextBlock(message)},
+	text, _, _, _, err := s.generateAI(requestCtx, resolved.Key, resolved.Model, []engine.Message{{
+		Role:    engine.RoleUser,
+		Content: []engine.ContentBlock{engine.TextBlock(message)},
 	}})
 	if err != nil {
 		return "", err
@@ -417,7 +417,7 @@ func (s *Server) saveUserCapabilities(list []capabilityManifest) error {
 }
 
 func (s *Server) capabilitiesPath() string {
-	return filepath.Join(s.store.Dir(), ".ainovel", "capabilities.json")
+	return filepath.Join(s.store.Dir(), ".writing-workshop", "capabilities.json")
 }
 
 func (s *Server) trackCapabilityRun(id string, cancel context.CancelFunc) {

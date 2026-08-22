@@ -10,19 +10,19 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/voocel/agentcore"
+	"github.com/zizegak916-glitch/writing-workshop/internal/engine"
 )
 
 // sessionRecord 是 meta/sessions/*.jsonl 单条记录的轻量解析形态——只取
 // 累计 usage 需要的字段。Content 等大字段跳过解析，节省启动期 IO。
 //
 // 模型归属三级降级：
-//  1. Usage.Provider/Model — agentcore/litellm 透传的真实响应模型（首选）
+//  1. Usage.Provider/Model — 原生引擎适配器透传的真实响应模型（首选）
 //  2. Meta(_meta)          — 上游未透传时，写入侧由 ModelLookup 补的"当时生效"模型
 //  3. 都没有                — replay 退回 effectiveModel 用当前 ModelSet 反推（精度受损）
 type sessionRecord struct {
-	Role  agentcore.Role     `json:"role"`
-	Usage *agentcore.Usage   `json:"usage,omitempty"`
+	Role  engine.Role        `json:"role"`
+	Usage *engine.Usage      `json:"usage,omitempty"`
 	Meta  *sessionRecordMeta `json:"_meta,omitempty"`
 }
 
@@ -121,7 +121,7 @@ func (t *UsageTracker) replayFile(path, agentName string) (int, error) {
 		if err := json.Unmarshal(line, &rec); err != nil {
 			continue
 		}
-		if rec.Role != agentcore.RoleAssistant || rec.Usage == nil {
+		if rec.Role != engine.RoleAssistant || rec.Usage == nil {
 			continue
 		}
 		provider, modelName := usageActualModel(rec.Usage)

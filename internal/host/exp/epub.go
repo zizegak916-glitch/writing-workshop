@@ -245,7 +245,7 @@ func renderOPF(novelName string, hasCover bool, chapters []int) string {
     <dc:identifier id="bookid">%s</dc:identifier>
     <dc:title>%s</dc:title>
     <dc:language>zh-CN</dc:language>
-    <dc:creator>ainovel-cli</dc:creator>
+    <dc:creator>Writing Workshop</dc:creator>
     <meta property="dcterms:modified">%s</meta>
   </metadata>
   <manifest>

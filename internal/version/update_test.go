@@ -8,13 +8,13 @@ import (
 
 func TestReleaseURL(t *testing.T) {
 	cases := map[string]string{
-		"":       "https://api.github.com/repos/voocel/ainovel-cli/releases/latest",
-		"latest": "https://api.github.com/repos/voocel/ainovel-cli/releases/latest",
-		"1.2.3":  "https://api.github.com/repos/voocel/ainovel-cli/releases/tags/v1.2.3",
-		"v1.2.3": "https://api.github.com/repos/voocel/ainovel-cli/releases/tags/v1.2.3",
+		"":       "https://api.github.com/repos/zizegak916-glitch/writing-workshop/releases/latest",
+		"latest": "https://api.github.com/repos/zizegak916-glitch/writing-workshop/releases/latest",
+		"1.2.3":  "https://api.github.com/repos/zizegak916-glitch/writing-workshop/releases/tags/v1.2.3",
+		"v1.2.3": "https://api.github.com/repos/zizegak916-glitch/writing-workshop/releases/tags/v1.2.3",
 	}
 	for target, want := range cases {
-		if got := releaseURL("voocel/ainovel-cli", target); got != want {
+		if got := releaseURL("zizegak916-glitch/writing-workshop", target); got != want {
 			t.Fatalf("releaseURL(%q) = %q, want %q", target, got, want)
 		}
 	}
@@ -28,11 +28,11 @@ func TestSelectAsset(t *testing.T) {
 	rel := &release{
 		TagName: "v1.2.3",
 		Assets: []releaseAsset{
-			{Name: "ainovel-cli_v1.2.3_Windows_x86_64.zip", BrowserDownloadURL: "wrong"},
-			{Name: "ainovel-cli_v1.2.3" + suffix, BrowserDownloadURL: "right"},
+			{Name: "writing-workshop_v1.2.3_Windows_x86_64.zip", BrowserDownloadURL: "wrong"},
+			{Name: "writing-workshop_v1.2.3" + suffix, BrowserDownloadURL: "right"},
 		},
 	}
-	asset, err := selectAsset(rel, "ainovel-cli")
+	asset, err := selectAsset(rel, "writing-workshop")
 	if err != nil {
 		t.Fatalf("selectAsset: %v", err)
 	}
@@ -43,7 +43,7 @@ func TestSelectAsset(t *testing.T) {
 
 func TestReplaceExecutable(t *testing.T) {
 	dir := t.TempDir()
-	dst := filepath.Join(dir, "ainovel-cli")
+	dst := filepath.Join(dir, "writing-workshop")
 	src := filepath.Join(dir, "new")
 	if err := os.WriteFile(dst, []byte("old"), 0o755); err != nil {
 		t.Fatal(err)

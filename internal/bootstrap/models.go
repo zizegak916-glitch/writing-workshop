@@ -9,14 +9,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/voocel/agentcore"
-	"github.com/voocel/agentcore/llm"
+	"github.com/zizegak916-glitch/writing-workshop/internal/engine"
+	"github.com/zizegak916-glitch/writing-workshop/internal/engine/llm"
 	"github.com/zizegak916-glitch/writing-workshop/internal/errs"
 )
 
 // 长输出 + 长 ctx 场景下，reasoning-aware provider（mimo / deepseek-r1 等）
 // 思考阶段如果 server 端不流式发 reasoning delta，SSE 整段会保持沉默。
-// litellm 默认 watchdog 是 2 分钟，对 8000 字写作章节经常触发误杀。
+// 原生模型适配器默认 watchdog 是 2 分钟，对 8000 字写作章节经常触发误杀。
 // 5 分钟覆盖绝大多数实测案例（参见 tasks/todo.md plan→draft 思考时长统计），
 // 仍小于 RequestTimeout 10 分钟，网络真死时仍能兜底。
 const streamIdleTimeout = 5 * time.Minute
@@ -39,21 +39,21 @@ type FailoverReporter func(FailoverEvent)
 type modelTarget struct {
 	provider string
 	name     string
-	model    agentcore.ChatModel
+	model    engine.ChatModel
 }
 
 // SwappableModel 是可热切换的 ChatModel 包装器。
 // 已开始的请求继续使用旧实例；后续请求自动切到新实例。
 type SwappableModel struct {
-	*agentcore.SwappableModel
+	*engine.SwappableModel
 	mu       sync.RWMutex
 	provider string
 	name     string
 }
 
-func NewSwappableModel(provider, name string, model agentcore.ChatModel) *SwappableModel {
+func NewSwappableModel(provider, name string, model engine.ChatModel) *SwappableModel {
 	return &SwappableModel{
-		SwappableModel: agentcore.NewSwappableModel(model),
+		SwappableModel: engine.NewSwappableModel(model),
 		provider:       provider,
 		name:           name,
 	}
@@ -91,7 +91,7 @@ func (m *SwappableModel) Capabilities() llm.Capabilities {
 	return llm.Capabilities{}
 }
 
-func (m *SwappableModel) Swap(provider, name string, model agentcore.ChatModel) {
+func (m *SwappableModel) Swap(provider, name string, model engine.ChatModel) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.SwappableModel.Swap(model)
@@ -114,7 +114,7 @@ type ModelSet struct {
 }
 
 // ForRole 返回指定角色的模型，未配置时返回默认模型。
-func (ms *ModelSet) ForRole(role string) agentcore.ChatModel {
+func (ms *ModelSet) ForRole(role string) engine.ChatModel {
 	if m, ok := ms.models[role]; ok {
 		return m
 	}
@@ -123,7 +123,7 @@ func (ms *ModelSet) ForRole(role string) agentcore.ChatModel {
 
 // ForRoleWithFailover 返回带有单次请求级 fallback 的角色模型。
 // 仅当该角色显式配置了 fallbacks 时生效；未配置时退化为普通模型。
-func (ms *ModelSet) ForRoleWithFailover(role string, report FailoverReporter) agentcore.ChatModel {
+func (ms *ModelSet) ForRoleWithFailover(role string, report FailoverReporter) engine.ChatModel {
 	primary, ok := ms.models[role]
 	if !ok {
 		return ms.Default
@@ -177,7 +177,7 @@ func (ms *ModelSet) Swap(role, provider, model string) error {
 	if !ok {
 		return fmt.Errorf("provider %q is not configured: %w", provider, errs.ErrConfig)
 	}
-	next, err := createModelFromConfig(provider, model, pc, make(map[string]agentcore.ChatModel))
+	next, err := createModelFromConfig(provider, model, pc, make(map[string]engine.ChatModel))
 	if err != nil {
 		return fmt.Errorf("切换模型失败: %w", err)
 	}
@@ -201,7 +201,7 @@ func (ms *ModelSet) Swap(role, provider, model string) error {
 
 // ModelName 从 ChatModel 中提取当前模型名，失败返回空字符串。
 // 支持 SwappableModel 的热切换：调用时总是返回最新值。
-func ModelName(m agentcore.ChatModel) string {
+func ModelName(m engine.ChatModel) string {
 	if info, ok := m.(interface{ Info() llm.ModelInfo }); ok {
 		return info.Info().Name
 	}
@@ -211,7 +211,7 @@ func ModelName(m agentcore.ChatModel) string {
 // NewModelSet 根据配置创建多模型集合。
 // 相同 provider+model 组合复用同一个实例。
 func NewModelSet(cfg Config) (*ModelSet, error) {
-	cache := make(map[string]agentcore.ChatModel)
+	cache := make(map[string]engine.ChatModel)
 
 	// 创建默认模型
 	defaultPC := cfg.DefaultProviderConfig()
@@ -266,7 +266,7 @@ func NewModelSet(cfg Config) (*ModelSet, error) {
 }
 
 // createModelFromConfig 创建或复用 ChatModel 实例。
-func createModelFromConfig(providerKey, model string, pc ProviderConfig, cache map[string]agentcore.ChatModel) (agentcore.ChatModel, error) {
+func createModelFromConfig(providerKey, model string, pc ProviderConfig, cache map[string]engine.ChatModel) (engine.ChatModel, error) {
 	cacheKey := providerKey + "|" + model
 	if m, ok := cache[cacheKey]; ok {
 		return m, nil
@@ -298,7 +298,7 @@ type failoverModel struct {
 	report    FailoverReporter
 }
 
-func (m *failoverModel) Generate(ctx context.Context, messages []agentcore.Message, tools []agentcore.ToolSpec, opts ...agentcore.CallOption) (*agentcore.LLMResponse, error) {
+func (m *failoverModel) Generate(ctx context.Context, messages []engine.Message, tools []engine.ToolSpec, opts ...engine.CallOption) (*engine.LLMResponse, error) {
 	current := m.currentTarget()
 	resp, err := current.model.Generate(ctx, messages, tools, opts...)
 	if err == nil {
@@ -313,8 +313,8 @@ func (m *failoverModel) Generate(ctx context.Context, messages []agentcore.Messa
 	return next.model.Generate(ctx, messages, tools, opts...)
 }
 
-func (m *failoverModel) GenerateStream(ctx context.Context, messages []agentcore.Message, tools []agentcore.ToolSpec, opts ...agentcore.CallOption) (<-chan agentcore.StreamEvent, error) {
-	out := make(chan agentcore.StreamEvent, 100)
+func (m *failoverModel) GenerateStream(ctx context.Context, messages []engine.Message, tools []engine.ToolSpec, opts ...engine.CallOption) (<-chan engine.StreamEvent, error) {
+	out := make(chan engine.StreamEvent, 100)
 
 	go func() {
 		defer close(out)
@@ -333,12 +333,12 @@ func (m *failoverModel) GenerateStream(ctx context.Context, messages []agentcore
 					goto retry
 				}
 			}
-			out <- agentcore.StreamEvent{Type: agentcore.StreamEventError, Err: err}
+			out <- engine.StreamEvent{Type: engine.StreamEventError, Err: err}
 			return
 		}
 		if resp != nil {
-			out <- agentcore.StreamEvent{
-				Type:       agentcore.StreamEventDone,
+			out <- engine.StreamEvent{
+				Type:       engine.StreamEventDone,
 				Message:    resp.Message,
 				StopReason: resp.Message.StopReason,
 			}
@@ -348,7 +348,7 @@ func (m *failoverModel) GenerateStream(ctx context.Context, messages []agentcore
 		forwarded := false
 		for ev := range source {
 			switch ev.Type {
-			case agentcore.StreamEventError:
+			case engine.StreamEventError:
 				if ev.Err != nil && !forwarded && !fallbackUsed {
 					if next, reason, ok := m.pickFallback(current, ev.Err); ok {
 						fallbackUsed = true
@@ -359,7 +359,7 @@ func (m *failoverModel) GenerateStream(ctx context.Context, messages []agentcore
 				}
 				out <- ev
 				return
-			case agentcore.StreamEventDone:
+			case engine.StreamEventDone:
 				out <- ev
 				return
 			default:
@@ -410,10 +410,10 @@ func (m *failoverModel) pickFallback(current modelTarget, err error) (modelTarge
 		return modelTarget{}, "", false
 	}
 
-	if !agentcore.IsFailoverEligible(err) {
-		return modelTarget{}, agentcore.FailoverReason(err), false
+	if !engine.IsFailoverEligible(err) {
+		return modelTarget{}, engine.FailoverReason(err), false
 	}
-	reason := agentcore.FailoverReason(err)
+	reason := engine.FailoverReason(err)
 	for _, target := range m.fallbacks {
 		if target.provider == current.provider && target.name == current.name {
 			continue
@@ -440,7 +440,7 @@ func (m *failoverModel) reportFailover(from, to modelTarget, reason string, err 
 	}
 }
 
-func (m *failoverModel) startAttempt(ctx context.Context, target modelTarget, messages []agentcore.Message, tools []agentcore.ToolSpec, opts ...agentcore.CallOption) (<-chan agentcore.StreamEvent, *agentcore.LLMResponse, error) {
+func (m *failoverModel) startAttempt(ctx context.Context, target modelTarget, messages []engine.Message, tools []engine.ToolSpec, opts ...engine.CallOption) (<-chan engine.StreamEvent, *engine.LLMResponse, error) {
 	if target.model == nil {
 		return nil, nil, fmt.Errorf("no model configured")
 	}

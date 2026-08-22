@@ -13,8 +13,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/voocel/agentcore"
 	"github.com/zizegak916-glitch/writing-workshop/internal/domain"
+	"github.com/zizegak916-glitch/writing-workshop/internal/engine"
 	"github.com/zizegak916-glitch/writing-workshop/internal/store"
 )
 
@@ -64,9 +64,9 @@ type DupStat struct {
 	Count int
 }
 
-// sessionLine 解析 sessions/*.jsonl 的一行：内嵌 agentcore.Message + 可选 _meta。
+// sessionLine 解析 sessions/*.jsonl 的一行：内嵌 engine.Message + 可选 _meta。
 type sessionLine struct {
-	agentcore.Message
+	engine.Message
 	Meta *struct {
 		Provider string `json:"provider"`
 		Model    string `json:"model"`

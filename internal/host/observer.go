@@ -11,8 +11,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/voocel/agentcore"
 	"github.com/zizegak916-glitch/writing-workshop/internal/domain"
+	"github.com/zizegak916-glitch/writing-workshop/internal/engine"
 	storepkg "github.com/zizegak916-glitch/writing-workshop/internal/store"
 	"github.com/zizegak916-glitch/writing-workshop/internal/utils"
 )
@@ -24,10 +24,10 @@ import (
 // the rendered string fallback used when the chain has been flattened
 // (e.g. inside sub-agent JSON results).
 func errorKind(err error, msg string) string {
-	if err != nil && errors.Is(err, agentcore.ErrProviderStreamIdle) {
+	if err != nil && errors.Is(err, engine.ErrProviderStreamIdle) {
 		return "stream_idle"
 	}
-	if msg != "" && agentcore.IsStreamIdleMessage(msg) {
+	if msg != "" && engine.IsStreamIdleMessage(msg) {
 		return "stream_idle"
 	}
 	return ""
@@ -95,7 +95,7 @@ type agentState struct {
 	updated time.Time
 }
 
-func newObserver(coordinator *agentcore.Agent, s *storepkg.Store, emitEv func(Event), emitD func(string), emitC func()) *observer {
+func newObserver(coordinator *engine.Agent, s *storepkg.Store, emitEv func(Event), emitD func(string), emitC func()) *observer {
 	o := &observer{
 		emitEv:              emitEv,
 		emitD:               emitD,
@@ -165,25 +165,25 @@ func (o *observer) persistEvent(ev Event) {
 	})
 }
 
-func (o *observer) handle(ev agentcore.Event) {
+func (o *observer) handle(ev engine.Event) {
 	switch ev.Type {
-	case agentcore.EventToolExecStart:
+	case engine.EventToolExecStart:
 		o.handleToolStart(ev)
-	case agentcore.EventToolExecUpdate:
+	case engine.EventToolExecUpdate:
 		o.handleToolUpdate(ev)
-	case agentcore.EventToolExecEnd:
+	case engine.EventToolExecEnd:
 		o.handleToolEnd(ev)
-	case agentcore.EventMessageUpdate:
+	case engine.EventMessageUpdate:
 		o.handleMessageUpdate(ev)
-	case agentcore.EventMessageEnd:
+	case engine.EventMessageEnd:
 		o.streamClear()
-	case agentcore.EventTurnStart:
-		if ev.Progress != nil && ev.Progress.Kind == agentcore.ProgressTurnCounter {
+	case engine.EventTurnStart:
+		if ev.Progress != nil && ev.Progress.Kind == engine.ProgressTurnCounter {
 			o.updateAgent(ev.Progress.Agent, func(a *agentState) {
 				a.turn = ev.Progress.Turn
 			})
 		}
-	case agentcore.EventRetry:
+	case engine.EventRetry:
 		if ev.RetryInfo != nil {
 			msg := ""
 			if ev.RetryInfo.Err != nil {
@@ -201,7 +201,7 @@ func (o *observer) handle(ev agentcore.Event) {
 			o.emitEv(retryEv)
 			o.persistEvent(retryEv)
 		}
-	case agentcore.EventError:
+	case engine.EventError:
 		if ev.Err != nil {
 			fullMsg := ev.Err.Error()
 			if o.isCancellationNoise(ev.Err, fullMsg) {
@@ -225,18 +225,18 @@ func (o *observer) handle(ev agentcore.Event) {
 	}
 }
 
-func (o *observer) handleMessageUpdate(ev agentcore.Event) {
+func (o *observer) handleMessageUpdate(ev engine.Event) {
 	if ev.Delta == "" {
 		return
 	}
-	if ev.DeltaKind == agentcore.DeltaToolCall {
+	if ev.DeltaKind == engine.DeltaToolCall {
 		o.handleCoordinatorToolDelta(ev)
 		return
 	}
-	o.emitStreamDelta(ev.Delta, ev.DeltaKind == agentcore.DeltaThinking)
+	o.emitStreamDelta(ev.Delta, ev.DeltaKind == engine.DeltaThinking)
 }
 
-func (o *observer) handleToolStart(ev agentcore.Event) {
+func (o *observer) handleToolStart(ev engine.Event) {
 	if ev.Tool == "" {
 		return
 	}
@@ -299,16 +299,16 @@ func (o *observer) handleToolStart(ev agentcore.Event) {
 	o.emitFallbackStreamHeader(ev.Tool)
 }
 
-func (o *observer) handleToolUpdate(ev agentcore.Event) {
+func (o *observer) handleToolUpdate(ev engine.Event) {
 	if ev.Progress == nil {
 		return
 	}
 	switch ev.Progress.Kind {
-	case agentcore.ProgressToolDelta:
+	case engine.ProgressToolDelta:
 		if ev.Progress.Delta != "" {
 			o.handleSubagentDelta(ev.Progress)
 		}
-	case agentcore.ProgressToolStart:
+	case engine.ProgressToolStart:
 		// 子代理内部的工具调用（如 writer → draft_chapter）。
 		// 注意：TOOL 行可能已经在流式识别阶段被 handleSubagentDelta 提前发出。
 		// 此处：若已发 → 只更新 summary（args 此时完整，能显示 "tool(第N章)"）；否则正常发。
@@ -346,7 +346,7 @@ func (o *observer) handleToolUpdate(ev agentcore.Event) {
 			a.summary = fmt.Sprintf("%s → %s", ev.Progress.Agent, toolName)
 		})
 		o.emitFallbackStreamHeader(ev.Progress.Tool)
-	case agentcore.ProgressToolEnd:
+	case engine.ProgressToolEnd:
 		delete(o.streamExtractors, ev.Progress.Agent)
 		if ev.Progress.Agent == "" {
 			return
@@ -371,9 +371,9 @@ func (o *observer) handleToolUpdate(ev agentcore.Event) {
 		}
 		o.emitEv(finishEv)
 		o.persistEvent(finishEv)
-	case agentcore.ProgressThinking:
+	case engine.ProgressThinking:
 		o.handleThinkingProgress(ev)
-	case agentcore.ProgressRetry:
+	case engine.ProgressRetry:
 		prefix := fmt.Sprintf("重试 (%d/%d): ", ev.Progress.Attempt, ev.Progress.MaxRetries)
 		retryEv := Event{
 			Time:     time.Now(),
@@ -387,7 +387,7 @@ func (o *observer) handleToolUpdate(ev agentcore.Event) {
 		}
 		o.emitEv(retryEv)
 		o.persistEvent(retryEv)
-	case agentcore.ProgressToolError:
+	case engine.ProgressToolError:
 		delete(o.streamExtractors, ev.Progress.Agent)
 		msg := ev.Progress.Message
 		if msg == "" {
@@ -424,7 +424,7 @@ func (o *observer) handleToolUpdate(ev agentcore.Event) {
 		}
 		o.emitEv(errEv)
 		o.persistEvent(errEv)
-	case agentcore.ProgressContext:
+	case engine.ProgressContext:
 		o.handleContextProgress(ev)
 	}
 }
@@ -432,8 +432,8 @@ func (o *observer) handleToolUpdate(ev agentcore.Event) {
 // handleSubagentDelta 分流 subagent 的文本与工具调用参数：
 // - DeltaText 直接作为 markdown 流出
 // - DeltaToolCall 只对已知的长内容工具（如 draft_chapter.content）抽取字段流出；其他工具的参数 JSON 全部丢弃
-func (o *observer) handleSubagentDelta(p *agentcore.ProgressPayload) {
-	if p.DeltaKind != agentcore.DeltaToolCall {
+func (o *observer) handleSubagentDelta(p *engine.ProgressPayload) {
+	if p.DeltaKind != engine.DeltaToolCall {
 		o.emitStreamDelta(p.Delta, false)
 		return
 	}
@@ -485,8 +485,8 @@ func (o *observer) handleSubagentDelta(p *agentcore.ProgressPayload) {
 	}
 }
 
-func (o *observer) handleCoordinatorToolDelta(ev agentcore.Event) {
-	msg, ok := ev.Message.(agentcore.Message)
+func (o *observer) handleCoordinatorToolDelta(ev engine.Event) {
+	msg, ok := ev.Message.(engine.Message)
 	if !ok {
 		return
 	}
@@ -503,10 +503,10 @@ func (o *observer) handleCoordinatorToolDelta(ev agentcore.Event) {
 	o.updateToolCallSummaryFromDelta("coordinator", call.Name, ev.Delta)
 }
 
-func latestToolCall(msg agentcore.Message) (agentcore.ToolCall, bool) {
+func latestToolCall(msg engine.Message) (engine.ToolCall, bool) {
 	calls := msg.ToolCalls()
 	if len(calls) == 0 {
-		return agentcore.ToolCall{}, false
+		return engine.ToolCall{}, false
 	}
 	return calls[len(calls)-1], true
 }
@@ -538,7 +538,7 @@ func (o *observer) ensureCoordinatorToolStarted(tool string) {
 	o.emitFallbackStreamHeader(tool)
 }
 
-func (o *observer) ensureCoordinatorDispatchStarted(call agentcore.ToolCall) {
+func (o *observer) ensureCoordinatorDispatchStarted(call engine.ToolCall) {
 	if _, ok := o.dispatchStarts["subagent"]; ok {
 		return
 	}
@@ -712,7 +712,7 @@ func firstJSONStringField(raw, field string) string {
 	return ""
 }
 
-func (o *observer) handleThinkingProgress(ev agentcore.Event) {
+func (o *observer) handleThinkingProgress(ev engine.Event) {
 	agent := ev.Progress.Agent
 	thinking := ev.Progress.Thinking
 	if agent == "" || thinking == "" {
@@ -731,7 +731,7 @@ func (o *observer) handleThinkingProgress(ev agentcore.Event) {
 	o.emitStreamDelta(delta, true)
 }
 
-func (o *observer) handleContextProgress(ev agentcore.Event) {
+func (o *observer) handleContextProgress(ev engine.Event) {
 	if ev.Progress == nil || len(ev.Progress.Meta) == 0 {
 		return
 	}
@@ -827,7 +827,7 @@ func (o *observer) flushActiveCalls(failed bool) {
 	o.currentDispatchTarget = ""
 }
 
-func (o *observer) handleToolEnd(ev agentcore.Event) {
+func (o *observer) handleToolEnd(ev engine.Event) {
 	agent := agentFromEvent(ev)
 	// 工具结束：把状态切回 idle，否则侧边栏会永远停在 working。
 	// 子代理派遣结束时 dispatchTarget 的状态会在下方另行清除。
@@ -1074,7 +1074,7 @@ func (o *observer) streamClear() {
 	}
 }
 
-func (o *observer) subagentResultErrorEvent(ev agentcore.Event) (*Event, string) {
+func (o *observer) subagentResultErrorEvent(ev engine.Event) (*Event, string) {
 	if ev.Tool != "subagent" || len(ev.Result) == 0 {
 		return nil, ""
 	}
@@ -1133,7 +1133,7 @@ func (o *observer) agentSnapshots() []AgentSnapshot {
 	return snaps
 }
 
-func agentFromEvent(ev agentcore.Event) string {
+func agentFromEvent(ev engine.Event) string {
 	if ev.Progress != nil && ev.Progress.Agent != "" {
 		return ev.Progress.Agent
 	}
@@ -1227,7 +1227,7 @@ func parseSubagentResultError(result json.RawMessage) string {
 	if err := json.Unmarshal(result, &obj); err == nil && obj.Error != "" {
 		return obj.Error
 	}
-	// 兼容 agentcore SubAgentTool 的裸字符串错误返回：
+	// 兼容 engine SubAgentTool 的裸字符串错误返回：
 	// "Invalid parameters: ..." / "background mode requires ..." / "Too many parallel tasks ..."
 	// 这些是 tool 层参数校验失败，is_error=false 但内容是错误说明，需识别为错误避免误判为成功。
 	var s string

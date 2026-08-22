@@ -6,8 +6,8 @@ import (
 	"log/slog"
 	"sync/atomic"
 
-	"github.com/voocel/agentcore"
 	"github.com/zizegak916-glitch/writing-workshop/internal/domain"
+	"github.com/zizegak916-glitch/writing-workshop/internal/engine"
 	"github.com/zizegak916-glitch/writing-workshop/internal/host/flow"
 	"github.com/zizegak916-glitch/writing-workshop/internal/store"
 )
@@ -24,16 +24,16 @@ const maxConsecutiveBlocks = 5
 
 // NewStopGuard 构造 Coordinator 专用 StopGuard。
 // onBlock 可选，非 nil 时每次阻拦调一次，用于审计。
-func NewStopGuard(st *store.Store, onBlock func(reason string, consecutive int32)) agentcore.StopGuard {
+func NewStopGuard(st *store.Store, onBlock func(reason string, consecutive int32)) engine.StopGuard {
 	var consecutive atomic.Int32
 	var lastBlockTurn atomic.Int64 // 上次 block 的 TurnIndex；-1 表示尚未 block 过
 	lastBlockTurn.Store(-1)
-	return func(_ context.Context, info agentcore.StopInfo) agentcore.StopDecision {
+	return func(_ context.Context, info engine.StopInfo) engine.StopDecision {
 		progress, _ := st.Progress.Load()
 		if progress != nil && progress.Phase == domain.PhaseComplete {
 			consecutive.Store(0)
 			lastBlockTurn.Store(-1)
-			return agentcore.StopDecision{Allow: true}
+			return engine.StopDecision{Allow: true}
 		}
 		// 只有"相邻 turn 连续被拦"才累计计数；否则视为新一轮（LLM 已做过 tool call 取得过进展，
 		// 或用户注入 / resume 导致 TurnIndex 倒流），重置计数。
@@ -49,7 +49,7 @@ func NewStopGuard(st *store.Store, onBlock func(reason string, consecutive int32
 			if onBlock != nil {
 				onBlock("escalated", n)
 			}
-			return agentcore.StopDecision{Allow: false, Escalate: true}
+			return engine.StopDecision{Allow: false, Escalate: true}
 		}
 		inject := blockMessage(st, progress)
 		if progress != nil && len(progress.PendingRewrites) > 0 {
@@ -60,7 +60,7 @@ func NewStopGuard(st *store.Store, onBlock func(reason string, consecutive int32
 		if onBlock != nil {
 			onBlock("blocked", n)
 		}
-		return agentcore.StopDecision{Allow: false, InjectMessage: inject}
+		return engine.StopDecision{Allow: false, InjectMessage: inject}
 	}
 }
 

@@ -1,153 +1,109 @@
 # 配置说明
 
-> 状态：现行产品配置，更新于 2026-07-29（UTC+8）。`.ainovel` 仍是继承引擎兼容目录名，不代表产品仍叫 ainovel-cli。
+> 现行产品配置，更新于 2026-08-22（UTC）。
 
-本页说明 Writing Workshop 的模型、密钥与监听地址配置。底层 Go 引擎源自 `ainovel-cli`，但本仓库发布的可执行文件名为 `writing-workshop`。
-
-## 配置位置
+## 配置位置与迁移
 
 加载优先级从低到高：
 
-1. `~/.ainovel/config.json`
-2. 当前目录 `./.ainovel/config.json`
-3. 命令行 `--config path/to/config.json`
+1. `~/.writing-workshop/config.json`
+2. 当前目录 `./.writing-workshop/config.json`
+3. `--config path/to/config.json`
 
-Web 管理后台保存配置时写入 `~/.ainovel/config.json`。
+如果现行配置不存在，程序可以读取同位置的旧 `.ainovel/config.json` 并提示迁移；新保存只写入 `.writing-workshop`，不会继续污染旧目录。Web 本地服务控制台默认保存到 `~/.writing-workshop/config.json`。
 
-主应用默认使用本地游客模式，不要求设置密码。配置和密钥由本地配置文件、环境变量或你部署的数据管理服务负责；当前本地模式不提供账号密码体系。
+## Pages 浏览器 BYOK
 
-自部署版保存配置后只在浏览器保留 Provider、Model 和“由后端托管”的状态，真实 Key 写入后端配置。GitHub Pages 版没有 `/api/config` 服务，因此使用浏览器 BYOK：用户主动填写的 Provider、Model、Base URL、Key 与网络适配选项写入当前 Pages origin 的 `ww_api`，并由浏览器直接请求目标接口。多模型槽位仍只保存 Provider / Model，不复制主配置的 Key。
+Pages 没有同源 Go API。进入“设置 → API”后填写协议、Base URL、模型、Key、鉴权和超时，先测试再保存。设置保存在当前 origin 的 `localStorage`，不会进入 GitHub 仓库或构建产物。
 
-## GitHub Pages 浏览器 BYOK
-
-1. 打开 Pages 工作台，进入“设置 → API”或 API 设置弹窗。
-2. 选择已有服务商；使用中转、自建或本地接口时可选择“自定义”。任何服务商都可以用 Base URL 覆盖默认地址。
-3. 填写模型 ID 和 Base URL。Base URL 可填单纯域名、带厂商前缀的 API 根路径或完整端点。
-4. 常见 OpenAI 兼容接口保持“自动识别”。其他接口展开“高级网络适配”，选择 OpenAI Responses、Anthropic Messages 或 Ollama `/api/chat`。
-5. 鉴权默认自动：OpenAI 兼容接口使用 Bearer，Anthropic 使用 `x-api-key`。Ollama、局域网代理等无密钥服务选择“无鉴权”，API Key 可以留空。
-6. 中转服务需要额外请求头时填写 JSON；连接较慢时调整 5–600 秒超时。点击“测试”，成功后保存。
-
-Pages 不会再对静态 `/api/config` 发起 POST，因此不会因配置保存本身返回 405。运行时不只依赖 `github.io` 域名：自定义静态域名若没有同源 `/api/health` 也会进入浏览器 API 模式；可用 `?api_mode=browser` 或 `?api_mode=backend` 显式覆盖探测。浏览器直连仍受目标服务的 CORS 策略约束：对方必须允许当前站点 origin 发起请求并允许 `Authorization` / `Content-Type` 等必要请求头。
-
-地址补全规则：
-
-| 协议 | 只填域名时补全 | 可直接填写 |
+| 协议 | 只填域名时补全 | 默认鉴权 |
 |---|---|---|
-| OpenAI Chat Completions | `/v1/chat/completions` | 任意以 `/chat/completions` 结尾的地址 |
-| OpenAI Responses | `/v1/responses` | 任意以 `/responses` 结尾的地址 |
-| Anthropic Messages | `/v1/messages` | 任意以 `/messages` 结尾的地址 |
-| Ollama | `/api/chat` | 以 `/api/chat` 结尾的完整地址 |
+| OpenAI Chat Completions | `/v1/chat/completions` | Bearer |
+| OpenAI Responses | `/v1/responses` | Bearer |
+| Anthropic Messages | `/v1/messages` | `x-api-key` |
+| Ollama | `/api/chat` | 无鉴权 |
 
-浏览器流式模式会解析 OpenAI/Gemini 兼容 SSE、Responses 事件、Anthropic SSE 与 Ollama NDJSON。接口返回普通 JSON 时会自动按完整响应读取。
+Pages 保存设置不会 POST 静态 `/api/config`，因此保存动作不应返回 405。直连失败时检查：
 
-`localStorage` 不是加密保险箱。不要在公共设备使用浏览器 BYOK；清除当前站点数据会同时删除配置。长期使用或服务商不允许浏览器跨域时，改用下方的自部署后端模式。
+1. 模型 ID 与完整端点是否正确；
+2. 目标服务是否允许当前 Pages/自定义域名 CORS；
+3. 是否允许 `Authorization`、`Content-Type` 和自定义头；
+4. HTTPS 页面是否被浏览器阻止访问 HTTP 本地服务；
+5. 协议与鉴权是否误选。
 
-自定义请求头可能本身包含凭据。Pages 模式会把它们和 Key 一样保存在当前浏览器；自部署模式写入后端配置，但 `GET /api/config` 会移除 `extra.headers`，不会把请求头内容回传到管理页面。
+`?api_mode=browser` / `?api_mode=backend` 可显式覆盖运行时探测。浏览器 Key 不是加密保存，不要在公共设备使用。
 
-## 工作目录中的产品数据
+## 自部署配置
 
-| 路径 | 内容 | 说明 |
-|---|---|---|
-| `.ainovel/capabilities.json` | 用户能力 manifest | 内置能力不写入此文件 |
-| `.ainovel/skill-packs.json` | 用户技能包 | `skill_ids` 保存前会验证和去重 |
-| `.ainovel/categories.json` | 后端自定义分类 | 与浏览器本地项目分类分开保存 |
-| `.ainovel/rules/web.rules.md` | 后台编辑的项目规则 | 参与规则合并 |
-
-工作台中的项目自定义分类保存在当前站点的 `localStorage`，项目与分类关联保存在 IndexedDB 的 project 记录。项目、章节、大纲、人物、项目笔记、写作记忆、AI 候选和恢复快照也保存在 IndexedDB。浏览器 Prompt Skill 覆盖值单独保存在 `localStorage` 键 `ww_prompt_skills_v1`。这些数据不会自动与后端分类、项目或 capability 文件互相覆盖；项目 v5 备份会带上笔记、分类、记忆、本项目 AI 历史和 Prompt Skill 覆盖值。
-
-浏览器存储按来源域名隔离：`github.io`、自定义域名、`127.0.0.1` 与 `localhost` 彼此不是同一份数据。迁移域名、清除站点数据或换浏览器前，先在项目操作台导出 v5 项目包，或在 Prompt Skill 管理中单独导出提示词备份。连接 Go 后端不会自动合并这两套数据；需要后端内容时，应在项目操作台显式导入为新的浏览器项目。
-
-工作台会请求 `navigator.storage.persist()` 并在个人页显示占用、配额和持久化状态，但是否批准由浏览器决定。切换文档、切换项目和导出会等待当前编辑事务完成；导入与项目级联删除也使用单个 IndexedDB 事务。浏览器持久化不是云备份，仍应定期导出。
-
-## 最小配置
+示例：
 
 ```json
 {
   "provider": "openrouter",
   "model": "anthropic/claude-sonnet-4",
-  "providers": {
-    "openrouter": {
-      "type": "openai",
-      "protocol": "openai-chat",
-      "auth_mode": "bearer",
-      "api_key": "sk-or-v1-...",
-      "base_url": "https://openrouter.ai/api/v1",
-      "request_timeout_ms": 120000,
-      "models": ["anthropic/claude-sonnet-4"]
-    }
-  },
-  "style": "default"
+  "type": "openai",
+  "protocol": "openai-chat",
+  "auth_mode": "bearer",
+  "base_url": "https://openrouter.ai/api/v1",
+  "api_key": "REPLACE_ME",
+  "request_timeout_ms": 120000,
+  "context_window": 131072,
+  "extra": {"headers": {}},
+  "extra_body": {"temperature": 0.7}
 }
 ```
 
-自部署后台和 Pages 高级网络设置使用同一组协议语义：
+`protocol`：`auto`、`openai-chat`、`openai-responses`、`anthropic`、`ollama`。
 
-- `protocol`: `auto` / `openai-chat` / `openai-responses` / `anthropic` / `ollama`
-- `auth_mode`: `auto` / `bearer` / `x-api-key` / `none`
-- `request_timeout_ms`: 5000–600000，覆盖连接、响应头和完整响应体/流
-- `context_window`: 可选的模型上下文上限；未知模型留空，不伪造固定值
-- `extra.headers`: 需要中转路由头时使用；读取配置时会脱敏
+`auth_mode`：`auto`、`bearer`、`x-api-key`、`none`。
 
-保存时留空 API Key 表示保留后端已有密钥；勾选“清除已保存 API Key”才会删除。自定义请求头同样需要显式清除，避免一次普通保存意外抹掉凭据。
+`request_timeout_ms` 范围 5–600 秒。未知模型不会假定固定上下文窗口；需要百分比预算时显式填写 `context_window`。`GET /api/config` 会隐藏 Key 和 `extra.headers`。
 
-## 无密钥 demo
+环境变量优先级：
 
-首次运行可不创建配置文件：
+1. `WRITING_WORKSHOP_<PROVIDER>_API_KEY`
+2. `<PROVIDER>_API_KEY`
+3. 旧兼容变量 `AINOVEL_<PROVIDER>_API_KEY`
+
+例如：
+
+```bash
+export WRITING_WORKSHOP_OPENROUTER_API_KEY=sk-or-v1-...
+writing-workshop serve --port 8080
+```
+
+Ollama 可留空 Key，并使用 `protocol: ollama`、`auth_mode: none`。
+
+## 数据位置
+
+| 路径 | 内容 |
+|---|---|
+| `.writing-workshop/capabilities.json` | 用户 capability manifest |
+| `.writing-workshop/skill-packs.json` | 用户技能包 |
+| `.writing-workshop/categories.json` | 后端自定义分类 |
+| `.writing-workshop/rules/web.rules.md` | 后台编辑的项目规则 |
+| `.writing-workshop/corpus/index.json` | 授权语料哈希、聚合指标与候选，不含原文 |
+
+浏览器项目、章节、大纲、人物、笔记、记忆和 AI 历史位于当前站点 IndexedDB；Prompt Skill 覆盖值、分类和界面配置位于当前 origin 的 localStorage。浏览器数据与 Go 后端数据不会静默双向同步。
+
+项目 v6 备份可携带浏览器项目数据、AI 历史、分类、Prompt Skill 覆盖值和语料统计档案。迁移域名、换浏览器或清除站点数据前先导出备份。
+
+## Web 启动与公网边界
 
 ```bash
 writing-workshop serve --demo --port 8080
 ```
 
-demo 模式使用一个不会主动联网的本地占位模型配置。`builtin-echo` 与 `builtin-outline` 可直接运行；AI 生成类任务在配置真实模型前会明确失败，不会伪造结果。管理后台保存真实配置后，下一次启动会自动加载该配置。
-
-## 环境变量
-
-API key 可不写入配置文件，改用环境变量：
-
-```bash
-export AINOVEL_OPENROUTER_API_KEY=sk-or-v1-...
-export AINOVEL_OPENAI_API_KEY=sk-...
-```
-
-也支持 `<PROVIDER>_API_KEY`，例如 `OPENROUTER_API_KEY`。配置校验和 `/api/ai` 调用都会读取这些变量。
-
-## 本地模型
-
-Ollama/OpenAI 兼容本地服务可不配置 API key：
-
-```json
-{
-  "provider": "ollama",
-  "model": "qwen3:14b",
-  "providers": {
-    "ollama": {
-      "type": "openai",
-      "base_url": "http://localhost:11434/v1",
-      "models": ["qwen3:14b"]
-    }
-  }
-}
-```
-
-Pages 直接连接 Ollama 时，把协议选为“Ollama `/api/chat`”、鉴权选为“无鉴权”，Base URL 可填 `http://127.0.0.1:11434`。浏览器页面为 HTTPS 时，浏览器可能阻止访问 HTTP 混合内容；这种情况应使用本地打开的工作台或通过 HTTPS 反向代理访问 Ollama。
-
-## Web 启动
-
-```bash
-writing-workshop serve --demo --port 8080
-```
-
-- 写作工坊：`/app.html`
-- 管理后台：`/admin.html`
+- 工作台：`/app.html`
+- 本地服务控制台：`/admin.html`
 - 健康检查：`/api/health`
-- 所有静态资源由 Go embed 提供。
-- 规则包保存到当前项目输出目录 `.ainovel/rules/web.rules.md`。
+- 默认监听：`127.0.0.1`
 
-服务默认只监听 `127.0.0.1`。Docker 或受控局域网部署时使用 `--host 0.0.0.0`；不要在没有鉴权和 TLS 的情况下直接暴露到公网。
-
-前端与 API 默认同源。确实需要分离部署时，显式列出允许的来源（逗号分隔），服务不会使用通配符 CORS：
+确实需要分离前后端时，显式设置允许来源；不会使用通配符 CORS：
 
 ```bash
 export WRITING_WORKSHOP_ALLOWED_ORIGINS=https://writer.example,https://preview.example
 writing-workshop serve --host 0.0.0.0 --port 8080
 ```
+
+公网部署需自行增加 TLS、登录鉴权、访问限制和反向代理请求大小限制。

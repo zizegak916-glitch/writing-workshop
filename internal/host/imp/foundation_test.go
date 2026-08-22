@@ -6,26 +6,26 @@ import (
 	"testing"
 	"time"
 
-	"github.com/voocel/agentcore"
 	"github.com/zizegak916-glitch/writing-workshop/internal/domain"
+	"github.com/zizegak916-glitch/writing-workshop/internal/engine"
 	"github.com/zizegak916-glitch/writing-workshop/internal/store"
 )
 
 type mockLLM struct {
 	out string
 	err error
-	got []agentcore.Message
+	got []engine.Message
 }
 
-func (m *mockLLM) Generate(_ context.Context, msgs []agentcore.Message, _ []agentcore.ToolSpec, _ ...agentcore.CallOption) (*agentcore.LLMResponse, error) {
+func (m *mockLLM) Generate(_ context.Context, msgs []engine.Message, _ []engine.ToolSpec, _ ...engine.CallOption) (*engine.LLMResponse, error) {
 	m.got = msgs
 	if m.err != nil {
 		return nil, m.err
 	}
-	return &agentcore.LLMResponse{
-		Message: agentcore.Message{
-			Role:      agentcore.RoleAssistant,
-			Content:   []agentcore.ContentBlock{agentcore.TextBlock(m.out)},
+	return &engine.LLMResponse{
+		Message: engine.Message{
+			Role:      engine.RoleAssistant,
+			Content:   []engine.ContentBlock{engine.TextBlock(m.out)},
 			Timestamp: time.Now(),
 		},
 	}, nil

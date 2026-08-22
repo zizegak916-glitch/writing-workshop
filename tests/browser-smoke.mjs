@@ -84,7 +84,7 @@ try {
   const bundle = await page.evaluate(async () => {
     const project = S.proj.project;
     return {
-      version: 5,
+      version: 6,
       project,
       notes: await dbByIndex('notes', 'project_id', project.id)
     };
@@ -157,7 +157,7 @@ try {
   await page.locator('.topbar button[title="导出"]').click();
   const download = await downloadPromise;
   const exportedBundle = JSON.parse(await readFile(await download.path(), 'utf8'));
-  assert.equal(exportedBundle.version, 5);
+  assert.equal(exportedBundle.version, 6);
   assert.equal(exportedBundle.characters.find(item => item.name === '事务测试人物·修订')?.skills, '导出前即时保存');
 
   const migrations = await page.evaluate(() => {
@@ -170,7 +170,8 @@ try {
         custom_categories: [{ id: 'history', name: '考据' }],
         promptSkills: { overrides: { '润色': { prompt: '保留事实' } } }
       },
-      { version: 4, project: { name: 'v4' }, notes: [{ title: '旧笔记' }], aiHistory: [{ mode: '旧候选', text: '保留' }] }
+      { version: 4, project: { name: 'v4' }, notes: [{ title: '旧笔记' }], aiHistory: [{ mode: '旧候选', text: '保留' }] },
+      { version: 5, project: { name: 'v5' }, notes: [{ title: '上一版笔记' }] }
     ];
     return fixtures.map(fixture => {
       const migrated = validateProjectBundle(fixture);
@@ -187,10 +188,11 @@ try {
     });
   });
   assert.deepEqual(migrations, [
-    { version: 5, sourceVersion: 1, chapters: 1, memories: 0, categories: 0, prompt: '', notes: 0, history: 0 },
-    { version: 5, sourceVersion: 2, chapters: 0, memories: 1, categories: 0, prompt: '', notes: 0, history: 0 },
-    { version: 5, sourceVersion: 3, chapters: 0, memories: 0, categories: 1, prompt: '保留事实', notes: 0, history: 0 },
-    { version: 5, sourceVersion: 4, chapters: 0, memories: 0, categories: 0, prompt: '', notes: 1, history: 1 }
+    { version: 6, sourceVersion: 1, chapters: 1, memories: 0, categories: 0, prompt: '', notes: 0, history: 0 },
+    { version: 6, sourceVersion: 2, chapters: 0, memories: 1, categories: 0, prompt: '', notes: 0, history: 0 },
+    { version: 6, sourceVersion: 3, chapters: 0, memories: 0, categories: 1, prompt: '保留事实', notes: 0, history: 0 },
+    { version: 6, sourceVersion: 4, chapters: 0, memories: 0, categories: 0, prompt: '', notes: 1, history: 1 },
+    { version: 6, sourceVersion: 5, chapters: 0, memories: 0, categories: 0, prompt: '', notes: 1, history: 0 }
   ]);
   const remappedImport = await page.evaluate(async () => {
     const projectId = await importProjectBundleAtomic({
@@ -214,6 +216,27 @@ try {
   });
   assert.notEqual(remappedImport.noteId, remappedImport.oldId);
   assert.equal(remappedImport.activeId, remappedImport.noteId, 'imported recovery snapshots must target remapped document IDs');
+
+  const promptBeforeCorpus = await page.evaluate(() => wwPromptSkill('润色').prompt);
+  await page.evaluate(() => wwOpenCorpusLab());
+  await page.locator('#corpusFiles').setInputFiles({
+    name: 'authorized-reference.txt',
+    mimeType: 'text/plain',
+    buffer: Buffer.from(`第一章 雨夜\n${'他推开门，看见雨线压过长街。\n“先进去。”她说。\n他没有回答，只把伞递了过去。\n'.repeat(60)}`)
+  });
+  await page.locator('#corpusConsent').check();
+  await page.locator('#corpusAnalyze').click();
+  await page.waitForFunction(() => document.querySelector('#corpusProfiles')?.textContent.includes('authorized-reference.txt'));
+  const corpusArchive = await page.evaluate(() => fetch('/api/corpus').then(response => response.json()));
+  assert.equal(corpusArchive.profiles[0].source.text_stored, false);
+  assert.equal('text' in corpusArchive.profiles[0].source, false, 'Go corpus archive must not persist source text');
+  await page.locator('#corpusBuild').click();
+  await page.waitForFunction(() => document.getElementById('corpusPreview')?.value.includes('本地语料校准候选'));
+  await page.locator('#corpusApply').click();
+  assert.match(await page.evaluate(() => wwPromptSkill('润色').prompt), /本地语料校准候选/);
+  await page.locator('#corpusHistory [data-rollback]').first().click();
+  assert.equal(await page.evaluate(() => wwPromptSkill('润色').prompt), promptBeforeCorpus, 'Prompt Skill rollback must restore the exact previous value');
+  await page.locator('[data-corpus-close]').click();
 
   await page.locator('.nav-tab', { hasText: '笔记' }).click();
   await page.locator('#noteList .outline-item', { hasText: '设定核对' }).click();
@@ -451,7 +474,7 @@ try {
   assert.deepEqual(errors, [], `desktop browser errors after project cleanup:\n${errors.join('\n')}`);
 
   await desktop.close();
-  console.log('Browser smoke OK: transactional editor switching/export, v1-v4 to v5 migration, guarded candidates, Pages/custom-static BYOK, desktop context and mobile notes navigation.');
+  console.log('Browser smoke OK: transactional editor switching/export, v1-v5 to v6 migration, guarded candidates, corpus refinement, Pages/custom-static BYOK, desktop context and mobile notes navigation.');
 } finally {
   await browser.close();
 }

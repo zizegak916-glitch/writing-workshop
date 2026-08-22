@@ -8,9 +8,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/voocel/agentcore"
 	"github.com/zizegak916-glitch/writing-workshop/internal/bootstrap"
 	"github.com/zizegak916-glitch/writing-workshop/internal/domain"
+	"github.com/zizegak916-glitch/writing-workshop/internal/engine"
 	"github.com/zizegak916-glitch/writing-workshop/internal/models"
 	storepkg "github.com/zizegak916-glitch/writing-workshop/internal/store"
 )
@@ -97,20 +97,20 @@ func NewUsageTracker(set *bootstrap.ModelSet, store *storepkg.Store) *UsageTrack
 
 // Record 把一条 agent 消息分发到累加 / 诊断两条路径。
 //
-// 累加只看 Usage 是否存在——"哪条消息带 Usage" 是 agentcore/litellm adapter
+// 累加只看 Usage 是否存在——“哪条消息带 Usage”是原生引擎 adapter
 // 装配细节（上游协议把 usage 放在响应顶层），未来装配规则变了也不用动这里。
 // 诊断要求 Role=Assistant 且 Content 非空，避免 AbortMsg / 异常恢复 / tool /
 // user 消息污染 missingAssistantUsage 计数。
-func (t *UsageTracker) Record(agentName string, msg agentcore.AgentMessage) {
+func (t *UsageTracker) Record(agentName string, msg engine.AgentMessage) {
 	if t == nil {
 		return
 	}
-	m, ok := msg.(agentcore.Message)
+	m, ok := msg.(engine.Message)
 	if !ok {
 		return
 	}
 	if m.Usage == nil {
-		if m.Role == agentcore.RoleAssistant && len(m.Content) > 0 {
+		if m.Role == engine.RoleAssistant && len(m.Content) > 0 {
 			t.flagMissingUsage(agentName)
 		}
 		return
@@ -120,7 +120,7 @@ func (t *UsageTracker) Record(agentName string, msg agentcore.AgentMessage) {
 	t.accumulate(role, provider, modelName, *m.Usage)
 }
 
-func usageActualModel(u *agentcore.Usage) (provider, modelName string) {
+func usageActualModel(u *engine.Usage) (provider, modelName string) {
 	if u == nil {
 		return "", ""
 	}
@@ -170,7 +170,7 @@ func (t *UsageTracker) notifyDirty() {
 // provider/model 为空表示"用当前 ModelSet 拿 role 对应模型"（实时路径）；非空表示
 // "强制按指定模型算价"（replay 路径用 session jsonl 里的 _meta）。
 // resolveCost 在锁外执行（它只读 modelSet/Registry），锁内只做加法。
-func (t *UsageTracker) accumulate(role, provider, modelName string, u agentcore.Usage) {
+func (t *UsageTracker) accumulate(role, provider, modelName string, u engine.Usage) {
 	provider, modelName = t.effectiveModel(role, provider, modelName)
 	cost, saved, capable := t.resolveCost(modelName, u)
 
@@ -247,9 +247,9 @@ func modelUsageKey(provider, modelName string) string {
 //
 // CacheCapable 优先用"事实"判定：只要见过 CacheRead 或 CacheWrite > 0，就证明
 // 上游确实做了 prompt caching。注册表的 CacheReadCostPer1M 仅作 fallback，
-// 因为自建 backend 模型（mimo-v2.5-pro / 国内代理等）通常不在 BerriAI/litellm
+// 因为自建 backend 模型（mimo-v2.5-pro / 国内代理等）通常不在 内置价格目录
 // pricing 索引里，但实际 Usage 里完全有 cache 数据，UI 不该误判为"未启用"。
-func addUsage(t *agentTotals, u agentcore.Usage, cost, saved float64, capable bool) {
+func addUsage(t *agentTotals, u engine.Usage, cost, saved float64, capable bool) {
 	t.Input += u.Input
 	t.Output += u.Output
 	t.CacheRead += u.CacheRead
@@ -590,7 +590,7 @@ func (t *UsageTracker) PerModel() []AgentUsage {
 //   - capable: 注册表命中且该模型 CacheReadCostPer1M > 0 → 已知支持 prompt caching
 //
 // modelName 优先用调用方传入的（replay 时来自 session jsonl 的 _meta.model）。
-func (t *UsageTracker) resolveCost(modelName string, u agentcore.Usage) (cost, saved float64, capable bool) {
+func (t *UsageTracker) resolveCost(modelName string, u engine.Usage) (cost, saved float64, capable bool) {
 	if entry, ok := models.DefaultRegistry().Resolve(modelName); ok {
 		c := computeCost(u, *entry)
 		s := computeSaved(u, *entry)
@@ -616,7 +616,7 @@ func agentRoleName(agentName string) string {
 
 // computeCost 按 $/1M tokens 单价计算本次调用的美元开销。
 //
-// 语义前提（由 litellm 各 provider 统一保证，参见 anthropic.go / bedrock.go /
+// 语义前提（由各原生 provider 适配器统一保证，参见 anthropic.go / bedrock.go /
 // openai.go / gemini.go / compat.go 的 Usage 装配点）：
 //
 //	u.Input  = 全部输入 token，**包含** CacheRead；不含 CacheWrite
@@ -624,7 +624,7 @@ func agentRoleName(agentName string) string {
 //
 // 因此 nonCachedInput = u.Input - u.CacheRead 在所有 provider 都成立。
 // 兜底分支保留是为了应对未来某个 provider 误返脏数据时不至于崩。
-func computeCost(u agentcore.Usage, e models.ModelEntry) float64 {
+func computeCost(u engine.Usage, e models.ModelEntry) float64 {
 	nonCachedInput := u.Input - u.CacheRead
 	if nonCachedInput < 0 {
 		nonCachedInput = u.Input
@@ -640,7 +640,7 @@ func computeCost(u agentcore.Usage, e models.ModelEntry) float64 {
 // computeSaved 估算 CacheRead 命中相对于"按普通输入价计费"省下的美元。
 // 注意 CacheWrite 的溢价不抵扣 — 它属于"为后续命中铺路"的必要投入，
 // 真实收益靠后续 CacheRead 累计回收。
-func computeSaved(u agentcore.Usage, e models.ModelEntry) float64 {
+func computeSaved(u engine.Usage, e models.ModelEntry) float64 {
 	if u.CacheRead <= 0 || e.InputCostPer1M <= 0 {
 		return 0
 	}

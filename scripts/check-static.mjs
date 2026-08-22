@@ -37,6 +37,8 @@ const workbenchSource = read('web/static/js/workbench.js');
 const promptLookups = workbenchSource.match(/wwPromptText\(/g)?.length || 0;
 assert(promptLookups >= 6, `expected Prompt Skill injection in at least 6 request paths, found ${promptLookups}`);
 assert(appHtml.includes('js/ai-mode-icons.js') && appHtml.includes('js/prompt-skills.js'), 'workbench must load icon and Prompt Skill scripts');
+assert(appHtml.includes('js/corpus-lab.js') && appHtml.includes('css/corpus-lab.css'), 'workbench must load corpus calibration UI');
+assert(appHtml.includes('v0.3.0 RC · 2026-08-22'), 'workbench release candidate label is stale');
 assert(appHtml.includes('js/api-adapter.js'), 'workbench must load the shared API adapter');
 assert(appHtml.indexOf('js/api-adapter.js') < appHtml.indexOf('js/workbench.js'), 'API adapter must load before workbench');
 assert(appHtml.includes('css/main.css') && appHtml.includes('js/workbench.js'), 'workbench must load its canonical CSS and JavaScript entrypoints');
@@ -44,6 +46,7 @@ assert(!/<style[\s>]/i.test(appHtml), 'workbench must not contain inline style b
 assert(!/<script(?![^>]*\bsrc=)[^>]*>/i.test(appHtml), 'workbench must not contain inline script blocks');
 assert(workbenchSource.includes("DB_VER=5") && workbenchSource.includes("'notes'") && workbenchSource.includes("ensureIndex(st,'project_id','project_id')"), 'v5 browser database must include project-scoped notes and AI history');
 assert(workbenchSource.includes('flushActiveDocument') && workbenchSource.includes('importProjectBundleAtomic'), 'transactional editor switching and project import guards are missing');
+assert(workbenchSource.includes('version:6') && workbenchSource.includes('wwCorpusExport') && workbenchSource.includes('wwCorpusImport'), 'v6 project backups must carry corpus calibration profiles');
 assert(workbenchSource.includes('function loadStoredApiConfig()'), 'browser API configuration loader is missing');
 assert(workbenchSource.includes('function loadSlot(n)'), 'multi-model slots must use the canonical scrubbed loader');
 assert(workbenchSource.includes('WW_BROWSER_API_MODE') && workbenchSource.includes("?'browser':'backend'"), 'Pages browser API mode is missing');
@@ -52,6 +55,9 @@ assert(appHtml.includes('id="serviceConsoleBtn" hidden') && appHtml.includes('ti
 assert(workbenchSource.includes("['serviceConsoleBtn','workflowServiceLink']") && workbenchSource.includes('element.hidden=WW_BROWSER_API_MODE'), 'service entries must follow detected runtime mode');
 assert(workbenchSource.includes('WWApiAdapter.request') && workbenchSource.includes('WWApiAdapter.stream'), 'browser-direct request and stream adapters are missing');
 assert(workbenchSource.includes("'/api/ai/stream'"), 'self-hosted AI must use the streaming endpoint');
+const corpusSource = read('web/static/js/corpus-lab.js');
+assert(corpusSource.includes("fetch('/api/corpus'") && corpusSource.includes('usesBrowser()'), 'corpus lab must use the Go API when self-hosted and browser analysis on Pages');
+assert(corpusSource.includes('text_stored:false') && corpusSource.includes('replaceCalibration'), 'corpus lab must avoid source retention and support reversible Prompt Skill replacement');
 const adapterSource = read('web/static/js/api-adapter.js');
 for (const protocol of ['openai-chat', 'openai-responses', 'anthropic', 'ollama']) {
   assert(adapterSource.includes(protocol), `API adapter protocol is missing: ${protocol}`);

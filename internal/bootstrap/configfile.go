@@ -10,9 +10,12 @@ import (
 	"time"
 )
 
-const configDirName = ".ainovel"
+const (
+	configDirName       = ".writing-workshop"
+	legacyConfigDirName = ".ainovel"
+)
 
-// DefaultConfigPath 返回全局配置文件路径 ~/.ainovel/config.json。
+// DefaultConfigPath 返回全局配置文件路径 ~/.writing-workshop/config.json。
 func DefaultConfigPath() string {
 	home, err := os.UserHomeDir()
 	if err != nil {
@@ -21,7 +24,7 @@ func DefaultConfigPath() string {
 	return filepath.Join(home, configDirName, "config.json")
 }
 
-// DefaultConfigDir 返回 ~/.ainovel 目录路径；取不到家目录时返回空字符串。
+// DefaultConfigDir 返回 ~/.writing-workshop 目录路径；取不到家目录时返回空字符串。
 // 仅用于读/写不强制存在的文件（如模型缓存），不会自动创建目录。
 func DefaultConfigDir() string {
 	home, err := os.UserHomeDir()
@@ -31,7 +34,7 @@ func DefaultConfigDir() string {
 	return filepath.Join(home, configDirName)
 }
 
-// configDir 返回 ~/.ainovel 目录路径，不存在时创建。
+// configDir 返回 ~/.writing-workshop 目录路径，不存在时创建。
 func configDir() (string, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
@@ -44,40 +47,62 @@ func configDir() (string, error) {
 	return dir, nil
 }
 
-// projectConfigPath 返回项目级配置文件的相对路径 ./.ainovel/config.json。
-// 项目级 dotdir 镜像全局 ~/.ainovel/，复用同一个 configDirName；相对 cwd 解析。
+// projectConfigPath 返回项目级配置文件的相对路径 ./.writing-workshop/config.json。
+// 项目级 dotdir 镜像全局 ~/.writing-workshop/，复用同一个 configDirName；相对 cwd 解析。
 func projectConfigPath() string {
 	return filepath.Join(configDirName, "config.json")
 }
 
+func legacyDefaultConfigPath() string {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return ""
+	}
+	return filepath.Join(home, legacyConfigDirName, "config.json")
+}
+
+func legacyProjectConfigPath() string {
+	return filepath.Join(legacyConfigDirName, "config.json")
+}
+
 // LoadConfig 按优先级加载并合并配置：
-//  1. ~/.ainovel/config.json（全局）
-//  2. ./.ainovel/config.json（项目级覆盖）
+//  1. ~/.writing-workshop/config.json（全局）
+//  2. ./.writing-workshop/config.json（项目级覆盖）
 //  3. flagPath 指定的路径（最高优先级）
+//
+// 旧版 .ainovel/config.json 只在对应的新路径不存在时作为只读兼容来源；
+// 所有新写入都使用 .writing-workshop，避免继续扩散历史产品名。
 func LoadConfig(flagPath string) (Config, error) {
 	var cfg Config
 
 	// 1. 全局配置。它是最低优先级基底，坏文件降级为告警而非阻断——可被项目级
 	//    / --config 覆盖；硬失败会把"坏全局 + 有效 --config"的用户挡在门外，
 	//    违反 --config"我明确指定这个"的语义。
-	if p := DefaultConfigPath(); p != "" {
+	if p, legacy := preferredConfigPath(DefaultConfigPath(), legacyDefaultConfigPath()); p != "" {
 		global, found, err := loadOptionalJSON(p)
 		switch {
 		case err != nil:
 			slog.Warn("全局配置解析失败，已忽略（可被项目级/--config 覆盖）", "module", "config", "path", p, "err", err)
 		case found:
 			cfg = global
+			if legacy {
+				slog.Warn("检测到旧版配置；当前仅兼容读取，建议迁移到 ~/.writing-workshop/config.json", "module", "config", "path", p)
+			}
 		}
 	}
 
 	// 2. 项目级覆盖。坏文件 fail loud：用户在当前目录主动放的配置，静默吞掉会让
 	//    "配了不生效"无从排查（issue #37）。
-	project, found, err := loadOptionalJSON(projectConfigPath())
+	projectPath, legacy := preferredConfigPath(projectConfigPath(), legacyProjectConfigPath())
+	project, found, err := loadOptionalJSON(projectPath)
 	if err != nil {
-		return cfg, fmt.Errorf("项目级配置 ./.ainovel/config.json 解析失败（请检查 JSON 语法）: %w", err)
+		return cfg, fmt.Errorf("项目级配置 %s 解析失败（请检查 JSON 语法）: %w", projectPath, err)
 	}
 	if found {
 		cfg = mergeConfig(cfg, project)
+		if legacy {
+			slog.Warn("检测到旧版项目配置；当前仅兼容读取，建议迁移到 ./.writing-workshop/config.json", "module", "config", "path", projectPath)
+		}
 	}
 
 	// 3. CLI flag 覆盖
@@ -90,6 +115,22 @@ func LoadConfig(flagPath string) (Config, error) {
 	}
 
 	return cfg, nil
+}
+
+// preferredConfigPath 始终优先返回当前路径；仅当当前路径不存在时才读取旧路径。
+// 第二个返回值表示选中的是否为旧路径。
+func preferredConfigPath(current, legacy string) (string, bool) {
+	if current != "" {
+		if _, err := os.Stat(current); err == nil || !errors.Is(err, os.ErrNotExist) {
+			return current, false
+		}
+	}
+	if legacy != "" {
+		if _, err := os.Stat(legacy); err == nil || !errors.Is(err, os.ErrNotExist) {
+			return legacy, true
+		}
+	}
+	return current, false
 }
 
 // loadOptionalJSON 读取一个可选的配置文件：
@@ -270,7 +311,7 @@ func stripJSONComments(data []byte) []byte {
 	return out
 }
 
-// WriteStartupError 把启动期致命错误追加写入 ~/.ainovel/last-error.log，并返回
+// WriteStartupError 把启动期致命错误追加写入 ~/.writing-workshop/last-error.log，并返回
 // 该文件路径（best-effort，失败时返回空字符串）。双击启动时控制台窗口会随进程
 // 退出立即关闭、错误一闪而过，落盘是这类用户事后追溯的唯一途径。
 func WriteStartupError(msg string) string {

@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/voocel/agentcore"
 	"github.com/zizegak916-glitch/writing-workshop/internal/bootstrap"
+	"github.com/zizegak916-glitch/writing-workshop/internal/engine"
 	"github.com/zizegak916-glitch/writing-workshop/internal/store"
 )
 
@@ -92,7 +92,7 @@ func coCreateStream(ctx context.Context, models *bootstrap.ModelSet, sessions *s
 	ctx, cancel := context.WithTimeout(ctx, 180*time.Second)
 	defer cancel()
 
-	msgs := []agentcore.Message{agentcore.SystemMsg(sysPrompt)}
+	msgs := []engine.Message{engine.SystemMsg(sysPrompt)}
 	for _, item := range history {
 		content := strings.TrimSpace(item.Content)
 		if content == "" {
@@ -102,7 +102,7 @@ func coCreateStream(ctx context.Context, models *bootstrap.ModelSet, sessions *s
 		case "assistant":
 			msgs = append(msgs, assistantMsg(content))
 		default:
-			msgs = append(msgs, agentcore.UserMsg(content))
+			msgs = append(msgs, engine.UserMsg(content))
 		}
 	}
 
@@ -130,7 +130,7 @@ func coCreateStream(ctx context.Context, models *bootstrap.ModelSet, sessions *s
 		})
 	}()
 
-	streamCh, err := model.GenerateStream(ctx, msgs, nil, agentcore.WithMaxTokens(2048))
+	streamCh, err := model.GenerateStream(ctx, msgs, nil, engine.WithMaxTokens(2048))
 	if err != nil {
 		return CoCreateReply{}, fmt.Errorf("cocreate generate: %w", err)
 	}
@@ -138,22 +138,22 @@ func coCreateStream(ctx context.Context, models *bootstrap.ModelSet, sessions *s
 	var streamed bool
 	for ev := range streamCh {
 		switch ev.Type {
-		case agentcore.StreamEventThinkingDelta:
+		case engine.StreamEventThinkingDelta:
 			thinking.WriteString(ev.Delta)
 			if onProgress != nil {
 				onProgress(CoCreateProgressThinking, thinking.String())
 			}
-		case agentcore.StreamEventTextDelta:
+		case engine.StreamEventTextDelta:
 			streamed = true
 			raw.WriteString(ev.Delta)
 			if onProgress != nil {
 				onProgress(CoCreateProgressReply, extractReplyPreview(raw.String()))
 			}
-		case agentcore.StreamEventDone:
+		case engine.StreamEventDone:
 			if !streamed {
 				raw.WriteString(ev.Message.TextContent())
 			}
-		case agentcore.StreamEventError:
+		case engine.StreamEventError:
 			if ev.Err != nil {
 				return CoCreateReply{}, fmt.Errorf("cocreate generate: %w", ev.Err)
 			}
@@ -198,10 +198,10 @@ func errString(err error) string {
 	return err.Error()
 }
 
-func assistantMsg(text string) agentcore.Message {
-	return agentcore.Message{
-		Role:      agentcore.RoleAssistant,
-		Content:   []agentcore.ContentBlock{agentcore.TextBlock(text)},
+func assistantMsg(text string) engine.Message {
+	return engine.Message{
+		Role:      engine.RoleAssistant,
+		Content:   []engine.ContentBlock{engine.TextBlock(text)},
 		Timestamp: time.Now(),
 	}
 }

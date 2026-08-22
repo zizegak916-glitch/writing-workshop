@@ -73,7 +73,7 @@ func main() {
 	runWithConfig(cfg, opts, args)
 }
 
-// die 统一处理致命错误退出：打印到 stderr、落盘到 ~/.ainovel/last-error.log，
+// die 统一处理致命错误退出：打印到 stderr、落盘到 ~/.writing-workshop/last-error.log，
 // 并在交互式终端（非 headless）下暂停等待回车——双击启动时控制台会随进程退出
 // 立即关闭，不暂停的话错误一闪而过，正是 issue #37 里用户无从排查的根因。
 func die(format string, args ...any) {

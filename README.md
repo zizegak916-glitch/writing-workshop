@@ -3,36 +3,67 @@
 [![CI](https://github.com/zizegak916-glitch/writing-workshop/actions/workflows/ci.yml/badge.svg)](https://github.com/zizegak916-glitch/writing-workshop/actions/workflows/ci.yml)
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-black.svg)](LICENSE)
 
-> 用户文档最后同步：2026-08-21（UTC）。完整演进记录见 [更新时间线](docs/UPDATE_TIMELINE.md)；自审记录不能替代第三方使用反馈。
+> 文档最后同步：2026-08-22（UTC）。当前版本处于 v0.3.0 发布前验证阶段；没有把自测写成第三方验证。
 
-一个本地优先、可审计的长篇写作工作台。它把“选哪些上下文、运行哪些 Skill、结果写到哪里”变成显式操作：AI 只生成候选，作者确认后才写入正文或记忆。
+Writing Workshop 是一个本地优先、作者确认写入的长篇创作工作台。项目、正文、章节、大纲、人物、笔记、记忆、自定义分类和 Prompt Skill 可以在同一项目中管理；每次 AI 请求由作者显式选择上下文，结果先进入候选区，不会自动覆盖正文。
 
-它不是聊天框的换皮，也不会把整部作品在每次调用时重新发送给模型。
+**在线版：** [GitHub Pages](https://zizegak916-glitch.github.io/writing-workshop/) · [使用教程](https://zizegak916-glitch.github.io/writing-workshop/docs.html) · [问题反馈](https://github.com/zizegak916-glitch/writing-workshop/issues)
 
-**正式在线版：** [GitHub Pages](https://zizegak916-glitch.github.io/writing-workshop/) · [完整使用文档](https://zizegak916-glitch.github.io/writing-workshop/docs.html) · [GitHub Issues](https://github.com/zizegak916-glitch/writing-workshop/issues)
+GitHub Pages 是正式 HTTPS 静态站点，不是 Sites 预览。它可以在浏览器本地完成项目管理、导入导出、Prompt Skill、授权语料校准与 BYOK 模型调用；Key 和资料不会进入仓库。浏览器直连仍要求模型接口允许当前站点跨域。需要服务端托管密钥、后端 Skill、Go 语料分析和同源 API 时，使用 Docker 或本地可执行文件。
 
-> GitHub Pages 是本项目当前正式发布的公开在线站点，`github.io` 是真实可访问的 HTTPS 域名，不是临时预览。它采用静态托管，但浏览器本地项目、编辑、笔记、分类、导入导出和浏览器 BYOK 自定义 API 均可正式使用。Pages 会把用户主动填写的 Key 与 Base URL 存在当前浏览器并直连目标服务；接口必须允许该 Pages 域名跨域访问。需要服务端密钥托管、Skill 执行或后端项目导入时，再运行本地或自部署后端。
+![Writing Workshop 首页](docs/images/landing-page.jpg)
 
-> GitHub Pages 与 OpenAI Sites 是彼此独立的托管方式。本仓库当前公开地址由 GitHub Pages 发布，不把 Pages 写成 Sites 的预览层或降级版。
+## 本轮核心变化：仓库自有 Go 引擎
 
-![Writing Workshop 彩色编辑部首页](docs/images/landing-page.jpg)
+当前运行时由本仓库直接维护，代码位于 `internal/engine/`：
+
+- 原生消息、工具、事件、用量与模型接口；
+- 可中断的 Agent 工具循环和工具执行门；
+- 上下文预算、压缩投影和工具结果微压缩；
+- 隔离的子任务运行上下文；
+- OpenAI Chat、OpenAI Responses、Anthropic Messages、Ollama 四种 HTTP 协议；
+- 保留 BOM/CRLF、拒绝越界路径和歧义替换的安全编辑工具。
+
+当前 `go.mod` 和 Go import graph 不再依赖 `github.com/voocel/agentcore` 或 `github.com/voocel/litellm`。这不抹除项目的历史：仓库最初从 `voocel/ainovel-cli` fork 而来，Apache-2.0 署名、提交历史和历史来源仍保留。详见 [原生引擎说明](docs/NATIVE_ENGINE.md)、[迁移与历史来源](docs/UPSTREAM_ENGINE.md) 和 [NOTICE](NOTICE)。
+
+## 授权语料校准实验室
+
+“流程 → 授权语料校准”可以导入你有权分析的 TXT、Markdown 或 DOCX 网文/稿件。它不是训练模型，也不提供具体作者仿写：
+
+1. 导入前必须确认拥有分析权限；
+2. 引擎计算章节、段落、句长、节奏、对话比例、标点与重复表达等聚合信号；
+3. 只保存文件哈希、元数据、聚合指标和派生规则，不保存原文；
+4. 生成的是 Prompt Skill 候选差分，作者预览后才可应用；
+5. 每次应用保留修改前快照，可精确撤销；
+6. 内置反规则禁止复刻作者身份、专名、情节和来源句子。
+
+自部署版由 Go `internal/corpus` 分析并保存档案到 `.writing-workshop/corpus/index.json`；Pages 在浏览器内分析，原文不离开当前页面，也不持久化。完整边界见 [语料校准说明](docs/CORPUS_CALIBRATION.md)。
 
 ## 现在能做什么
 
-- 管理项目、章节、大纲、人物卡、项目笔记、规则和写作记忆。
-- 为一次任务显式选择正文、项目、大纲、人物与记忆；桌面请求栏始终显示当前 token 估算、模型上限和上次实际用量，未配置 API 时也可先估算。
-- 自部署时组合后端与 Skill 执行任务；AI 任务使用上游真实 SSE / NDJSON 增量流并支持中断，不再把完整响应切片伪装成流式。
-- 逐项多选 Skill，或一键应用“长篇规划校准 / 章节修订 / 角色与对白”技能包；自定义技能包会持久化保存。
-- 32 个 AI 功能都有可直接使用的内置 Prompt Skill；点击功能卡或快捷工具后，请求会隐形使用对应提示词，作者可在“流程 → Prompt Skill 管理”查看、改写或恢复默认。
-- 搜索、筛选、重命名、复制、分类、导出和删除浏览器本地项目；自定义分类可修改名称、范围和颜色，也可用于写作记忆。
-- 候选结果与正文分离；替换、插入、追加、写入记忆均需独立确认。
-- 按项目保存候选、写入前快照和流程历史，避免 AI 输出静默覆盖创作内容。
-- 在本地服务控制台查看经过来源、许可证与权限初筛的 Agent Skills / MCP 公开目录；登记只生成停用元数据，不下载、不安装、不执行第三方代码。
-- 在无 API Key 模式下运行本地链路测试和大纲拆分；需要模型时再配置 OpenAI 兼容服务、OpenRouter、Ollama 等后端。
+- 管理项目、正文与章节、大纲、人物卡、项目笔记、规则、写作记忆和自定义分类。
+- 导入 TXT、Markdown、DOCX 或旧版项目包；导出 v6 完整项目备份。
+- 选择正文、项目信息、大纲、人物、记忆和额外指令，提前查看 token 估算。
+- 使用 32 个可查看、修改、恢复和迁移的内置 Prompt Skill。
+- 多选后端 Skill，或应用“长篇规划校准 / 章节修订 / 角色与对白”等技能包。
+- 将 AI 输出隔离到候选区，再确认替换、插入、追加或写入记忆。
+- 按项目保存候选、流程历史和写入前快照，阻止跨文档旧坐标写入。
+- 在 Pages 使用浏览器 BYOK，或由自部署 Go 服务托管 Key 和同源 `/api/`。
+- 以停用元数据登记外部 Skill 来源；当前不会下载或执行陌生仓库代码。
 
 ## 60 秒启动
 
-### Docker（推荐）
+### 直接使用 Pages
+
+1. 打开 [在线工作台](https://zizegak916-glitch.github.io/writing-workshop/app.html)。
+2. 点击顶部 `＋` 创建项目，或从项目操作台导入文件。
+3. 需要 AI 时打开“设置 → API”，填写协议、Base URL、模型和 Key，先点测试再保存。
+4. 在编辑器选择文本，选一个功能，检查上下文预算后生成。
+5. 在候选区确认写入；重要阶段导出 v6 项目包。
+
+Pages 保存 API 配置不会请求静态 `/api/config`，因此不会因保存动作产生 405。若测试失败，优先检查完整端点、鉴权方式、模型 ID、CORS 与 HTTPS 混合内容。
+
+### Docker（完整自部署）
 
 ```bash
 git clone https://github.com/zizegak916-glitch/writing-workshop.git
@@ -40,163 +71,97 @@ cd writing-workshop
 docker compose up --build
 ```
 
-打开 <http://127.0.0.1:8080/app.html>。首次以无密钥 demo 模式启动；模型可在工作台“设置 → API”配置。需要管理服务端项目、规则和后端 Skill 时，再打开 <http://127.0.0.1:8080/admin.html>。配置保存后，容器重启会自动加载它。
+打开：
 
-健康检查：
+- 工作台：<http://127.0.0.1:8080/app.html>
+- 本地服务控制台：<http://127.0.0.1:8080/admin.html>
+- 健康检查：<http://127.0.0.1:8080/api/health>
 
-```bash
-curl http://127.0.0.1:8080/api/health
-# {"mode":"demo","status":"ok"}
-```
+首次以无密钥 demo 模式启动。配置、能力、分类、技能包与语料统计保存在映射出的 `./config`，容器内路径为 `/root/.writing-workshop`。
 
 ### 从源码运行
 
-需要 Go 1.25 或更高版本。
+需要 Go 1.25.5 或更高版本：
 
 ```bash
 go build -o writing-workshop ./cmd/writing-workshop
 ./writing-workshop serve --demo --port 8080
 ```
 
-若需局域网或容器访问，显式增加 `--host 0.0.0.0`。默认只监听 `127.0.0.1`，避免意外暴露本地作品和密钥配置。
+默认只监听 `127.0.0.1`。公网使用前请增加 HTTPS、登录鉴权、请求大小限制和访问控制；不要直接暴露 8080。
 
 ## 核心闭环
 
-1. 在编辑器中打开正文或选择一段文字。
-2. 在“流程”页选择本次任务、上下文和 Skill。
-3. 在右侧固定请求栏检查将发送的上下文预算；功能目录滚动时，补充指令、预算和生成按钮仍保持可见。
-4. 输出进入候选区，不会自动修改作品。
-5. 作者选择替换、插入、追加，或另行确认为记忆。
-6. 写入前状态保存在流程历史中，可回看和恢复。
-
-这个闭环是 Writing Workshop 与继承引擎能力之间的产品边界：引擎可以生成，工作台负责上下文控制、权限可见、结果确认和创作数据管理。
-
 ```mermaid
 flowchart LR
-    A[选择本次任务] --> B[组装显式上下文]
-    B --> C[后端与 Skill 执行]
-    C --> D[候选区隔离]
-    D --> E{作者决定}
-    E -->|替换 / 插入 / 追加| F[正文]
-    E -->|再次确认| G[写作记忆]
+    A[选择任务与上下文] --> B[原生引擎或浏览器 API]
+    B --> C[候选区]
+    C --> D{作者确认}
+    D -->|替换/插入/追加| E[正文]
+    D -->|单独确认| F[写作记忆]
 ```
 
-## 界面与导航
+功能 Prompt Skill、当前文本、项目上下文和作者额外指令会按可检查的顺序组装。模型结果与当前文档版本不一致时，旧候选不能按旧坐标强写。
 
-新版界面采用“彩色编辑部”设计：深色资料栏、暖纸张编辑器和淡紫 AI 区承担不同职责，钴蓝、珊瑚、薄荷和琥珀只用于表达动作和状态。桌面保留三栏生产布局，移动端切换为底部任务导航。
+## 两类 Skill，不混为一谈
 
-| 页面 | 作用 |
-|---|---|
-| `index.html` | 产品说明、运行模式和 60 秒启动入口 |
-| `app.html` | 项目、章节、大纲、人物、笔记、记忆、分类、导入导出、多 Skill 与候选写入 |
-| `admin.html` | 仅供本地/自部署服务使用：Provider、密钥、服务端项目、规则、后端 Skill、外部目录、技能包、分类与 API 调试 |
-| `docs.html` | 从 Pages 在线版 / 可选本地服务到 CORS、Skill 与故障排查的完整教程 |
+| 类型 | 存放位置 | 作用 | 当前边界 |
+|---|---|---|---|
+| 浏览器 Prompt Skill | 内置定义 + 当前 origin `localStorage` | 为 32 个写作功能组装提示词 | 无代码执行权限；可随 v6 备份迁移 |
+| 后端 capability Skill | 内置清单或 `.writing-workshop/capabilities.json` | 为 `/api/run` 组合步骤和权限 | 仅执行已启用内置能力；外部来源默认停用 |
+| 技能包 | `.writing-workshop/skill-packs.json` | 保存一组可见的 Skill ID | 不增加权限，不绕过服务端校验 |
 
-代码、文档、CI、Pages 与公开实测的对应关系见 [更新时间线](docs/UPDATE_TIMELINE.md)，避免只凭截图、文件名或聊天记录判断功能是否已经上线。
+第三方 Skill 沙箱仍未交付。粘贴 GitHub 地址只登记来源和 manifest，不会下载或运行代码。
 
-视觉规范与组件约束见 [UI 设计系统](docs/UI_DESIGN_SYSTEM.md)。
+## 数据边界
 
-本地服务控制台不是在线产品的第二套导航。它只在检测到同源 Go 服务时从工作台显示入口，用来管理服务端配置、项目、角色、规则和后端 Skill。Pages 的模型配置统一从工作台“设置 → API”进入；直接访问静态 `admin.html` 时只保留浏览器 API 配置与测试，其余服务端栏目隐藏。
-
-## 产品归属边界
-
-- **Writing Workshop 自己的产品层**：浏览器项目与资料管理、编辑器、Prompt Skill、显式上下文、候选区、写前快照、导入导出、API 适配和界面。
-- **仓库内的可选服务层**：在已署名的上游 Go 引擎基础上维护同源 API、服务端密钥托管、后端项目和后端 Skill 集成。它服务于工作台，但不是 Pages 必须依赖的“后台站”，也不改变上游作者归属。
-- **外部依赖与社区**：GitHub、模型供应商、上游引擎和任何论坛社区都不属于 Writing Workshop，也不代表本项目提供支持或背书。
-
-更完整的页面、命名和运行时规则见 [产品归属说明](docs/PRODUCT_BOUNDARY.md)。
-
-## Skill / 能力协议
-
-Writing Workshop 明确区分两类 Skill：
-
-- **浏览器 Prompt Skill**：对应润色、续写、对白、校对、标题、实时灵感等 32 个 AI 功能。选择功能后，其提示词在请求组装时自动加入，普通创作界面不显示全文；“流程 → Prompt Skill 管理”可搜索、查看、编辑、恢复、单独导入导出。自定义值写入当前域名的 `localStorage`，项目 v5 备份也会携带这些覆盖值并在导入时合并恢复。
-- **后端能力 Skill**：由 manifest 声明步骤、权限和入口，可多选并通过 `/api/run` 执行；这类能力仍遵循下面的协议和服务端安全边界。
-
-修改浏览器 Prompt Skill 不会改变内置源文件，也不会把提示词显示在正文或结果中。额外指令仍会附加在所选 Skill 之后，因此一次请求的实际顺序是“功能 Prompt Skill → 当前文本 → 输出长度/创意要求 → 项目上下文 → 作者额外指令”。
-
-能力清单不是任意远程代码执行入口。仓库当前只登记、校验和组合 manifest；第三方代码必须经过未来的沙箱执行器才允许运行。
-
-本地服务控制台的“外部能力目录”包含官方或可核验上游入口、许可证提示、权限和风险。目录以现行 `openai/plugins`、Agent Skills 开放标准、Anthropic Skills、SkillPort 和 MCP 官方来源为主；已弃用的 `openai/skills` 只保留迁移警告。`POST /api/external-catalog` 只把选中条目登记为 `enabled=false` 的 `external:*` 元数据；后端会拒绝启用或运行这种入口。它用于审查和规划接入，不是假装已经完成第三方 Skill 沙箱。
-
-最小 manifest：
-
-```json
-{
-  "name": "场景节奏检查",
-  "type": "skill",
-  "category": "revision",
-  "tags": ["节奏", "修订"],
-  "version": "1.0.0",
-  "source": "https://github.com/example/scene-pacing",
-  "license": "Apache-2.0",
-  "entry": "prompt:scene-pacing",
-  "output": "text",
-  "instructions": "保持事件顺序，只指出节奏断点并给出候选修改。",
-  "steps": ["读取显式上下文包", "检查场景节奏", "返回候选文本"],
-  "permissions": ["context:read"],
-  "supports_stream": true,
-  "supports_abort": true,
-  "enabled": true
-}
-```
-
-完整字段和 API 示例见 [能力协议](docs/CAPABILITY_PROTOCOL.md) 与 [API 文档](API.md)。
-
-技能包不是新的执行权限，而是一组可见的 `skill_ids` 预设。工作台应用技能包后，仍会显示选中数量，并把所有 Skill ID 显式传给 `/api/run`。分类有两处真实存储边界：工作台项目分类保存在当前浏览器，本地服务分类保存在当前后端工作目录的 `.ainovel/categories.json`。
-
-## 数据与安全边界
-
-- Pages 和工作台中的项目、章节、大纲、人物、笔记、记忆、候选与恢复快照以当前域名的 IndexedDB / `localStorage` 为浏览器数据源；清除站点数据前应导出 v5 项目包。
-- 切换项目或文档、导出和页面隐藏前会先提交当前编辑；保存、导入和级联删除以 IndexedDB 事务完成。项目 v5 包会携带本项目的 AI 历史，并在恢复时重映射文档 ID，避免候选指向旧坐标。
-- 工作台会申请浏览器持久化存储，并在“我的”页显示已用空间、配额和持久化状态；浏览器仍可能按自身策略拒绝，项目备份仍是必要的数据保险。
-- Go 后端工作目录与浏览器数据库是两套明确存储。浏览器不会把每次编辑静默镜像到单个后端项目；需要后端资料时，由作者在项目操作台显式执行“从自部署后端导入”。
-- Pages 可选浏览器 BYOK：Key、Base URL 与网络适配选项只写入当前 origin 的 `localStorage`，不会进入仓库或 Pages 构建产物；请求直达目标服务，因此目标服务必须允许 CORS。不要在公共设备使用此模式。
-- 浏览器直连支持 OpenAI Chat Completions、OpenAI Responses、Anthropic Messages 与 Ollama `/api/chat`；可选择鉴权方式、整个响应生命周期的请求超时和自定义请求头。域名、API 根路径和完整端点都可填写。
-- 本地或自部署版默认使用同源 `/api/`，由 Go 后端保管密钥并请求模型；同一组协议、鉴权、地址补全、自定义头、超时和真流式能力也适用于后端托管模式。
-- 默认监听回环地址；如使用 `0.0.0.0`，请只在可信网络或反向代理鉴权后开放。
-- API Key 可使用环境变量，不必写入仓库；配置读取时会对外隐藏密钥。
-- 多模型槽位仍只保留 Provider / Model；多 Provider 对比需要在自部署后端分别配置相应服务，Pages 的单个浏览器 Key 不会被静默复制到其他 Provider。
-- 保存 GitHub URL 不等于执行仓库代码。
-
-详见 [配置指南](CONFIG.md) 与 [安全策略](SECURITY.md)。
+- Pages 项目数据位于当前域名的 IndexedDB/localStorage；`github.io`、自定义域名、`localhost` 是不同的数据空间。
+- v6 项目包包含项目、章节、大纲、人物、笔记、记忆、候选/恢复快照、自定义分类、Prompt Skill 覆盖值和语料统计档案，不包含导入语料原文。
+- Go 服务使用 `.writing-workshop/`。若只存在旧 `.ainovel/` 配置，程序可读取并提示迁移，但新写入只进入 `.writing-workshop/`。
+- 浏览器项目与 Go 后端项目不会静默双向同步；通过导入/导出显式迁移。
+- Pages BYOK 的 Key 保存在当前浏览器，不是加密保险箱；不要在公共设备使用。
+- 自部署配置读取接口会隐藏 API Key 与自定义鉴权头。
 
 ## 项目结构
 
 ```text
-cmd/writing-workshop/  项目可执行入口
-internal/web/       同源 Web API、SSE、能力执行与数据管理
-web/static/         本地优先的写作工作台、项目管理扩展与 SVG 图标
-internal/store/     后端章节、大纲、人物、记忆和运行状态
-tests/              Playwright 浏览器产品烟雾测试
-examples/           可复用能力 manifest 与技能包请求示例
-docs/               协议、来源与设计说明
+cmd/writing-workshop/  可执行入口
+internal/engine/       仓库自有 Go Agent、上下文、协议与安全编辑
+internal/corpus/       授权语料抽取、聚合指标、候选校准
+internal/web/          同源 API、SSE、能力与数据管理
+web/static/            Pages / 自部署共用工作台
+internal/store/        后端章节、人物、记忆和运行状态
+tests/                 浏览器产品烟雾测试
+docs/                  用户、架构、历史与发布证据
 ```
-
-## 路线图
-
-- `v0.1`：无密钥启动、显式上下文包、候选确认、Skill manifest、CI 与跨平台发布。
-- `v0.2`：项目导入/导出包 v5 已覆盖项目、章节、大纲、人物、笔记、记忆、AI 候选/恢复快照、自定义分类与浏览器 Prompt Skill 覆盖值；Playwright 产品烟雾测试已进入 CI。
-- `v0.2.1`：稳定性维护版；补旧项目包迁移、候选历史恢复、跨文档写入保护、OpenAI/Anthropic 本地模拟契约和 Go 格式门禁。
-- `v0.2.2`：公开能力目录来源校正版；采用现行 `openai/plugins`，把旧 `openai/skills` 明确标成弃用迁移参考。
-- `v0.2.3`：恢复 Pages 浏览器 BYOK 自定义 API；保存与测试不再误请求静态 `/api/config`，并补双模式回归测试。
-- `v0.2.4`：加入独立 API 网络适配层，支持四类协议、地址补全、无密钥服务、真实浏览器流式解析和可诊断的上游错误。
-- `v0.2.5`：修复编辑切换丢失、人物编辑假保存、项目历史串库、非原子导入/删除、多模型失败候选误写；把协议适配和真实流扩展到自部署 Go 后端。
-- `v0.3`：最小权限的本地 Skill 沙箱与增量资料摄取。
-
-公开任务请使用 [GitHub Issues](https://github.com/zizegak916-glitch/writing-workshop/issues)。提交代码前阅读 [CONTRIBUTING.md](CONTRIBUTING.md)。
 
 ## 当前验证边界
 
-- 仓库有 65 个 Go `_test.go` 文件，覆盖后端多个包；这不等于“核心业务 100% 单元测试覆盖”，仓库目前没有发布覆盖率数字。
-- Playwright 验证立即切换时的标题/正文事务保存、人物编辑、v1–v4 → v5 迁移和历史坐标重映射、候选恢复/跨文档保护、失败槽位阻止写入、级联删除、Pages 配置清除语义、上下文预算和移动端入口；它仍不是像素级 UI 回归测试。
-- OpenAI Chat Completions、Responses、Anthropic Messages 与 Ollama 适配在 CI 中使用本地模拟服务校验普通响应、请求体、鉴权、用量和真实流式契约，不消耗真实密钥，也不能替代各供应商生产网络的兼容性测试。
-- 第三方用户数、连续一周使用和数据完整性仍缺独立证据。愿意测试者可提交 [7 天真实写作反馈](https://github.com/zizegak916-glitch/writing-workshop/issues/new?template=field-test.yml)，不需要提供私稿。
+- 原生 Agent 循环、工具门、用量累积、上下文压缩、四协议请求、编辑安全、配置迁移、语料去重与撤销已有 Go 测试。
+- 浏览器测试覆盖 v1–v5→v6、候选恢复、跨文档保护、Pages 配置和语料校准闭环；CI 结果才是发布证据。
+- 四协议在测试中使用本地模拟响应，不等于所有付费供应商生产网络已验证。
+- 当前没有公开的覆盖率承诺、像素级 UI 回归、第三方 Skill 沙箱或浏览器↔后端自动双向同步。
+- 当前缺少独立用户连续使用证据。提交问题只需版本、环境、操作步骤、期望/实际结果和脱敏日志，不需要上传私稿。
 
-[Releases](https://github.com/zizegak916-glitch/writing-workshop/releases) 提供版本化二进制与校验和；从源码或 Docker 使用仍然受支持。
+运行与 CI 对齐的检查：
 
-维护者可使用 `make check` 运行与 CI 对齐的本地检查。Codex for Open Source 的证据清单与申请草稿见 [docs/CODEX_FOR_OSS_APPLICATION.md](docs/CODEX_FOR_OSS_APPLICATION.md)。
+```bash
+make check
+```
+
+## 文档
+
+- [完整配置](CONFIG.md)
+- [API 契约](API.md)
+- [开发与测试](DEVELOPMENT.md)
+- [原生引擎](docs/NATIVE_ENGINE.md)
+- [授权语料校准](docs/CORPUS_CALIBRATION.md)
+- [产品归属边界](docs/PRODUCT_BOUNDARY.md)
+- [安全策略](SECURITY.md)
+- [更新时间线](docs/UPDATE_TIMELINE.md)
 
 ## 来源与许可证
 
-本项目的 Go 写作引擎源自 Apache-2.0 许可的 [`voocel/ainovel-cli`](https://github.com/voocel/ainovel-cli)。感谢上游作者 voocel；原项目在外部社区 LINUX DO 的介绍可见[《【AI小说】多余的 token 用不完怎么办？当然是拿来写小说了》](https://linux.do/t/topic/2267839)。本仓库保留原作者版权、提交历史和 Apache-2.0 许可证，并在其上开发独立的 Writing Workshop Web 产品层、能力协议、显式上下文工作流与发布设施。LINUX DO 是外部讨论社区，不是本项目的后台、官网、客服或所有者。继承引擎的历史技术说明保存在 [docs/UPSTREAM_ENGINE.md](docs/UPSTREAM_ENGINE.md)。
+仓库最初 fork 自 Apache-2.0 项目 [`voocel/ainovel-cli`](https://github.com/voocel/ainovel-cli)。当前 `internal/engine` 是 Writing Workshop 仓库维护的替代运行时，当前构建不再导入上游 `agentcore`/`litellm`，但历史 fork 代码、提交与归属不会因此消失。请同时参阅 [LICENSE](LICENSE)、[NOTICE](NOTICE) 与 [迁移说明](docs/UPSTREAM_ENGINE.md)。
+
+[LINUX DO](https://linux.do/) 是外部讨论社区，不是本项目的后台、官网、客服或所有者。

@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/voocel/agentcore"
-	corecontext "github.com/voocel/agentcore/context"
+	"github.com/zizegak916-glitch/writing-workshop/internal/engine"
+	corecontext "github.com/zizegak916-glitch/writing-workshop/internal/engine/context"
 	"github.com/zizegak916-glitch/writing-workshop/internal/store"
 )
 
@@ -39,14 +39,14 @@ func NewStoreSummaryCompact(cfg StoreSummaryCompactConfig) *StoreSummaryCompactS
 
 func (s *StoreSummaryCompactStrategy) Name() string { return storeSummaryStrategyName }
 
-func (s *StoreSummaryCompactStrategy) Apply(ctx context.Context, _ []agentcore.AgentMessage, view []agentcore.AgentMessage, budget corecontext.Budget) ([]agentcore.AgentMessage, corecontext.StrategyResult, error) {
+func (s *StoreSummaryCompactStrategy) Apply(ctx context.Context, _ []engine.AgentMessage, view []engine.AgentMessage, budget corecontext.Budget) ([]engine.AgentMessage, corecontext.StrategyResult, error) {
 	if budget.Window <= 0 || budget.Tokens <= budget.Threshold {
 		return view, corecontext.StrategyResult{Name: s.Name()}, nil
 	}
 	return s.apply(ctx, view, budget)
 }
 
-func (s *StoreSummaryCompactStrategy) ForceApply(ctx context.Context, transcript []agentcore.AgentMessage, view []agentcore.AgentMessage, budget corecontext.Budget) ([]agentcore.AgentMessage, corecontext.StrategyResult, error) {
+func (s *StoreSummaryCompactStrategy) ForceApply(ctx context.Context, transcript []engine.AgentMessage, view []engine.AgentMessage, budget corecontext.Budget) ([]engine.AgentMessage, corecontext.StrategyResult, error) {
 	base := transcript
 	if len(base) == 0 {
 		base = view
@@ -54,7 +54,7 @@ func (s *StoreSummaryCompactStrategy) ForceApply(ctx context.Context, transcript
 	return s.apply(ctx, base, budget)
 }
 
-func (s *StoreSummaryCompactStrategy) apply(_ context.Context, msgs []agentcore.AgentMessage, budget corecontext.Budget) ([]agentcore.AgentMessage, corecontext.StrategyResult, error) {
+func (s *StoreSummaryCompactStrategy) apply(_ context.Context, msgs []engine.AgentMessage, budget corecontext.Budget) ([]engine.AgentMessage, corecontext.StrategyResult, error) {
 	if s.store == nil || len(msgs) == 0 {
 		return msgs, corecontext.StrategyResult{Name: s.Name()}, nil
 	}
@@ -76,9 +76,9 @@ func (s *StoreSummaryCompactStrategy) apply(_ context.Context, msgs []agentcore.
 		return msgs, corecontext.StrategyResult{Name: s.Name()}, nil
 	}
 
-	toKeep := append([]agentcore.AgentMessage(nil), msgs[cut.firstKeptIndex:]...)
+	toKeep := append([]engine.AgentMessage(nil), msgs[cut.firstKeptIndex:]...)
 	tokensBefore := corecontext.EstimateTotal(msgs)
-	result := make([]agentcore.AgentMessage, 0, 1+len(toKeep))
+	result := make([]engine.AgentMessage, 0, 1+len(toKeep))
 	result = append(result, corecontext.ContextSummary{
 		Summary:      summary,
 		TokensBefore: tokensBefore,
@@ -87,9 +87,10 @@ func (s *StoreSummaryCompactStrategy) apply(_ context.Context, msgs []agentcore.
 	result = append(result, toKeep...)
 
 	tokensAfter := corecontext.EstimateTotal(result)
-	if tokensAfter >= tokensBefore {
-		return msgs, corecontext.StrategyResult{Name: s.Name()}, nil
-	}
+	// This strategy trades stale dialogue for canonical store facts. The local
+	// tokenizer can estimate a small temporary increase for CJK-heavy JSON; it
+	// is still a valid rewrite and later strategies continue until the prompt
+	// fits the hard budget.
 
 	info := &corecontext.SummaryInfo{
 		TokensBefore:   tokensBefore,
@@ -120,7 +121,7 @@ type storeSummaryCutResult struct {
 	isSplitTurn    bool
 }
 
-func findStoreSummaryCutPoint(msgs []agentcore.AgentMessage, keepTokens int) storeSummaryCutResult {
+func findStoreSummaryCutPoint(msgs []engine.AgentMessage, keepTokens int) storeSummaryCutResult {
 	if len(msgs) == 0 {
 		return storeSummaryCutResult{}
 	}
@@ -140,22 +141,22 @@ func findStoreSummaryCutPoint(msgs []agentcore.AgentMessage, keepTokens int) sto
 
 	for cutIndex < len(msgs) {
 		msg := msgs[cutIndex]
-		m, ok := msg.(agentcore.Message)
+		m, ok := msg.(engine.Message)
 		if !ok {
 			break
 		}
-		if m.Role == agentcore.RoleTool {
+		if m.Role == engine.RoleTool {
 			cutIndex++
 			continue
 		}
-		if m.Role == agentcore.RoleUser {
+		if m.Role == engine.RoleUser {
 			break
 		}
-		if m.Role == agentcore.RoleAssistant && m.HasToolCalls() {
+		if m.Role == engine.RoleAssistant && m.HasToolCalls() {
 			cutIndex++
 			for cutIndex < len(msgs) {
-				next, ok := msgs[cutIndex].(agentcore.Message)
-				if ok && next.Role == agentcore.RoleTool {
+				next, ok := msgs[cutIndex].(engine.Message)
+				if ok && next.Role == engine.RoleTool {
 					cutIndex++
 					continue
 				}
@@ -170,9 +171,9 @@ func findStoreSummaryCutPoint(msgs []agentcore.AgentMessage, keepTokens int) sto
 	}
 
 	result := storeSummaryCutResult{firstKeptIndex: cutIndex}
-	if m, ok := msgs[cutIndex].(agentcore.Message); !ok || m.Role != agentcore.RoleUser {
+	if m, ok := msgs[cutIndex].(engine.Message); !ok || m.Role != engine.RoleUser {
 		for i := cutIndex - 1; i >= 0; i-- {
-			if um, ok := msgs[i].(agentcore.Message); ok && um.Role == agentcore.RoleUser {
+			if um, ok := msgs[i].(engine.Message); ok && um.Role == engine.RoleUser {
 				result.turnStartIndex = i
 				result.isSplitTurn = true
 				break

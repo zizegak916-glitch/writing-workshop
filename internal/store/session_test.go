@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/voocel/agentcore"
+	"github.com/zizegak916-glitch/writing-workshop/internal/engine"
 )
 
 // TestSessionStore_MetaInjected_AssistantWithUsage 验证只有"assistant + has Usage"
@@ -20,18 +20,18 @@ func TestSessionStore_MetaInjected_AssistantWithUsage(t *testing.T) {
 	})
 	logger := s.SubAgentLogger(lookup)
 
-	logger("writer", "写第 1 章", agentcore.Message{
-		Role:  agentcore.RoleUser,
+	logger("writer", "写第 1 章", engine.Message{
+		Role:  engine.RoleUser,
 		Usage: nil,
 	})
-	logger("writer", "写第 1 章", agentcore.Message{
-		Role: agentcore.RoleAssistant,
-		Usage: &agentcore.Usage{
+	logger("writer", "写第 1 章", engine.Message{
+		Role: engine.RoleAssistant,
+		Usage: &engine.Usage{
 			Input: 1000, Output: 200, CacheRead: 800, TotalTokens: 1200,
 		},
 	})
-	logger("writer", "写第 1 章", agentcore.Message{
-		Role:  agentcore.RoleAssistant,
+	logger("writer", "写第 1 章", engine.Message{
+		Role:  engine.RoleAssistant,
 		Usage: nil, // assistant 但无 usage（流式未带 final usage chunk）
 	})
 
@@ -106,10 +106,10 @@ func TestSessionStore_NilLookup(t *testing.T) {
 	}
 }
 
-func makeAssistantWithUsage() agentcore.Message {
-	return agentcore.Message{
-		Role:  agentcore.RoleAssistant,
-		Usage: &agentcore.Usage{Input: 1000, Output: 200, TotalTokens: 1200},
+func makeAssistantWithUsage() engine.Message {
+	return engine.Message{
+		Role:  engine.RoleAssistant,
+		Usage: &engine.Usage{Input: 1000, Output: 200, TotalTokens: 1200},
 	}
 }
 
