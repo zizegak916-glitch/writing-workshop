@@ -3,7 +3,7 @@
 [![CI](https://github.com/zizegak916-glitch/writing-workshop/actions/workflows/ci.yml/badge.svg)](https://github.com/zizegak916-glitch/writing-workshop/actions/workflows/ci.yml)
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-black.svg)](LICENSE)
 
-> 文档最后同步：2026-08-22（UTC）。当前版本处于 v0.3.0 发布前验证阶段；没有把自测写成第三方验证。
+> 文档最后同步：2026-08-22（UTC）。当前发布线为 v0.3.0；仓库自动化验证不冒充第三方审计或真实用户反馈。
 
 Writing Workshop 是一个本地优先、作者确认写入的长篇创作工作台。项目、正文、章节、大纲、人物、笔记、记忆、自定义分类和 Prompt Skill 可以在同一项目中管理；每次 AI 请求由作者显式选择上下文，结果先进入候选区，不会自动覆盖正文。
 

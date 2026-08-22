@@ -1,5 +1,5 @@
 {
-  "version": "v0.2.5",
-  "requested_at": "2026-07-29T11:19:22Z",
-  "reason": "Ship project bundle v5, transaction-safe browser persistence, project-scoped recovery history, custom-static runtime detection and protocol-aware self-hosted streaming."
+  "version": "v0.3.0",
+  "requested_at": "2026-08-22T18:41:00Z",
+  "reason": "Ship the repository-owned native Go runtime, authorized corpus calibration, project bundle v6, canonical data paths and synchronized product documentation."
 }

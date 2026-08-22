@@ -42,7 +42,9 @@
 
 ## 验证状态
 
-GitHub PR #16 的 [CI 32591059710](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/32591059710) 已通过完整检查：`go test ./...`、`go vet ./...`、发布二进制构建、JavaScript 语法、静态产品契约、API 适配器契约、离线服务 smoke 和 Chromium Playwright 产品闭环。它是仓库自动化自测，不是第三方审计或真实供应商网络验证。
+GitHub PR #16 的最终 [CI 32591217690](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/32591217690) 已通过完整检查：`go test ./...`、`go vet ./...`、发布二进制构建、JavaScript 语法、静态产品契约、API 适配器契约、离线服务 smoke 和 Chromium Playwright 产品闭环。它是仓库自动化自测，不是第三方审计或真实供应商网络验证。
+
+合并提交 [`0c281bd`](https://github.com/zizegak916-glitch/writing-workshop/commit/0c281bda70da027bc84fbe1df55b2b0e52278c73) 的 [main CI 32591318098](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/32591318098) 与 [Pages 32591318117](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/32591318117) 均成功；公开工作台、主脚本、语料脚本/样式和教程页的 SHA-256 与合并源码一致。
 
 本地已通过：
 
@@ -63,7 +65,7 @@ GitHub PR #16 的 [CI 32591059710](https://github.com/zizegak916-glitch/writing-
 
 ## 下一步，不再堆功能
 
-1. 合并 PR 后验证 main CI、Pages 与正式页面，再决定是否发布 v0.3.0。
+1. 发布 v0.3.0，并单独验证 Release 与多架构 Docker 工作流。
 2. 让 3–5 位真实用户使用核心闭环，不收私稿，只收复现步骤与脱敏日志。
 3. 补原生 CLI 真流式，再决定是否推进 Skill 沙箱。
 4. 对大项目先做增量资料摄取与缓存，不再增加同类功能按钮。
