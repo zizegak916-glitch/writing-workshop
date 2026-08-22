@@ -30,7 +30,7 @@ API credits would fund open-source maintenance rather than hidden product usage:
 | Evidence | Public location |
 |---|---|
 | Push/PR test pipeline | `.github/workflows/ci.yml` |
-| Latest verified release / CI / Pages deployment | [v0.2.5](https://github.com/zizegak916-glitch/writing-workshop/releases/tag/v0.2.5), [Release 30447412739](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/30447412739), [CI 30447761904](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/30447761904), [Pages 30447761763](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/30447761763) |
+| Latest verified release / CI / Pages deployment | [v0.3.0](https://github.com/zizegak916-glitch/writing-workshop/releases/tag/v0.3.0), [Release 32591612468](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/32591612468), [CI 32591612463](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/32591612463), [Pages 32591612466](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/32591612466), [Docker 32591765761](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/32591765761) |
 | Go tests, vet, build, JS checks, browser product tests and service smoke test | GitHub Actions CI |
 | Keyless runnable mode | `writing-workshop serve --demo` |
 | Docker health check | `/api/health` |
