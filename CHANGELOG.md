@@ -1,6 +1,6 @@
 # Changelog
 
-## v0.3.0 — Unreleased — 原生引擎与授权语料校准
+## v0.3.0 — 2026-08-22 — 原生引擎与授权语料校准
 
 - 用仓库内 `internal/engine` 替换当前 Go 运行时的 `agentcore` / `litellm` 依赖，加入消息与工具循环、工具门、用量、上下文投影、四协议 HTTP 适配、子任务隔离和安全编辑测试。
 - 配置与产品数据迁到 `.writing-workshop`；旧 `.ainovel` 只在现行配置不存在时读取，新保存不再写旧目录。

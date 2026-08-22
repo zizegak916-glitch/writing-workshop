@@ -38,7 +38,7 @@ const promptLookups = workbenchSource.match(/wwPromptText\(/g)?.length || 0;
 assert(promptLookups >= 6, `expected Prompt Skill injection in at least 6 request paths, found ${promptLookups}`);
 assert(appHtml.includes('js/ai-mode-icons.js') && appHtml.includes('js/prompt-skills.js'), 'workbench must load icon and Prompt Skill scripts');
 assert(appHtml.includes('js/corpus-lab.js') && appHtml.includes('css/corpus-lab.css'), 'workbench must load corpus calibration UI');
-assert(appHtml.includes('v0.3.0 RC · 2026-08-22'), 'workbench release candidate label is stale');
+assert(appHtml.includes('v0.3.0 · 2026-08-22'), 'workbench release label is stale');
 assert(appHtml.includes('js/api-adapter.js'), 'workbench must load the shared API adapter');
 assert(appHtml.indexOf('js/api-adapter.js') < appHtml.indexOf('js/workbench.js'), 'API adapter must load before workbench');
 assert(appHtml.includes('css/main.css') && appHtml.includes('js/workbench.js'), 'workbench must load its canonical CSS and JavaScript entrypoints');
