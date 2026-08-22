@@ -1,18 +1,18 @@
 # Writing Workshop 后端 API 契约
 
-> 状态：现行产品接口，更新于 2026-07-29（UTC+8）。继承引擎的历史接口另见 `docs/UPSTREAM_ENGINE.md`；变更证据见 `docs/UPDATE_TIMELINE.md`。
+> 状态：现行产品接口，更新于 2026-08-22（UTC）。原生引擎说明见 `docs/NATIVE_ENGINE.md`，历史迁移见 `docs/UPSTREAM_ENGINE.md`；变更证据见 `docs/UPDATE_TIMELINE.md`。
 
-写作工坊前端通过同源 `/api/` 与本地或自部署后端通信。底层写作引擎源自 `ainovel-cli`；其他 skill 或自定义后端也可以实现同一组能力契约。
+写作工坊前端通过同源 `/api/` 与本地或自部署后端通信。当前后端由仓库内 `internal/engine` 与 `internal/web` 实现；其他 Skill 或自定义前端也可以实现同一组能力契约。
 
 ## 浏览器 Prompt Skill 不属于后端 API
 
-润色、续写、人物、校对、标题、实时灵感等 32 个功能使用浏览器 Prompt Skill。默认文本来自 `web/static/js/prompt-skills.js`，用户覆盖值保存在当前域名的 `localStorage`；点击功能后，前端在调用 `/api/ai` 前组装提示词。它们不通过 `/api/capabilities` CRUD，也不会写入 `.ainovel/capabilities.json`。
+润色、续写、人物、校对、标题、实时灵感等 32 个功能使用浏览器 Prompt Skill。默认文本来自 `web/static/js/prompt-skills.js`，用户覆盖值保存在当前域名的 `localStorage`；点击功能后，前端在调用 `/api/ai` 前组装提示词。它们不通过 `/api/capabilities` CRUD，也不会写入 `.writing-workshop/capabilities.json`。
 
-项目导出格式 v5 可包含：
+项目导出格式 v6 可包含：
 
 ```json
 {
-  "version": 5,
+  "version": 6,
   "project": {},
   "outlines": [],
   "characters": [],
@@ -35,13 +35,44 @@
     "overrides": {
       "润色": {"prompt": "用户自定义提示词", "updated_at": "2026-07-22T17:00:00Z"}
     }
+  },
+  "corpus": {
+    "version": 1,
+    "profiles": [],
+    "proposals": [],
+    "applications": []
   }
 }
 ```
 
-导入 v1/v2/v3/v4 项目仍然兼容；存在 `categories` 时合并合法自定义分类，存在 `prompt_skills` 时只合并已知名称和合法文本，不覆盖未出现在包中的浏览器设置。v5 恢复会在同一个 IndexedDB 事务中写入项目及其子记录，并把 AI 历史里的旧文档 ID 重映射到新记录；失败时整批回滚，不留下半个项目。浏览器项目包、分类与 Prompt Skill 的导入导出是前端本地数据操作，不应误写成新的服务端接口。
+导入 v1/v2/v3/v4/v5 项目仍然兼容；存在 `categories` 时合并合法自定义分类，存在 `prompt_skills` 时只合并已知名称和合法文本，不覆盖未出现在包中的浏览器设置。v6 恢复会在同一个 IndexedDB 事务中写入项目及其子记录，并把 AI 历史里的旧文档 ID 重映射到新记录；失败时整批回滚，不留下半个项目。浏览器项目包、分类与 Prompt Skill 的导入导出是前端本地数据操作，不应误写成新的服务端接口。
 
 浏览器项目与 Go 后端项目是两套明确存储。前端不会在每次保存时静默调用项目写接口；当前工作台仅在用户点击“从自部署后端导入”时读取 `/api/projects`、`/api/chapters` 和 `/api/characters`，建立新的浏览器项目副本。
+
+## 授权语料
+
+`GET /api/corpus` 返回保存在 `.writing-workshop/corpus/index.json` 的聚合档案。档案不含原文。
+
+`POST /api/corpus` 使用 `multipart/form-data`：文件字段为 `files`（或单个 `file`），并必须发送 `authorized=true`。支持 TXT、Markdown、DOCX；单文件最多 20 MiB，一次最多 20 个文件，请求总量最多 64 MiB。相同 SHA-256 会去重。
+
+```bash
+curl -X POST http://127.0.0.1:8080/api/corpus \
+  -F authorized=true \
+  -F files=@sample.md
+```
+
+响应中的 `text_stored` 必须为 `false`。`DELETE /api/corpus?id=corpus-...` 删除指定聚合档案。
+
+`POST /api/corpus/refinements` 根据档案和目标 Prompt Skill 生成候选：
+
+```json
+{
+  "source_ids": ["corpus-0123456789ab"],
+  "target_skills": ["润色", "续写", "对白"]
+}
+```
+
+响应包含 `proposal`、`applied:false` 和提示信息。服务端不会修改浏览器 Prompt Skill；前端必须先展示差分，再由用户确认应用并保存修改前快照。
 
 ## 健康检查
 
@@ -79,7 +110,7 @@
 - `POST /api/run`：执行选中的后端项目或多个 skill。
 - `POST /api/abort`：取消当前长任务。
 
-能力保存到当前工作目录的 `.ainovel/capabilities.json`。默认内置能力：
+能力保存到当前工作目录的 `.writing-workshop/capabilities.json`。默认内置能力：
 
 - `builtin-echo`
 - `builtin-outline`
@@ -140,7 +171,7 @@
 
 `GET /api/skill-packs` 返回 `{"packs": [...]}`。内置包包括 `longform-planning`、`chapter-revision` 与 `character-dialogue`。
 
-`POST /api/skill-packs` / `PUT /api/skill-packs`：保存用户技能包，写入当前工作目录 `.ainovel/skill-packs.json`。Skill ID 会去重并逐项验证；只读内置包不能覆盖或删除。
+`POST /api/skill-packs` / `PUT /api/skill-packs`：保存用户技能包，写入当前工作目录 `.writing-workshop/skill-packs.json`。Skill ID 会去重并逐项验证；只读内置包不能覆盖或删除。
 
 ```json
 {
@@ -157,7 +188,7 @@
 
 ## 分类
 
-`GET /api/categories` 返回内置与用户分类。`POST/PUT /api/categories` 保存到 `.ainovel/categories.json`；`scope` 可为 `all`、`project`、`capability` 或 `memory`，颜色必须是六位十六进制值，否则使用安全默认色。
+`GET /api/categories` 返回内置与用户分类。`POST/PUT /api/categories` 保存到 `.writing-workshop/categories.json`；`scope` 可为 `all`、`project`、`capability` 或 `memory`，颜色必须是六位十六进制值，否则使用安全默认色。
 
 ```json
 {"name":"历史考据","color":"#F2B544","scope":"capability","description":"史料与时代细节"}
@@ -207,7 +238,7 @@ curl -X POST http://127.0.0.1:8080/api/external-catalog \
 
 `POST /api/config` / `PUT /api/config`
 
-保存 provider、model、base_url、api_key、协议、鉴权、请求超时、上下文上限、provider 级 `extra` 和请求体 `extra_body` 到本地 `~/.ainovel/config.json`。
+保存 provider、model、base_url、api_key、协议、鉴权、请求超时、上下文上限、provider 级 `extra` 和请求体 `extra_body` 到本地 `~/.writing-workshop/config.json`。
 
 ```json
 {
@@ -241,7 +272,7 @@ Pages 模式不调用这一写接口。浏览器端使用 `web/static/js/api-ada
 
 `GET /api/projects`
 
-读取当前本地 ainovel 输出目录中的项目元数据。
+读取当前本地 Writing Workshop 输出目录中的项目元数据。
 
 `POST /api/projects` / `PUT /api/projects`
 
@@ -295,7 +326,7 @@ Pages 模式不调用这一写接口。浏览器端使用 `web/static/js/api-ada
 
 `POST /api/rules` / `PUT /api/rules`
 
-保存 Web 规则到当前项目 `.ainovel/rules/web.rules.md`。可直接传 `raw`，也可传结构化字段。
+保存 Web 规则到当前项目 `.writing-workshop/rules/web.rules.md`。可直接传 `raw`，也可传结构化字段。
 
 ```json
 {

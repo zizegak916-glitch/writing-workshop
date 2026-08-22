@@ -1,74 +1,72 @@
 # 开发指南
 
-> 状态：现行开发指南，更新于 2026-07-29（UTC+8）。
+> 现行开发指南，更新于 2026-08-22（UTC）。
 
-## 本地构建
+## 构建
 
 ```bash
 go build -o writing-workshop ./cmd/writing-workshop
 ./writing-workshop serve --demo --port 8080
 ```
 
-当前仓库的 Web 前端位于 `web/static/`，由 `web/static/static.go` 通过 `go:embed` 打包。主入口只使用 `web/static/css/main.css` 与 `web/static/js/workbench.js` 作为基础样式和基础交互的权威文件，其余脚本按功能显式加载；不要重新引入重复的内联实现。
+需要 Go 1.25.5+。前端位于 `web/static/` 并通过 `go:embed` 进入可执行文件；没有前端 bundler，新增脚本/样式必须在 HTML 中显式加载，并加入静态合约检查。
 
-写作工坊是主体应用。GitHub 开源项目、skill、规则包和自定义能力都只是可保存、可组合、可执行的能力来源。底层 Go 引擎源自 `ainovel-cli`；新增后端适配时应保持 `/api/` 契约稳定。
+## 当前架构权威位置
 
-## 常用验证
+- `internal/engine/`：仓库自有 Agent、上下文、协议和安全编辑。
+- `internal/corpus/`：授权语料解析、聚合指标、候选规则和原子档案。
+- `internal/web/provider_http.go`：Web 四协议真实 SSE/NDJSON 适配。
+- `internal/web/corpus.go`：自部署语料 API。
+- `web/static/js/workbench.js`：浏览器项目、IndexedDB、v6 备份。
+- `web/static/js/corpus-lab.js`：Pages 本地分析、自部署上传、差分应用和撤销。
+- `web/static/js/prompt-skills.js`：32 个 Prompt Skill 默认值和覆盖管理。
 
-在受限环境中，建议把 Go 缓存放到 `/tmp`：
+旧 `.ainovel` 只可作为迁移输入；新代码不得向它写入。现行目录是 `.writing-workshop`。
+
+## 不可破坏的产品约束
+
+1. AI 输出必须先进入候选区；不得直接覆盖正文。
+2. 生成后正文或文档坐标发生变化时，必须阻止旧候选按旧位置写入。
+3. 项目导入、级联删除和跨 store 变更必须在单个 IndexedDB 事务中完成。
+4. Pages API 配置不得请求静态 `/api/config`；浏览器直连和同源后端模式要独立测试。
+5. Key、鉴权头、私稿和导入语料不得进入日志、源码或测试快照。
+6. 语料原文只在本次内存中处理；持久化结构不得出现原文字段。
+7. 语料规则只能生成候选，并必须含禁止具体作者仿写的反规则。
+8. 外部 capability 默认停用；没有沙箱时不得执行远程代码。
+
+## 验证
 
 ```bash
-mkdir -p /tmp/go-cache /tmp/gomodcache
-GOCACHE=/tmp/go-cache GOMODCACHE=/tmp/gomodcache go test ./...
-GOCACHE=/tmp/go-cache GOMODCACHE=/tmp/gomodcache go vet ./...
-GOCACHE=/tmp/go-cache GOMODCACHE=/tmp/gomodcache go build ./cmd/writing-workshop
+gofmt -w <changed-go-files>
+go test ./...
+go vet ./...
+go build ./cmd/writing-workshop
 find web/static -name '*.js' -print0 | xargs -0 -n1 node --check
 node scripts/check-static.mjs
+node tests/api-adapter.test.mjs
 npm ci
 npx playwright install --with-deps chromium
 npm run test:browser
+git diff --check
 ```
 
-## Web 端约定
+受限沙箱可能禁止 `httptest.NewServer` 或 Playwright 访问 loopback；这种情况下只可记录“本地环境未运行”，不能把编译成功写成浏览器通过。最终发布证据以 GitHub Actions 为准。
 
-- `app.html` 是写作工坊主入口。
-- 基础工作台逻辑在 `web/static/js/workbench.js`，基础样式在 `web/static/css/main.css`；`app.html` 不再保留大段内联 CSS / JavaScript。
-- 主界面的“流程”功能拆分在 `web/static/js/workflows.js` 与 `web/static/css/workflows.css`，由 `app.html` 显式加载。
-- 浏览器项目搜索、复制、分类、单项目导出与安全删除在 `web/static/js/product-extensions.js` 和 `web/static/css/product-extensions.css`；入口仍是 `app.html`。
-- 32 个浏览器 Prompt Skill、覆盖值校验、管理器和本地备份逻辑在 `web/static/js/prompt-skills.js`；样式在 `web/static/css/prompt-skills.css`。新增 AI 功能时必须同时补名称、提示词、功能入口和覆盖审计，不能只给 `AI_MODES` 增加按钮。
-- `web/static/js/ai-mode-icons.js` 与 `web/static/icons/ai-mode-icons.svg` 是功能图标映射和符号源；Prompt Skill 管理器也复用这套映射。
-- `web/static/icons/app-icon.svg` 是全站图标源；所有公开 HTML 页面都应保留 favicon 引用。
-- `/admin` 使用 `web/static/admin.html`。
-- 自部署模式的前端 AI 调用必须走 `/api/ai` 或 `/api/ai/stream`。Pages 浏览器 BYOK 是明确例外：仅在运行时判定为浏览器 API 模式且用户主动保存本地配置时直连目标端点；不得把 Key 写入源码、构建产物或测试日志。
-- 浏览器项目是 IndexedDB 中的本地工作副本。日常保存不得静默写入后端；项目操作台中的“从自部署后端导入”是当前唯一显式后端导入入口。
-- 切换项目/文档和导出前必须等待当前编辑事务完成。新增浏览器存储写操作不能以 `IDBRequest.onsuccess` 代替 `IDBTransaction.oncomplete`。
-- 项目导入、级联删除和其他跨 store 变更必须在单个 IndexedDB 事务中完成；项目级 AI 历史必须带 `project_id`，恢复备份时重映射文档 ID。
-- 规则包使用 `/api/rules`，项目级规则落盘到 `.ainovel/rules/web.rules.md`。
-- 新的通用能力入口使用 `/api/capabilities` 和 `/api/run`。前端传递 `backend_id`、`skill_ids`、上下文和参数；后端输出直接回传前端。
-- 技能包与分类分别使用 `/api/skill-packs`、`/api/categories`，实现在 `internal/web/catalog.go`。技能包只能引用已启用的非后端能力。
-- 长任务必须支持取消，前端可使用 `AbortController` 或调用 `/api/abort` 中断。
+## 新增引擎行为时
 
-## 后端约定
+- Agent 消息顺序、工具门、usage、取消与错误分类必须有测试。
+- 新 provider 适配必须覆盖路径、鉴权、请求体、普通响应、流式响应、usage、4xx/5xx 和超时。
+- 上下文压缩不得改写审计基线，只生成本次发送视图。
+- 文件编辑必须验证根目录、符号链接/遍历风险、唯一匹配和换行编码。
 
-- Web API 实现在 `internal/web/server.go`。
-- 四协议原始 HTTP / SSE / NDJSON 适配实现在 `internal/web/provider_http.go`；地址、鉴权、超时、usage 和上游错误变更必须补本地模拟契约测试。
-- 通用能力 API 实现在 `internal/web/capabilities.go`，能力清单保存到 `.ainovel/capabilities.json`。
-- 产品目录 API 实现在 `internal/web/catalog.go`，分类和技能包分别保存到 `.ainovel/categories.json`、`.ainovel/skill-packs.json`。
-- 第三方 GitHub 项目和 skill manifest 只做登记、校验和选择；不要在 Web 层直接执行未沙箱化的远程代码。
-- `/api/run` 支持 JSON 响应和 SSE 响应。AI 任务必须转发上游真实增量，不得先缓冲完整结果再按字符数切片伪装成流。新增长任务时必须使用 request context，并注册取消函数，保证 `/api/abort` 可中断。
-- 运行时配置由 `host.UpdateConfig` 持久化到本地配置文件。
-- 章节读写复用 `internal/store`，不要绕过 Store 写入核心小说数据。
-- 规则解析复用 `internal/rules`，不要在 Web 层重新实现规则合并逻辑。
+## 新增语料指标时
 
-## 自检清单
+- 先证明无需保存原文即可复算或解释。
+- 对超长文本使用有界采样或流式统计，防止无界内存。
+- 同一 SHA-256 不重复加入档案。
+- 弱样本标弱证据，禁止把相关性写成质量因果。
+- 浏览器与 Go 实现的字段语义要一致，并补 v6 备份迁移测试。
 
-1. `rg -n "TODO|FIXME|HACK|mock|stub" internal web`
-2. `go test ./...`
-3. `go vet ./...`
-4. `go build ./cmd/writing-workshop`
-5. 启动 `serve --demo` 后检查 `/api/health`，再访问 `/app.html` 和 `/admin`。
-6. 在管理后台测试 `/api/capabilities`、`/api/run` 和 `/api/ai`，确认能力保存、执行和 provider/model/key 配置有效。
-7. 运行 `node scripts/check-static.mjs`：确认 32 个 Prompt Skill、图标映射、SVG symbol、入口资源、无孤立脚本/样式、函数唯一性、静态链接和证据 JSON 一致。
-8. 运行 `npm run test:api-adapter`：确认四协议地址、鉴权、响应/流解析和完整响应生命周期超时。
-9. 运行 `npm run test:browser`：确认事务保存、人物保存、v1–v4→v5、历史坐标重映射、候选保护、级联删除、Pages 配置和移动端入口。
-10. 影响公开行为后更新 `CHANGELOG.md` 和真正受影响的用户/协议文档；`CODE_REVIEW.md` 只在阶段审计时补充，`docs/UPDATE_TIMELINE.md` 只记录可验证里程碑。有新的 CI/Pages/Release 证据时再同步 `docs/RELEASE_EVIDENCE.json`。
+## 文档与发布
+
+行为变化时更新真正受影响的 README、配置、API、教程与 CHANGELOG。`docs/RELEASE_EVIDENCE.json` 只记录已经成功的 CI/Pages/Release，不为未发布版本预填成功结果；`CODE_REVIEW.md` 是阶段性自审，也不能称为第三方审计。

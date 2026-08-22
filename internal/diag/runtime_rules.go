@@ -55,11 +55,11 @@ func repeatedErrors(rc *RuntimeCapture) []Finding {
 		case strings.Contains(r.Sig, " · err: "):
 			rule = "RepeatedToolError"
 			title = "工具反复报同一错误"
-			sugg = "近端同一工具反复返回同一错误，多为模型参数不合规或工具契约不符；查 agentcore 工具校验 / prompt 参数约定（参见 #34）。"
+			sugg = "近端同一工具反复返回同一错误，多为模型参数不合规或工具契约不符；查 engine 工具校验 / prompt 参数约定（参见 #34）。"
 		case strings.Contains(r.Sig, "(args invalid)"):
 			rule = "ArgsInvalidLoop"
 			title = "参数反复无法解析"
-			sugg = "模型发来的参数无法解析却不断重试；看 agentcore 是否对该类型做了宽松强转（参见 #34）。"
+			sugg = "模型发来的参数无法解析却不断重试；看 engine 是否对该类型做了宽松强转（参见 #34）。"
 		default:
 			continue // 普通工具重复不产 Finding
 		}

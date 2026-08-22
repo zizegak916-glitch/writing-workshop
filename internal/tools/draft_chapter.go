@@ -7,8 +7,8 @@ import (
 	"slices"
 	"unicode/utf8"
 
-	"github.com/voocel/agentcore/schema"
 	"github.com/zizegak916-glitch/writing-workshop/internal/domain"
+	"github.com/zizegak916-glitch/writing-workshop/internal/engine/schema"
 	"github.com/zizegak916-glitch/writing-workshop/internal/errs"
 	"github.com/zizegak916-glitch/writing-workshop/internal/store"
 )
@@ -46,7 +46,7 @@ func (t *DraftChapterTool) Schema() map[string]any {
 
 // StrictSchema 启用 OpenAI 的 strict tool calling，让模型必须严格遵守
 // schema：所有 required 字段必填，arguments 不能"提前 EOT"出现空对象。
-// litellm 透传 strict 字段；OpenAI / xAI 等支持的后端会强制执行，其他后端
+// 原生 provider 适配器透传 strict 字段；OpenAI / xAI 等支持的后端会强制执行，其他后端
 // 按 HTTP/JSON 惯例忽略未知字段。Anthropic/Gemini/Bedrock 走各自的转换链路
 // 自然不会看到这个字段。
 func (t *DraftChapterTool) StrictSchema() bool { return true }

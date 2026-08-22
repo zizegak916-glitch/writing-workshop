@@ -8,7 +8,7 @@ import (
 	"sync"
 	"unicode/utf8"
 
-	"github.com/voocel/agentcore/schema"
+	"github.com/zizegak916-glitch/writing-workshop/internal/engine/schema"
 )
 
 // AskUserResponse 用户回答结果。

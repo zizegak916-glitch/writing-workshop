@@ -13,7 +13,7 @@ func TestRenderTopBarShowsVersion(t *testing.T) {
 		ModelName: "test-model",
 		NovelName: "测试小说",
 	}, 120, "", "v1.2.3")
-	if !strings.Contains(out, "ainovel-cli v1.2.3") {
+	if !strings.Contains(out, "writing-workshop v1.2.3") {
 		t.Fatalf("top bar missing version: %q", out)
 	}
 }

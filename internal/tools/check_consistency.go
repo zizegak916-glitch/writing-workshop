@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/voocel/agentcore/schema"
 	"github.com/zizegak916-glitch/writing-workshop/internal/domain"
+	"github.com/zizegak916-glitch/writing-workshop/internal/engine/schema"
 	"github.com/zizegak916-glitch/writing-workshop/internal/errs"
 	"github.com/zizegak916-glitch/writing-workshop/internal/store"
 )

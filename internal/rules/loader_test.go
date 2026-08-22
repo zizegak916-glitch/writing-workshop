@@ -239,10 +239,10 @@ func TestEnsureRulesDirAt(t *testing.T) {
 	}
 }
 
-// TestDefaultProjectRulesDir 锁死项目级规则目录镜像全局：./.ainovel/rules/。
+// TestDefaultProjectRulesDir 锁死项目级规则目录镜像全局：./.writing-workshop/rules/。
 func TestDefaultProjectRulesDir(t *testing.T) {
 	proj := filepath.Join("/tmp", "demo-book")
-	want := filepath.Join(proj, ".ainovel", "rules")
+	want := filepath.Join(proj, ".writing-workshop", "rules")
 	if got := DefaultProjectRulesDir(proj); got != want {
 		t.Errorf("DefaultProjectRulesDir=%q, want %q", got, want)
 	}
@@ -251,12 +251,12 @@ func TestDefaultProjectRulesDir(t *testing.T) {
 	}
 }
 
-// TestDefaultOptions_LoadsProjectRulesFromDotAinovel 端到端验证：
-// DefaultOptions 把 cwd 下的 ./.ainovel/rules/ 接进 SourceProject 来源。
-func TestDefaultOptions_LoadsProjectRulesFromDotAinovel(t *testing.T) {
+// TestDefaultOptions_LoadsProjectRulesFromWorkshopDir 端到端验证：
+// DefaultOptions 把 cwd 下的 ./.writing-workshop/rules/ 接进 SourceProject 来源。
+func TestDefaultOptions_LoadsProjectRulesFromWorkshopDir(t *testing.T) {
 	proj := t.TempDir()
 	t.Chdir(proj)
-	rulesDir := filepath.Join(proj, ".ainovel", "rules")
+	rulesDir := filepath.Join(proj, ".writing-workshop", "rules")
 	if err := os.MkdirAll(rulesDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -274,9 +274,27 @@ func TestDefaultOptions_LoadsProjectRulesFromDotAinovel(t *testing.T) {
 		}
 	}
 	if got == nil {
-		t.Fatalf("应从 ./.ainovel/rules/ 加载到项目规则层，得到 %+v", layers)
+		t.Fatalf("应从 ./.writing-workshop/rules/ 加载到项目规则层，得到 %+v", layers)
 	}
 	if b := Merge(layers); b.Structured.ChapterWords == nil || b.Structured.ChapterWords.Min != 4000 {
 		t.Errorf("项目规则应覆盖默认 chapter_words，得到 %+v", b.Structured.ChapterWords)
+	}
+}
+
+func TestDefaultProjectRulesDir_LegacyFallback(t *testing.T) {
+	proj := t.TempDir()
+	legacy := filepath.Join(proj, ".ainovel", "rules")
+	if err := os.MkdirAll(legacy, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if got := DefaultProjectRulesDir(proj); got != legacy {
+		t.Fatalf("legacy rules fallback = %q, want %q", got, legacy)
+	}
+	current := filepath.Join(proj, ".writing-workshop", "rules")
+	if err := os.MkdirAll(current, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if got := DefaultProjectRulesDir(proj); got != current {
+		t.Fatalf("current rules must win = %q, want %q", got, current)
 	}
 }

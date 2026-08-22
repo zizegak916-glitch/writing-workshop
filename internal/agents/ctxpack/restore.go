@@ -4,13 +4,13 @@ import (
 	"context"
 	"sync"
 
-	"github.com/voocel/agentcore"
-	corecontext "github.com/voocel/agentcore/context"
+	"github.com/zizegak916-glitch/writing-workshop/internal/engine"
+	corecontext "github.com/zizegak916-glitch/writing-workshop/internal/engine/context"
 	"github.com/zizegak916-glitch/writing-workshop/internal/store"
 )
 
 // ---------------------------------------------------------------------------
-// Writer summary prompts — narrative-oriented replacements for agentcore's
+// Writer summary prompts — narrative-oriented replacements for engine's
 // code-assistant defaults. These guide the LLM to preserve continuity
 // information that matters for fiction writing.
 // ---------------------------------------------------------------------------
@@ -153,29 +153,29 @@ func (p *WriterRestorePack) Clear() {
 // Hook returns a PostSummaryHook that injects the cached restore pack.
 // The hook performs no I/O — it only reads the in-memory pack under a read lock.
 func (p *WriterRestorePack) Hook() corecontext.PostSummaryHook {
-	return func(_ context.Context, _ corecontext.SummaryInfo, _ []agentcore.AgentMessage) ([]agentcore.AgentMessage, error) {
+	return func(_ context.Context, _ corecontext.SummaryInfo, _ []engine.AgentMessage) ([]engine.AgentMessage, error) {
 		msg, ok := p.buildMessage(restoreBudgetTokens)
 		if !ok {
 			return nil, nil
 		}
-		return []agentcore.AgentMessage{msg}, nil
+		return []engine.AgentMessage{msg}, nil
 	}
 }
 
 // buildMessage assembles the restore message within the given token budget.
 // Items are added in priority order: plan → outline → snapshots.
 // Returns false if nothing to inject.
-func (p *WriterRestorePack) buildMessage(budgetTokens int) (agentcore.Message, bool) {
+func (p *WriterRestorePack) buildMessage(budgetTokens int) (engine.Message, bool) {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
 
 	if p.text == "" {
-		return agentcore.Message{}, false
+		return engine.Message{}, false
 	}
-	if budgetTokens > 0 && corecontext.EstimateTokens(agentcore.UserMsg(p.text)) > budgetTokens {
-		return agentcore.Message{}, false
+	if budgetTokens > 0 && corecontext.EstimateTokens(engine.UserMsg(p.text)) > budgetTokens {
+		return engine.Message{}, false
 	}
-	return agentcore.UserMsg(p.text), true
+	return engine.UserMsg(p.text), true
 }
 
 // truncateJSONToTokens keeps the first portion of JSON bytes that fits within

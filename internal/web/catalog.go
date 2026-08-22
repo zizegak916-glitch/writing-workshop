@@ -357,10 +357,10 @@ func writeCatalogJSON(path string, value any) error {
 }
 
 func (s *Server) categoriesPath() string {
-	return filepath.Join(s.store.Dir(), ".ainovel", "categories.json")
+	return filepath.Join(s.store.Dir(), ".writing-workshop", "categories.json")
 }
 func (s *Server) skillPacksPath() string {
-	return filepath.Join(s.store.Dir(), ".ainovel", "skill-packs.json")
+	return filepath.Join(s.store.Dir(), ".writing-workshop", "skill-packs.json")
 }
 
 func normalizeCategoryScope(scope string) string {

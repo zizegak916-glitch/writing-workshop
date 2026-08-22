@@ -11,8 +11,8 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/voocel/agentcore"
 	"github.com/zizegak916-glitch/writing-workshop/internal/bootstrap"
+	"github.com/zizegak916-glitch/writing-workshop/internal/engine"
 )
 
 type resolvedAIProvider struct {
@@ -97,7 +97,7 @@ func useRawProvider(provider resolvedAIProvider) bool {
 	return len(headers) > 0
 }
 
-func (s *Server) generateAI(ctx context.Context, provider, modelName string, messages []agentcore.Message) (string, *agentcore.Usage, string, string, error) {
+func (s *Server) generateAI(ctx context.Context, provider, modelName string, messages []engine.Message) (string, *engine.Usage, string, string, error) {
 	resolved, err := s.resolveAIProvider(provider, modelName)
 	if err != nil {
 		return "", nil, "", "", err
@@ -117,7 +117,7 @@ func (s *Server) generateAI(ctx context.Context, provider, modelName string, mes
 	return resp.Message.TextContent(), resp.Message.Usage, providerKey, selectedModel, nil
 }
 
-func rawProviderRequest(ctx context.Context, provider resolvedAIProvider, messages []agentcore.Message, stream bool, onDelta func(string)) (string, *agentcore.Usage, error) {
+func rawProviderRequest(ctx context.Context, provider resolvedAIProvider, messages []engine.Message, stream bool, onDelta func(string)) (string, *engine.Usage, error) {
 	endpoint, err := rawProviderEndpoint(provider.Config.BaseURL, provider.Protocol)
 	if err != nil {
 		return "", nil, err
@@ -259,12 +259,12 @@ func isForbiddenCustomHeader(name string) bool {
 	return strings.HasPrefix(name, "proxy-") || strings.HasPrefix(name, "sec-")
 }
 
-func rawProviderBody(provider resolvedAIProvider, messages []agentcore.Message, stream bool) map[string]any {
+func rawProviderBody(provider resolvedAIProvider, messages []engine.Message, stream bool) map[string]any {
 	rawMessages := make([]map[string]any, 0, len(messages))
 	system := make([]string, 0, 1)
 	for _, message := range messages {
 		text := message.TextContent()
-		if message.Role == agentcore.RoleSystem && provider.Protocol == "anthropic" {
+		if message.Role == engine.RoleSystem && provider.Protocol == "anthropic" {
 			system = append(system, text)
 			continue
 		}
@@ -299,24 +299,24 @@ func rawProviderBody(provider resolvedAIProvider, messages []agentcore.Message, 
 	return body
 }
 
-func rawProviderRole(role agentcore.Role) string {
+func rawProviderRole(role engine.Role) string {
 	switch role {
-	case agentcore.RoleAssistant:
+	case engine.RoleAssistant:
 		return "assistant"
-	case agentcore.RoleSystem:
+	case engine.RoleSystem:
 		return "system"
-	case agentcore.RoleTool:
+	case engine.RoleTool:
 		return "tool"
 	default:
 		return "user"
 	}
 }
 
-func readRawProviderStream(reader io.Reader, onDelta func(string)) (string, *agentcore.Usage, error) {
+func readRawProviderStream(reader io.Reader, onDelta func(string)) (string, *engine.Usage, error) {
 	scanner := bufio.NewScanner(reader)
 	scanner.Buffer(make([]byte, 64<<10), 8<<20)
 	var text strings.Builder
-	var usage *agentcore.Usage
+	var usage *engine.Usage
 	var sseData []string
 	consume := func(payload string) error {
 		payload = strings.TrimSpace(payload)
@@ -473,7 +473,7 @@ func rawContentText(value any) string {
 	}
 }
 
-func rawUsage(data map[string]any) *agentcore.Usage {
+func rawUsage(data map[string]any) *engine.Usage {
 	usage, ok := data["usage"].(map[string]any)
 	if !ok {
 		if response, ok := data["response"].(map[string]any); ok {
@@ -494,7 +494,7 @@ func rawUsage(data map[string]any) *agentcore.Usage {
 	if total == 0 {
 		total = input + output
 	}
-	return &agentcore.Usage{Input: input, Output: output, TotalTokens: total}
+	return &engine.Usage{Input: input, Output: output, TotalTokens: total}
 }
 
 func rawProviderError(data map[string]any) error {

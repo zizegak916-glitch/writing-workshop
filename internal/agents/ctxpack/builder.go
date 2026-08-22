@@ -6,9 +6,9 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/voocel/agentcore"
-	corecontext "github.com/voocel/agentcore/context"
 	"github.com/zizegak916-glitch/writing-workshop/internal/domain"
+	"github.com/zizegak916-glitch/writing-workshop/internal/engine"
+	corecontext "github.com/zizegak916-glitch/writing-workshop/internal/engine/context"
 	"github.com/zizegak916-glitch/writing-workshop/internal/store"
 )
 
@@ -398,7 +398,7 @@ func appendJSONSection(parts *[]string, heading string, data any, remaining *int
 
 func estimateCompactSectionTokens(heading, body string) int {
 	section := fmt.Sprintf("## %s\n%s", heading, body)
-	return corecontext.EstimateTokens(agentcore.UserMsg(section))
+	return corecontext.EstimateTokens(engine.UserMsg(section))
 }
 
 func isEmptySummarySection(data any) bool {

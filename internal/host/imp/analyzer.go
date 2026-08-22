@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/voocel/agentcore"
 	"github.com/zizegak916-glitch/writing-workshop/internal/domain"
+	"github.com/zizegak916-glitch/writing-workshop/internal/engine"
 	"github.com/zizegak916-glitch/writing-workshop/internal/store"
 	"github.com/zizegak916-glitch/writing-workshop/internal/tools"
 )
@@ -50,9 +50,9 @@ func AnalyzeChapter(
 	}
 
 	user := buildAnalyzerUserPrompt(chapter, chapterTitle, chapterContent, premise, charactersBlock, activeHooks)
-	resp, err := llm.Generate(ctx, []agentcore.Message{
-		agentcore.SystemMsg(systemPrompt),
-		agentcore.UserMsg(user),
+	resp, err := llm.Generate(ctx, []engine.Message{
+		engine.SystemMsg(systemPrompt),
+		engine.UserMsg(user),
 	}, nil)
 	if err != nil {
 		return nil, fmt.Errorf("llm generate ch%d: %w", chapter, err)

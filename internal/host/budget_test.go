@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/voocel/agentcore"
 	"github.com/zizegak916-glitch/writing-workshop/internal/bootstrap"
+	"github.com/zizegak916-glitch/writing-workshop/internal/engine"
 )
 
 type budgetRecorder struct {
@@ -22,8 +22,8 @@ func (r *budgetRecorder) sentinel(cfg bootstrap.BudgetConfig) *BudgetSentinel {
 	)
 }
 
-func subagentEndEvent() agentcore.Event {
-	return agentcore.Event{Type: agentcore.EventToolExecEnd, Tool: "subagent"}
+func subagentEndEvent() engine.Event {
+	return engine.Event{Type: engine.EventToolExecEnd, Tool: "subagent"}
 }
 
 func TestBudgetSentinelDisabled(t *testing.T) {
@@ -70,7 +70,7 @@ func TestBudgetSentinelWarnOnceThenBoundaryStop(t *testing.T) {
 	}
 
 	// 非边界事件不触发
-	s.HandleEvent(agentcore.Event{Type: agentcore.EventToolExecEnd, Tool: "novel_context"})
+	s.HandleEvent(engine.Event{Type: engine.EventToolExecEnd, Tool: "novel_context"})
 	if len(r.aborts) != 0 {
 		t.Fatal("non-subagent boundary should not trigger stop")
 	}

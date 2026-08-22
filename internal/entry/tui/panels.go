@@ -24,7 +24,7 @@ func renderTopBar(snap host.UISnapshot, width int, spinnerFrame, version string)
 
 	var infoParts []string
 	if version != "" {
-		infoParts = append(infoParts, "ainovel-cli "+version)
+		infoParts = append(infoParts, "writing-workshop "+version)
 	}
 	if snap.Provider != "" {
 		infoParts = append(infoParts, snap.Provider)

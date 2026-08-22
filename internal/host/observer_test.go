@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/voocel/agentcore"
+	"github.com/zizegak916-glitch/writing-workshop/internal/engine"
 )
 
 func TestParseSubagentResultError(t *testing.T) {
@@ -55,11 +55,11 @@ func TestObserverSubagentToolDeltaUpdatesSaveFoundationType(t *testing.T) {
 	var events []Event
 	o := testObserver(&events)
 
-	o.handleSubagentDelta(&agentcore.ProgressPayload{
-		Kind:      agentcore.ProgressToolDelta,
+	o.handleSubagentDelta(&engine.ProgressPayload{
+		Kind:      engine.ProgressToolDelta,
 		Agent:     "architect_long",
 		Tool:      "save_foundation",
-		DeltaKind: agentcore.DeltaToolCall,
+		DeltaKind: engine.DeltaToolCall,
 		Delta:     `{"type":"premise","content":"# 书名`,
 	})
 
@@ -79,11 +79,11 @@ func TestObserverSubagentToolDeltaUpdatesSaveFoundationTypeAcrossChunks(t *testi
 	o := testObserver(&events)
 
 	for _, delta := range []string{`{"ty`, `pe":"premise","content":"# 书名`} {
-		o.handleSubagentDelta(&agentcore.ProgressPayload{
-			Kind:      agentcore.ProgressToolDelta,
+		o.handleSubagentDelta(&engine.ProgressPayload{
+			Kind:      engine.ProgressToolDelta,
 			Agent:     "architect_long",
 			Tool:      "save_foundation",
-			DeltaKind: agentcore.DeltaToolCall,
+			DeltaKind: engine.DeltaToolCall,
 			Delta:     delta,
 		})
 	}
@@ -100,21 +100,21 @@ func TestObserverSubagentToolDeltaUpdatesSaveFoundationTypeAcrossChunks(t *testi
 func TestObserverCoordinatorToolDeltaStartsToolLoading(t *testing.T) {
 	var events []Event
 	o := testObserver(&events)
-	msg := agentcore.Message{
-		Role: agentcore.RoleAssistant,
-		Content: []agentcore.ContentBlock{
-			agentcore.ToolCallBlock(agentcore.ToolCall{
+	msg := engine.Message{
+		Role: engine.RoleAssistant,
+		Content: []engine.ContentBlock{
+			engine.ToolCallBlock(engine.ToolCall{
 				ID:   "call_1",
 				Name: "novel_context",
 			}),
 		},
 	}
 
-	o.handleMessageUpdate(agentcore.Event{
-		Type:      agentcore.EventMessageUpdate,
+	o.handleMessageUpdate(engine.Event{
+		Type:      engine.EventMessageUpdate,
 		Message:   msg,
 		Delta:     `{"chapter":`,
-		DeltaKind: agentcore.DeltaToolCall,
+		DeltaKind: engine.DeltaToolCall,
 	})
 
 	if len(events) != 1 {
@@ -131,23 +131,23 @@ func TestObserverCoordinatorToolDeltaStartsToolLoading(t *testing.T) {
 func TestObserverEventErrorClosesEarlyToolLoading(t *testing.T) {
 	var events []Event
 	o := testObserver(&events)
-	msg := agentcore.Message{
-		Role: agentcore.RoleAssistant,
-		Content: []agentcore.ContentBlock{
-			agentcore.ToolCallBlock(agentcore.ToolCall{
+	msg := engine.Message{
+		Role: engine.RoleAssistant,
+		Content: []engine.ContentBlock{
+			engine.ToolCallBlock(engine.ToolCall{
 				ID:   "call_1",
 				Name: "novel_context",
 			}),
 		},
 	}
 
-	o.handleMessageUpdate(agentcore.Event{
-		Type:      agentcore.EventMessageUpdate,
+	o.handleMessageUpdate(engine.Event{
+		Type:      engine.EventMessageUpdate,
 		Message:   msg,
 		Delta:     `{"chapter":`,
-		DeltaKind: agentcore.DeltaToolCall,
+		DeltaKind: engine.DeltaToolCall,
 	})
-	o.handle(agentcore.Event{Type: agentcore.EventError, Err: errors.New("stream failed")})
+	o.handle(engine.Event{Type: engine.EventError, Err: errors.New("stream failed")})
 
 	if len(events) != 3 {
 		t.Fatalf("events = %d, want start + failed finish + error: %+v", len(events), events)
@@ -163,28 +163,28 @@ func TestObserverEventErrorClosesEarlyToolLoading(t *testing.T) {
 func TestObserverCoordinatorSubagentDeltaMergesWithExecStart(t *testing.T) {
 	var events []Event
 	o := testObserver(&events)
-	msg := agentcore.Message{
-		Role: agentcore.RoleAssistant,
-		Content: []agentcore.ContentBlock{
-			agentcore.ToolCallBlock(agentcore.ToolCall{
+	msg := engine.Message{
+		Role: engine.RoleAssistant,
+		Content: []engine.ContentBlock{
+			engine.ToolCallBlock(engine.ToolCall{
 				ID:   "call_1",
 				Name: "subagent",
 			}),
 		},
 	}
 
-	o.handleMessageUpdate(agentcore.Event{
-		Type:      agentcore.EventMessageUpdate,
+	o.handleMessageUpdate(engine.Event{
+		Type:      engine.EventMessageUpdate,
 		Message:   msg,
 		Delta:     `{"agent":"writer","task":"继续"}`,
-		DeltaKind: agentcore.DeltaToolCall,
+		DeltaKind: engine.DeltaToolCall,
 	})
 	args, err := json.Marshal(map[string]any{"agent": "writer", "task": "继续"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	o.handleToolStart(agentcore.Event{
-		Type: agentcore.EventToolExecStart,
+	o.handleToolStart(engine.Event{
+		Type: engine.EventToolExecStart,
 		Tool: "subagent",
 		Args: args,
 	})
@@ -203,10 +203,10 @@ func TestObserverCoordinatorSubagentDeltaMergesWithExecStart(t *testing.T) {
 func TestObserverCoordinatorSubagentDeltaUpdatesDispatchSummary(t *testing.T) {
 	var events []Event
 	o := testObserver(&events)
-	msg := agentcore.Message{
-		Role: agentcore.RoleAssistant,
-		Content: []agentcore.ContentBlock{
-			agentcore.ToolCallBlock(agentcore.ToolCall{
+	msg := engine.Message{
+		Role: engine.RoleAssistant,
+		Content: []engine.ContentBlock{
+			engine.ToolCallBlock(engine.ToolCall{
 				ID:   "call_1",
 				Name: "subagent",
 			}),
@@ -214,11 +214,11 @@ func TestObserverCoordinatorSubagentDeltaUpdatesDispatchSummary(t *testing.T) {
 	}
 
 	for _, delta := range []string{`{"agent":"wr`, `iter","task":"继续"}`} {
-		o.handleMessageUpdate(agentcore.Event{
-			Type:      agentcore.EventMessageUpdate,
+		o.handleMessageUpdate(engine.Event{
+			Type:      engine.EventMessageUpdate,
 			Message:   msg,
 			Delta:     delta,
-			DeltaKind: agentcore.DeltaToolCall,
+			DeltaKind: engine.DeltaToolCall,
 		})
 	}
 

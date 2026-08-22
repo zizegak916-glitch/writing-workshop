@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/voocel/agentcore/schema"
+	"github.com/zizegak916-glitch/writing-workshop/internal/engine/schema"
 	"github.com/zizegak916-glitch/writing-workshop/internal/store"
 )
 

@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.3.0 — Unreleased — 原生引擎与授权语料校准
+
+- 用仓库内 `internal/engine` 替换当前 Go 运行时的 `agentcore` / `litellm` 依赖，加入消息与工具循环、工具门、用量、上下文投影、四协议 HTTP 适配、子任务隔离和安全编辑测试。
+- 配置与产品数据迁到 `.writing-workshop`；旧 `.ainovel` 只在现行配置不存在时读取，新保存不再写旧目录。
+- 新增授权语料校准：TXT/Markdown/DOCX 只在内存中解析，持久化哈希和聚合指标，不保存原文；校准只生成可预览、可撤销的 Prompt Skill 候选。
+- Pages 使用浏览器本地语料分析，自部署使用 Go corpus API；项目包升级到 v6，并支持 v1–v5 迁移。
+- 删除仓库中旧的预编译 `bin/ainovel-cli`，统一可执行文件、安装变量、容器数据目录和用户文案。
+- 明确保留历史 fork 的 Apache-2.0 署名和提交来源，不把当前引擎替换夸大为整个仓库从零原创。
+
 ## v0.2.5 — 2026-07-29 — 核心数据完整性与后端 API 对齐
 
 - 编辑器在切换项目/文档、导出和页面隐藏前提交当前标题与正文；IndexedDB 写入等待事务完成，保存失败会阻止切换，不再把“请求已发出”误报成“已落盘”。
@@ -38,7 +47,7 @@
 
 All notable Writing Workshop changes are recorded here. The project follows Semantic Versioning after the first public release.
 
-## Unreleased
+## v0.3.0 开发过程记录
 
 ### 2026-08-21 product ownership boundary
 

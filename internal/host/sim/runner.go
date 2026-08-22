@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/voocel/agentcore"
 	"github.com/zizegak916-glitch/writing-workshop/internal/domain"
+	"github.com/zizegak916-glitch/writing-workshop/internal/engine"
 )
 
 const maxSourceRunes = 60000
@@ -92,9 +92,9 @@ func AnalyzeSource(ctx context.Context, llm LLMChat, systemPrompt string, source
 	if strings.TrimSpace(systemPrompt) == "" {
 		return nil, fmt.Errorf("source prompt is required")
 	}
-	resp, err := llm.Generate(ctx, []agentcore.Message{
-		agentcore.SystemMsg(systemPrompt),
-		agentcore.UserMsg(buildSourceUserPrompt(source)),
+	resp, err := llm.Generate(ctx, []engine.Message{
+		engine.SystemMsg(systemPrompt),
+		engine.UserMsg(buildSourceUserPrompt(source)),
 	}, nil)
 	if err != nil {
 		return nil, fmt.Errorf("llm analyze %s: %w", source.RelativePath, err)
@@ -121,9 +121,9 @@ func MergeSynthesis(ctx context.Context, llm LLMChat, systemPrompt string, exist
 	if strings.TrimSpace(systemPrompt) == "" {
 		return nil, fmt.Errorf("merge prompt is required")
 	}
-	resp, err := llm.Generate(ctx, []agentcore.Message{
-		agentcore.SystemMsg(systemPrompt),
-		agentcore.UserMsg(buildMergeUserPrompt(existing, reports)),
+	resp, err := llm.Generate(ctx, []engine.Message{
+		engine.SystemMsg(systemPrompt),
+		engine.UserMsg(buildMergeUserPrompt(existing, reports)),
 	}, nil)
 	if err != nil {
 		return nil, fmt.Errorf("llm merge profile: %w", err)

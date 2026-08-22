@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/voocel/agentcore/llm"
+	"github.com/zizegak916-glitch/writing-workshop/internal/engine/llm"
 	"github.com/zizegak916-glitch/writing-workshop/internal/errs"
 	"github.com/zizegak916-glitch/writing-workshop/internal/models"
 	"github.com/zizegak916-glitch/writing-workshop/internal/utils"
@@ -34,7 +34,7 @@ const MinCompactReserve = 8000
 //	threshold = window - reserve = window * CompactRatio
 //	reserve   = max(MinCompactReserve, window * (1 - CompactRatio))
 //
-// 给 agentcore.context.Engine 的 EngineConfig.ReserveTokens 用。
+// 给 engine.context.Engine 的 EngineConfig.ReserveTokens 用。
 func CompactReserveTokens(window int) int {
 	if window <= 0 {
 		return 0
@@ -59,7 +59,7 @@ type ProviderConfig struct {
 	// presence_penalty，或厂商特有键如 nvidia 开 think 的 chat_template_kwargs）。
 	// OpenAI 兼容端逐字并入请求体（即 extra_body 约定）；值由用户自负其责。
 	ExtraBody map[string]any `json:"extra_body,omitempty"`
-	// Extra 透传给 provider 级配置（litellm.ProviderConfig.Extra），用于 HTTP
+	// Extra 透传给 provider 级配置（原生 provider 配置的 Extra），用于 HTTP
 	// headers、user_agent、anthropic_beta 等客户端/传输层选项。
 	Extra map[string]any `json:"extra,omitempty"`
 }
@@ -78,7 +78,7 @@ func (pc ProviderConfig) RequiresAPIKey(name string) bool {
 }
 
 // ProviderType 返回有效的 API 协议类型。
-// 优先使用显式 Type；否则要求 provider 名本身已在 litellm 注册表中。
+// 优先使用显式 Type；否则要求 provider 名本身已在原生适配器注册表中。
 func (pc ProviderConfig) ProviderType(name string) (string, error) {
 	if pc.Type != "" {
 		return pc.Type, nil
@@ -86,7 +86,7 @@ func (pc ProviderConfig) ProviderType(name string) (string, error) {
 	if llm.IsProviderRegistered(name) {
 		return name, nil
 	}
-	return "", fmt.Errorf("provider %q 缺少 type，且不在 litellm 已知 provider 列表中: %w", name, errs.ErrConfig)
+	return "", fmt.Errorf("provider %q 缺少 type，且不在 原生适配器已知 provider 列表中: %w", name, errs.ErrConfig)
 }
 
 // ModelRef 表示一个 provider/model 组合。
@@ -188,7 +188,7 @@ func (c *Config) ValidateBase() error {
 	// 默认 provider 必须有凭证
 	pc, ok := c.Providers[c.Provider]
 	if !ok {
-		return fmt.Errorf("provider %q 未在 providers 中配置凭证；若在 ./.ainovel/config.json 里覆盖了 provider，需同时声明 providers.%s（含 api_key/base_url），不能只改顶层 provider: %w", c.Provider, c.Provider, errs.ErrConfig)
+		return fmt.Errorf("provider %q 未在 providers 中配置凭证；若在 ./.writing-workshop/config.json 里覆盖了 provider，需同时声明 providers.%s（含 api_key/base_url），不能只改顶层 provider: %w", c.Provider, c.Provider, errs.ErrConfig)
 	}
 	if pc.APIKey == "" {
 		pc.APIKey = providerAPIKeyFromEnv(c.Provider)
@@ -271,7 +271,7 @@ func (c *Config) ValidateBase() error {
 
 func providerAPIKeyFromEnv(provider string) string {
 	key := strings.ToUpper(strings.NewReplacer("-", "_", ".", "_").Replace(strings.TrimSpace(provider)))
-	for _, name := range []string{"AINOVEL_" + key + "_API_KEY", key + "_API_KEY"} {
+	for _, name := range []string{"WRITING_WORKSHOP_" + key + "_API_KEY", key + "_API_KEY", "AINOVEL_" + key + "_API_KEY"} {
 		if value := strings.TrimSpace(os.Getenv(name)); value != "" {
 			return value
 		}

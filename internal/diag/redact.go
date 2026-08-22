@@ -8,7 +8,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/voocel/agentcore"
+	"github.com/zizegak916-glitch/writing-workshop/internal/engine"
 	"github.com/zizegak916-glitch/writing-workshop/internal/store"
 )
 
@@ -33,18 +33,18 @@ type SkelTool struct {
 	ParseErr string            // ArgsParseError：解析失败原因
 }
 
-// redactMessage 把一条 agentcore.Message 投影成行为骨架。
-func redactMessage(agent string, m agentcore.Message) SkelEvent {
+// redactMessage 把一条 engine.Message 投影成行为骨架。
+func redactMessage(agent string, m engine.Message) SkelEvent {
 	ev := SkelEvent{Agent: agent, Role: string(m.Role)}
 	isErr, _ := m.Metadata["is_error"].(bool)
 
 	var text strings.Builder
 	for _, b := range m.Content {
 		switch b.Type {
-		case agentcore.ContentText:
+		case engine.ContentText:
 			// tool 错误结果保留首行：这是我们自己的错误串（如 InputValidationError），
 			// 不含正文，且是定位循环的关键。其余文本一律进打码池。
-			if m.Role == agentcore.RoleTool && isErr && ev.ErrClass == "" {
+			if m.Role == engine.RoleTool && isErr && ev.ErrClass == "" {
 				ev.ErrClass = firstLine(b.Text, 160)
 				continue
 			}
@@ -52,12 +52,12 @@ func redactMessage(agent string, m agentcore.Message) SkelEvent {
 				text.WriteString(b.Text)
 				ev.Redacted++
 			}
-		case agentcore.ContentThinking:
+		case engine.ContentThinking:
 			if strings.TrimSpace(b.Thinking) != "" {
 				text.WriteString(b.Thinking)
 				ev.Redacted++
 			}
-		case agentcore.ContentToolCall:
+		case engine.ContentToolCall:
 			if b.ToolCall != nil {
 				ev.Tools = append(ev.Tools, redactToolCall(b.ToolCall))
 			}
@@ -70,7 +70,7 @@ func redactMessage(agent string, m agentcore.Message) SkelEvent {
 }
 
 // redactToolCall 投影一次工具调用：工具名 + 参数（值脱敏）+ 解析异常标记。
-func redactToolCall(tc *agentcore.ToolCall) SkelTool {
+func redactToolCall(tc *engine.ToolCall) SkelTool {
 	return SkelTool{
 		Name:     tc.Name,
 		Args:     redactArgs(tc.Args),

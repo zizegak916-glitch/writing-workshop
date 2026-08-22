@@ -10,7 +10,7 @@ import (
 	"sync"
 	"unicode/utf8"
 
-	"github.com/voocel/agentcore"
+	"github.com/zizegak916-glitch/writing-workshop/internal/engine"
 )
 
 // SessionStore 追加式记录 LLM 对话历史到 JSONL 文件。
@@ -33,8 +33,8 @@ type ModelLookup func(agentName string) (provider, model string)
 
 // CoordinatorLogger 返回 coordinator 的 OnMessage 回调。
 // lookup 可为 nil，此时写入不带 _meta（兼容 cocreate 等无角色场景）。
-func (s *SessionStore) CoordinatorLogger(lookup ModelLookup) func(agentcore.AgentMessage) {
-	return func(msg agentcore.AgentMessage) {
+func (s *SessionStore) CoordinatorLogger(lookup ModelLookup) func(engine.AgentMessage) {
+	return func(msg engine.AgentMessage) {
 		var meta *sessionLogMeta
 		if lookup != nil {
 			meta = lookupMeta(lookup, "coordinator")
@@ -46,8 +46,8 @@ func (s *SessionStore) CoordinatorLogger(lookup ModelLookup) func(agentcore.Agen
 }
 
 // SubAgentLogger 返回子代理的 OnMessage 回调。
-func (s *SessionStore) SubAgentLogger(lookup ModelLookup) func(agentName, task string, msg agentcore.AgentMessage) {
-	return func(agentName, task string, msg agentcore.AgentMessage) {
+func (s *SessionStore) SubAgentLogger(lookup ModelLookup) func(agentName, task string, msg engine.AgentMessage) {
+	return func(agentName, task string, msg engine.AgentMessage) {
 		rel := s.subAgentPath(agentName, task)
 		var meta *sessionLogMeta
 		if lookup != nil {
@@ -81,16 +81,16 @@ func (s *SessionStore) LogCoCreate(entry any) error {
 
 // Log 追加一条消息到指定路径，自动压缩大内容。
 // 不携带 _meta（向后兼容入口；仅 cocreate 等无角色路径用）。
-func (s *SessionStore) Log(rel string, msg agentcore.AgentMessage) error {
+func (s *SessionStore) Log(rel string, msg engine.AgentMessage) error {
 	return s.logEntry(rel, msg, nil)
 }
 
-// sessionLogEntry 嵌入 agentcore.Message + 可选 _meta。
-// agentcore.Message 是 plain struct（无 MarshalJSON），嵌入后 json marshal
+// sessionLogEntry 嵌入 engine.Message + 可选 _meta。
+// engine.Message 是 plain struct（无 MarshalJSON），嵌入后 json marshal
 // 自动展开到顶层；_meta 通过 omitempty 控制——只有 assistant + Usage != nil
 // 时才注入，user/tool 消息不带 _meta，旧 jsonl 解析时 _meta=nil 是 noop。
 type sessionLogEntry struct {
-	agentcore.Message
+	engine.Message
 	Meta *sessionLogMeta `json:"_meta,omitempty"`
 }
 
@@ -101,15 +101,15 @@ type sessionLogMeta struct {
 
 // logEntry 序列化消息并按需附加 _meta。lookupMeta 已计算好的 meta 传进来；
 // 函数内部判断只对"产生了 LLM 用量"的消息（assistant + Usage != nil）写入 meta，
-// 其它消息保持纯净 agentcore.Message 序列化形态。
-func (s *SessionStore) logEntry(rel string, msg agentcore.AgentMessage, meta *sessionLogMeta) error {
-	m, ok := msg.(agentcore.Message)
+// 其它消息保持纯净 engine.Message 序列化形态。
+func (s *SessionStore) logEntry(rel string, msg engine.AgentMessage, meta *sessionLogMeta) error {
+	m, ok := msg.(engine.Message)
 	if !ok {
 		return nil // 非 LLM 消息（如自定义类型）跳过
 	}
 	compacted := compactMessage(m)
 	entry := sessionLogEntry{Message: compacted}
-	if compacted.Role == agentcore.RoleAssistant && compacted.Usage != nil {
+	if compacted.Role == engine.RoleAssistant && compacted.Usage != nil {
 		entry.Meta = usageMeta(compacted.Usage)
 		if entry.Meta == nil {
 			entry.Meta = meta
@@ -123,7 +123,7 @@ func (s *SessionStore) logEntry(rel string, msg agentcore.AgentMessage, meta *se
 	return s.io.AppendLine(rel, data)
 }
 
-func usageMeta(usage *agentcore.Usage) *sessionLogMeta {
+func usageMeta(usage *engine.Usage) *sessionLogMeta {
 	if usage == nil || (usage.Provider == "" && usage.Model == "") {
 		return nil
 	}
@@ -167,20 +167,20 @@ func extractChapter(task string) string {
 }
 
 // compactMessage 克隆消息并替换大内容。
-func compactMessage(m agentcore.Message) agentcore.Message {
+func compactMessage(m engine.Message) engine.Message {
 	if len(m.Content) == 0 {
 		return m
 	}
-	blocks := make([]agentcore.ContentBlock, len(m.Content))
+	blocks := make([]engine.ContentBlock, len(m.Content))
 	copy(blocks, m.Content)
 
 	toolName := toolNameFromMeta(m.Metadata)
 
 	for i := range blocks {
 		switch blocks[i].Type {
-		case agentcore.ContentText:
+		case engine.ContentText:
 			blocks[i].Text = compactText(m.Role, toolName, blocks[i].Text)
-		case agentcore.ContentToolCall:
+		case engine.ContentToolCall:
 			if blocks[i].ToolCall != nil {
 				blocks[i].ToolCall = compactToolCall(blocks[i].ToolCall)
 			}
@@ -201,8 +201,8 @@ func toolNameFromMeta(meta map[string]any) string {
 }
 
 // compactText 压缩 tool result 的 text content。
-func compactText(role agentcore.Role, toolName, text string) string {
-	if role != agentcore.RoleTool || len(text) < 4096 {
+func compactText(role engine.Role, toolName, text string) string {
+	if role != engine.RoleTool || len(text) < 4096 {
 		return text
 	}
 	switch toolName {
@@ -222,7 +222,7 @@ func compactText(role agentcore.Role, toolName, text string) string {
 }
 
 // compactToolCall 压缩 tool call 的 args 中大内容字段。
-func compactToolCall(tc *agentcore.ToolCall) *agentcore.ToolCall {
+func compactToolCall(tc *engine.ToolCall) *engine.ToolCall {
 	switch tc.Name {
 	case "draft_chapter":
 		return compactArgsContent(tc, "第N章正文", "drafts/")
@@ -233,7 +233,7 @@ func compactToolCall(tc *agentcore.ToolCall) *agentcore.ToolCall {
 	}
 }
 
-func compactArgsContent(tc *agentcore.ToolCall, label, ref string) *agentcore.ToolCall {
+func compactArgsContent(tc *engine.ToolCall, label, ref string) *engine.ToolCall {
 	var args map[string]json.RawMessage
 	if err := json.Unmarshal(tc.Args, &args); err != nil {
 		return tc
@@ -262,7 +262,7 @@ func compactArgsContent(tc *agentcore.ToolCall, label, ref string) *agentcore.To
 	return &clone
 }
 
-func compactFoundationArgs(tc *agentcore.ToolCall) *agentcore.ToolCall {
+func compactFoundationArgs(tc *engine.ToolCall) *engine.ToolCall {
 	var args map[string]json.RawMessage
 	if err := json.Unmarshal(tc.Args, &args); err != nil {
 		return tc

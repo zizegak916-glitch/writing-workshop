@@ -1,11 +1,11 @@
-// Package errs provides application-level error sentinels for ainovel-cli.
+// Package errs provides application-level error sentinels for Writing Workshop.
 // Callers wrap errors with fmt.Errorf("...: %w", errs.ErrXxx) and use
 // errors.Is to detect categories.
 //
 // Provider runtime errors (rate_limit / timeout / stream_idle / network / auth
-// / context_overflow) live in agentcore — use agentcore.ClassifyProvider,
-// agentcore.IsFailoverEligible, agentcore.FailoverReason, and
-// agentcore.IsStreamIdleMessage directly.
+// / context_overflow) live in engine — use engine.ClassifyProvider,
+// engine.IsFailoverEligible, engine.FailoverReason, and
+// engine.IsStreamIdleMessage directly.
 package errs
 
 import "errors"

@@ -3,13 +3,13 @@ package agents
 import (
 	"log/slog"
 
-	"github.com/voocel/agentcore"
-	corecontext "github.com/voocel/agentcore/context"
+	"github.com/zizegak916-glitch/writing-workshop/internal/engine"
+	corecontext "github.com/zizegak916-glitch/writing-workshop/internal/engine/context"
 )
 
 // contextManagerConfig 聚合 ContextManager 的全部配置参数。
 type contextManagerConfig struct {
-	Model            agentcore.ChatModel
+	Model            engine.ChatModel
 	ContextWindow    int
 	ReserveTokens    int
 	KeepRecentTokens int

@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/voocel/agentcore"
 	"github.com/zizegak916-glitch/writing-workshop/internal/domain"
+	"github.com/zizegak916-glitch/writing-workshop/internal/engine"
 	"github.com/zizegak916-glitch/writing-workshop/internal/store"
 )
 
@@ -21,9 +21,9 @@ type FoundationResult struct {
 }
 
 // LLMChat 是 imp 包对 ChatModel 的最小依赖：仅需要一次普通文本生成。
-// 抽出独立接口便于单测注入 mock，避免直接耦合 agentcore 客户端。
+// 抽出独立接口便于单测注入 mock，避免直接耦合 engine 客户端。
 type LLMChat interface {
-	Generate(ctx context.Context, messages []agentcore.Message, tools []agentcore.ToolSpec, opts ...agentcore.CallOption) (*agentcore.LLMResponse, error)
+	Generate(ctx context.Context, messages []engine.Message, tools []engine.ToolSpec, opts ...engine.CallOption) (*engine.LLMResponse, error)
 }
 
 // ReverseFoundation 用一次 LLM 调用，从已切分的章节正文反推 foundation。
@@ -39,9 +39,9 @@ func ReverseFoundation(ctx context.Context, llm LLMChat, systemPrompt string, ch
 	system := strings.ReplaceAll(systemPrompt, "${chapter_count}", fmt.Sprintf("%d", len(chapters)))
 	user := buildFoundationUserPrompt(chapters)
 
-	resp, err := llm.Generate(ctx, []agentcore.Message{
-		agentcore.SystemMsg(system),
-		agentcore.UserMsg(user),
+	resp, err := llm.Generate(ctx, []engine.Message{
+		engine.SystemMsg(system),
+		engine.UserMsg(user),
 	}, nil)
 	if err != nil {
 		return nil, fmt.Errorf("llm generate: %w", err)

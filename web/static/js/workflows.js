@@ -136,6 +136,10 @@
             <div><strong>内置 Prompt Skill</strong><span data-prompt-skill-summary>32 个写作功能 · 请求时隐形使用 · 保存在此浏览器</span></div>
             <button class="workflow-ghost" type="button" onclick="wwOpenPromptSkillManager(typeof S !== 'undefined' ? S.aiMode : '')">查看与修改</button>
           </div>
+          <div class="workflow-prompt-skill-box corpus-entry">
+            <div><strong>真实网文校准</strong><span data-corpus-summary>导入授权文本后只保存聚合指标；先预览差分，再确认应用</span></div>
+            <button class="workflow-ghost" type="button" onclick="wwOpenCorpusLab()">打开校准台</button>
+          </div>
         </section>
 
         <section class="workflow-card">

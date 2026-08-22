@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/voocel/agentcore"
 	"github.com/zizegak916-glitch/writing-workshop/internal/domain"
+	"github.com/zizegak916-glitch/writing-workshop/internal/engine"
 	"github.com/zizegak916-glitch/writing-workshop/internal/store"
 )
 
@@ -28,7 +28,7 @@ func TestStopGuard_AllowsStopOnlyWhenComplete(t *testing.T) {
 	guard := NewStopGuard(s, nil)
 
 	// 尚未 Complete：必须阻拦 + 注入
-	decision := guard(context.Background(), agentcore.StopInfo{TurnIndex: 1})
+	decision := guard(context.Background(), engine.StopInfo{TurnIndex: 1})
 	if decision.Allow {
 		t.Fatal("stop must be blocked before Phase=Complete")
 	}
@@ -40,7 +40,7 @@ func TestStopGuard_AllowsStopOnlyWhenComplete(t *testing.T) {
 	if err := s.Progress.UpdatePhase(domain.PhaseComplete); err != nil {
 		t.Fatalf("update phase: %v", err)
 	}
-	decision = guard(context.Background(), agentcore.StopInfo{TurnIndex: 2})
+	decision = guard(context.Background(), engine.StopInfo{TurnIndex: 2})
 	if !decision.Allow {
 		t.Fatal("stop must be allowed when Phase=Complete")
 	}
@@ -58,12 +58,12 @@ func TestStopGuard_EscalatesAfterTooManyConsecutiveBlocks(t *testing.T) {
 	})
 
 	for i := 0; i < maxConsecutiveBlocks; i++ {
-		decision := guard(context.Background(), agentcore.StopInfo{TurnIndex: i})
+		decision := guard(context.Background(), engine.StopInfo{TurnIndex: i})
 		if decision.Escalate {
 			t.Fatalf("escalated too early at iteration %d", i)
 		}
 	}
-	decision := guard(context.Background(), agentcore.StopInfo{TurnIndex: maxConsecutiveBlocks})
+	decision := guard(context.Background(), engine.StopInfo{TurnIndex: maxConsecutiveBlocks})
 	if !decision.Escalate {
 		t.Fatalf("expected escalate after %d consecutive blocks", maxConsecutiveBlocks+1)
 	}
@@ -84,7 +84,7 @@ func TestStopGuard_DefaultBlockMessageWaitsForHost(t *testing.T) {
 		t.Fatalf("update phase: %v", err)
 	}
 
-	decision := NewStopGuard(s, nil)(context.Background(), agentcore.StopInfo{TurnIndex: 1})
+	decision := NewStopGuard(s, nil)(context.Background(), engine.StopInfo{TurnIndex: 1})
 	if !strings.Contains(decision.InjectMessage, "[Host 下达指令]") {
 		t.Fatalf("inject message should point to Host instruction, got %q", decision.InjectMessage)
 	}
@@ -101,7 +101,7 @@ func TestStopGuard_DefaultBlockMessageAllowsCoordinatorJudgmentWhenNoRoute(t *te
 		t.Fatalf("init progress: %v", err)
 	}
 
-	decision := NewStopGuard(s, nil)(context.Background(), agentcore.StopInfo{TurnIndex: 1})
+	decision := NewStopGuard(s, nil)(context.Background(), engine.StopInfo{TurnIndex: 1})
 	if strings.Contains(decision.InjectMessage, "[Host 下达指令]") {
 		t.Fatalf("no-route inject should not tell coordinator to wait for Host, got %q", decision.InjectMessage)
 	}
@@ -121,20 +121,20 @@ func TestStopGuard_DefaultBlockMessageAllowsCoordinatorJudgmentWhenNoRoute(t *te
 // 错误消息看到不可恢复，倾向于换路径而不是重派。
 //
 // 注意只测 safety / content_filter：StopReasonError / StopReasonAborted 走
-// agentcore loop.go 直接终止 run 的分支，根本不会调用 StopGuard，列进来反而
+// engine loop.go 直接终止 run 的分支，根本不会调用 StopGuard，列进来反而
 // 引入死代码。
 func TestSubAgentGuard_HardStopReasonEscalatesImmediately(t *testing.T) {
-	cases := []agentcore.StopReason{
-		agentcore.StopReason("safety"),
-		agentcore.StopReason("content_filter"),
+	cases := []engine.StopReason{
+		engine.StopReason("safety"),
+		engine.StopReason("content_filter"),
 	}
 	for _, sr := range cases {
 		t.Run(string(sr), func(t *testing.T) {
 			s := newTestStore(t)
 			guard := NewWriterStopGuard(s)
-			info := agentcore.StopInfo{
+			info := engine.StopInfo{
 				TurnIndex: 1,
-				Message:   agentcore.Message{StopReason: sr},
+				Message:   engine.Message{StopReason: sr},
 			}
 			d := guard(context.Background(), info)
 			if !d.Escalate {
@@ -152,9 +152,9 @@ func TestSubAgentGuard_HardStopReasonEscalatesImmediately(t *testing.T) {
 func TestSubAgentGuard_NormalStopStillBlocks(t *testing.T) {
 	s := newTestStore(t)
 	guard := NewWriterStopGuard(s)
-	info := agentcore.StopInfo{
+	info := engine.StopInfo{
 		TurnIndex: 1,
-		Message:   agentcore.Message{StopReason: agentcore.StopReasonStop},
+		Message:   engine.Message{StopReason: engine.StopReasonStop},
 	}
 	d := guard(context.Background(), info)
 	if d.Escalate {
@@ -179,12 +179,12 @@ func TestStopGuard_NonConsecutiveTurnResetsCounter(t *testing.T) {
 	guard := NewStopGuard(s, nil)
 
 	for i := 0; i < maxConsecutiveBlocks; i++ {
-		if d := guard(context.Background(), agentcore.StopInfo{TurnIndex: i}); d.Escalate {
+		if d := guard(context.Background(), engine.StopInfo{TurnIndex: i}); d.Escalate {
 			t.Fatalf("escalated too early at iteration %d", i)
 		}
 	}
 
-	d := guard(context.Background(), agentcore.StopInfo{TurnIndex: maxConsecutiveBlocks + 10})
+	d := guard(context.Background(), engine.StopInfo{TurnIndex: maxConsecutiveBlocks + 10})
 	if d.Escalate {
 		t.Fatal("non-consecutive block must NOT escalate; counter should have been reset")
 	}
@@ -192,7 +192,7 @@ func TestStopGuard_NonConsecutiveTurnResetsCounter(t *testing.T) {
 		t.Fatal("stop must still be blocked when Phase != Complete")
 	}
 
-	d = guard(context.Background(), agentcore.StopInfo{TurnIndex: 1})
+	d = guard(context.Background(), engine.StopInfo{TurnIndex: 1})
 	if d.Escalate {
 		t.Fatal("resume (TurnIndex backflow) must NOT escalate")
 	}
@@ -201,7 +201,7 @@ func TestStopGuard_NonConsecutiveTurnResetsCounter(t *testing.T) {
 // TestEditorStopGuard_TaskAware 验证任务感知：被派生成弧摘要时，仅 save_review（复核）
 // 不算完成，必须产出 arc_summary 才放行——封堵卷中骨架弧死循环的起点 Defect C。
 func TestEditorStopGuard_TaskAware(t *testing.T) {
-	normalStop := agentcore.StopInfo{TurnIndex: 1, Message: agentcore.Message{StopReason: agentcore.StopReasonStop}}
+	normalStop := engine.StopInfo{TurnIndex: 1, Message: engine.Message{StopReason: engine.StopReasonStop}}
 
 	// 摘要任务 + 只存了 review → 必须阻拦（review 不满足 arc_summary 要求）。
 	t.Run("summary task blocks on review only", func(t *testing.T) {

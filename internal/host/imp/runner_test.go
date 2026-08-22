@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/voocel/agentcore"
 	"github.com/zizegak916-glitch/writing-workshop/internal/domain"
+	"github.com/zizegak916-glitch/writing-workshop/internal/engine"
 	"github.com/zizegak916-glitch/writing-workshop/internal/store"
 	"github.com/zizegak916-glitch/writing-workshop/internal/tools"
 )
@@ -22,15 +22,15 @@ type scriptedLLM struct {
 	calls     atomic.Int32
 }
 
-func (s *scriptedLLM) Generate(_ context.Context, _ []agentcore.Message, _ []agentcore.ToolSpec, _ ...agentcore.CallOption) (*agentcore.LLMResponse, error) {
+func (s *scriptedLLM) Generate(_ context.Context, _ []engine.Message, _ []engine.ToolSpec, _ ...engine.CallOption) (*engine.LLMResponse, error) {
 	idx := int(s.calls.Add(1)) - 1
 	if idx >= len(s.responses) {
 		return nil, fmt.Errorf("scriptedLLM exhausted at call %d", idx+1)
 	}
-	return &agentcore.LLMResponse{
-		Message: agentcore.Message{
-			Role:      agentcore.RoleAssistant,
-			Content:   []agentcore.ContentBlock{agentcore.TextBlock(s.responses[idx])},
+	return &engine.LLMResponse{
+		Message: engine.Message{
+			Role:      engine.RoleAssistant,
+			Content:   []engine.ContentBlock{engine.TextBlock(s.responses[idx])},
 			Timestamp: time.Now(),
 		},
 	}, nil

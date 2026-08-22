@@ -18,13 +18,13 @@
   <div class="site-shell docs-layout">
     <aside class="docs-sidebar" aria-label="文档目录">
       <p>开始</p><a href="#overview">在线版与可选服务</a><a href="#quickstart">60 秒启动</a><a href="#first-project">第一个项目</a>
-      <p style="margin-top:20px">创作</p><a href="#workspace">工作台导航</a><a href="#workflow">AI 流程</a><a href="#import-export">导入与导出</a>
+      <p style="margin-top:20px">创作</p><a href="#workspace">工作台导航</a><a href="#workflow">AI 流程</a><a href="#import-export">导入与导出</a><a href="#corpus">授权语料校准</a>
       <p style="margin-top:20px">连接</p><a href="#api">API 与模型</a><a href="#cors">CORS 说明</a><a href="#skills">Skill 与能力</a><a href="#troubleshooting">故障排查</a>
       <p style="margin-top:20px">记录</p><a href="#timeline">更新时间线</a>
     </aside>
 
     <main class="docs-main">
-      <span class="eyebrow">Product guide · 2026-08-21</span>
+      <span class="eyebrow">Product guide · 2026-08-22</span>
       <h1>从打开页面，到完成一次安全写作。</h1>
       <p class="docs-lead">这份文档不假设你已经懂 API、Docker 或 Skill。先选择你的使用方式，再按一条完整路线跑通。</p>
 
@@ -32,7 +32,7 @@
         <h2>先理解：Pages 产品与可选本地服务</h2>
         <div class="doc-grid">
           <article class="doc-card"><h3>GitHub Pages · 正式在线版</h3><p>这是项目当前对外发布的真实 HTTPS 站点，不是临时预览。可以建立浏览器本地项目、编辑、导入导出，并使用保存在当前浏览器中的 BYOK 自定义 API。目标接口必须允许此 Pages 域名跨域访问。</p></article>
-          <article class="doc-card"><h3>可选本地服务</h3><p>需要服务端密钥保管、后端 Skill、SSE、中断或后端项目导入时，再运行仓库自带的 Go 服务。它是工作台的可选连接器，不是外部社区提供的后台；浏览器不会把每次编辑静默镜像到后端。</p></article>
+          <article class="doc-card"><h3>可选本地服务</h3><p>需要服务端密钥保管、后端 Skill、SSE、中断、Go 语料分析或后端项目导入时，再运行仓库自带的原生 Go 服务。它不是外部社区提供的后台；浏览器不会把每次编辑静默镜像到后端。</p></article>
         </div>
         <div class="doc-callout"><b>托管方式不等于功能真假：</b>Pages 的浏览器 BYOK 可直接发起模型请求；默认工作流未同时部署 Go API，所以后端 Skill、项目同步和 SSE 仍不可用。GitHub Pages 与 OpenAI Sites 是独立托管方式。</div>
       </section>
@@ -72,7 +72,7 @@ go build -o writing-workshop ./cmd/writing-workshop
           <li>左侧切到“章节”，点击“添加章节”，输入标题。</li>
           <li>切到“人物”，录入姓名、定位、描述与角色弧线；临时考据、场景材料和会议记录可放到“笔记”。</li>
           <li>在中间编辑区写作。自动保存开启时，数据写入浏览器 IndexedDB；点击顶部保存可以立即保存。</li>
-          <li>第一次重要编辑后，点击顶部下载图标导出项目备份。项目包版本 5 包含项目、章节、大纲、人物、笔记、记忆、当前项目的 AI 候选与恢复快照、自定义分类及 Prompt Skill 覆盖值。</li>
+          <li>第一次重要编辑后，点击顶部下载图标导出项目备份。项目包版本 6 包含项目、章节、大纲、人物、笔记、记忆、当前项目的 AI 候选与恢复快照、自定义分类、Prompt Skill 覆盖值和语料统计档案；不包含导入语料原文。</li>
         </ol>
         <div class="doc-callout info"><b>本地优先：</b>Pages 正式在线版与连接可选本地服务时都可以使用浏览器数据库。清除浏览器站点数据会删除这部分内容，因此长期项目务必定期导出。</div>
       </section>
@@ -116,11 +116,27 @@ go build -o writing-workshop ./cmd/writing-workshop
         <div class="doc-grid">
           <article class="doc-card"><h3>导入单篇内容</h3><p>在新建/导入入口选择 Markdown、TXT 或 DOCX。先检查解析后的标题与正文，再放入当前项目。</p></article>
           <article class="doc-card"><h3>导出当前正文</h3><p>编辑工具栏的“导出”用于保存正在编辑的章节，适合送审、分享或进入其他排版工具。</p></article>
-          <article class="doc-card"><h3>导出完整项目</h3><p>顶部下载按钮或项目操作台“导出”会先保存当前编辑，再打包项目、章节、大纲、人物、笔记、记忆、本项目候选/恢复快照、自定义分类和已修改的 Prompt Skill。长期创作建议每个重要阶段保存一份带日期的 v5 备份。</p></article>
+          <article class="doc-card"><h3>导出完整项目</h3><p>顶部下载按钮或项目操作台“导出”会先保存当前编辑，再打包项目、章节、大纲、人物、笔记、记忆、本项目候选/恢复快照、自定义分类、已修改的 Prompt Skill 和语料统计。长期创作建议每个重要阶段保存一份带日期的 v6 备份。</p></article>
           <article class="doc-card"><h3>增量资料</h3><p>新增资料应按文件 hash 只处理一次；脚本负责去重和分类，AI 只总结新文件，避免每次重读全库。</p></article>
         </div>
-        <p>如果浏览器提示下载被阻止，请允许当前站点下载文件。若导入失败，先确认文件未加密，并用 UTF-8 保存纯文本或 Markdown。一次最多导入 50 个文件；单文件最多 25 MiB、总计最多 100 MiB。v1–v4 项目包会先迁移到 v5 结构，缺少的新字段使用空值，旧记忆、分类和 Prompt Skill 别名会按已知规则保留；高于 v5 的未知版本会被拒绝。v5 导入在一个事务中写入全部项目记录，并重映射历史候选指向的文档 ID；失败时不会留下半个项目。项目备份恢复不会追加 AI 分析结果；普通文本只有在预览页显式开启分析时才会补结构。</p>
+        <p>如果浏览器提示下载被阻止，请允许当前站点下载文件。若导入失败，先确认文件未加密，并用 UTF-8 保存纯文本或 Markdown。一次最多导入 50 个文件；单文件最多 25 MiB、总计最多 100 MiB。v1–v5 项目包会先迁移到 v6 结构，缺少的新字段使用空值，旧记忆、分类和 Prompt Skill 别名会按已知规则保留；高于 v6 的未知版本会被拒绝。v6 导入在一个事务中写入全部项目记录，并重映射历史候选指向的文档 ID；失败时不会留下半个项目。</p>
         <div class="doc-callout"><b>浏览器存储不是云盘：</b>工作台会申请持久化存储，并在“我的”页显示占用、配额和是否获批；浏览器仍可能拒绝或在清理站点数据时删除全部内容，所以重要阶段必须导出备份。</div>
+      </section>
+
+      <section id="corpus">
+        <h2>用有权分析的真实文本校准 Prompt Skill</h2>
+        <p>进入“流程 → 授权语料校准”，选择 TXT、Markdown 或 DOCX，并确认你有权处理这些文本。它不会训练模型，也不是具体作者仿写器。</p>
+        <div class="doc-flow"><span>确认权限</span><span>导入样本</span><span>查看聚合指标</span><span>预览差分</span><span>确认或撤销</span></div>
+        <ol>
+          <li>先看样本字数、段句、对话比例、标点和证据等级；样本太小会明确标为弱证据。</li>
+          <li>勾选要细化的 Prompt Skill，点击生成候选。系统会同时加入“不模仿作者、不复刻专名/情节/句子”的反规则。</li>
+          <li>候选不会自动写入。确认后才修改当前浏览器的 Prompt Skill，并保留应用前快照。</li>
+          <li>发现效果不对时点击撤销；导出项目 v6 包可迁移统计档案和校准历史。</li>
+        </ol>
+        <div class="doc-grid">
+          <article class="doc-card"><h3>Pages</h3><p>分析完全发生在当前浏览器页面；原文不上传、不持久化，只保存哈希与聚合结果。</p></article>
+          <article class="doc-card"><h3>自部署</h3><p>文件发送到自己的同源 Go 服务，档案写入 <code>.writing-workshop/corpus/index.json</code>；服务端同样不保存原文。</p></article>
+        </div>
       </section>
 
       <section id="api">
@@ -185,7 +201,7 @@ go build -o writing-workshop ./cmd/writing-workshop
           <li>在“组合能力”底部找到“内置 Prompt Skill”，点击“查看与修改”。</li>
           <li>按分类或关键词找到功能。左侧“内置”表示使用仓库默认版本，“已修改”表示当前浏览器有覆盖值。</li>
           <li>在右侧改写提示词并保存。下一次点击该功能生成时立即使用新版本，不需要刷新。</li>
-          <li>需要撤销时点击“恢复默认”。“导出/导入”可单独备份；完整项目 v5 备份也会携带覆盖值，导入项目时以合并方式恢复。</li>
+          <li>需要撤销时点击“恢复默认”。“导出/导入”可单独备份；完整项目 v6 备份也会携带覆盖值，导入项目时以合并方式恢复。</li>
         </ol>
         <div class="doc-callout info"><b>存储边界：</b>自定义 Prompt Skill 保存在当前域名的 <code>localStorage</code>，不会上传到 GitHub，也不会自动同步到另一台设备、另一个浏览器或另一个域名。清除站点数据前先导出项目或提示词备份。</div>
         <p>实际请求按以下顺序组装：内置/自定义 Prompt Skill → 当前选区或正文 → 输出长度与创意要求 → 项目信息和写作记忆 → 额外指令。普通模式、多模型模式、移动端与六个快捷工具都使用同一份浏览器配置。</p>
@@ -219,7 +235,7 @@ go build -o writing-workshop ./cmd/writing-workshop
         <h3>创建技能包</h3>
         <ol><li>先在“能力来源”确认需要组合的 Skill 都已启用。</li><li>切到“技能包”，填写名称、说明和分类。</li><li>每行或用逗号填写一个 Skill ID；保存时服务会去重并拒绝未知或停用 ID。</li><li>回到工作台“流程”页，点击技能包即可选中整组 Skill；你仍能逐项取消或补选。</li></ol>
         <h3>创建后端能力分类</h3>
-        <p>“分类”页支持名称、颜色、范围与说明。内置分类只读；自定义分类保存到本地工作目录 `.ainovel/categories.json`。删除分类不会自动改写已有能力或技能包记录，避免静默改变历史数据。</p>
+        <p>“分类”页支持名称、颜色、范围与说明。内置分类只读；自定义分类保存到本地工作目录 <code>.writing-workshop/categories.json</code>。删除分类不会自动改写已有能力或技能包记录，避免静默改变历史数据。</p>
         <p>完整协议见 <a href="https://github.com/zizegak916-glitch/writing-workshop/blob/main/docs/CAPABILITY_PROTOCOL.md">CAPABILITY_PROTOCOL.md</a>，接口见 <a href="https://github.com/zizegak916-glitch/writing-workshop/blob/main/API.md">API.md</a>。</p>
       </section>
 
@@ -229,15 +245,16 @@ go build -o writing-workshop ./cmd/writing-workshop
           <thead><tr><th>现象</th><th>原因</th><th>处理</th></tr></thead>
           <tbody>
             <tr><td>Pages 显示“当前未连接后端”</td><td>公开域名正常；只是默认 Pages 部署没有同时运行 Go API</td><td>本地项目和浏览器 BYOK 可继续使用；Skill 等服务端能力需启动兼容后端</td></tr>
-            <tr><td>Pages 保存 API 返回 405</td><td>仍在使用修复前的缓存脚本</td><td>强制刷新或清除该站点缓存；v0.2.5 保存配置不会请求 <code>/api/config</code></td></tr>
+            <tr><td>Pages 保存 API 返回 405</td><td>仍在使用修复前的缓存脚本</td><td>强制刷新或清除该站点缓存；当前保存配置不会请求 <code>/api/config</code></td></tr>
             <tr><td>模型测试 401</td><td>Key 无效或未加载</td><td>Pages 检查工作台 API 设置；自部署检查环境变量或本地服务配置</td></tr>
             <tr><td>模型测试 404</td><td>Base URL、接口协议或 Model 不匹配</td><td>先确认协议，再检查自动补全后的接口类型和模型 ID；完整端点也可直接填写</td></tr>
             <tr><td>返回成功但没有文字</td><td>接口响应结构与所选协议不一致</td><td>在“高级网络适配”切换 Chat Completions、Responses、Anthropic 或 Ollama</td></tr>
             <tr><td>本地 Ollama 无法从 Pages 访问</td><td>未开放 CORS，或 HTTPS 页面访问 HTTP 接口被混合内容策略拦截</td><td>改用本地工作台，或给 Ollama 配置允许来源的 HTTPS 反向代理；鉴权选择“无鉴权”</td></tr>
             <tr><td>浏览器报 CORS</td><td>目标接口没有允许当前 Pages 域名或必要请求头</td><td>换用明确支持浏览器跨域的接口，或改用同源 Go 后端；前端不能代替目标服务放开 CORS</td></tr>
-            <tr><td>项目消失</td><td>浏览器站点数据被清除</td><td>在“我的”页检查存储状态，导入最近的 v5 项目备份；以后定期导出</td></tr>
-            <tr><td>Prompt Skill 修改丢失</td><td>换了域名、浏览器或清除了当前 origin 的 localStorage</td><td>从 Prompt Skill 备份导入，或导入带覆盖值的项目 v5 备份</td></tr>
-            <tr><td>在浏览器编辑后端文件没变化</td><td>浏览器和 Go 后端是两套存储，不做静默双向同步</td><td>这是数据边界；使用项目操作台显式导入，导出 v5 包迁移浏览器内容</td></tr>
+            <tr><td>项目消失</td><td>浏览器站点数据被清除</td><td>在“我的”页检查存储状态，导入最近的 v6 项目备份；以后定期导出</td></tr>
+            <tr><td>Prompt Skill 修改丢失</td><td>换了域名、浏览器或清除了当前 origin 的 localStorage</td><td>从 Prompt Skill 备份导入，或导入带覆盖值的项目 v6 备份</td></tr>
+            <tr><td>在浏览器编辑后端文件没变化</td><td>浏览器和 Go 后端是两套存储，不做静默双向同步</td><td>这是数据边界；使用项目操作台显式导入，导出 v6 包迁移浏览器内容</td></tr>
+            <tr><td>语料导入被拒绝</td><td>未确认权限、格式不支持、样本不足 200 字或超过大小限制</td><td>只导入有权分析的 TXT/Markdown/DOCX；单个语料文件不超过 20 MiB</td></tr>
             <tr><td>上下文预算一直很小</td><td>普通助手只取当前选区或正文末尾 1000 字，并叠加所选 Prompt Skill、项目和记忆</td><td>这是本次请求估算，不是整个项目总字数；需要更多材料时使用“流程”显式选择上下文</td></tr>
             <tr><td>旧候选不能替换</td><td>生成期间正文已变化</td><td>这是坐标保护；复制候选并手动确认位置</td></tr>
             <tr><td>历史候选显示“只读”</td><td>当前打开的不是生成候选时的项目/文档，或记录来自未保存目标坐标的旧版本</td><td>返回产生候选的原文档再打开历史；不能定位的旧记录只能复制或整理为记忆</td></tr>

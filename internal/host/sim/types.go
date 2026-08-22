@@ -4,12 +4,12 @@ import (
 	"context"
 	"time"
 
-	"github.com/voocel/agentcore"
+	"github.com/zizegak916-glitch/writing-workshop/internal/engine"
 	"github.com/zizegak916-glitch/writing-workshop/internal/store"
 )
 
 type LLMChat interface {
-	Generate(ctx context.Context, messages []agentcore.Message, tools []agentcore.ToolSpec, opts ...agentcore.CallOption) (*agentcore.LLMResponse, error)
+	Generate(ctx context.Context, messages []engine.Message, tools []engine.ToolSpec, opts ...engine.CallOption) (*engine.LLMResponse, error)
 }
 
 type Deps struct {

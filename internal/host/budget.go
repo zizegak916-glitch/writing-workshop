@@ -5,8 +5,8 @@ import (
 	"math"
 	"sync/atomic"
 
-	"github.com/voocel/agentcore"
 	"github.com/zizegak916-glitch/writing-workshop/internal/bootstrap"
+	"github.com/zizegak916-glitch/writing-workshop/internal/engine"
 )
 
 // 预算状态机：单调递进，每次迁移恰好触发一次副作用，不回退。
@@ -93,11 +93,11 @@ func (s *BudgetSentinel) OnCost(total float64) {
 
 // HandleEvent 在子代理边界执行待定的停机。订阅必须先于 Dispatcher。
 // 不跳过 IsError——出错返回同样是边界，停机不应因子代理失败而推迟。
-func (s *BudgetSentinel) HandleEvent(ev agentcore.Event) {
+func (s *BudgetSentinel) HandleEvent(ev engine.Event) {
 	if s == nil {
 		return
 	}
-	if ev.Type != agentcore.EventToolExecEnd || ev.Tool != "subagent" {
+	if ev.Type != engine.EventToolExecEnd || ev.Tool != "subagent" {
 		return
 	}
 	s.HandleBoundary()

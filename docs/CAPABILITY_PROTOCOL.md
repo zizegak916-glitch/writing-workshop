@@ -1,6 +1,6 @@
-# Writing Workshop Capability Manifest v0.2
+# Writing Workshop Capability Manifest v0.3
 
-> 状态：现行产品协议，更新于 2026-07-29（UTC+8）。v0.2 新增可选分类、标签和技能包组合，不改变 v0.1 字段语义。
+> 状态：现行产品协议，更新于 2026-08-22（UTC）。v0.3 只更新产品目录与项目包边界，manifest 字段保持向后兼容。
 
 Capability manifest 用于描述一个可组合的写作能力。它解决三件事：界面知道如何展示能力，运行器知道该传什么，作者在执行前看得到步骤和权限。
 
@@ -9,9 +9,9 @@ Capability manifest 用于描述一个可组合的写作能力。它解决三件
 | 类型 | 存储 | 触发 | 执行位置 | 适用场景 |
 |---|---|---|---|---|
 | 浏览器 Prompt Skill | 默认值在 `web/static/js/prompt-skills.js`；覆盖值在 `ww_prompt_skills_v1` | 点击模式卡或快捷工具 | 前端组装模型请求前（Pages BYOK 直连或自部署 `/api/ai`） | 润色、续写、对白、标题等固定功能 |
-| 后端 capability Skill | 内置清单或 `.ainovel/capabilities.json` | 流程中显式多选 `skill_ids` | `/api/run` | 可组合步骤、权限和后端能力 |
+| 后端 capability Skill | 内置清单或 `.writing-workshop/capabilities.json` | 流程中显式多选 `skill_ids` | `/api/run` | 可组合步骤、权限和后端能力 |
 
-浏览器 Prompt Skill 不是 capability manifest v0.2 的远程执行入口，不拥有文件、网络或写入权限。它只改变本次模型请求中的约束文本；项目包 v5 只导出合法的用户覆盖值。后端 capability 仍必须通过本协议验证 ID、启用状态、步骤和权限。
+浏览器 Prompt Skill 不是 capability manifest 的远程执行入口，不拥有文件、网络或写入权限。它只改变本次模型请求中的约束文本；项目包 v6 只导出合法的用户覆盖值。授权语料校准也只产生可撤销的 Prompt Skill 候选，不增加 capability 权限。后端 capability 仍必须通过本协议验证 ID、启用状态、步骤和权限。
 
 ## 安全模型
 
@@ -55,7 +55,7 @@ curl -X POST http://127.0.0.1:8080/api/capabilities \
 
 `POST /api/run` 的 `skill_ids` 是有序数组，不是单选字段。运行器必须逐项校验，不能静默忽略不存在或停用的能力。技能包只保存一组经过验证、去重的 `skill_ids`；应用技能包不会获得额外权限，也不会自动执行。
 
-技能包示例见 [chapter-revision.pack.json](../examples/skill-packs/chapter-revision.pack.json)，可提交到 `POST /api/skill-packs`。内置技能包只读，用户技能包持久化到 `.ainovel/skill-packs.json`。
+技能包示例见 [chapter-revision.pack.json](../examples/skill-packs/chapter-revision.pack.json)，可提交到 `POST /api/skill-packs`。内置技能包只读，用户技能包持久化到 `.writing-workshop/skill-packs.json`。
 
 ## 兼容性
 

@@ -7,8 +7,8 @@ import (
 	"sync/atomic"
 	"testing"
 
-	"github.com/voocel/agentcore"
 	"github.com/zizegak916-glitch/writing-workshop/internal/domain"
+	"github.com/zizegak916-glitch/writing-workshop/internal/engine"
 	storepkg "github.com/zizegak916-glitch/writing-workshop/internal/store"
 )
 
@@ -313,21 +313,21 @@ func TestDispatcher_SteersAfterSuccessfulBoundaryToolBeforeNextModelCall(t *test
 		t.Fatalf("init progress: %v", err)
 	}
 
-	var secondReq *agentcore.LLMRequest
+	var secondReq *engine.LLMRequest
 	var dispatcher *Dispatcher
-	coordinator := agentcore.NewAgent(
-		agentcore.WithModel(sequentialFlowTestModel(func(i int, req *agentcore.LLMRequest) (*agentcore.LLMResponse, error) {
+	coordinator := engine.NewAgent(
+		engine.WithModel(sequentialFlowTestModel(func(i int, req *engine.LLMRequest) (*engine.LLMResponse, error) {
 			if i == 0 {
-				return &agentcore.LLMResponse{Message: flowTestToolCallMsg(agentcore.ToolCall{
+				return &engine.LLMResponse{Message: flowTestToolCallMsg(engine.ToolCall{
 					ID:   "tc-subagent",
 					Name: "subagent",
 					Args: json.RawMessage(`{"agent":"architect_long","task":"plan"}`),
 				})}, nil
 			}
 			secondReq = req
-			return &agentcore.LLMResponse{Message: flowTestAssistantMsg("done", agentcore.StopReasonStop)}, nil
+			return &engine.LLMResponse{Message: flowTestAssistantMsg("done", engine.StopReasonStop)}, nil
 		})),
-		agentcore.WithTools(agentcore.NewFuncTool("subagent", "fake subagent", map[string]any{
+		engine.WithTools(engine.NewFuncTool("subagent", "fake subagent", map[string]any{
 			"type": "object",
 		}, func(context.Context, json.RawMessage) (json.RawMessage, error) {
 			if err := st.Progress.UpdatePhase(domain.PhaseWriting); err != nil {
@@ -335,7 +335,7 @@ func TestDispatcher_SteersAfterSuccessfulBoundaryToolBeforeNextModelCall(t *test
 			}
 			return json.RawMessage(`"foundation_ready=true"`), nil
 		})),
-		agentcore.WithMiddlewares(func(ctx context.Context, call agentcore.ToolCall, next agentcore.ToolExecuteFunc) (json.RawMessage, error) {
+		engine.WithMiddlewares(func(ctx context.Context, call engine.ToolCall, next engine.ToolExecuteFunc) (json.RawMessage, error) {
 			out, err := next(ctx, call.Args)
 			if err == nil && call.Name == "subagent" {
 				dispatcher.Dispatch()
@@ -358,7 +358,7 @@ func TestDispatcher_SteersAfterSuccessfulBoundaryToolBeforeNextModelCall(t *test
 	if len(secondReq.Messages) < 4 {
 		t.Fatalf("expected tool result and Host instruction in second request, got %d messages", len(secondReq.Messages))
 	}
-	if result := secondReq.Messages[len(secondReq.Messages)-2]; result.Role != agentcore.RoleTool {
+	if result := secondReq.Messages[len(secondReq.Messages)-2]; result.Role != engine.RoleTool {
 		t.Fatalf("expected tool result immediately before Host instruction, got %q", result.Role)
 	}
 	got := secondReq.Messages[len(secondReq.Messages)-1].TextContent()
@@ -370,52 +370,52 @@ func TestDispatcher_SteersAfterSuccessfulBoundaryToolBeforeNextModelCall(t *test
 }
 
 type flowTestSequentialModel struct {
-	fn  func(i int, req *agentcore.LLMRequest) (*agentcore.LLMResponse, error)
+	fn  func(i int, req *engine.LLMRequest) (*engine.LLMResponse, error)
 	idx int64
 }
 
-func sequentialFlowTestModel(fn func(i int, req *agentcore.LLMRequest) (*agentcore.LLMResponse, error)) *flowTestSequentialModel {
+func sequentialFlowTestModel(fn func(i int, req *engine.LLMRequest) (*engine.LLMResponse, error)) *flowTestSequentialModel {
 	return &flowTestSequentialModel{fn: fn}
 }
 
-func (m *flowTestSequentialModel) take(msgs []agentcore.Message, tools []agentcore.ToolSpec) (*agentcore.LLMResponse, error) {
+func (m *flowTestSequentialModel) take(msgs []engine.Message, tools []engine.ToolSpec) (*engine.LLMResponse, error) {
 	i := int(atomic.AddInt64(&m.idx, 1) - 1)
-	return m.fn(i, &agentcore.LLMRequest{Messages: msgs, Tools: tools})
+	return m.fn(i, &engine.LLMRequest{Messages: msgs, Tools: tools})
 }
 
-func (m *flowTestSequentialModel) Generate(_ context.Context, msgs []agentcore.Message, tools []agentcore.ToolSpec, _ ...agentcore.CallOption) (*agentcore.LLMResponse, error) {
+func (m *flowTestSequentialModel) Generate(_ context.Context, msgs []engine.Message, tools []engine.ToolSpec, _ ...engine.CallOption) (*engine.LLMResponse, error) {
 	return m.take(msgs, tools)
 }
 
-func (m *flowTestSequentialModel) GenerateStream(_ context.Context, msgs []agentcore.Message, tools []agentcore.ToolSpec, _ ...agentcore.CallOption) (<-chan agentcore.StreamEvent, error) {
+func (m *flowTestSequentialModel) GenerateStream(_ context.Context, msgs []engine.Message, tools []engine.ToolSpec, _ ...engine.CallOption) (<-chan engine.StreamEvent, error) {
 	resp, err := m.take(msgs, tools)
 	if err != nil {
 		return nil, err
 	}
-	ch := make(chan agentcore.StreamEvent, 1)
-	ch <- agentcore.StreamEvent{Type: agentcore.StreamEventDone, Message: resp.Message, StopReason: resp.Message.StopReason}
+	ch := make(chan engine.StreamEvent, 1)
+	ch <- engine.StreamEvent{Type: engine.StreamEventDone, Message: resp.Message, StopReason: resp.Message.StopReason}
 	close(ch)
 	return ch, nil
 }
 
 func (m *flowTestSequentialModel) SupportsTools() bool { return true }
 
-func flowTestAssistantMsg(text string, stop agentcore.StopReason) agentcore.Message {
-	return agentcore.Message{
-		Role:       agentcore.RoleAssistant,
-		Content:    []agentcore.ContentBlock{agentcore.TextBlock(text)},
+func flowTestAssistantMsg(text string, stop engine.StopReason) engine.Message {
+	return engine.Message{
+		Role:       engine.RoleAssistant,
+		Content:    []engine.ContentBlock{engine.TextBlock(text)},
 		StopReason: stop,
 	}
 }
 
-func flowTestToolCallMsg(calls ...agentcore.ToolCall) agentcore.Message {
-	blocks := make([]agentcore.ContentBlock, len(calls))
+func flowTestToolCallMsg(calls ...engine.ToolCall) engine.Message {
+	blocks := make([]engine.ContentBlock, len(calls))
 	for i, call := range calls {
-		blocks[i] = agentcore.ToolCallBlock(call)
+		blocks[i] = engine.ToolCallBlock(call)
 	}
-	return agentcore.Message{
-		Role:       agentcore.RoleAssistant,
+	return engine.Message{
+		Role:       engine.RoleAssistant,
 		Content:    blocks,
-		StopReason: agentcore.StopReasonToolUse,
+		StopReason: engine.StopReasonToolUse,
 	}
 }

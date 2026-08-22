@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/voocel/agentcore"
+	"github.com/zizegak916-glitch/writing-workshop/internal/engine"
 	"github.com/zizegak916-glitch/writing-workshop/internal/store"
 )
 
@@ -15,7 +15,7 @@ import (
 const sentinel = "雪夜里主角揭穿了反派的惊天阴谋这是机密正文"
 
 // writeSession 把若干消息按 sessions/*.jsonl 的格式写到临时 output 目录。
-func writeSession(t *testing.T, rel string, msgs []agentcore.Message) string {
+func writeSession(t *testing.T, rel string, msgs []engine.Message) string {
 	t.Helper()
 	dir := t.TempDir()
 	path := filepath.Join(dir, "meta", "sessions", rel)
@@ -37,18 +37,18 @@ func writeSession(t *testing.T, rel string, msgs []agentcore.Message) string {
 	return dir
 }
 
-func commitCall(chapterRaw string) agentcore.Message {
+func commitCall(chapterRaw string) engine.Message {
 	args := json.RawMessage(`{"chapter":` + chapterRaw + `,"content":"` + sentinel + sentinel + `"}`)
-	return agentcore.Message{
-		Role:    agentcore.RoleAssistant,
-		Content: []agentcore.ContentBlock{agentcore.ToolCallBlock(agentcore.ToolCall{Name: "commit_chapter", Args: args})},
+	return engine.Message{
+		Role:    engine.RoleAssistant,
+		Content: []engine.ContentBlock{engine.ToolCallBlock(engine.ToolCall{Name: "commit_chapter", Args: args})},
 	}
 }
 
-func errResult(msg string) agentcore.Message {
-	return agentcore.Message{
-		Role:     agentcore.RoleTool,
-		Content:  []agentcore.ContentBlock{agentcore.TextBlock(msg)},
+func errResult(msg string) engine.Message {
+	return engine.Message{
+		Role:     engine.RoleTool,
+		Content:  []engine.ContentBlock{engine.TextBlock(msg)},
 		Metadata: map[string]any{"is_error": true},
 	}
 }
@@ -56,11 +56,11 @@ func errResult(msg string) agentcore.Message {
 // TestExport_DeathLoopShape 端到端复现 #34：模型把 commit_chapter 的 chapter
 // 字符串化导致校验循环。断言导出能定位、且小说正文零出包。
 func TestExport_DeathLoopShape(t *testing.T) {
-	var msgs []agentcore.Message
+	var msgs []engine.Message
 	// 一段裸的 coordinator 规划正文（<4KB，绕过 session_compact），必须被打码。
-	msgs = append(msgs, agentcore.Message{
-		Role:    agentcore.RoleAssistant,
-		Content: []agentcore.ContentBlock{agentcore.TextBlock(sentinel)},
+	msgs = append(msgs, engine.Message{
+		Role:    engine.RoleAssistant,
+		Content: []engine.ContentBlock{engine.TextBlock(sentinel)},
 	})
 	// 14 轮 commit_chapter(chapter:"7") + InputValidationError。
 	for range 14 {
@@ -97,7 +97,7 @@ func TestExport_DeathLoopShape(t *testing.T) {
 // TestExport_NumberVsStringArg 证明标量与字符串投影能区分类型：
 // chapter:7（数字）保留为 7，chapter:"7"（字符串）保留为 "7"。
 func TestExport_NumberVsStringArg(t *testing.T) {
-	intDir := writeSession(t, "coordinator.jsonl", []agentcore.Message{commitCall(`7`)})
+	intDir := writeSession(t, "coordinator.jsonl", []engine.Message{commitCall(`7`)})
 	si := store.NewStore(intDir)
 	repInt, rcInt := Diagnose(si)
 	outInt := string(RenderExport(repInt, rcInt))
@@ -136,7 +136,7 @@ func TestProjectValue_ProseArgRedacted(t *testing.T) {
 
 // TestWriteExport_WritesFile 证明纯函数路径：不依赖 TUI，写出固定相对路径。
 func TestWriteExport_WritesFile(t *testing.T) {
-	dir := writeSession(t, "coordinator.jsonl", []agentcore.Message{commitCall(`"7"`), errResult("boom")})
+	dir := writeSession(t, "coordinator.jsonl", []engine.Message{commitCall(`"7"`), errResult("boom")})
 	s := store.NewStore(dir)
 
 	rep, rc := Diagnose(s)
@@ -161,13 +161,13 @@ func TestWriteExport_WritesFile(t *testing.T) {
 
 // TestRedactMessage_DupSha 证明同一段文本反复出现产生同 sha（循环信号）。
 func TestRedactMessage_DupSha(t *testing.T) {
-	a := redactMessage("coordinator", agentcore.Message{
-		Role:    agentcore.RoleAssistant,
-		Content: []agentcore.ContentBlock{agentcore.TextBlock(sentinel)},
+	a := redactMessage("coordinator", engine.Message{
+		Role:    engine.RoleAssistant,
+		Content: []engine.ContentBlock{engine.TextBlock(sentinel)},
 	})
-	b := redactMessage("coordinator", agentcore.Message{
-		Role:    agentcore.RoleAssistant,
-		Content: []agentcore.ContentBlock{agentcore.TextBlock(sentinel)},
+	b := redactMessage("coordinator", engine.Message{
+		Role:    engine.RoleAssistant,
+		Content: []engine.ContentBlock{engine.TextBlock(sentinel)},
 	})
 	if a.TextSha == "" || a.TextSha != b.TextSha {
 		t.Errorf("相同正文应得相同 sha：%q vs %q", a.TextSha, b.TextSha)

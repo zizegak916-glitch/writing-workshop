@@ -12,13 +12,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/voocel/agentcore"
-	corecontext "github.com/voocel/agentcore/context"
 	"github.com/zizegak916-glitch/writing-workshop/assets"
 	"github.com/zizegak916-glitch/writing-workshop/internal/agents"
 	"github.com/zizegak916-glitch/writing-workshop/internal/agents/ctxpack"
 	"github.com/zizegak916-glitch/writing-workshop/internal/bootstrap"
 	"github.com/zizegak916-glitch/writing-workshop/internal/domain"
+	"github.com/zizegak916-glitch/writing-workshop/internal/engine"
+	corecontext "github.com/zizegak916-glitch/writing-workshop/internal/engine/context"
 	"github.com/zizegak916-glitch/writing-workshop/internal/host/exp"
 	"github.com/zizegak916-glitch/writing-workshop/internal/host/flow"
 	"github.com/zizegak916-glitch/writing-workshop/internal/host/imp"
@@ -38,7 +38,7 @@ type Host struct {
 	bundle            assets.Bundle
 	store             *storepkg.Store
 	models            *bootstrap.ModelSet
-	coordinator       *agentcore.Agent
+	coordinator       *engine.Agent
 	coordinatorCtxMgr *corecontext.ContextEngine // 切 default/coordinator 模型时联动 SetContextWindow + SetReserveTokens
 	thinkingApplier   agents.ApplyThinking       // /model 调思考强度时联动 live agent（coordinator + 子代理）
 	askUser           *tools.AskUserTool
@@ -291,8 +291,8 @@ func (h *Host) Resume() (string, error) {
 // Steer 与 Continue 共用同一 framing：两条入口的用户指令都带 `[用户干预]` 前缀，
 // 才能稳定触发 coordinator.md 的干预分类。否则 Continue 的裸文本会绕过路由规则，
 // Coordinator 失去分类锚点而误派子代理（曾导致"改已写章节"被派给 writer 撞 edit_chapter 守卫）。
-func interventionMsg(text string) agentcore.Message {
-	return agentcore.UserMsg("[用户干预] " + text)
+func interventionMsg(text string) engine.Message {
+	return engine.UserMsg("[用户干预] " + text)
 }
 
 // Continue 用指定 prompt 继续。停机后用户在输入框输入时调用。
@@ -514,7 +514,7 @@ func (h *Host) UpdateConfig(cfg bootstrap.Config) error {
 
 func (h *Host) emitEvent(ev Event) {
 	defer func() { recover() }()
-	// 所有事件的唯一 slog 入口。observer 翻译的 agentcore 事件和 Host 自发的
+	// 所有事件的唯一 slog 入口。observer 翻译的 engine 事件和 Host 自发的
 	// SYSTEM 事件（Start/Abort/Resume…）都在这里落日志，避免 ESC abort 与外部
 	// 终止在 tui.log 上无法区分。
 	if ev.Summary != "" || ev.Detail != "" {
@@ -903,14 +903,14 @@ func (h *Host) CurrentThinking(role string) string {
 	return h.cfg.ResolveThinking(strings.ToLower(strings.TrimSpace(role)))
 }
 
-func (h *Host) AvailableThinking(role string) []agentcore.ThinkingLevel {
+func (h *Host) AvailableThinking(role string) []engine.ThinkingLevel {
 	h.mu.Lock()
 	model := h.models.ForRole(strings.ToLower(strings.TrimSpace(role)))
 	h.mu.Unlock()
 	return agents.AvailableThinkingForModel(model)
 }
 
-func (h *Host) normalizeThinkingLocked(role string) agentcore.ThinkingLevel {
+func (h *Host) normalizeThinkingLocked(role string) engine.ThinkingLevel {
 	role = strings.ToLower(strings.TrimSpace(role))
 	if role == "" || role == "default" {
 		parsed, _ := agents.ParseThinkingLevel(h.cfg.Thinking)

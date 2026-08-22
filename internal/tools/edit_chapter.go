@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/voocel/agentcore/schema"
-	agentcoretools "github.com/voocel/agentcore/tools"
 	"github.com/zizegak916-glitch/writing-workshop/internal/domain"
+	"github.com/zizegak916-glitch/writing-workshop/internal/engine/schema"
+	enginetools "github.com/zizegak916-glitch/writing-workshop/internal/engine/tools"
 	"github.com/zizegak916-glitch/writing-workshop/internal/errs"
 	"github.com/zizegak916-glitch/writing-workshop/internal/store"
 )
@@ -20,17 +20,17 @@ import (
 // Seed 语义：drafts 不存在但 chapters 有 → 自动把 chapters 复制到 drafts 作为起点。
 // 归属检查：章节已完成时必须在 PendingRewrites 队列中，否则拒绝。
 //
-// 本工具是 agentcore.EditTool 的薄封装，找-换逻辑（多级容错匹配、diff 输出、行尾/BOM 保留）
+// 本工具是 engine.EditTool 的薄封装，找-换逻辑（多级容错匹配、diff 输出、行尾/BOM 保留）
 // 全部复用上游实现。
 type EditChapterTool struct {
 	store *store.Store
-	edit  *agentcoretools.EditTool
+	edit  *enginetools.EditTool
 }
 
 func NewEditChapterTool(s *store.Store) *EditChapterTool {
 	return &EditChapterTool{
 		store: s,
-		edit:  agentcoretools.NewEdit(s.Dir(), nil),
+		edit:  enginetools.NewEdit(s.Dir(), nil),
 	}
 }
 
@@ -96,7 +96,7 @@ func (t *EditChapterTool) Execute(ctx context.Context, args json.RawMessage) (js
 		return nil, err
 	}
 
-	// 委托 agentcore.EditTool 完成找-换
+	// 委托 engine.EditTool 完成找-换
 	subArgs, _ := json.Marshal(map[string]any{
 		"path":        fmt.Sprintf("drafts/%02d.draft.md", a.Chapter),
 		"file_path":   fmt.Sprintf("drafts/%02d.draft.md", a.Chapter),

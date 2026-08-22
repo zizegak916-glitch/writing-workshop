@@ -135,7 +135,7 @@ type AgentSnapshot struct {
 }
 
 // AgentCacheStat 是单个 agent 的缓存命中累计（投影到左栏）。
-// HitRate = CacheRead / Input；Input 在 litellm 层已统一为"含 CacheRead"语义。
+// HitRate = CacheRead / Input；Input 在原生 provider 适配层统一为“含 CacheRead”语义。
 //
 // CacheCapable 用来区分两种 0% 命中：
 //   - true  → 模型支持 prompt cache，0% 是 prompt 设计差或前缀不稳定，需要优化
