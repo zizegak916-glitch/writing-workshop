@@ -1,6 +1,6 @@
 # Writing Workshop 更新时间线
 
-> 状态：现行产品事实账本。历史条目沿用当时记录的 UTC+8；新条目使用明确时区。提交、CI、Pages 和公开页面证据必须能相互对应。最后同步：2026-08-23 02:41 UTC+8。
+> 状态：现行产品事实账本。历史条目沿用当时记录的 UTC+8；新条目使用明确时区。提交、CI、Pages 和公开页面证据必须能相互对应。最后同步：2026-08-23 02:49 UTC+8。
 
 ## 2026-08-23：原生引擎与授权语料校准
 
@@ -8,9 +8,11 @@
 |---|---|---|
 | 02:38 | 当前 Go import graph 移除 `agentcore` / `litellm`，以 `internal/engine` 实现消息、工具、上下文、协议、子任务与安全编辑；配置新写入统一到 `.writing-workshop` | [PR #16](https://github.com/zizegak916-glitch/writing-workshop/pull/16) 最终 [CI 32591217690](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/32591217690)、[`0c281bd`](https://github.com/zizegak916-glitch/writing-workshop/commit/0c281bda70da027bc84fbe1df55b2b0e52278c73) 的 [main CI 32591318098](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/32591318098) 与 [Pages 32591318117](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/32591318117) 均成功 |
 | 02:31 | 新增授权语料校准：原文瞬时解析，只持久化 SHA-256、元数据、聚合指标和候选；Pages 浏览器内分析，自部署使用 Go API | Go corpus 测试、双路径静态契约和 Playwright 应用/回退闭环均通过；真实用户校准效果尚无第三方反馈 |
-| 02:31 | 项目包升级为 v6，携带语料统计/校准历史但不含原文，兼容 v1–v5 导入 | PR CI 已覆盖 v1–v5→v6、导入事务、候选恢复与语料应用/回退；Release 尚未创建 |
+| 02:31 | 项目包升级为 v6，携带语料统计/校准历史但不含原文，兼容 v1–v5 导入 | PR CI 已覆盖 v1–v5→v6、导入事务、候选恢复与语料应用/回退；正式发布证据见下方 02:45 条目 |
+| 02:45 | 发布 [v0.3.0](https://github.com/zizegak916-glitch/writing-workshop/releases/tag/v0.3.0)，提供 Linux、macOS、Windows 的 amd64/arm64 归档与校验文件 | [`b946c01`](https://github.com/zizegak916-glitch/writing-workshop/commit/b946c01229e2a14165db47bd0787ef38ad387c67) 的 [CI 32591612463](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/32591612463)、[Pages 32591612466](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/32591612466) 与 [Release 32591612468](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/32591612468) 均成功；Release 非草稿、非预发布，共 7 个资产 |
+| 02:48 | 标签由 Release 工作流创建后未自动联动 Docker，显式调度 v0.3.0 的多架构镜像构建 | [Docker 32591765761](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/32591765761) 成功，目标为 linux/amd64 与 linux/arm64 |
 
-公网 `app.html`、`workbench.js`、`corpus-lab.js`、`corpus-lab.css` 和 `docs.html` 已逐项与合并源码 SHA-256 对齐。Release 尚未创建，成功链接只在工作流完成后补记。
+公网 `app.html`、`workbench.js`、`corpus-lab.js`、`corpus-lab.css` 和 `docs.html` 已逐项与发布源码 SHA-256 对齐；机器可读结果同步到 `RELEASE_EVIDENCE.json`。
 
 这份时间线只记录已经发生且可验证的产品事件，不用计划代替完成。详细功能说明仍以对应文档和代码为准；机器可读证据见 [`RELEASE_EVIDENCE.json`](RELEASE_EVIDENCE.json)。
 

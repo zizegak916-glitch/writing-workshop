@@ -46,6 +46,8 @@ GitHub PR #16 的最终 [CI 32591217690](https://github.com/zizegak916-glitch/wr
 
 合并提交 [`0c281bd`](https://github.com/zizegak916-glitch/writing-workshop/commit/0c281bda70da027bc84fbe1df55b2b0e52278c73) 的 [main CI 32591318098](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/32591318098) 与 [Pages 32591318117](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/32591318117) 均成功；公开工作台、主脚本、语料脚本/样式和教程页的 SHA-256 与合并源码一致。
 
+[v0.3.0](https://github.com/zizegak916-glitch/writing-workshop/releases/tag/v0.3.0) 已公开，Release [32591612468](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/32591612468) 生成 7 个资产；版本标签的多架构 Docker [32591765761](https://github.com/zizegak916-glitch/writing-workshop/actions/runs/32591765761) 也已成功。
+
 本地已通过：
 
 - `go test ./internal/engine/... ./internal/corpus ./internal/bootstrap ./internal/rules ./internal/entry/tui ./internal/host/flow ./internal/agents/ctxpack`
@@ -65,7 +67,6 @@ GitHub PR #16 的最终 [CI 32591217690](https://github.com/zizegak916-glitch/wr
 
 ## 下一步，不再堆功能
 
-1. 发布 v0.3.0，并单独验证 Release 与多架构 Docker 工作流。
-2. 让 3–5 位真实用户使用核心闭环，不收私稿，只收复现步骤与脱敏日志。
-3. 补原生 CLI 真流式，再决定是否推进 Skill 沙箱。
-4. 对大项目先做增量资料摄取与缓存，不再增加同类功能按钮。
+1. 让 3–5 位真实用户连续使用核心闭环，收集复现步骤与脱敏日志，不收私稿。
+2. 补原生 CLI 真流式，再决定是否推进 Skill 沙箱。
+3. 对大项目先做增量资料摄取与缓存，不再增加同类功能按钮。

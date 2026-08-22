@@ -1,14 +1,14 @@
 {
   "schema": "writing-workshop/release-evidence",
   "version": 1,
-  "updated_at": "2026-07-29T15:40:04Z",
+  "updated_at": "2026-08-22T18:49:00Z",
   "timezone_for_timeline": "UTC+8",
   "repository": "https://github.com/zizegak916-glitch/writing-workshop",
   "public_pages": "https://zizegak916-glitch.github.io/writing-workshop/",
   "default_branch": "main",
   "license": "Apache-2.0",
   "metrics_snapshot": {
-    "captured_at": "2026-07-28T16:13:35Z",
+    "captured_at": "2026-08-22T18:48:00Z",
     "stars": 1,
     "forks": 0,
     "open_issues": 0,
@@ -65,6 +65,42 @@
     }
   ],
   "verified_releases": [
+    {
+      "commit": "0c281bda70da027bc84fbe1df55b2b0e52278c73",
+      "pull_request": 16,
+      "summary": "Repository-owned native Go runtime, authorized corpus calibration, project bundle v6 and canonical Writing Workshop data paths",
+      "ci_run": 32591318098,
+      "pages_run": 32591318117,
+      "ci_conclusion": "success",
+      "pages_conclusion": "success",
+      "release_source_commit": "b946c01229e2a14165db47bd0787ef38ad387c67",
+      "release_ci_run": 32591612463,
+      "release_pages_run": 32591612466,
+      "release_tag": "v0.3.0",
+      "release_run": 32591612468,
+      "release_conclusion": "success",
+      "release_url": "https://github.com/zizegak916-glitch/writing-workshop/releases/tag/v0.3.0",
+      "release_asset_count": 7,
+      "docker_run": 32591765761,
+      "docker_conclusion": "success",
+      "pre_merge_ci_run": 32591217690,
+      "pre_merge_ci_conclusion": "success",
+      "live_checks": [
+        "PR and main CI passed Go formatting, full tests, vet, release build, JavaScript syntax, static and API-adapter contracts, offline service smoke and Chromium Playwright",
+        "Chromium covered v1-v5 to v6 migration, project transactions, candidate recovery and authorized corpus candidate application with exact rollback",
+        "The public Pages app, workbench JavaScript, corpus JavaScript/CSS and product guide returned HTTP 200 and matched the release source SHA-256 values",
+        "The public v0.3.0 release is neither draft nor prerelease and contains six OS/architecture archives plus one checksum file",
+        "The manually dispatched v0.3.0 Docker workflow built and pushed linux/amd64 and linux/arm64 images successfully",
+        "No paid-provider production request, literary-quality claim or independent third-party field test is claimed by this record"
+      ],
+      "sha256": {
+        "web/static/app.html": "50fece22085ced2b6c13b5d6c2a877410064e7c07e2af1846de94fe789485bce",
+        "web/static/js/workbench.js": "324073a551f45d0ed4ed461e69989aa17c2750dfd05a186bbefd7a2d721b2cc3",
+        "web/static/js/corpus-lab.js": "21685b06f2611c65a1e9c4d1c00c93d5df245f258d5560797520c2ac6b5f8d3d",
+        "web/static/css/corpus-lab.css": "99ea558d63175e274b49e4f7cf828c0c478ce4ce5ec16a3040b111bf6ba8ec44",
+        "web/static/docs.html": "f84f15caada2bd448023a41e6636bdfe1654364c37861ee6e3d5f3608c144e2e"
+      }
+    },
     {
       "commit": "6e254ac6345b33d94d116050e7dfc25b59493a79",
       "pull_request": 8,
