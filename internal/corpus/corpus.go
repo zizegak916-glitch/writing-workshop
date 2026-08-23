@@ -72,7 +72,10 @@ type Proposal struct {
 	SourceIDs    []string  `json:"source_ids"`
 	TargetSkills []string  `json:"target_skills"`
 	Addendum     string    `json:"addendum"`
+	SkillAddenda map[string]string `json:"skill_addenda,omitempty"`
 	Rules        []string  `json:"rules"`
+	Method       string    `json:"method"`
+	Warnings     []string  `json:"warnings,omitempty"`
 	CreatedAt    time.Time `json:"created_at"`
 	Status       string    `json:"status"`
 	RollbackHint string    `json:"rollback_hint"`
@@ -182,29 +185,71 @@ func Analyze(source Source, text string) Profile {
 
 func BuildProposal(profiles []Profile, skills []string) Proposal {
 	skills = normalizeSkills(skills)
-	unique := map[string]bool{}
-	var rules, ids []string
+	var ids []string
 	for _, profile := range profiles {
 		ids = append(ids, profile.Source.ID)
-		for _, rule := range profile.Rules {
-			if !unique[rule] {
-				unique[rule] = true
-				rules = append(rules, rule)
-			}
-		}
 	}
+	baseline, warnings := consensusMetrics(profiles)
+	rules := deriveRules(baseline)
 	sort.Strings(rules)
+	addendum := formatAddendum(rules, warnings)
+	skillAddenda := make(map[string]string, len(skills))
+	for _, skill := range skills {
+		skillAddenda[skill] = formatAddendum(rulesForSkill(skill, rules), warnings)
+	}
+	h := sha256.Sum256([]byte(strings.Join(ids, "|") + strings.Join(skills, "|") + addendum))
+	return Proposal{ID: "refine-" + hex.EncodeToString(h[:])[:12], SourceIDs: ids, TargetSkills: append([]string(nil), skills...), Addendum: addendum, SkillAddenda: skillAddenda, Rules: rules, Method: "equal-source-median-v2", Warnings: warnings, CreatedAt: time.Now().UTC(), Status: "candidate", RollbackHint: "在 Prompt Skill 管理中恢复应用前版本，或从项目备份还原 prompt_overrides。"}
+}
+
+func consensusMetrics(profiles []Profile) (Metrics, []string) {
+	if len(profiles) == 0 { return Metrics{}, []string{"没有可用语料档案；候选仅含安全边界"} }
+	values := func(pick func(Metrics) float64) []float64 { out:=make([]float64,0,len(profiles)); for _,p:=range profiles { out=append(out,pick(p.Metrics)) }; return out }
+	m := Metrics{
+		AverageParagraphRunes: median(values(func(m Metrics) float64{return m.AverageParagraphRunes})),
+		AverageSentenceRunes: median(values(func(m Metrics) float64{return m.AverageSentenceRunes})),
+		ParagraphVariation: median(values(func(m Metrics) float64{return m.ParagraphVariation})),
+		DialogueRatio: median(values(func(m Metrics) float64{return m.DialogueRatio})),
+		ShortParagraphRatio: median(values(func(m Metrics) float64{return m.ShortParagraphRatio})),
+		LongSentenceRatio: median(values(func(m Metrics) float64{return m.LongSentenceRatio})),
+		ExpositionMarkerRatio: median(values(func(m Metrics) float64{return m.ExpositionMarkerRatio})),
+	}
+	var warnings []string
+	dialogue := values(func(m Metrics) float64{return m.DialogueRatio})
+	paragraph := values(func(m Metrics) float64{return m.AverageParagraphRunes})
+	if spread(dialogue) > .25 { warnings=append(warnings,"样本对白密度分歧较大；对白比例只作宽松参考，不作为硬指标") }
+	if spread(paragraph) > 55 { warnings=append(warnings,"样本段落长度分歧较大；段长规则应按场景分别验证") }
+	return m,warnings
+}
+
+func median(values []float64) float64 { if len(values)==0{return 0}; sort.Float64s(values); mid:=len(values)/2; if len(values)%2==1{return values[mid]}; return (values[mid-1]+values[mid])/2 }
+func spread(values []float64) float64 { if len(values)<2{return 0}; sort.Float64s(values); return values[len(values)-1]-values[0] }
+
+func rulesForSkill(skill string, rules []string) []string {
+	var out []string
+	for _, rule := range rules {
+		keep := true
+		switch {
+		case strings.Contains(skill,"对白") || strings.Contains(skill,"角色"):
+			keep = strings.Contains(rule,"对白") || strings.Contains(rule,"一句") || strings.Contains(rule,"解释")
+		case strings.Contains(skill,"节奏") || strings.Contains(skill,"续写"):
+			keep = strings.Contains(rule,"段落") || strings.Contains(rule,"推进") || strings.Contains(rule,"一句")
+		case strings.Contains(skill,"润色") || strings.Contains(skill,"改写") || strings.Contains(skill,"去AI"):
+			keep = !strings.Contains(rule,"对白占比")
+		}
+		if keep { out=append(out,rule) }
+	}
+	if len(out)==0 { return rules }
+	return out
+}
+
+func formatAddendum(rules, warnings []string) string {
 	var b strings.Builder
 	b.WriteString("\n\n【本地语料校准候选】\n")
-	for _, rule := range rules {
-		b.WriteString("- ")
-		b.WriteString(rule)
-		b.WriteByte('\n')
-	}
-	b.WriteString("- 不复刻来源作品的专名、情节、句子或作者身份；若规则与项目设定冲突，以项目设定和用户本次指令为准。")
+	for _, rule := range rules { b.WriteString("- "); b.WriteString(rule); b.WriteByte('\n') }
+	for _, warning := range warnings { b.WriteString("- 弱约束："); b.WriteString(warning); b.WriteByte('\n') }
+	b.WriteString("- 不复刻来源作品的专名、情节、句子或作者身份；统计锚点不是配额。若与项目设定、人物逻辑或本次指令冲突，后者优先。")
 	b.WriteString("\n【/本地语料校准候选】")
-	h := sha256.Sum256([]byte(strings.Join(ids, "|") + strings.Join(skills, "|") + b.String()))
-	return Proposal{ID: "refine-" + hex.EncodeToString(h[:])[:12], SourceIDs: ids, TargetSkills: append([]string(nil), skills...), Addendum: b.String(), Rules: rules, CreatedAt: time.Now().UTC(), Status: "candidate", RollbackHint: "在 Prompt Skill 管理中恢复应用前版本，或从项目备份还原 prompt_overrides。"}
+	return b.String()
 }
 
 func normalizeSkills(skills []string) []string {

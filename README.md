@@ -3,7 +3,7 @@
 [![CI](https://github.com/zizegak916-glitch/writing-workshop/actions/workflows/ci.yml/badge.svg)](https://github.com/zizegak916-glitch/writing-workshop/actions/workflows/ci.yml)
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-black.svg)](LICENSE)
 
-> 文档最后同步：2026-08-22（UTC）。当前发布线为 v0.3.0；仓库自动化验证不冒充第三方审计或真实用户反馈。
+> 文档最后同步：2026-08-23（UTC）。当前发布线为 v0.3.0，下一版校准引擎正在 `main` 验证；仓库自动化验证不冒充第三方审计或真实用户反馈。
 
 Writing Workshop 是一个本地优先、作者确认写入的长篇创作工作台。项目、正文、章节、大纲、人物、笔记、记忆、自定义分类和 Prompt Skill 可以在同一项目中管理；每次 AI 请求由作者显式选择上下文，结果先进入候选区，不会自动覆盖正文。
 
@@ -36,6 +36,7 @@ GitHub Pages 是正式 HTTPS 静态站点，不是 Sites 预览。它可以在�
 4. 生成的是 Prompt Skill 候选差分，作者预览后才可应用；
 5. 每次应用保留修改前快照，可精确撤销；
 6. 内置反规则禁止复刻作者身份、专名、情节和来源句子。
+7. 多本语料按来源等权形成中位基线，分歧会降级为弱约束；续写、节奏、对白与润色获得不同差分，不再共用一锅规则。
 
 自部署版由 Go `internal/corpus` 分析并保存档案到 `.writing-workshop/corpus/index.json`；Pages 在浏览器内分析，原文不离开当前页面，也不持久化。完整边界见 [语料校准说明](docs/CORPUS_CALIBRATION.md)。
 

@@ -45,7 +45,7 @@ func TestParseRequiresAuthorizationAndDeduplicates(t *testing.T) {
 }
 
 func TestBuildProposalIsCandidateAndRollbackable(t *testing.T) {
-	profile := Profile{Source: Source{ID: "corpus-demo"}, Rules: []string{"短段落承担动作转折"}}
+	profile := Profile{Source: Source{ID: "corpus-demo"}, Metrics: Metrics{AverageParagraphRunes: 32, DialogueRatio: .3, ShortParagraphRatio: .5, ParagraphVariation: .9}}
 	proposal := BuildProposal([]Profile{profile}, []string{"润色", "润色", "节奏", strings.Repeat("过长", 100)})
 	if proposal.Status != "candidate" || proposal.RollbackHint == "" {
 		t.Fatalf("proposal must be reversible: %+v", proposal)
@@ -58,6 +58,19 @@ func TestBuildProposalIsCandidateAndRollbackable(t *testing.T) {
 	if len(proposal.TargetSkills) != 2 {
 		t.Fatalf("target skills must be deduplicated and bounded: %#v", proposal.TargetSkills)
 	}
+	if proposal.Method != "equal-source-median-v2" || proposal.SkillAddenda["节奏"] == proposal.SkillAddenda["润色"] {
+		t.Fatalf("proposal must be consensus-based and skill-specific: %+v", proposal)
+	}
+}
+
+func TestBuildProposalUsesEqualSourceMedianAndFlagsConflict(t *testing.T) {
+	profiles := []Profile{
+		{Source: Source{ID:"a"}, Metrics: Metrics{AverageParagraphRunes:20, DialogueRatio:.1}},
+		{Source: Source{ID:"b"}, Metrics: Metrics{AverageParagraphRunes:80, DialogueRatio:.5}},
+		{Source: Source{ID:"c"}, Metrics: Metrics{AverageParagraphRunes:40, DialogueRatio:.3}},
+	}
+	p := BuildProposal(profiles, []string{"对白"})
+	if !strings.Contains(p.Addendum, "约 40 字") || len(p.Warnings) < 2 { t.Fatalf("unexpected consensus proposal: %+v", p) }
 }
 
 func TestPhraseAnalysisUsesBoundedSample(t *testing.T) {
