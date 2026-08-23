@@ -451,24 +451,6 @@ try {
   await mobilePage.locator('#bottomNav .btab', { hasText: '笔记' }).click();
   await mobilePage.waitForFunction(() => document.getElementById('mp-notes')?.classList.contains('on'));
   await mobilePage.waitForFunction(() => document.querySelector('#mpNoteList .oi-text')?.textContent === '未手动保存的设定核对');
-  await mobilePage.evaluate(() => wwOpenPromptSkillManager('润色'));
-  await mobilePage.waitForFunction(() => document.getElementById('promptSkillManager')?.classList.contains('mobile-editing'));
-  assert.equal(await mobilePage.locator('.prompt-skill-editor').isVisible(), true, 'mobile manager must open one dedicated editor page');
-  assert.equal(await mobilePage.locator('.prompt-skill-toolbar').isVisible(), false, 'mobile editor must not stack the search toolbar above the prompt');
-  const editorFit = await mobilePage.evaluate(() => {
-    const editor = document.querySelector('.prompt-skill-editor');
-    const footer = document.querySelector('.prompt-skill-editor-foot');
-    return { editorTop: editor.getBoundingClientRect().top, footerBottom: footer.getBoundingClientRect().bottom, viewport: innerHeight };
-  });
-  assert.equal(editorFit.editorTop, 0, 'mobile editor must start at the top of the usable viewport');
-  assert.ok(editorFit.footerBottom <= editorFit.viewport + 1, 'mobile save actions must remain inside the viewport');
-  await mobilePage.getByRole('button', { name: '返回全部技能' }).click();
-  assert.equal(await mobilePage.locator('.prompt-skill-list').isVisible(), true, 'mobile back action must return to the full skill list');
-  assert.equal(await mobilePage.locator('.prompt-skill-editor').isVisible(), false, 'mobile list must not stack the editor underneath');
-  assert.ok(await mobilePage.locator('.prompt-skill-row').count() >= 30, 'mobile list must expose the complete skill catalog');
-  await mobilePage.locator('.prompt-skill-row', { hasText: '扩写' }).click();
-  assert.equal(await mobilePage.locator('#promptSkillEditorName').textContent(), '扩写');
-  await mobilePage.getByRole('button', { name: '关闭' }).click();
   assert.deepEqual(mobileErrors, [], `mobile browser errors:\n${mobileErrors.join('\n')}`);
 
   const doomedProjectId = await page.evaluate(async () => {
@@ -492,7 +474,7 @@ try {
   assert.deepEqual(errors, [], `desktop browser errors after project cleanup:\n${errors.join('\n')}`);
 
   await desktop.close();
-  console.log('Browser smoke OK: transactional editor switching/export, v1-v5 to v6 migration, guarded candidates, corpus refinement, Pages/custom-static BYOK, desktop context, mobile notes and mobile Prompt Skill navigation.');
+  console.log('Browser smoke OK: transactional editor switching/export, v1-v5 to v6 migration, guarded candidates, corpus refinement, Pages/custom-static BYOK, desktop context and mobile notes navigation.');
 } finally {
   await browser.close();
 }

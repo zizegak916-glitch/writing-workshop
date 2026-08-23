@@ -38,5 +38,6 @@
 - 浏览器项目（含章节、大纲、人物、笔记、记忆）和后端项目是两套明确存储；仅在用户点击导入时建立浏览器副本，不做静默双向同步。
 - 浏览器项目分类和后端能力分类也是两套明确存储：前者属于当前站点 IndexedDB/localStorage，后者属于工作目录 `.writing-workshop/categories.json`。
 - 浏览器 Prompt Skill 是第三套明确边界：默认定义在 `web/static/js/prompt-skills.js`，用户覆盖值在当前域名 `localStorage` 的 `ww_prompt_skills_v1`，项目包 v6 携带合法覆盖值。
+- Prompt Skill 的任务层、证据层和五类执行协议见 [`PROMPT_ARCHITECTURE.md`](PROMPT_ARCHITECTURE.md)。
 - 授权语料原文不进入持久化档案；v6 只携带哈希、聚合指标和校准历史。
 - 历史文档继续保留，用状态标签避免把旧引擎设计误认成当前产品执行层。

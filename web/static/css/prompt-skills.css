@@ -136,10 +136,8 @@
 }
 
 .prompt-skill-editor-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
-.prompt-skill-editor-title { min-width: 0; flex: 1; }
-.prompt-skill-editor-title > span { color: #a98de8; font-size: 10px; }
+.prompt-skill-editor-head > div > span { color: #a98de8; font-size: 10px; }
 .prompt-skill-editor-head h3 { margin: 3px 0 0; font-size: 19px; }
-.prompt-skill-back { display: none; }
 #promptSkillState { padding: 4px 8px; border: 1px solid var(--border); border-radius: 999px; color: var(--text-muted); font-size: 10px; white-space: nowrap; }
 #promptSkillState.customized { border-color: color-mix(in srgb, #7bd8b2 35%, var(--border)); color: #7bd8b2; }
 .prompt-skill-editor label { margin-top: 4px; color: var(--text-secondary); font-size: 11px; font-weight: 650; }
@@ -166,49 +164,16 @@
 .workflow-prompt-skill-box span { display: block; margin-top: 2px; color: var(--text-muted); font-size: 9px; line-height: 1.45; }
 
 @media (max-width: 760px) {
-  .prompt-skill-overlay { align-items: stretch; padding: 0; background: var(--bg-panel); backdrop-filter: none; -webkit-backdrop-filter: none; }
-  .prompt-skill-dialog { display: grid; grid-template-rows: auto auto minmax(0, 1fr); width: 100%; height: 100dvh; border: 0; border-radius: 0; background: var(--bg-panel); box-shadow: none; }
-  .prompt-skill-header { align-items: center; min-height: 72px; padding: max(14px, env(safe-area-inset-top)) 16px 12px; }
-  .prompt-skill-header > div { min-width: 0; }
-  .prompt-skill-kicker { display: none; }
-  .prompt-skill-header h2 { margin: 0; font-size: 21px; }
-  .prompt-skill-header p { max-width: 30rem; margin-top: 4px; overflow: hidden; font-size: 11px; line-height: 1.35; text-overflow: ellipsis; white-space: nowrap; }
-  .prompt-skill-close { width: 42px; height: 42px; flex: 0 0 42px; }
-  .prompt-skill-toolbar { grid-template-columns: minmax(0, 1fr) 112px auto auto; padding: 10px 12px; }
-  .prompt-skill-toolbar input, .prompt-skill-toolbar select { min-height: 44px; font-size: 14px; }
-  .prompt-skill-toolbar button { min-width: 48px; min-height: 40px; padding: 7px 10px; }
-  .prompt-skill-layout { display: block; height: auto; min-height: 0; }
-  .prompt-skill-list { height: 100%; padding: 8px 10px calc(20px + env(safe-area-inset-bottom)); border: 0; }
-  .prompt-skill-row { min-height: 68px; padding: 11px 10px; border-bottom: 1px solid color-mix(in srgb, var(--border) 68%, transparent); border-radius: 0; }
-  .prompt-skill-row:first-child { border-radius: 14px 14px 0 0; }
-  .prompt-skill-row:last-child { border-bottom-color: transparent; border-radius: 0 0 14px 14px; }
-  .prompt-skill-row.active { border-color: color-mix(in srgb, #a98de8 42%, var(--border)); border-radius: 14px; }
-  .prompt-skill-row-copy strong { font-size: 15px; }
-  .prompt-skill-row-copy small { margin-top: 4px; font-size: 12px; }
-  .prompt-skill-row em { padding: 3px 7px; font-size: 10px; }
-  .prompt-skill-editor { display: none; height: 100%; padding: 0; gap: 0; }
-  .prompt-skill-overlay.mobile-editing .prompt-skill-header,
-  .prompt-skill-overlay.mobile-editing .prompt-skill-toolbar,
-  .prompt-skill-overlay.mobile-editing .prompt-skill-list { display: none; }
-  .prompt-skill-overlay.mobile-editing .prompt-skill-dialog { grid-template-rows: minmax(0, 1fr); }
-  .prompt-skill-overlay.mobile-editing .prompt-skill-layout { height: auto; min-height: 0; }
-  .prompt-skill-overlay.mobile-editing .prompt-skill-editor { display: flex; }
-  .prompt-skill-editor-head { align-items: center; min-height: 72px; padding: max(12px, env(safe-area-inset-top)) 14px 10px; border-bottom: 1px solid var(--border); }
-  .prompt-skill-back { display: inline-flex; align-items: center; min-height: 40px; padding: 7px 10px 7px 7px !important; border: 0 !important; background: transparent !important; color: var(--text-primary); font-size: 22px !important; }
-  .prompt-skill-back span { margin-left: 2px; font-size: 13px; }
-  .prompt-skill-editor-title > span { display: none; }
-  .prompt-skill-editor-head h3 { margin: 0; overflow: hidden; font-size: 19px; text-align: center; text-overflow: ellipsis; white-space: nowrap; }
-  #promptSkillState { font-size: 10px; }
-  .prompt-skill-editor > p { padding: 12px 16px 0; font-size: 12px; line-height: 1.45; }
-  .prompt-skill-editor > label { margin: 12px 16px 7px; font-size: 12px; }
-  .prompt-skill-editor textarea { width: calc(100% - 24px); min-height: 0; margin: 0 12px; padding: 14px; border-radius: 12px; font: 14px/1.72 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
-  .prompt-skill-editor-foot { display: grid; grid-template-columns: 1fr; gap: 7px; padding: 8px 12px calc(10px + env(safe-area-inset-bottom)); border-top: 1px solid var(--border); background: var(--bg-panel); }
-  .prompt-skill-editor-foot > div { display: grid; grid-template-columns: minmax(0, .7fr) minmax(0, 1fr); }
-  .prompt-skill-editor-foot button { min-height: 44px; font-size: 14px; }
+  .prompt-skill-overlay { align-items: end; padding: 0; }
+  .prompt-skill-dialog { width: 100%; height: 96dvh; border-radius: 22px 22px 0 0; }
+  .prompt-skill-header { padding: 16px 16px 12px; }
+  .prompt-skill-header h2 { font-size: 18px; }
+  .prompt-skill-header p { font-size: 10px; }
+  .prompt-skill-toolbar { grid-template-columns: 1fr 110px; padding: 9px 12px; }
+  .prompt-skill-toolbar button { min-height: 34px; }
+  .prompt-skill-layout { grid-template-columns: 1fr; grid-template-rows: minmax(150px, 36%) minmax(0, 1fr); height: calc(100% - 172px); }
+  .prompt-skill-list { border-right: 0; border-bottom: 1px solid var(--border); }
+  .prompt-skill-editor { padding: 14px 14px 12px; }
+  .prompt-skill-editor textarea { min-height: 130px; }
   .prompt-skill-note { display: none; }
-}
-
-@media (max-width: 430px) {
-  .prompt-skill-toolbar { grid-template-columns: minmax(0, 1fr) 108px; }
-  .prompt-skill-toolbar button { min-height: 36px; }
 }

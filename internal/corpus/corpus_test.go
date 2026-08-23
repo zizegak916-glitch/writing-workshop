@@ -65,12 +65,14 @@ func TestBuildProposalIsCandidateAndRollbackable(t *testing.T) {
 
 func TestBuildProposalUsesEqualSourceMedianAndFlagsConflict(t *testing.T) {
 	profiles := []Profile{
-		{Source: Source{ID:"a"}, Metrics: Metrics{AverageParagraphRunes:20, DialogueRatio:.1}},
-		{Source: Source{ID:"b"}, Metrics: Metrics{AverageParagraphRunes:80, DialogueRatio:.5}},
-		{Source: Source{ID:"c"}, Metrics: Metrics{AverageParagraphRunes:40, DialogueRatio:.3}},
+		{Source: Source{ID: "a"}, Metrics: Metrics{AverageParagraphRunes: 20, DialogueRatio: .1}},
+		{Source: Source{ID: "b"}, Metrics: Metrics{AverageParagraphRunes: 80, DialogueRatio: .5}},
+		{Source: Source{ID: "c"}, Metrics: Metrics{AverageParagraphRunes: 40, DialogueRatio: .3}},
 	}
 	p := BuildProposal(profiles, []string{"对白"})
-	if !strings.Contains(p.Addendum, "约 40 字") || len(p.Warnings) < 2 { t.Fatalf("unexpected consensus proposal: %+v", p) }
+	if !strings.Contains(p.Addendum, "约 40 字") || len(p.Warnings) < 2 {
+		t.Fatalf("unexpected consensus proposal: %+v", p)
+	}
 }
 
 func TestPhraseAnalysisUsesBoundedSample(t *testing.T) {

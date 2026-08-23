@@ -3,6 +3,84 @@
 
   const STORAGE_KEY = 'ww_prompt_skills_v1';
   const MAX_PROMPT_LENGTH = 12000;
+  const SYSTEM_PROMPT = '你是 Writing Workshop 的中文长篇网络小说协作引擎。你的职责是严格执行当前选中的写作 Skill，并以用户明确要求和项目正式事实为最高依据。不要把缺失信息补成事实，不要越过人物知识边界，不要用通用套路覆盖作品已有声音。内部完成检查即可，不展示思维过程；除非 Skill 要求分析或列方案，否则只交付可直接使用的正文。';
+
+  const EVIDENCE_CONTRACT = `【信息优先级】
+1. 用户本次明确要求；
+2. 当前项目的正式设定、禁令和已确认修改；
+3. 与本段直接相关的人物卡、世界资料、大纲、记忆与前后文；
+4. 当前原文中可以直接确认的事实；
+5. 授权语料校准得到的聚合表达信号；
+6. 通用写作经验。
+发生冲突时按以上顺序处理。局部、具体、较新的已确认信息优先于宽泛旧信息；不要把矛盾内容擅自调和成第三种设定。
+
+【事实与语料边界】
+- 没有依据的内容不得补成事实。任务必须继续时，只能选择不改变后续因果的中性表达；需要创造新事实的任务，应把新增内容保留为候选或明确假设。
+- 严格维持叙事视角、人物知情范围、时间、空间、专名、能力边界、伤势、物件状态和已经发生的因果。人物不能知道输入没有给他的消息，旁白也不能偷替人物完成判断。
+- 授权网文语料只提供句长、段落、对白密度、节奏、重复表达等聚合信号。它不是情节来源、作者身份或硬配额；不得复制来源作品的专名、句子、人物、桥段，不得为追统计数字牺牲当前场景。`;
+
+  const TRANSFORM_PROTOCOL = `【静默执行流程：修改类】
+1. 先圈定本次允许修改的范围，并列出不可改变的事实、动作顺序、人物意图、视角和信息释放点。
+2. 逐处判断问题是否真实存在。只改有证据的问题；不要为了显示“处理过”而重写原本自然的句子。
+3. 从当前文本提取声音基线：用词正式度、句长变化、段落断点、叙述距离、对白习惯、解释密度。保持其有效部分，不把所有文本统一成助手自己的腔调。
+4. 修改时先处理语义与因果，再处理句段组织，最后才处理字词。必要的旁白可承担动作、神情、行为原因和心理，不要把它们一概删成含混留白。
+5. 完成后逐项回查：是否改了事实；是否越过人物知识；是否丢失宾语、范围或语气；是否新增作者总结；是否出现连续同构句、同义复述或无作用细节。
+
+【自然中文网文约束】
+- 表达首先要让读者一次读懂谁在何处做什么、为什么接着发生下一步。不得为了所谓高级、含蓄或文学感，把完整表达压成暧昧短词、半句和意象。
+- 人物说话、动作和反应必须符合当时目的、关系、压力与知识边界；避免所有人用同一套说明式语言。
+- 减少模板化矫正句、机械排比、连续总结、抽象情绪标签、翻译腔和解释性复述，但不要机械禁用任何正常句式。
+- 长短句与段落由动作、信息和情绪节拍决定，不追求整齐。具体细节必须改变判断、动作、关系或氛围，否则不为“画面感”硬加。
+- 遵守本 Skill 已声明的输出格式，不附加创作说明、邀功式总结或无关建议。`;
+
+  const GENERATE_PROTOCOL = `【静默执行流程：生成类】
+1. 先还原当前状态：视角人物、时间地点、在场者、各自目标、已知与未知、正在进行但未完成的动作、可用资源、限制与风险。
+2. 写出最短可成立因果链：触发 → 人物判断 → 具体选择 → 他人/环境反应 → 新状态。每一步必须来自前一步，不用巧合、旁白命令或突然出现的新能力代替人物行动。
+3. 决定本次只推进哪个叙事单位。优先完成一个场景节拍或一个明确变化，不顺手解决整条主线，也不为制造钩子强塞反转。
+4. 让人物以自己的性格、利益、经验和误判行动。台词只说此人此刻会说、愿意说且有必要说的话；重要信息要有获得路径。
+5. 写作时保持现有叙述距离、语言密度和段落节奏。网文可读性来自清楚的行动与持续变化，不来自口号、总结句或故意省略。
+6. 输出前反查：开头是否真正承接断点；空间和动作是否连续；能力与代价是否守界；信息是否提前泄露；新增内容是否留下无法解释的设定债；结尾是否落在可见变化、动作、对话或尚未完成的问题上。
+
+【语料校准使用法】
+聚合语料只用于校正表达倾向。多个样本互相冲突时，根据当前场景功能和本项目已形成的正文基线选择，不做平均风格拼盘；任何比例都只能作为诊断参照，不能成为写作配额。`;
+
+  const ANALYSIS_PROTOCOL = `【静默执行流程：分析类】
+1. 先判断用户提出的问题是否成立，不预设批评一定正确。成立就直接确认并定位；不成立就引用文本说明为什么，并指出更接近真实的问题。
+2. 区分四类结论：确定错误、连续性风险、效果取舍、纯个人偏好。不得把偏好写成规则，也不得用术语替代证据。
+3. 每条问题都给出可定位的原文证据，说明它破坏了哪条因果、人物逻辑、信息边界、读者理解或表达目标。没有证据的猜测必须标明不确定。
+4. 检查问题是否在相邻段落或同一批输出中重复出现，避免只修截图里的一句而保留同源错误。
+5. 建议按影响排序，给出最小可执行修法；不要用“加强描写、提升张力、优化节奏”这类无法操作的空话。
+6. 复核自己有没有误读主语、时间、人物关系、已知设定和用户要求。遵守本 Skill 的既定输出格式。`;
+
+  const PLANNING_PROTOCOL = `【静默执行流程：策划类】
+1. 把输入拆成“已确认事实 / 合理推断 / 待作者决定 / 禁止触碰”四层，输出时不混写。
+2. 从人物当下真实目标出发建立因果：谁因为什么做出选择，选择遇到什么阻力，付出什么代价，造成什么可持续后果。情节不能只靠设定自行运转。
+3. 检查每个候选是否需要未提供的新规则、降智、巧合、误会拖延或万能能力；需要时明确列为风险，不悄悄补齐。
+4. 方案之间必须改变机制、人物选择或后果，不能只是同一方案换措辞。所有节点都要能转写成实际场景动作。
+5. 保持网络小说的推进与可读性，但不套固定爽点、章长或廉价钩子。结尾悬念必须来自已经发生的变化。
+6. 输出前检查人物弧、信息释放、伏笔回收、时间空间和能力代价能否闭合；事实不足的地方保留可回答的问题。`;
+
+  const RESEARCH_PROTOCOL = `【静默执行流程：研究类】
+1. 先区分问题类型：词义与年代、制度与史实、真实说话方式、网文表达习惯、场景可用细节。不同问题不能用同一种证据替代。
+2. 事实正确性优先权威史料、博物馆、国家图书馆、大学、学术论文、古籍数据库和正式出版整理；活语言与自然表达还需真实小说、网文、论坛、作者讨论和现实语料。
+3. 没有联网、来源或足够证据时明确写“需核实”，不得编造文献、链接、数据或所谓常识。
+4. 只保留能改变当前情节、称谓、动作、物件、语言或可信度的资料，并说明具体用在哪里；不要堆百科信息。`;
+
+  const GENERATE_NAMES = new Set(['续写', '对话', '心理', '环境', '战斗']);
+  const ANALYZE_NAMES = new Set(['分析', '校对', '节奏', '情感', '总结', '查AI']);
+  const PLAN_NAMES = new Set(['大纲', '人物', '伏笔', '转折', '结局', '标题', '实时灵感']);
+
+  function protocolFor(skill) {
+    if (skill.name === '资料搜索') return `${EVIDENCE_CONTRACT}\n\n${RESEARCH_PROTOCOL}`;
+    if (ANALYZE_NAMES.has(skill.name)) return `${EVIDENCE_CONTRACT}\n\n${ANALYSIS_PROTOCOL}`;
+    if (PLAN_NAMES.has(skill.name) || skill.group === '创作') return `${EVIDENCE_CONTRACT}\n\n${PLANNING_PROTOCOL}`;
+    if (GENERATE_NAMES.has(skill.name)) return `${EVIDENCE_CONTRACT}\n\n${GENERATE_PROTOCOL}`;
+    return `${EVIDENCE_CONTRACT}\n\n${TRANSFORM_PROTOCOL}`;
+  }
+
+  function buildPrompt(skill) {
+    return `【任务：${skill.name}】\n${skill.prompt}\n\n${protocolFor(skill)}`;
+  }
 
   const SKILLS = [
     {
@@ -167,7 +245,7 @@
     }
   ];
 
-  const BY_NAME = new Map(SKILLS.map(skill => [skill.name, Object.freeze({ ...skill })]));
+  const BY_NAME = new Map(SKILLS.map(skill => [skill.name, Object.freeze({ ...skill, prompt: buildPrompt(skill) })]));
   let selectedName = SKILLS[0].name;
 
   function readOverrides() {
@@ -274,7 +352,7 @@
     overlay.innerHTML = `
       <section class="prompt-skill-dialog" role="dialog" aria-modal="true" aria-labelledby="promptSkillTitle">
         <header class="prompt-skill-header">
-          <div><div class="prompt-skill-kicker">本地提示词 · 请求时自动使用</div><h2 id="promptSkillTitle">提示词技能</h2><p>查看和修改每个写作功能真正发送给模型的指令。</p></div>
+          <div><div class="prompt-skill-kicker">Browser-local · hidden at run time</div><h2 id="promptSkillTitle">Prompt Skill 管理</h2><p>功能按钮会在请求时隐形使用对应提示词；这里可查看、改写、恢复与备份。</p></div>
           <button class="prompt-skill-close" type="button" data-prompt-action="close" aria-label="关闭">×</button>
         </header>
         <div class="prompt-skill-toolbar">
@@ -287,7 +365,7 @@
         <div class="prompt-skill-layout">
           <div class="prompt-skill-list" id="promptSkillList" aria-label="Prompt Skill 列表"></div>
           <div class="prompt-skill-editor">
-            <div class="prompt-skill-editor-head"><button class="prompt-skill-back" type="button" data-prompt-action="back" aria-label="返回全部技能">‹ <span>全部技能</span></button><div class="prompt-skill-editor-title"><span id="promptSkillEditorGroup"></span><h3 id="promptSkillEditorName"></h3></div><span id="promptSkillState"></span></div>
+            <div class="prompt-skill-editor-head"><div><span id="promptSkillEditorGroup"></span><h3 id="promptSkillEditorName"></h3></div><span id="promptSkillState"></span></div>
             <p id="promptSkillEditorDescription"></p>
             <label for="promptSkillText">请求时隐形加入的提示词</label>
             <textarea id="promptSkillText" spellcheck="false"></textarea>
@@ -305,7 +383,6 @@
     select.addEventListener('change', renderList);
     overlay.querySelector('#promptSkillText').addEventListener('input', updateCount);
     overlay.querySelector('[data-prompt-action="close"]').addEventListener('click', closeManager);
-    overlay.querySelector('[data-prompt-action="back"]').addEventListener('click', showSkillList);
     overlay.querySelector('[data-prompt-action="save"]').addEventListener('click', saveFromEditor);
     overlay.querySelector('[data-prompt-action="reset"]').addEventListener('click', resetFromEditor);
     overlay.querySelector('[data-prompt-action="export"]').addEventListener('click', downloadExport);
@@ -341,12 +418,7 @@
       const state = document.createElement('em');
       state.textContent = current.customized ? '已修改' : '内置';
       button.append(icon, body, state);
-      button.addEventListener('click', () => {
-        selectedName = skill.name;
-        renderManager();
-        document.getElementById('promptSkillManager')?.classList.add('mobile-editing');
-        if (isMobileManager()) setTimeout(() => document.getElementById('promptSkillText')?.focus(), 0);
-      });
+      button.addEventListener('click', () => { selectedName = skill.name; renderManager(); });
       root.appendChild(button);
     });
     if (!matches.length) {
@@ -382,25 +454,6 @@
     if (count) count.textContent = `${value.length.toLocaleString()} / ${MAX_PROMPT_LENGTH} 字符`;
   }
 
-  function isMobileManager() {
-    return window.matchMedia('(max-width: 760px)').matches;
-  }
-
-  function editorHasUnsavedChanges() {
-    const textarea = document.getElementById('promptSkillText');
-    return !!textarea && textarea.value !== currentSkill(selectedName).prompt;
-  }
-
-  function mayLeaveEditor() {
-    return !editorHasUnsavedChanges() || confirm('当前提示词还没有保存，放弃修改吗？');
-  }
-
-  function showSkillList() {
-    if (!mayLeaveEditor()) return;
-    document.getElementById('promptSkillManager')?.classList.remove('mobile-editing');
-    setTimeout(() => document.getElementById('promptSkillSearch')?.focus(), 0);
-  }
-
   function openManager(name) {
     ensureManager();
     if (BY_NAME.has(name)) selectedName = name;
@@ -408,17 +461,14 @@
     renderManager();
     const overlay = document.getElementById('promptSkillManager');
     overlay.classList.add('show');
-    overlay.classList.toggle('mobile-editing', isMobileManager() && BY_NAME.has(name));
     overlay.setAttribute('aria-hidden', 'false');
-    setTimeout(() => (overlay.classList.contains('mobile-editing') ? document.getElementById('promptSkillText') : document.getElementById('promptSkillSearch'))?.focus(), 0);
+    setTimeout(() => document.getElementById('promptSkillSearch')?.focus(), 0);
   }
 
   function closeManager() {
     const overlay = document.getElementById('promptSkillManager');
     if (!overlay) return;
-    if (overlay.classList.contains('mobile-editing') && !mayLeaveEditor()) return;
     overlay.classList.remove('show');
-    overlay.classList.remove('mobile-editing');
     overlay.setAttribute('aria-hidden', 'true');
   }
 
@@ -466,9 +516,10 @@
     }
   }
 
-  window.wwPromptSkillManifest = SKILLS.map(skill => ({ ...skill }));
+  window.wwPromptSkillManifest = SKILLS.map(skill => ({ ...skill, prompt: BY_NAME.get(skill.name).prompt }));
   window.wwPromptSkill = currentSkill;
   window.wwPromptText = promptText;
+  window.wwSystemPrompt = () => SYSTEM_PROMPT;
   window.wwPromptSkillSave = savePrompt;
   window.wwPromptSkillReset = resetPrompt;
   window.wwPromptSkillsExport = exportData;

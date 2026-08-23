@@ -21,6 +21,11 @@ const promptNames = [...promptSource.matchAll(/\bname:\s*'([^']+)',\s*group:/g)]
 assert(promptNames.length === expectedPromptSkills.length, `expected 32 Prompt Skills, found ${promptNames.length}`);
 assert(new Set(promptNames).size === promptNames.length, 'Prompt Skill names must be unique');
 for (const name of expectedPromptSkills) assert(promptNames.includes(name), `missing Prompt Skill: ${name}`);
+for (const marker of ['EVIDENCE_CONTRACT', 'TRANSFORM_PROTOCOL', 'GENERATE_PROTOCOL', 'ANALYSIS_PROTOCOL', 'PLANNING_PROTOCOL', 'RESEARCH_PROTOCOL']) {
+  assert(promptSource.includes(`const ${marker}`), `missing layered Prompt Skill protocol: ${marker}`);
+}
+assert(promptSource.includes('先判断用户提出的问题是否成立'), 'analysis skills must verify criticism before accepting it');
+assert(promptSource.includes('授权网文语料只提供') && promptSource.includes('不能成为写作配额'), 'corpus signals must remain evidence, not mechanical style quotas');
 
 const iconSource = read('web/static/js/ai-mode-icons.js');
 const iconMap = new Map([...iconSource.matchAll(/'([^']+)':\s*'(mode-[^']+)'/g)].map(match => [match[1], match[2]]));
@@ -36,6 +41,8 @@ const appHtml = read('web/static/app.html');
 const workbenchSource = read('web/static/js/workbench.js');
 const promptLookups = workbenchSource.match(/wwPromptText\(/g)?.length || 0;
 assert(promptLookups >= 6, `expected Prompt Skill injection in at least 6 request paths, found ${promptLookups}`);
+const systemPromptLookups = workbenchSource.match(/wwSystemPrompt/g)?.length || 0;
+assert(systemPromptLookups >= 4, `expected repository system prompt in desktop, mobile and alternate generation paths, found ${systemPromptLookups}`);
 assert(appHtml.includes('js/ai-mode-icons.js') && appHtml.includes('js/prompt-skills.js'), 'workbench must load icon and Prompt Skill scripts');
 assert(appHtml.includes('js/corpus-lab.js') && appHtml.includes('css/corpus-lab.css'), 'workbench must load corpus calibration UI');
 assert(appHtml.includes('v0.3.0 · 2026-08-22'), 'workbench release label is stale');
