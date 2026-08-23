@@ -17,8 +17,8 @@
 
   <div class="site-shell docs-layout">
     <aside class="docs-sidebar" aria-label="文档目录">
-      <p>开始</p><a href="#overview">在线版与可选服务</a><a href="#quickstart">60 秒启动</a><a href="#first-project">第一个项目</a>
-      <p style="margin-top:20px">创作</p><a href="#workspace">工作台导航</a><a href="#workflow">AI 流程</a><a href="#import-export">导入与导出</a><a href="#corpus">授权语料校准</a>
+      <p>开始</p><a href="#overview">在线版与可选服务</a><a href="#pages-tutorial">Pages 完整教程</a><a href="#quickstart">自部署启动</a><a href="#first-project">第一个项目</a>
+      <p style="margin-top:20px">创作</p><a href="#workspace">工作台导航</a><a href="#workflow">AI 流程</a><a href="#import-export">导入与导出</a><a href="#corpus">真实网文指导</a><a href="#memory">统一记忆</a>
       <p style="margin-top:20px">连接</p><a href="#api">API 与模型</a><a href="#cors">CORS 说明</a><a href="#skills">Skill 与能力</a><a href="#engine-adapters">引擎适配原则</a><a href="#troubleshooting">故障排查</a>
       <p style="margin-top:20px">社区资源</p><a href="#community-video">LINUX DO 视频公益站</a>
       <p style="margin-top:20px">记录</p><a href="#timeline">更新时间线</a>
@@ -26,8 +26,8 @@
 
     <main class="docs-main">
       <span class="eyebrow">Product guide · 2026-08-23</span>
-      <h1>从打开页面，到完成一次安全写作。</h1>
-      <p class="docs-lead">这份文档不假设你已经懂 API、Docker 或 Skill。先选择你的使用方式，再按一条完整路线跑通。</p>
+      <h1>从打开 Pages，到建立自己的写作方法。</h1>
+      <p class="docs-lead">不需要先懂 API、Docker 或 Skill。下面先给出能照着点击的 Pages 全流程，再解释真实网文指导、提示词、记忆与自部署增强。</p>
 
       <section id="overview">
         <h2>先理解：Pages 产品与可选本地服务</h2>
@@ -38,9 +38,64 @@
         <div class="doc-callout"><b>托管方式不等于功能真假：</b>Pages 的浏览器 BYOK 可直接发起模型请求；默认工作流未同时部署 Go API，所以后端 Skill、项目同步和 SSE 仍不可用。GitHub Pages 与 OpenAI Sites 是独立托管方式。</div>
       </section>
 
+      <section id="pages-tutorial">
+        <h2>Pages 完整教程：第一次从零走通</h2>
+        <p>入口只有一个：<a href="app.html">打开写作工作台</a>。项目和设置默认属于当前浏览器，不需要注册站内账号，也不会自动同步到其他设备。</p>
+        <div class="tutorial-map" aria-label="Pages 使用路线">
+          <a href="#tutorial-write"><b>路线一</b><span>建立项目并完成一次 AI 写作</span></a>
+          <a href="#tutorial-corpus"><b>路线二</b><span>让真实网文长期指导写作</span></a>
+          <a href="#tutorial-memory"><b>路线三</b><span>把结果整理成可控记忆</span></a>
+        </div>
+
+        <div class="tutorial-step" id="tutorial-write">
+          <span class="tutorial-number">01</span>
+          <div><h3>建立项目与第一章</h3><ol><li>点击顶部 <b>＋</b>，填写项目名、题材和简介。</li><li>打开“章节”，新建第一章；正文写在中央编辑区。</li><li>人物稳定事实放“人物”，临时资料和考据放“笔记”，剧情路线放“大纲”。</li><li>第一次重要编辑完成后，点击顶部下载按钮导出 v6 项目备份。</li></ol><p class="tutorial-note">自动保存写入当前域名的浏览器数据库。清除站点数据、换域名或换浏览器前，必须先导出。</p></div>
+        </div>
+
+        <div class="tutorial-step">
+          <span class="tutorial-number">02</span>
+          <div><h3>配置自己的模型接口</h3><ol><li>进入“设置 → API”。</li><li>选择服务商；中转、自建或兼容接口选“自定义”。</li><li>填写实际模型 ID、Base URL 和 Key；无密钥接口选择“无鉴权”。</li><li>协议默认自动识别，必要时明确选择 Chat Completions、Responses、Anthropic Messages 或 Ollama Chat。</li><li>先点“测试”，看到正常文本后再保存。</li></ol><p class="tutorial-note">Pages 从浏览器直接请求模型。测试出现 401 查 Key，404 查模型与路径，网络/CORS 错误查目标接口是否允许当前 Pages 域名。</p></div>
+        </div>
+
+        <div class="tutorial-step">
+          <span class="tutorial-number">03</span>
+          <div><h3>完成一次可检查的 AI 写作</h3><ol><li>选中正文中要处理的范围。</li><li>在 AI 面板选“润色、续写、改写、对白、节奏”等功能。</li><li>只勾选本次真正需要的项目、大纲、人物、笔记和记忆。</li><li>看上下文预算，在“补充指令”写清本次任务，再生成。</li><li>候选出来后选择替换、插入、追加、复制或记入记忆。</li></ol><p class="tutorial-note">候选与正文隔离。生成期间正文发生变化时，旧替换坐标会被阻止，避免一段旧结果覆盖新稿。</p></div>
+        </div>
+
+        <div class="tutorial-step" id="tutorial-corpus">
+          <span class="tutorial-number">04</span>
+          <div><h3>导入真实网文并本地完整分析</h3><ol><li>进入“流程 → 真实网文指导库”。</li><li>选择你有权分析的 TXT、Markdown 或 DOCX，勾选权限确认。</li><li>点击“本地完整分析”。</li><li>先看章节识别是否可靠，再看综合总结和指导卡，不要只盯平均段长。</li></ol><p class="tutorial-note">本地引擎分析章节、段句分位、段中对白、行动/解释、场景切换、章末信号与重复开句。原文只停留在本次页面内存，档案不保存原文。</p></div>
+        </div>
+
+        <div class="tutorial-step">
+          <span class="tutorial-number">05</span>
+          <div><h3>选择是否让 AI 深析</h3><ol><li>本地分析完成后，先检查当前模型配置。</li><li>只有需要补充人物行动、对白功能、信息释放和场景推进判断时，才点击“AI 深度分析”。</li><li>检查 AI 总结、指导卡和“不确定项”；推断不能当成来源事实。</li></ol><p class="tutorial-note">这一步只发送不超过约 18,000 字的分层抽样，覆盖开头、中段、结尾、对白密集段和若干章末；不会自动发送整本小说。</p></div>
+        </div>
+
+        <div class="tutorial-step">
+          <span class="tutorial-number">06</span>
+          <div><h3>让指导卡在写作时真正生效</h3><ol><li>保持需要使用的档案为启用状态。</li><li>回到写作功能，照常选择润色、续写、对白或节奏。</li><li>系统只调用与当前 Prompt Skill 有关的卡片；关闭档案后，它不再进入新请求。</li><li>当前要求、项目事实、人物逻辑和原文声音永远高于指导卡。</li></ol><p class="tutorial-note">真实网文的作用不止是改提示词。启用的档案会持续指导实际写作，同时保留适用范围、证据和例外，避免把统计值当写作配额。</p></div>
+        </div>
+
+        <div class="tutorial-step">
+          <span class="tutorial-number">07</span>
+          <div><h3>需要时再修改 Prompt Skill</h3><ol><li>在指导库勾选目标 Skill，生成提示词候选。</li><li>优先选择“修改现有指导块”；首次加入可以“追加”；只有准备好完整新提示词时才用“完整替换”。</li><li>在完整预览里手工修改，或主动让当前模型协助修改。</li><li>确认应用后才生效；使用回退可恢复应用前的完整提示词。</li></ol><p class="tutorial-note">不要把来源专名、人物、桥段、句子或固定段长写进提示词。提示词应保留语义、条件、例外和适用场景。</p></div>
+        </div>
+
+        <div class="tutorial-step" id="tutorial-memory">
+          <span class="tutorial-number">08</span>
+          <div><h3>把真正长期有效的结果记入记忆</h3><p>手工内容、写作候选、快捷工具、流程候选、语料总结、单张指导卡和提示词候选都能进入同一记忆表单。保存前编辑标题、分类、来源、项目范围和正文；一次性命令不要当长期记忆。</p><p class="tutorial-note">Pages 记忆进入浏览器 AI 请求。只有自部署且明确勾选“同时写入 Go 后台记忆”时，才会额外写入后端；两边不静默同步。</p></div>
+        </div>
+
+        <div class="tutorial-step">
+          <span class="tutorial-number">09</span>
+          <div><h3>结束这一轮：检查历史并备份</h3><ol><li>在“历史”查看候选和写入前快照。</li><li>删除或停用冲突、过时、重复记忆。</li><li>导出 v6 项目包；它包含项目资料、记忆、候选快照、Prompt Skill 覆盖值和语料分析档案，但不包含导入语料原文。</li></ol><p class="tutorial-note">完整可打印教程也保存在仓库的 <a href="https://github.com/zizegak916-glitch/writing-workshop/blob/main/docs/USER_GUIDE.md">USER_GUIDE.md</a>。</p></div>
+        </div>
+      </section>
+
       <section id="quickstart">
-        <h2>60 秒启动</h2>
-        <h3>路线 0：直接使用 Pages 在线版</h3>
+        <h2>自部署启动</h2>
+        <h3>路线 0：无需安装，继续使用 Pages</h3>
         <p>打开 <a href="app.html">Writing Workshop 工作台</a>，新建项目即可编辑。无需安装 Go 或 Docker。由于项目数据属于当前 <code>github.io</code> 域名的浏览器存储，请定期使用顶部导出或项目操作台下载备份。</p>
         <h3>路线 A：Docker（最省事）</h3>
         <p>需要安装 Git 与 Docker Desktop。复制下面四行命令：</p>
@@ -138,6 +193,26 @@ go build -o writing-workshop ./cmd/writing-workshop
         <div class="doc-grid">
           <article class="doc-card"><h3>Pages</h3><p>本地分析发生在浏览器；原文不持久化。只有你主动点 AI 深析时，最多约 1.8 万字的分层抽样才会发送到你配置的模型。</p></article>
           <article class="doc-card"><h3>自部署</h3><p>Go 引擎把分析档案写入 <code>.writing-workshop/corpus/index.json</code>，后台记忆写入独立文件；原文仍不保存，优秀外部模型可继续通过适配层参与深析和写作。</p></article>
+        </div>
+      </section>
+
+      <section id="memory">
+        <h2>统一记忆：从任何工作位置汇入</h2>
+        <p>记忆入口不局限于“记忆”Tab。普通写作候选、编辑器快捷工具、流程候选、真实网文总结、单张指导卡和提示词候选旁边都有记忆入口；它们先打开同一份可编辑表单，再由你确认保存。</p>
+        <table>
+          <thead><tr><th>字段</th><th>怎样填写</th><th>为什么重要</th></tr></thead>
+          <tbody>
+            <tr><td>标题</td><td>写明对象与用途，例如“第三卷·城门检查规则”</td><td>以后能够检索和判断是否过时</td></tr>
+            <tr><td>分类</td><td>人物、世界、情节、文风、研究或自定义分类</td><td>避免事实、偏好和临时笔记混成一团</td></tr>
+            <tr><td>来源</td><td>manual / writing / workflow / corpus / prompt</td><td>区分人工确认、模型候选和语料推断</td></tr>
+            <tr><td>范围</td><td>当前项目或通用</td><td>防止一部作品的规则污染另一部</td></tr>
+            <tr><td>内容</td><td>保留对象、条件、否定范围、例外、时序与力度</td><td>关键词袋会改变原意，不能稳定指导写作</td></tr>
+          </tbody>
+        </table>
+        <div class="doc-callout"><b>记忆不是越多越智能：</b>重复、冲突、过时和一次性要求会争夺上下文。应定期修改、停用或删除；明确事实与当前要求永远高于来源不明的旧记忆。</div>
+        <div class="doc-grid">
+          <article class="doc-card"><h3>Pages 浏览器记忆</h3><p>随当前项目保存在浏览器，可随 v6 项目包迁移；启用项进入 Pages 的模型请求。</p></article>
+          <article class="doc-card"><h3>Go 后台记忆</h3><p>自部署时由 <code>/api/memories</code> 管理，启用项按项目进入后端写作与改写；必须显式写入，不和浏览器静默同步。</p></article>
         </div>
       </section>
 
@@ -278,6 +353,9 @@ go build -o writing-workshop ./cmd/writing-workshop
             <tr><td>Prompt Skill 修改丢失</td><td>换了域名、浏览器或清除了当前 origin 的 localStorage</td><td>从 Prompt Skill 备份导入，或导入带覆盖值的项目 v6 备份</td></tr>
             <tr><td>在浏览器编辑后端文件没变化</td><td>浏览器和 Go 后端是两套存储，不做静默双向同步</td><td>这是数据边界；使用项目操作台显式导入，导出 v6 包迁移浏览器内容</td></tr>
             <tr><td>语料导入被拒绝</td><td>未确认权限、格式不支持、样本不足 200 字或超过大小限制</td><td>只导入有权分析的 TXT/Markdown/DOCX；单个语料文件不超过 20 MiB</td></tr>
+            <tr><td>AI 深析提示需要重新选择文件</td><td>刷新后原文已从页面内存清除，档案没有保存原文</td><td>重新选择同一授权文件，先做本地完整分析，再主动运行 AI 深析</td></tr>
+            <tr><td>指导库存在，但写作没有调用</td><td>档案已停用，或当前 Skill 与卡片适用范围无关</td><td>启用目标档案，并选择对白、节奏、续写等相符功能；不会把所有卡片塞入每次请求</td></tr>
+            <tr><td>记忆越来越多，结果反而混乱</td><td>存在重复、冲突、过时或跨项目记忆</td><td>检查标题、来源和范围，停用或删除旧项；一次性任务放补充指令，不存长期记忆</td></tr>
             <tr><td>上下文预算一直很小</td><td>普通助手只取当前选区或正文末尾 1000 字，并叠加所选 Prompt Skill、项目和记忆</td><td>这是本次请求估算，不是整个项目总字数；需要更多材料时使用“流程”显式选择上下文</td></tr>
             <tr><td>旧候选不能替换</td><td>生成期间正文已变化</td><td>这是坐标保护；复制候选并手动确认位置</td></tr>
             <tr><td>历史候选显示“只读”</td><td>当前打开的不是生成候选时的项目/文档，或记录来自未保存目标坐标的旧版本</td><td>返回产生候选的原文档再打开历史；不能定位的旧记录只能复制或整理为记忆</td></tr>

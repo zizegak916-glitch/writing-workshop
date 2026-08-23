@@ -382,72 +382,26 @@
     </div>
     <!-- TAB: 使用指南 -->
     <div class="priv-panel" id="privTab-guide" style="display:none">
-    <h2>📖 使用指南</h2>
-    <p style="margin-bottom:16px">
-      完整的使用文档请访问：<span class="privacy-link" onclick="window.open('docs.html','_blank')">使用文档</span>
-    </p>
-    <h3>🚀 快速开始</h3>
-    <ol>
-      <li>打开应用，默认以游客本地模式进入</li>
-      <li>进入工坊后，点击顶栏「＋」创建新项目</li>
-      <li>点击「⚙ → API」配置模型（选服务商 → 填 Key → 测试 → 保存）；Pages 和自部署版都从工作台完成这一步</li>
-      <li>开始写作！AI 功能会自动辅助你</li>
-    </ol>
-    <h3>🔧 API 配置</h3>
-    <p>支持 11+ 服务商：</p>
-    <ul>
-      <li><strong>DeepSeek</strong>（推荐，性价比高）— deepseek.com</li>
-      <li><strong>通义千问</strong> — tongyi.aliyun.com</li>
-      <li><strong>智谱 GLM</strong> — open.bigmodel.cn</li>
-      <li><strong>小米 MiMo</strong> — api.xiaomi.com</li>
-      <li><strong>OpenAI</strong> — platform.openai.com</li>
-      <li><strong>Claude</strong> — console.anthropic.com</li>
-      <li><strong>Kimi/Moonshot</strong> — platform.moonshot.cn</li>
-      <li><strong>Gemini</strong> — aistudio.google.com</li>
-      <li><strong>Grok</strong> — console.x.ai</li>
-      <li><strong>OpenRouter</strong> — openrouter.ai</li>
-      <li><strong>SiliconFlow</strong> — siliconflow.cn</li>
-      <li><strong>自定义</strong>（任意 OpenAI 兼容 API）</li>
-    </ul>
-    <h3>✍️ 编辑器功能</h3>
-    <ul>
-      <li><strong>AI 快捷工具栏</strong>（编辑器上方）：纠错、自动标题、实时灵感、资料搜索、降AI率、查AI</li>
-      <li><strong>工具栏</strong>：专注模式、预览、加粗/斜体、字体大小、导出</li>
-      <li><strong>自动保存</strong>：开启后实时保存，关闭后手动 Ctrl+S</li>
-    </ul>
-    <h3>📱 手机端底部导航</h3>
-    <ul>
-      <li><strong>编辑</strong> — 写作主界面</li>
-      <li><strong>大纲</strong> — 故事大纲管理</li>
-      <li><strong>章节</strong> — 章节列表与切换</li>
-      <li><strong>人物</strong> — 人物档案卡片</li>
-      <li><strong>AI</strong> — AI 助手面板（30+ 模式、多AI对比）</li>
-      <li><strong>笔记</strong> — 管理与正文、大纲分离的项目笔记</li>
-    </ul>
-    <h3>🤖 AI 面板功能</h3>
-    <ul>
-      <li><strong>助手 Tab</strong>：选择 AI 模式（续写/润色/扩写等30+），调整创意度和输出长度，点「开始生成」</li>
-      <li><strong>对比 Tab</strong>：3 个槽位并行对比不同 AI 服务商的结果</li>
-      <li><strong>记忆 Tab</strong>：添加记忆条目，AI 生成时自动注入上下文</li>
-      <li><strong>历史 Tab</strong>：查看所有 AI 操作记录</li>
-    </ul>
-    <h3>👤 个人中心</h3>
-    <p>点击顶栏「👤」查看项目统计和本地数据状态。</p>
-    <h3>🎨 主题切换</h3>
-    <p>设置 → 主题/Theme → 深色/浅色模式。支持跟随系统。</p>
-    <h3>📊 数据安全</h3>
-    <ul>
-      <li>项目资料默认存在浏览器本地（IndexedDB / localStorage）</li>
-      <li>默认游客本地模式，不设置本地密码</li>
-      <li>只有执行 AI、Skill 或显式导入时，所选数据才会发送到你使用的后端</li>
-      <li>支持项目导出 JSON 备份</li>
-      <li>支持导入 .json / .txt / .md / .docx 文件</li>
-    </ul>
-    <h3>❓ 常见问题</h3>
-    <p><strong>Q: 刷新页面要重新登录吗？</strong><br>A: 不需要，本地游客模式会直接进入。</p>
-    <p><strong>Q: 数据会丢吗？</strong><br>A: 数据存在浏览器本地。清除浏览器数据会丢失，建议定期导出备份。</p>
-    <p><strong>Q: AI 功能需要付费吗？</strong><br>A: 需要你自己的模型服务配置；是否收费、额度和数据条款由对应服务商决定。</p>
-    <p><strong>Q: 手机上能用吗？</strong><br>A: 完全适配手机，底部导航栏切换功能。</p>
+    <h2>📖 工作台内快速教程</h2>
+    <p style="margin-bottom:16px;padding:12px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px">需要逐按钮截图式路线时，打开 <span class="privacy-link" onclick="window.open('docs.html#pages-tutorial','_blank')">Pages 九步完整教程</span>。</p>
+    <h3>1. 建项目与资料归位</h3>
+    <ol><li>点击顶栏「＋」创建项目。</li><li>正文放章节，大纲、人物、笔记分别放对应资料区。</li><li>完成第一次重要编辑后，导出 v6 项目备份。</li></ol>
+    <h3>2. 配置 API</h3>
+    <ol><li>进入「设置 → API」。</li><li>填写模型、Base URL、Key 和协议；无 Key 服务选“无鉴权”。</li><li>先测试，成功后保存。Pages 直连需要目标接口允许浏览器 CORS。</li></ol>
+    <h3>3. 生成并确认候选</h3>
+    <ol><li>选中文本，再选择润色、续写、改写、对白或其他功能。</li><li>只加入本次需要的项目、大纲、人物、笔记与记忆，检查上下文预算。</li><li>生成结果先留在候选区，再决定替换、插入、追加、复制或记入记忆。</li></ol>
+    <h3>4. 真实网文指导库</h3>
+    <ol><li>进入「流程 → 真实网文指导库」。</li><li>导入有权分析的 TXT / MD / DOCX，确认权限后点「本地完整分析」。</li><li>查看综合总结、指标和带适用范围/证据/例外的指导卡。</li><li>可选「AI 深度分析」只发送约 1.8 万字以内的分层抽样；不点击就不发送原文。</li><li>保持档案启用，相关卡片会在润色、续写、对白、节奏等任务中动态调用。</li></ol>
+    <h3>5. Prompt Skill</h3>
+    <p>在「流程 → 内置 Prompt Skill」查看每个功能的提示词。指导库可生成“修改旧指导块、追加、完整替换”三种候选；预览可编辑，确认后生效，并可按 Skill 精确回退。</p>
+    <h3>6. 统一记忆</h3>
+    <p>手工内容、写作/快捷/流程候选、语料总结、指导卡和提示词候选都能进入同一记忆表单。保存前检查标题、分类、来源、项目范围和内容；一次性命令放补充指令，不要存成长期记忆。</p>
+    <h3>7. Pages 与自部署</h3>
+    <ul><li><strong>Pages：</strong>项目、Prompt Skill、分析档案与 API 配置保存在当前浏览器。</li><li><strong>自部署：</strong>增加服务端 Key、后端 Skill、Go 语料 API、SSE 与后台记忆。</li><li>浏览器与后端不会静默双向同步；需要迁移时显式导入/导出。</li></ul>
+    <h3>8. 手机端</h3>
+    <p>用底部导航切换编辑、大纲、章节、人物、AI 和笔记。真实网文指导库位于 AI 面板的“流程”，候选与记忆操作与桌面端相同。</p>
+    <h3>9. 备份与恢复</h3>
+    <p>重要阶段导出 v6 项目包。它包含项目资料、记忆、候选快照、Prompt Skill 覆盖值和语料分析档案，不包含导入的真实网文原文。</p>
     </div>
     <!-- TAB: 关于 -->
     <div class="priv-panel" id="privTab-about" style="display:none">

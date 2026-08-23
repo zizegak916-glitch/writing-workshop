@@ -150,6 +150,7 @@ make check
 
 ## 文档
 
+- [完整使用教程](docs/USER_GUIDE.md)
 - [完整配置](CONFIG.md)
 - [API 契约](API.md)
 - [开发与测试](DEVELOPMENT.md)
