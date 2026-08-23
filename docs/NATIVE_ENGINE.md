@@ -1,12 +1,23 @@
-# Writing Workshop 原生 Go 引擎
+# Writing Workshop Go 编排内核与适配层
 
-> 现行架构说明，更新于 2026-08-22（UTC）。
+> 现行架构说明，更新于 2026-08-23（UTC）。
 
-## 结论
+## 定位
 
-Writing Workshop 当前运行时位于 `internal/engine/`，由本仓库直接实现和维护。当前 `go.mod`、`go.sum` 与 Go import graph 不再包含 `github.com/voocel/agentcore` 或 `github.com/voocel/litellm`。
+Writing Workshop 的默认编排内核位于 `internal/engine/`，由本仓库直接维护。自有内核的意义是掌握长篇写作需要的上下文、工具权限、候选写入、中断和审计边界，不是宣布外部实现一概不用。
 
-“当前引擎为仓库自有实现”不等于“仓库没有 fork 历史”。项目早期基于 `voocel/ainovel-cli`，Apache-2.0 的版权、许可证、提交历史和历史来源继续保留；参见 [UPSTREAM_ENGINE.md](UPSTREAM_ENGINE.md) 与根目录 [NOTICE](../NOTICE)。
+成熟外部引擎或组件只要在许可证、数据边界、错误语义、工具调用和中断契约上可核验，就可以通过薄适配接入，或被吸收到更合适的层级。默认实现与可选适配器是两个维度：拥有自己的主干，不等于封闭生态。
+
+## 现有适配边界
+
+| 边界 | 当前接口 | 可以替换什么 | 不能绕过什么 |
+|---|---|---|---|
+| 模型 | `engine.ChatModel` | 官方模型、自建服务、中转或自定义实现 | 消息、工具与错误契约 |
+| 协议 | `internal/engine/llm` | OpenAI Chat / Responses、Anthropic、Ollama 及后续适配器 | 鉴权脱敏、超时、中断与 usage 语义 |
+| 运行时切换 | `engine.SwappableModel` 与 failover | 主备模型和运行中模型切换 | 仅对明确分类的可恢复错误切换 |
+| 后端能力 | capability manifest | 外部 Skill、MCP 或受审查的工具链 | 默认停用、权限声明、作者确认写入 |
+
+目前没有宣称存在一个可无损替换任意第三方 Agent runtime 的通用 ABI。真正接入某个优秀引擎时，应先写适配契约和回归测试，再决定复用整机、复用组件还是只吸收设计；不为了“纯自研”重复造轮子，也不为了兼容而放弃 Writing Workshop 的产品边界。
 
 ## 模块
 
@@ -51,5 +62,3 @@ Go HTTP 适配器支持四类请求/响应协议，并有本地模拟契约测�
 - 限流分类；
 - BOM/CRLF 保真、路径越界和歧义替换拒绝；
 - 现行配置写入和旧配置只读迁移。
-
-这些测试是仓库自测，不等于第三方审计或所有真实模型供应商网络兼容证明。

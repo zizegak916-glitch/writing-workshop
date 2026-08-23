@@ -57,7 +57,7 @@
 3. [03 · 自部署怎么用](../web/static/images/linux-do-v025/03-selfhost-guide.svg)
 4. [04 · 来源、证据和边界](../web/static/images/linux-do-v025/04-boundaries.svg)
 5. [05 · 从空项目到完成一次安全写入](../web/static/images/linux-do-v025/05-workshop-tutorial.svg)
-6. [06 · 佬友视频工具索引](../web/static/images/linux-do-v025/06-community-video-tools.svg)
+6. [06 · 佬友视频工具状态索引](../web/static/images/linux-do-v025/06-community-video-tools.svg)
 
 Pages 部署后也可直接打开：
 
@@ -76,12 +76,12 @@ Pages 部署后也可直接打开：
 
 | 类型 | 项目 | 已核验能力 | 最短用法 | 原帖/来源 |
 |---|---|---|---|---|
-| 公益站 | ZTU.AI | 文生视频、图生视频；原帖说明使用 Wan 2.2 | 不传图片为文生视频；传一张为首帧；传两张为首尾帧，再填写动作描述 | [LINUX DO 原帖](https://linux.do/t/topic/1507837) · [站点](https://ztu.ai/) |
-| 公益站 | l0veyou | LTX 图生视频、数字人等；入口当前可打开 | 从模型列表选择视频能力并上传参考图；数字人按原帖上传超过 2 秒的音频。注册开放时间和额度可能变化 | [公益站原帖](https://linux.do/t/topic/2287218) · [数字人教程](https://linux.do/t/topic/2306233) · [站点](https://l0veyou.com/) |
-| 开源推广 | 小野 AI | Seedance、Veo 3.1，支持文生视频和图生视频；有在线站和自部署仓库 | 在线站选择视频模型后输入提示词或参考图；需要自主托管时按仓库配置供应商 Key、数据库和对象存储 | [LINUX DO 原帖](https://linux.do/t/topic/1802932) · [在线站](https://xiaoye.io/) · [仓库](https://github.com/capybara-zy/xiaoye-ai) |
-| 公益推广 / 开源 | 派奇绘画 | Wan 2.2 的图片转短视频“Live 图” | 先生成或上传图片，再切换到支持 Live 的 Hugging Face / Gitee AI 服务商生成短视频；免费额度受上游算力限制 | [LINUX DO 原帖](https://linux.do/t/topic/1312332) · [仓库](https://github.com/Amery2010/peinture) |
+| 公益站 | ZTU.AI | 站点可打开；公开首页显示为 AI 生图平台，原帖记录过文生视频与图生视频 | 视频入口和当前模型需登录后现场核验，不把旧模型名写成长期现状 | [LINUX DO 原帖](https://linux.do/t/topic/1507837) · [站点](https://ztu.ai/) |
+| 公益站 | l0veyou | 2026-08-04 至 08-05 已有连续打不开反馈；本次直接访问也未得到可用页面 | 当前标记为“不可用 / 待恢复”，只保留历史来源 | [原帖最新页](https://linux.do/t/topic/2287218?page=35) · [站点](https://l0veyou.com/) |
+| 在线产品 / 开源 | 小野 AI | 当前在线站主推对话、图片与商品视觉；开源仓库仍记录 Seedance、Veo 3.1 视频能力 | 区分在线产品现状与仓库能力，不再把在线入口直接写作视频公益站 | [LINUX DO 原帖](https://linux.do/t/topic/1802932) · [在线站](https://xiaoye.io/) · [仓库](https://github.com/capybara-zy/xiaoye-ai) |
+| 公益推广 / 开源 | 派奇绘画 | 现行仓库仍记录 Wan 2.2 Live Motion，依赖 Hugging Face / Gitee AI 等 provider | 列为可自部署开源工具；公共额度与上游模型可用性不作承诺 | [LINUX DO 原帖](https://linux.do/t/topic/1312332) · [仓库](https://github.com/Amery2010/peinture) |
 
-需要从零做长视频而不是只生成一个片段，可以继续看佬友的[长视频小白教程](https://linux.do/t/topic/1833016)；使用 Seedance 时的裁切、运镜与首尾帧问题可参考[实际踩坑记录](https://linux.do/t/topic/1834572)。这些链接只作社区资源索引，不宣称 Writing Workshop 已经集成视频生成。
+需要从零做长视频而不是只生成一个片段，可以继续看佬友的[长视频小白教程](https://linux.do/t/topic/1833016)；使用 Seedance 时的裁切、运镜与首尾帧问题可参考[实际踩坑记录](https://linux.do/t/topic/1834572)。完整的当前状态与维护规则见[资源核验页](COMMUNITY_VIDEO_RESOURCES.md)。
 
 ## 教使用：本人发帖时需要补的实际操作
 

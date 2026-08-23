@@ -13,7 +13,7 @@ This file is an evidence-based draft, not a claim that the project already meets
 - Public demo: <https://zizegak916-glitch.github.io/writing-workshop/>
 - License: Apache-2.0
 - Maintainer role: repository owner and primary maintainer of the current Writing Workshop Web product and native Go runtime
-- Provenance disclosure: the repository began as a fork of `voocel/ainovel-cli` and preserves Apache-2.0 attribution and history. The current runtime in `internal/engine` is maintained in this repository and the current Go module/import graph no longer depends on the former `agentcore` or `litellm` modules.
+- Architecture: the default Go orchestration core lives in `internal/engine`; model and capability boundaries remain adapter-oriented so mature external implementations can be evaluated without giving up author confirmation or tool permissions.
 
 ## “Why does this repository qualify?” draft
 
@@ -47,7 +47,7 @@ API credits would fund open-source maintenance rather than hidden product usage:
 | Documentation status and historical boundaries | `docs/README.md` |
 | Commit / CI / Pages / public-check timeline | `docs/UPDATE_TIMELINE.md`, `docs/RELEASE_EVIDENCE.json` |
 | Contribution and security process | `CONTRIBUTING.md`, `SECURITY.md`, issue templates |
-| Fork provenance and current-runtime boundary | `NOTICE`, `docs/UPSTREAM_ENGINE.md`, `docs/NATIVE_ENGINE.md`, git history |
+| License, attribution and architecture boundary | `LICENSE`, `NOTICE`, `docs/NATIVE_ENGINE.md`, git history |
 
 ## Evidence still required before a strong application
 

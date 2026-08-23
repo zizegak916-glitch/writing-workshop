@@ -3,8 +3,6 @@
 [![CI](https://github.com/zizegak916-glitch/writing-workshop/actions/workflows/ci.yml/badge.svg)](https://github.com/zizegak916-glitch/writing-workshop/actions/workflows/ci.yml)
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-black.svg)](LICENSE)
 
-> 文档最后同步：2026-08-23（UTC）。当前发布线为 v0.3.0，下一版校准引擎正在 `main` 验证；仓库自动化验证不冒充第三方审计或真实用户反馈。
-
 Writing Workshop 是一个本地优先、作者确认写入的长篇创作工作台。项目、正文、章节、大纲、人物、笔记、记忆、自定义分类和 Prompt Skill 可以在同一项目中管理；每次 AI 请求由作者显式选择上下文，结果先进入候选区，不会自动覆盖正文。
 
 **在线版：** [GitHub Pages](https://zizegak916-glitch.github.io/writing-workshop/) · [使用教程](https://zizegak916-glitch.github.io/writing-workshop/docs.html) · [问题反馈](https://github.com/zizegak916-glitch/writing-workshop/issues)
@@ -13,9 +11,9 @@ GitHub Pages 是正式 HTTPS 静态站点，不是 Sites 预览。它可以在�
 
 ![Writing Workshop 首页](docs/images/landing-page.jpg)
 
-## 本轮核心变化：仓库自有 Go 引擎
+## Go 编排内核与开放适配层
 
-当前运行时由本仓库直接维护，代码位于 `internal/engine/`：
+Writing Workshop 默认使用仓库内的 Go 编排内核，代码位于 `internal/engine/`。这样可以把上下文、工具权限、候选写入和中断语义握在产品自己手里；同时，模型与外部能力都通过小接口进入，不把“自研”理解成拒绝成熟实现。
 
 - 原生消息、工具、事件、用量与模型接口；
 - 可中断的 Agent 工具循环和工具执行门；
@@ -24,7 +22,7 @@ GitHub Pages 是正式 HTTPS 静态站点，不是 Sites 预览。它可以在�
 - OpenAI Chat、OpenAI Responses、Anthropic Messages、Ollama 四种 HTTP 协议；
 - 保留 BOM/CRLF、拒绝越界路径和歧义替换的安全编辑工具。
 
-当前 `go.mod` 和 Go import graph 不再依赖 `github.com/voocel/agentcore` 或 `github.com/voocel/litellm`。这不抹除项目的历史：仓库最初从 `voocel/ainovel-cli` fork 而来，Apache-2.0 署名、提交历史和历史来源仍保留。详见 [原生引擎说明](docs/NATIVE_ENGINE.md)、[迁移与历史来源](docs/UPSTREAM_ENGINE.md) 和 [NOTICE](NOTICE)。
+现有 `ChatModel`、四协议适配器、可切换模型与 failover 已经是兼容边界。后续接入优秀外部引擎时，优先做薄适配并保留其优势，不复制整套实现，也不让第三方运行时绕过 Writing Workshop 的作者确认、工具门和数据边界。详见 [引擎与适配层](docs/NATIVE_ENGINE.md)。
 
 ## 授权语料校准实验室
 
@@ -95,7 +93,7 @@ go build -o writing-workshop ./cmd/writing-workshop
 
 ```mermaid
 flowchart LR
-    A[选择任务与上下文] --> B[原生引擎或浏览器 API]
+    A[选择任务与上下文] --> B[Go 编排内核 / 可替换适配器 / 浏览器 API]
     B --> C[候选区]
     C --> D{作者确认}
     D -->|替换/插入/追加| E[正文]
@@ -155,14 +153,15 @@ make check
 - [完整配置](CONFIG.md)
 - [API 契约](API.md)
 - [开发与测试](DEVELOPMENT.md)
-- [原生引擎](docs/NATIVE_ENGINE.md)
+- [引擎与适配层](docs/NATIVE_ENGINE.md)
 - [授权语料校准](docs/CORPUS_CALIBRATION.md)
+- [LINUX DO 佬友视频公益站状态](docs/COMMUNITY_VIDEO_RESOURCES.md)
 - [产品归属边界](docs/PRODUCT_BOUNDARY.md)
 - [安全策略](SECURITY.md)
 - [更新时间线](docs/UPDATE_TIMELINE.md)
 
 ## 来源与许可证
 
-仓库最初 fork 自 Apache-2.0 项目 [`voocel/ainovel-cli`](https://github.com/voocel/ainovel-cli)。当前 `internal/engine` 是 Writing Workshop 仓库维护的替代运行时，当前构建不再导入上游 `agentcore`/`litellm`，但历史 fork 代码、提交与归属不会因此消失。请同时参阅 [LICENSE](LICENSE)、[NOTICE](NOTICE) 与 [迁移说明](docs/UPSTREAM_ENGINE.md)。
+许可证、第三方来源与必要署名见 [LICENSE](LICENSE) 和 [NOTICE](NOTICE)。
 
-[LINUX DO](https://linux.do/) 是外部讨论社区，不是本项目的后台、官网、客服或所有者。
+文档里提到的“LINUX DO 视频站”，指 LINUX DO 佬友公开分享或维护的视频公益站与开源工具。它们变化很快，当前状态以[资源核验页](docs/COMMUNITY_VIDEO_RESOURCES.md)、对应原帖和站点为准。

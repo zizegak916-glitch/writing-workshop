@@ -19,12 +19,13 @@
     <aside class="docs-sidebar" aria-label="文档目录">
       <p>开始</p><a href="#overview">在线版与可选服务</a><a href="#quickstart">60 秒启动</a><a href="#first-project">第一个项目</a>
       <p style="margin-top:20px">创作</p><a href="#workspace">工作台导航</a><a href="#workflow">AI 流程</a><a href="#import-export">导入与导出</a><a href="#corpus">授权语料校准</a>
-      <p style="margin-top:20px">连接</p><a href="#api">API 与模型</a><a href="#cors">CORS 说明</a><a href="#skills">Skill 与能力</a><a href="#troubleshooting">故障排查</a>
+      <p style="margin-top:20px">连接</p><a href="#api">API 与模型</a><a href="#cors">CORS 说明</a><a href="#skills">Skill 与能力</a><a href="#engine-adapters">引擎适配原则</a><a href="#troubleshooting">故障排查</a>
+      <p style="margin-top:20px">社区资源</p><a href="#community-video">LINUX DO 视频公益站</a>
       <p style="margin-top:20px">记录</p><a href="#timeline">更新时间线</a>
     </aside>
 
     <main class="docs-main">
-      <span class="eyebrow">Product guide · 2026-08-22</span>
+      <span class="eyebrow">Product guide · 2026-08-23</span>
       <h1>从打开页面，到完成一次安全写作。</h1>
       <p class="docs-lead">这份文档不假设你已经懂 API、Docker 或 Skill。先选择你的使用方式，再按一条完整路线跑通。</p>
 
@@ -237,6 +238,27 @@ go build -o writing-workshop ./cmd/writing-workshop
         <h3>创建后端能力分类</h3>
         <p>“分类”页支持名称、颜色、范围与说明。内置分类只读；自定义分类保存到本地工作目录 <code>.writing-workshop/categories.json</code>。删除分类不会自动改写已有能力或技能包记录，避免静默改变历史数据。</p>
         <p>完整协议见 <a href="https://github.com/zizegak916-glitch/writing-workshop/blob/main/docs/CAPABILITY_PROTOCOL.md">CAPABILITY_PROTOCOL.md</a>，接口见 <a href="https://github.com/zizegak916-glitch/writing-workshop/blob/main/API.md">API.md</a>。</p>
+      </section>
+
+      <section id="engine-adapters">
+        <h2>自己的 Go 内核，不等于只用自己的轮子</h2>
+        <p>Writing Workshop 用仓库内 Go 内核掌握上下文、工具权限、中断、候选写入和审计边界；模型与外部能力则从小接口进入。当前已经开放 <code>engine.ChatModel</code>、四类协议适配、运行时模型切换和 failover。遇到更成熟的外部引擎或组件，先核对许可证、数据流、错误语义、工具调用和中断契约，再选择复用整机、复用组件或只吸收设计。</p>
+        <div class="doc-callout info"><b>兼容底线：</b>外部引擎可以更擅长规划、检索或工具调度，但不能静默改正文、越过工具门、吞掉来源错误，或把未授权语料送出本地边界。没有完成适配和回归测试的项目，只能列为参考，不能写成“已集成”。</div>
+      </section>
+
+      <section id="community-video">
+        <h2>LINUX DO 佬友视频公益站：当前状态</h2>
+        <p>这里索引的是 LINUX DO 佬友公开分享或维护的公益站与开源工具，不是 Writing Workshop 的视频功能。站点变化很快，下面只写 2026-08-23 能核验到的状态；使用前仍应先看原帖最新回复。</p>
+        <table>
+          <thead><tr><th>资源</th><th>当前判断</th><th>现在应怎样写</th><th>来源</th></tr></thead>
+          <tbody>
+            <tr><td>ZTU.AI</td><td>站点可打开；公开首页显示为 AI 生图平台。原帖曾说明文生视频、单图首帧和双图首尾帧。</td><td>保留为“公益站，视频能力需登录后现场核验”，不再把旧模型名写成当前固定能力。</td><td><a href="https://linux.do/t/topic/1507837">原帖</a> · <a href="https://ztu.ai/">站点</a></td></tr>
+            <tr><td>l0veyou</td><td>原帖 8 月 4–5 日连续反馈入口打不开；直接访问也未能得到可用页面。</td><td>标记“当前不可用 / 待站长恢复”，保留历史来源，不再写“入口当前可打开”。</td><td><a href="https://linux.do/t/topic/2287218?page=35">最新回复</a> · <a href="https://l0veyou.com/">站点</a></td></tr>
+            <tr><td>小野 AI</td><td>在线站已转为 AI 对话、图片与商品视觉产品；开源仓库仍说明 Seedance / Veo 视频能力。</td><td>区分“当前在线产品”和“开源仓库能力”，不再把在线入口直接列为现成视频公益站。</td><td><a href="https://xiaoye.io/">在线站</a> · <a href="https://github.com/capybara-zy/xiaoye-ai">仓库</a> · <a href="https://linux.do/t/topic/1802932">原帖</a></td></tr>
+            <tr><td>派奇绘画</td><td>现行仓库仍记录 Wan 2.2 Live Motion，依赖 Hugging Face / Gitee AI 等上游服务与额度。</td><td>列为“可自部署的开源工具”，不承诺公共额度或每次都可生成。</td><td><a href="https://github.com/Amery2010/peinture">仓库</a> · <a href="https://linux.do/t/topic/1312332">原帖</a></td></tr>
+          </tbody>
+        </table>
+        <div class="doc-callout"><b>状态不是背书：</b>此表无合作、无 AFF、无付费排名。打不开、停止注册、模型下架或额度变化时，以站长原帖与站内公告为准。</div>
       </section>
 
       <section id="troubleshooting">

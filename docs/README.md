@@ -1,6 +1,6 @@
 # Writing Workshop 文档地图
 
-更新：2026-08-22（UTC）
+更新：2026-08-23（UTC）
 
 本目录同时保留“现行产品文档”和“继承引擎历史文档”。状态以本表为准；文件名或文档中的旧项目名不能单独证明它仍是当前执行层。
 
@@ -19,7 +19,8 @@
 | [`PRODUCT_BOUNDARY.md`](PRODUCT_BOUNDARY.md) | 现行产品规则 | 产品层、可选本地服务、外部社区与上游的归属边界 |
 | [`NATIVE_ENGINE.md`](NATIVE_ENGINE.md) | 现行架构 | 仓库自有 Go 引擎、协议、不变量、测试与限制 |
 | [`CORPUS_CALIBRATION.md`](CORPUS_CALIBRATION.md) | 现行功能 | 授权语料、聚合指标、候选应用、撤销与隐私边界 |
-| [`LINUX_DO_POST_V030.md`](LINUX_DO_POST_V030.md) | 当前社区更新稿 | 旧话题续更、真实变化、使用步骤与已知限制 |
+| [`COMMUNITY_VIDEO_RESOURCES.md`](COMMUNITY_VIDEO_RESOURCES.md) | 现行资源状态 | LINUX DO 佬友视频公益站与开源工具的核验状态 |
+| [`LINUX_DO_POST_V030.md`](LINUX_DO_POST_V030.md) | 维护者事实清单 | 供维护者自行撰写更新时核对，不是可直接发布正文 |
 | [`LINUX_DO_POST_V025.md`](LINUX_DO_POST_V025.md) | 历史社区发布包 | v0.2.5 时点的发帖材料，不代表当前功能 |
 | [`CAPABILITY_PROTOCOL.md`](CAPABILITY_PROTOCOL.md) | 现行协议 | Skill manifest、多 Skill 与技能包 |
 | [`UI_DESIGN_SYSTEM.md`](UI_DESIGN_SYSTEM.md) | 现行设计 | 彩色编辑部、图标、响应式与状态语义 |

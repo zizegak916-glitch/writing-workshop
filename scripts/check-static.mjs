@@ -91,17 +91,20 @@ const workflowSource = read('web/static/js/workflows.js');
 assert(workflowSource.includes("getElementById('aiRequestDock')"), 'workflow tab must coordinate the persistent request dock');
 assert(workflowSource.includes('id="workflowServiceLink" hidden') && workflowSource.includes('wwSyncServiceEntryVisibility'), 'workflow service management link must be hidden until runtime detection completes');
 
-const publicPages = ['index.html', 'docs.html', 'privacy.html', 'app.html'];
+const publicPages = ['index.html', 'privacy.html', 'app.html'];
 for (const file of publicPages) {
   const source = read(`web/static/${file}`);
   assert(!source.includes('linux.do'), `${file} must not present an external forum as product navigation or support`);
 }
+const docsHtml = read('web/static/docs.html');
+assert(docsHtml.includes('id="community-video"') && docsHtml.includes('不是 Writing Workshop 的视频功能'), 'docs must distinguish community video resources from product capabilities');
 const indexHtml = read('web/static/index.html');
 assert(!indexHtml.includes('admin.html'), 'landing page must not expose the optional service console as public navigation');
 assert(!indexHtml.includes('点一颗 Star') && !indexHtml.includes('您的支持是我们最大的动力'), 'landing page must ask for reproducible feedback instead of stars');
 assert(indexHtml.includes('提交 Issue'), 'landing page must provide the canonical feedback route');
 const aboutHtml = read('web/static/about.html');
-assert(aboutHtml.includes('它是外部社区') && aboutHtml.includes('不是 Writing Workshop 的后台'), 'about page must state the external community boundary');
+assert(aboutHtml.includes('LINUX DO 佬友公益资源') && aboutHtml.includes('视频公益站与开源工具'), 'about page must describe LINUX DO links as community-run public-interest resources');
+assert(aboutHtml.includes('不能绕过作者确认') && aboutHtml.includes('优秀模型、引擎和工具'), 'about page must preserve the open engine-adapter position');
 const adminHtml = read('web/static/admin.html');
 assert(adminHtml.includes('Writing Workshop 本地服务控制台'), 'admin page must be named as the local service console');
 assert((adminHtml.match(/data-requires-service/g) || []).length >= 7, 'server-only console tabs must declare their runtime requirement');
