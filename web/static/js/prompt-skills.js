@@ -274,7 +274,7 @@
     overlay.innerHTML = `
       <section class="prompt-skill-dialog" role="dialog" aria-modal="true" aria-labelledby="promptSkillTitle">
         <header class="prompt-skill-header">
-          <div><div class="prompt-skill-kicker">Browser-local · hidden at run time</div><h2 id="promptSkillTitle">Prompt Skill 管理</h2><p>功能按钮会在请求时隐形使用对应提示词；这里可查看、改写、恢复与备份。</p></div>
+          <div><div class="prompt-skill-kicker">本地提示词 · 请求时自动使用</div><h2 id="promptSkillTitle">提示词技能</h2><p>查看和修改每个写作功能真正发送给模型的指令。</p></div>
           <button class="prompt-skill-close" type="button" data-prompt-action="close" aria-label="关闭">×</button>
         </header>
         <div class="prompt-skill-toolbar">
@@ -287,7 +287,7 @@
         <div class="prompt-skill-layout">
           <div class="prompt-skill-list" id="promptSkillList" aria-label="Prompt Skill 列表"></div>
           <div class="prompt-skill-editor">
-            <div class="prompt-skill-editor-head"><div><span id="promptSkillEditorGroup"></span><h3 id="promptSkillEditorName"></h3></div><span id="promptSkillState"></span></div>
+            <div class="prompt-skill-editor-head"><button class="prompt-skill-back" type="button" data-prompt-action="back" aria-label="返回全部技能">‹ <span>全部技能</span></button><div class="prompt-skill-editor-title"><span id="promptSkillEditorGroup"></span><h3 id="promptSkillEditorName"></h3></div><span id="promptSkillState"></span></div>
             <p id="promptSkillEditorDescription"></p>
             <label for="promptSkillText">请求时隐形加入的提示词</label>
             <textarea id="promptSkillText" spellcheck="false"></textarea>
@@ -305,6 +305,7 @@
     select.addEventListener('change', renderList);
     overlay.querySelector('#promptSkillText').addEventListener('input', updateCount);
     overlay.querySelector('[data-prompt-action="close"]').addEventListener('click', closeManager);
+    overlay.querySelector('[data-prompt-action="back"]').addEventListener('click', showSkillList);
     overlay.querySelector('[data-prompt-action="save"]').addEventListener('click', saveFromEditor);
     overlay.querySelector('[data-prompt-action="reset"]').addEventListener('click', resetFromEditor);
     overlay.querySelector('[data-prompt-action="export"]').addEventListener('click', downloadExport);
@@ -340,7 +341,12 @@
       const state = document.createElement('em');
       state.textContent = current.customized ? '已修改' : '内置';
       button.append(icon, body, state);
-      button.addEventListener('click', () => { selectedName = skill.name; renderManager(); });
+      button.addEventListener('click', () => {
+        selectedName = skill.name;
+        renderManager();
+        document.getElementById('promptSkillManager')?.classList.add('mobile-editing');
+        if (isMobileManager()) setTimeout(() => document.getElementById('promptSkillText')?.focus(), 0);
+      });
       root.appendChild(button);
     });
     if (!matches.length) {
@@ -376,6 +382,25 @@
     if (count) count.textContent = `${value.length.toLocaleString()} / ${MAX_PROMPT_LENGTH} 字符`;
   }
 
+  function isMobileManager() {
+    return window.matchMedia('(max-width: 760px)').matches;
+  }
+
+  function editorHasUnsavedChanges() {
+    const textarea = document.getElementById('promptSkillText');
+    return !!textarea && textarea.value !== currentSkill(selectedName).prompt;
+  }
+
+  function mayLeaveEditor() {
+    return !editorHasUnsavedChanges() || confirm('当前提示词还没有保存，放弃修改吗？');
+  }
+
+  function showSkillList() {
+    if (!mayLeaveEditor()) return;
+    document.getElementById('promptSkillManager')?.classList.remove('mobile-editing');
+    setTimeout(() => document.getElementById('promptSkillSearch')?.focus(), 0);
+  }
+
   function openManager(name) {
     ensureManager();
     if (BY_NAME.has(name)) selectedName = name;
@@ -383,14 +408,17 @@
     renderManager();
     const overlay = document.getElementById('promptSkillManager');
     overlay.classList.add('show');
+    overlay.classList.toggle('mobile-editing', isMobileManager() && BY_NAME.has(name));
     overlay.setAttribute('aria-hidden', 'false');
-    setTimeout(() => document.getElementById('promptSkillSearch')?.focus(), 0);
+    setTimeout(() => (overlay.classList.contains('mobile-editing') ? document.getElementById('promptSkillText') : document.getElementById('promptSkillSearch'))?.focus(), 0);
   }
 
   function closeManager() {
     const overlay = document.getElementById('promptSkillManager');
     if (!overlay) return;
+    if (overlay.classList.contains('mobile-editing') && !mayLeaveEditor()) return;
     overlay.classList.remove('show');
+    overlay.classList.remove('mobile-editing');
     overlay.setAttribute('aria-hidden', 'true');
   }
 
