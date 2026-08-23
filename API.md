@@ -51,7 +51,7 @@
 
 ## 授权语料
 
-`GET /api/corpus` 返回保存在 `.writing-workshop/corpus/index.json` 的聚合档案。档案不含原文。
+`GET /api/corpus` 返回保存在 `.writing-workshop/corpus/index.json` 的分析档案。档案不含原文，包含句段分位、对白轮次、行动/解释、章末等指标，以及带适用范围、证据和反例的 `guidance_cards`。
 
 `POST /api/corpus` 使用 `multipart/form-data`：文件字段为 `files`（或单个 `file`），并必须发送 `authorized=true`。支持 TXT、Markdown、DOCX；单文件最多 20 MiB，一次最多 20 个文件，请求总量最多 64 MiB。相同 SHA-256 会去重。
 
@@ -73,6 +73,26 @@ curl -X POST http://127.0.0.1:8080/api/corpus \
 ```
 
 响应包含 `proposal`、`applied:false` 和提示信息。服务端不会修改浏览器 Prompt Skill；前端必须先展示差分，再由用户确认应用并保存修改前快照。
+
+## 后台记忆
+
+`GET /api/memories` 读取 Go 后台记忆；可用 `?project=项目名` 过滤，同时返回通用记忆。
+
+`POST`/`PUT /api/memories` 创建或更新记忆：
+
+```json
+{
+  "project": "我的小说",
+  "category": "style",
+  "title": "对白规则",
+  "content": "对白必须改变信息、关系或下一步选择。",
+  "source": "calibration",
+  "scope": "project",
+  "enabled": true
+}
+```
+
+`DELETE /api/memories?id=memory-...` 删除记忆。启用的匹配项目记忆会在后端 AI 写作与改写请求中作为 `【Go 后台记忆】` 注入；非 AI 的本地 echo/验证任务不会暴露记忆内容。
 
 ## 健康检查
 

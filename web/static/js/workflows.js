@@ -137,8 +137,8 @@
             <button class="workflow-ghost" type="button" onclick="wwOpenPromptSkillManager(typeof S !== 'undefined' ? S.aiMode : '')">查看与修改</button>
           </div>
           <div class="workflow-prompt-skill-box corpus-entry">
-            <div><strong>真实网文校准</strong><span data-corpus-summary>导入授权文本后只保存聚合指标；先预览差分，再确认应用</span></div>
-            <button class="workflow-ghost" type="button" onclick="wwOpenCorpusLab()">打开校准台</button>
+            <div><strong>真实网文指导库</strong><span data-corpus-summary>导入授权文本：本地完整分析、可选 AI 深析、写作时动态指导</span></div>
+            <button class="workflow-ghost" type="button" onclick="wwOpenCorpusLab()">打开指导台</button>
           </div>
         </section>
 
@@ -701,10 +701,13 @@
       if (typeof showToast === 'function') showToast('✕', '请先打开一个项目');
       return;
     }
-    const input = document.getElementById('memContent');
-    if (input) input.value = WF.candidate;
-    document.querySelectorAll('#memCatGrid .genre-chip').forEach(chip => chip.classList.toggle('on', chip.textContent.includes('备注')));
-    if (typeof openModal === 'function') openModal('memoryModal');
+    if (typeof window.wwStageMemory === 'function') window.wwStageMemory(WF.candidate, { title: '流程候选', category: 'note', source: 'workflow' });
+    else {
+      const input = document.getElementById('memContent');
+      if (input) input.value = WF.candidate;
+      document.querySelectorAll('#memCatGrid .genre-chip').forEach(chip => chip.classList.toggle('on', chip.textContent.includes('备注')));
+      if (typeof openModal === 'function') openModal('memoryModal');
+    }
     if (typeof showToast === 'function') showToast('◆', '请编辑确认后再保存记忆');
   }
 

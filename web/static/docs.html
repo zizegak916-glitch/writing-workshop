@@ -125,18 +125,19 @@ go build -o writing-workshop ./cmd/writing-workshop
       </section>
 
       <section id="corpus">
-        <h2>用有权分析的真实文本校准 Prompt Skill</h2>
-        <p>进入“流程 → 授权语料校准”，选择 TXT、Markdown 或 DOCX，并确认你有权处理这些文本。它不会训练模型，也不是具体作者仿写器。</p>
-        <div class="doc-flow"><span>确认权限</span><span>导入样本</span><span>查看聚合指标</span><span>预览差分</span><span>确认或撤销</span></div>
+        <h2>把有权分析的真实网文变成长期指导库</h2>
+        <p>进入“流程 → 真实网文指导库”，选择 TXT、Markdown 或 DOCX，并确认你有权处理这些文本。它不会训练模型，也不是具体作者仿写器；分析结果既能校准 Prompt Skill，也能在实际写作时按任务动态指导。</p>
+        <div class="doc-flow"><span>确认权限</span><span>本地完整分析</span><span>可选 AI 深析</span><span>形成指导卡</span><span>写作时调用</span></div>
         <ol>
-          <li>先看样本字数、段句、对话比例、标点和证据等级；样本太小会明确标为弱证据。</li>
-          <li>勾选要细化的 Prompt Skill，点击生成候选。系统会同时加入“不模仿作者、不复刻专名/情节/句子”的反规则。</li>
-          <li>候选不会自动写入。确认后才修改当前浏览器的 Prompt Skill，并保留应用前快照。</li>
-          <li>发现效果不对时点击撤销；导出项目 v6 包可迁移统计档案和校准历史。</li>
+          <li>本地引擎识别常见中文/数字/英文章名，并统计段句分位、段中对白、行动与解释、章末信号和重复开句；识别不可靠时会明确降级。</li>
+          <li>本地结果直接生成带“适用范围、证据、反例”的指导卡。启用的卡片会按润色、续写、对白、节奏等 Skill 动态进入请求，不需要先改提示词。</li>
+          <li>只有点击“AI 深度分析”时，页面才把开头、中段、结尾、对白段与章末等分层抽样发给已配置模型；AI 结果同样先成为可审阅指导卡和总结。</li>
+          <li>提示词工作台支持追加、修改旧指导块和整段替换，预览可手工编辑，也可让 AI 修改；确认后才应用，并保留精确回退快照。</li>
+          <li>综合总结、单张指导卡和提示词候选都能记入项目记忆；自部署时也可写入 Go 后台记忆。</li>
         </ol>
         <div class="doc-grid">
-          <article class="doc-card"><h3>Pages</h3><p>分析完全发生在当前浏览器页面；原文不上传、不持久化，只保存哈希与聚合结果。</p></article>
-          <article class="doc-card"><h3>自部署</h3><p>文件发送到自己的同源 Go 服务，档案写入 <code>.writing-workshop/corpus/index.json</code>；服务端同样不保存原文。</p></article>
+          <article class="doc-card"><h3>Pages</h3><p>本地分析发生在浏览器；原文不持久化。只有你主动点 AI 深析时，最多约 1.8 万字的分层抽样才会发送到你配置的模型。</p></article>
+          <article class="doc-card"><h3>自部署</h3><p>Go 引擎把分析档案写入 <code>.writing-workshop/corpus/index.json</code>，后台记忆写入独立文件；原文仍不保存，优秀外部模型可继续通过适配层参与深析和写作。</p></article>
         </div>
       </section>
 

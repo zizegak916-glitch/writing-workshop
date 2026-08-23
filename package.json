@@ -3,6 +3,7 @@
   "private": true,
   "scripts": {
     "test:api-adapter": "node tests/api-adapter.test.mjs",
+    "test:corpus": "node tests/corpus-analyzer.test.mjs",
     "test:browser": "node tests/browser-smoke.mjs"
   },
   "devDependencies": {

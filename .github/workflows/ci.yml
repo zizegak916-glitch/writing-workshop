@@ -50,6 +50,7 @@ jobs:
         run: |
           node scripts/check-static.mjs
           npm run test:api-adapter
+          npm run test:corpus
 
       - name: Offline server smoke test
         run: |

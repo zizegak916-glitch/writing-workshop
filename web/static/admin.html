@@ -34,6 +34,7 @@ pre{white-space:pre-wrap;background:var(--card);border:1px solid var(--border);b
   <button class="tab" data-requires-service onclick="showTab('external',this)">外部能力目录</button>
   <button class="tab" data-requires-service onclick="showTab('skillpacks',this)">后端技能包</button>
   <button class="tab" data-requires-service onclick="showTab('categories',this)">后端分类</button>
+  <button class="tab" data-requires-service onclick="showTab('memories',this)">后台记忆</button>
   <button class="tab" onclick="showTab('test',this)">API 测试</button>
 </nav>
 <main>
@@ -154,6 +155,21 @@ pre{white-space:pre-wrap;background:var(--card);border:1px solid var(--border);b
     <label>说明</label><input id="categoryDescription" placeholder="这个分类用于整理什么">
     <p class="row"><button class="primary" onclick="saveCategory()">保存分类</button><button class="danger" onclick="resetCategoryForm()">清空</button><span id="categoryMsg"></span></p>
   </section>
+  <section id="memories" class="panel card">
+    <h2>Go 后台记忆</h2>
+    <p style="color:var(--muted);margin-top:0">这里保存的启用项会按项目加入后端 AI 写作与改写请求。写作、校准、分析结果都可写入，并保留来源标签。</p>
+    <div id="backendMemoryList"></div>
+    <input id="backendMemoryId" type="hidden">
+    <div class="grid">
+      <div><label>项目（留空为通用）</label><input id="backendMemoryProject" placeholder="项目名称"></div>
+      <div><label>标题</label><input id="backendMemoryTitle" placeholder="第三章人物关系确认"></div>
+      <div><label>分类</label><input id="backendMemoryCategory" value="note" placeholder="plot / style / rule"></div>
+      <div><label>来源</label><input id="backendMemorySource" value="backend" placeholder="writing / calibration / backend"></div>
+      <div><label>范围</label><select id="backendMemoryScope"><option value="project">当前项目</option><option value="global">全部项目</option></select></div>
+    </div>
+    <label>记忆内容</label><textarea id="backendMemoryContent" placeholder="输入需要后端在写作时参考的事实、规则、总结或指导"></textarea>
+    <p class="row"><label style="display:flex;align-items:center;gap:6px;margin:0"><input id="backendMemoryEnabled" type="checkbox" checked style="width:auto">启用并注入请求</label><button class="primary" onclick="saveBackendMemory()">保存记忆</button><button class="danger" onclick="resetBackendMemoryForm()">清空表单</button><span id="backendMemoryMsg"></span></p>
+  </section>
   <section id="test" class="panel card">
     <h2>API 测试</h2>
     <p style="color:var(--muted);margin-top:0">验证同源执行、SSE 流式返回与中断。默认 Pages 在线版未附带 Go API；连接兼容后端后再测试本区域。</p>
@@ -172,7 +188,7 @@ pre{white-space:pre-wrap;background:var(--card);border:1px solid var(--border);b
 async function api(url,opt={}){const r=await fetch(url,{headers:{'Content-Type':'application/json',...(opt.headers||{})},...opt});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||('HTTP '+r.status));return d}
 function showTab(id,btn){document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));document.getElementById(id).classList.add('active');btn.classList.add('active')}
 function showRuntimeNotice(message){runtimeNotice.hidden=false;runtimeNotice.innerHTML=message}
-async function loadAll(){await Promise.all([loadConfig(),loadProjects(),loadChars(),loadRules(),loadCapabilities(),loadExternalCatalog(),loadSkillPacks(),loadCategories()])}
+async function loadAll(){await Promise.all([loadConfig(),loadProjects(),loadChars(),loadRules(),loadCapabilities(),loadExternalCatalog(),loadSkillPacks(),loadCategories(),loadBackendMemories()])}
 function browserConfig(){try{return JSON.parse(localStorage.getItem('ww_api')||'{}')||{}}catch{return{}}}
 function protocolFromType(type){if(type==='anthropic')return'anthropic';if(type==='ollama')return'ollama';return'openai-chat'}
 function formConfig(){const protocol=ptype.value||'auto';const c={provider:provider.value||'custom',model:model.value.trim(),protocol,authMode:authMode.value||'auto',baseUrl:baseUrl.value.trim(),key:apiKey.value,timeout:Number(apiTimeout.value||60)*1000,contextLimit:Math.max(0,Number(contextLimit.value||0)),customHeaders:customHeaders.value.trim(),clearKey:clearAPIKey.checked,clearHeaders:clearHeaders.checked,transport:isPages?'browser':'backend'};c.type=WWApiAdapter.protocolType(WWApiAdapter.inferProtocol(c));WWApiAdapter.parseCustomHeaders(c.customHeaders);return c}
@@ -216,6 +232,12 @@ function editCategory(id){const c=categoryCache.find(x=>x.id===id);if(!c)return;
 function resetCategoryForm(){categoryId.value='';categoryName.value='';categoryColor.value='#8FC7EF';categoryScope.value='all';categoryDescription.value='';categoryMsg.textContent=''}
 async function saveCategory(){try{const d=await api('/api/categories',{method:'POST',body:JSON.stringify({id:categoryId.value,name:categoryName.value,color:categoryColor.value,scope:categoryScope.value,description:categoryDescription.value})});categoryMsg.textContent='已保存 '+d.category.id;resetCategoryForm();await Promise.all([loadCategories(),loadCapabilities()])}catch(e){categoryMsg.textContent=e.message}}
 async function deleteCategory(id){if(!confirm('删除分类 '+id+'？现有记录上的分类 ID 不会被自动改写。'))return;try{await api('/api/categories?id='+encodeURIComponent(id),{method:'DELETE'});loadCategories()}catch(e){categoryMsg.textContent=e.message}}
+let backendMemoryCache=[];
+async function loadBackendMemories(){const d=await api('/api/memories');backendMemoryCache=d.memories||[];backendMemoryList.innerHTML=backendMemoryCache.map(m=>`<div class="list-item"><b>${safe(m.title||'未命名记忆')}</b> <small>${safe(m.category)} · ${safe(m.source)} · ${safe(m.project||'通用')} · ${m.enabled?'启用':'停用'}</small><p>${safe(m.content)}</p><p class="row"><button class="primary" onclick="editBackendMemory('${m.id}')">编辑</button><button class="danger" onclick="deleteBackendMemory('${m.id}')">删除</button></p></div>`).join('')||'<p style="color:var(--muted)">暂无后台记忆</p>'}
+function editBackendMemory(id){const m=backendMemoryCache.find(x=>x.id===id);if(!m)return;backendMemoryId.value=m.id||'';backendMemoryProject.value=m.project||'';backendMemoryTitle.value=m.title||'';backendMemoryCategory.value=m.category||'note';backendMemorySource.value=m.source||'backend';backendMemoryScope.value=m.scope||'project';backendMemoryContent.value=m.content||'';backendMemoryEnabled.checked=m.enabled!==false;backendMemoryMsg.textContent='正在编辑 '+id}
+function resetBackendMemoryForm(){backendMemoryId.value='';backendMemoryProject.value='';backendMemoryTitle.value='';backendMemoryCategory.value='note';backendMemorySource.value='backend';backendMemoryScope.value='project';backendMemoryContent.value='';backendMemoryEnabled.checked=true;backendMemoryMsg.textContent=''}
+async function saveBackendMemory(){try{const d=await api('/api/memories',{method:'POST',body:JSON.stringify({id:backendMemoryId.value,project:backendMemoryProject.value,title:backendMemoryTitle.value,category:backendMemoryCategory.value,source:backendMemorySource.value,scope:backendMemoryScope.value,content:backendMemoryContent.value,enabled:backendMemoryEnabled.checked})});backendMemoryMsg.textContent='已保存 '+d.memory.id;resetBackendMemoryForm();loadBackendMemories()}catch(e){backendMemoryMsg.textContent=e.message}}
+async function deleteBackendMemory(id){if(!confirm('删除后台记忆 '+id+'？'))return;try{await api('/api/memories?id='+encodeURIComponent(id),{method:'DELETE'});loadBackendMemories()}catch(e){backendMemoryMsg.textContent=e.message}}
 async function testRun(){if(runAbortController)runAbortController.abort();runAbortController=new AbortController();const body={backend_id:runBackend.value,skill_ids:runSkills.value.split(',').map(s=>s.trim()).filter(Boolean),task:runTask.value,context:{selection:testPrompt.value},params:{stream:runStream.checked,use_ai:runUseAI.checked}};testResult.textContent='执行中...\n';try{if(runStream.checked){const r=await fetch('/api/run',{method:'POST',headers:{'Content-Type':'application/json','Accept':'text/event-stream'},body:JSON.stringify(body),signal:runAbortController.signal});if(!r.ok)throw new Error('HTTP '+r.status);const reader=r.body.getReader();const dec=new TextDecoder();while(true){const {value,done}=await reader.read();if(done)break;appendRunStream(dec.decode(value,{stream:true}))}}else{const d=await api('/api/run',{method:'POST',body:JSON.stringify(body),signal:runAbortController.signal});testResult.textContent=d.output||JSON.stringify(d,null,2)}}catch(e){testResult.textContent+='\n'+(e.name==='AbortError'?'前端已中断':e.message)}finally{runAbortController=null}}
 function appendRunStream(chunk){chunk.split('\n').forEach(line=>{if(line.startsWith('data: ')){try{const d=JSON.parse(line.slice(6));if(d.text)testResult.textContent+=d.text;if(d.error)testResult.textContent+='\n错误：'+d.error}catch{}}})}
 async function abortRun(){try{if(runAbortController)runAbortController.abort();const d=await api('/api/abort',{method:'POST'});testResult.textContent+='\n已发送中断：'+JSON.stringify(d)}catch(e){testResult.textContent=e.message}}

@@ -1,7 +1,7 @@
-// Package corpus turns user-authorized reference fiction into aggregate,
-// inspectable writing signals. It never stores the imported source text and it
-// produces candidate Prompt Skill diffs rather than an author-impersonation
-// prompt.
+// Package corpus turns user-authorized reference fiction into inspectable local
+// metrics and reusable task-scoped guidance. It never stores the imported
+// source text and it produces reviewable Prompt Skill candidates rather than
+// an author-impersonation prompt.
 package corpus
 
 import (
@@ -47,24 +47,44 @@ type Metrics struct {
 	Paragraphs            int                `json:"paragraphs"`
 	Sentences             int                `json:"sentences"`
 	AverageParagraphRunes float64            `json:"average_paragraph_runes"`
+	MedianParagraphRunes  float64            `json:"median_paragraph_runes"`
+	P90ParagraphRunes     float64            `json:"p90_paragraph_runes"`
 	AverageSentenceRunes  float64            `json:"average_sentence_runes"`
+	MedianSentenceRunes   float64            `json:"median_sentence_runes"`
+	P90SentenceRunes      float64            `json:"p90_sentence_runes"`
 	ParagraphVariation    float64            `json:"paragraph_variation"`
 	DialogueRatio         float64            `json:"dialogue_ratio"`
+	DialogueTurns         int                `json:"dialogue_turns"`
 	ShortParagraphRatio   float64            `json:"short_paragraph_ratio"`
 	LongSentenceRatio     float64            `json:"long_sentence_ratio"`
 	ExpositionMarkerRatio float64            `json:"exposition_marker_ratio"`
+	ActionSentenceRatio   float64            `json:"action_sentence_ratio"`
+	SceneBreaks           int                `json:"scene_breaks"`
+	ChapterHookRatio      float64            `json:"chapter_hook_ratio"`
 	PunctuationPerK       map[string]float64 `json:"punctuation_per_1000"`
 	SentenceStarters      []Frequency        `json:"sentence_starters"`
 	RepeatedPhrases       []Frequency        `json:"repeated_phrases"`
 }
 
+type GuidanceCard struct {
+	ID             string   `json:"id"`
+	Title          string   `json:"title"`
+	Scope          string   `json:"scope"`
+	Tasks          []string `json:"tasks"`
+	Instruction    string   `json:"instruction"`
+	Evidence       string   `json:"evidence"`
+	Counterexample string   `json:"counterexample"`
+}
+
 type Profile struct {
-	Source        Source   `json:"source"`
-	Metrics       Metrics  `json:"metrics"`
-	Rules         []string `json:"rules"`
-	AntiRules     []string `json:"anti_rules"`
-	EvidenceGrade string   `json:"evidence_grade"`
-	Warnings      []string `json:"warnings"`
+	Source        Source         `json:"source"`
+	Metrics       Metrics        `json:"metrics"`
+	Summary       string         `json:"summary"`
+	GuidanceCards []GuidanceCard `json:"guidance_cards"`
+	Rules         []string       `json:"rules"`
+	AntiRules     []string       `json:"anti_rules"`
+	EvidenceGrade string         `json:"evidence_grade"`
+	Warnings      []string       `json:"warnings"`
 }
 
 type Proposal struct {
@@ -88,9 +108,10 @@ type Archive struct {
 	UpdatedAt time.Time  `json:"updated_at"`
 }
 
-var chapterPattern = regexp.MustCompile(`(?m)^\s*(?:第[零一二三四五六七八九十百千万两0-9]+[章节卷回]|chapter\s+\d+)`)
+var chapterPattern = regexp.MustCompile(`(?i)^(?:(?:正文\s*)?第\s*[〇零一二三四五六七八九十百千万两0-9０-９]+\s*[章卷节回部集篇](?:\s|$|[：:、.\-])|(?:chapter|chap\.?|卷)\s*[0-9０-９ivxlcdm]+(?:\s|$|[：:、.\-])|[0-9０-９]{1,5}\s*[、.．]\s*\S{1,40}|[〇零一二三四五六七八九十百千万两]{1,8}\s*[章回](?:\s|$|[：:、.\-]))`)
 var sentenceSplit = regexp.MustCompile(`[。！？!?…]+`)
 var explanationMarkers = []string{"这意味着", "也就是说", "显然", "毫无疑问", "事实上", "因为", "所以", "原来", "换言之"}
+var actionMarkers = []string{"走", "跑", "冲", "抬", "伸", "抓", "推", "拉", "转", "看", "望", "盯", "坐", "站", "起", "落", "砸", "劈", "挥", "按", "拿", "放", "退", "进", "出", "开", "关", "躲", "追", "扑", "踢", "撞", "停", "翻", "掀", "甩", "接", "握"}
 
 func Parse(name string, r io.Reader, authorized bool) (Source, string, error) {
 	if !authorized {
@@ -128,16 +149,28 @@ func Parse(name string, r io.Reader, authorized bool) (Source, string, error) {
 }
 
 func Analyze(source Source, text string) Profile {
-	paragraphs := splitParagraphs(text)
+	lines := splitParagraphs(text)
+	chapterLines := make([]int, 0)
+	paragraphs := make([]string, 0, len(lines))
+	for i, line := range lines {
+		if isChapterHeading(line) {
+			chapterLines = append(chapterLines, i)
+			continue
+		}
+		if !isSceneBreak(line) {
+			paragraphs = append(paragraphs, line)
+		}
+	}
 	sentences := splitSentences(text)
 	runes := utf8.RuneCountInString(text)
-	metrics := Metrics{Runes: runes, Chapters: len(chapterPattern.FindAllStringIndex(text, -1)), Paragraphs: len(paragraphs), Sentences: len(sentences), PunctuationPerK: map[string]float64{}}
+	metrics := Metrics{Runes: runes, Chapters: len(chapterLines), Paragraphs: len(paragraphs), Sentences: len(sentences), PunctuationPerK: map[string]float64{}}
 	if metrics.Chapters == 0 {
 		metrics.Chapters = 1
 	}
 	var paragraphTotal, sentenceTotal int
-	var shortParas, longSentences, dialogueRunes, exposition int
+	var shortParas, longSentences, exposition, action int
 	lengths := make([]int, 0, len(paragraphs))
+	sentenceLengths := make([]int, 0, len(sentences))
 	for _, p := range paragraphs {
 		n := utf8.RuneCountInString(p)
 		paragraphTotal += n
@@ -145,13 +178,11 @@ func Analyze(source Source, text string) Profile {
 		if n <= 35 {
 			shortParas++
 		}
-		if isDialogue(p) {
-			dialogueRunes += n
-		}
 	}
 	for _, s := range sentences {
 		n := utf8.RuneCountInString(s)
 		sentenceTotal += n
+		sentenceLengths = append(sentenceLengths, n)
 		if n >= 55 {
 			longSentences++
 		}
@@ -161,25 +192,49 @@ func Analyze(source Source, text string) Profile {
 				break
 			}
 		}
+		for _, marker := range actionMarkers {
+			if strings.Contains(s, marker) {
+				action++
+				break
+			}
+		}
 	}
+	dialogueRunes, dialogueTurns := dialogueStats(text)
 	metrics.AverageParagraphRunes = ratio(paragraphTotal, len(paragraphs))
+	metrics.MedianParagraphRunes = percentileInts(lengths, .5)
+	metrics.P90ParagraphRunes = percentileInts(lengths, .9)
 	metrics.AverageSentenceRunes = ratio(sentenceTotal, len(sentences))
+	metrics.MedianSentenceRunes = percentileInts(sentenceLengths, .5)
+	metrics.P90SentenceRunes = percentileInts(sentenceLengths, .9)
 	metrics.ShortParagraphRatio = ratio(shortParas, len(paragraphs))
 	metrics.LongSentenceRatio = ratio(longSentences, len(sentences))
 	metrics.DialogueRatio = ratio(dialogueRunes, max(1, runes))
+	metrics.DialogueTurns = dialogueTurns
 	metrics.ExpositionMarkerRatio = ratio(exposition, len(sentences))
+	metrics.ActionSentenceRatio = ratio(action, len(sentences))
 	metrics.ParagraphVariation = coefficientVariation(lengths)
+	for _, line := range lines {
+		if isSceneBreak(line) {
+			metrics.SceneBreaks++
+		}
+	}
+	metrics.ChapterHookRatio = chapterHookRatio(lines, chapterLines)
 	for _, mark := range []string{"，", "。", "！", "？", "；", "：", "……", "——"} {
 		metrics.PunctuationPerK[mark] = float64(strings.Count(text, mark)) * 1000 / float64(max(1, runes))
 	}
 	metrics.SentenceStarters = topFrequencies(sentenceStarters(sentences), 8, 2)
 	metrics.RepeatedPhrases = topPhraseFrequencies(text, 4, 8, 4)
-	profile := Profile{Source: source, Metrics: metrics, EvidenceGrade: evidenceGrade(runes, len(paragraphs)), AntiRules: []string{"不得要求模型模仿、复刻或冒充具体作者", "不得把语料中的专名、情节、句子或连续表达写入新稿", "所有规则只能作为候选差分，由用户确认后应用"}}
+	profile := Profile{Source: source, Metrics: metrics, EvidenceGrade: evidenceGrade(runes, len(paragraphs)), AntiRules: []string{"不得要求模型模仿、复刻或冒充具体作者", "不得把语料中的专名、情节、句子或连续表达写入新稿", "所有提示词修改都必须先成为候选，由用户确认后应用"}}
+	profile.Summary = fmt.Sprintf("识别 %d 章、%d 个正文段和 %d 轮引号对白。典型段长 %.0f 字，90%% 段落不超过约 %.0f 字；对白约占 %.0f%%。结论按场景调用，不作为整书配额。", metrics.Chapters, metrics.Paragraphs, metrics.DialogueTurns, metrics.MedianParagraphRunes, metrics.P90ParagraphRunes, metrics.DialogueRatio*100)
+	profile.GuidanceCards = deriveGuidanceCards(metrics)
 	profile.Rules = deriveRules(metrics)
 	if profile.EvidenceGrade != "strong" {
 		profile.Warnings = append(profile.Warnings, "样本量不足以形成稳定风格结论；当前建议只作为弱证据")
 	}
-	profile.Warnings = append(profile.Warnings, "仅保存哈希与聚合指标，不保存导入正文")
+	if metrics.Chapters == 1 && runes > 100000 {
+		profile.Warnings = append(profile.Warnings, "未可靠识别章节标题；章末与章节节拍结论已降级，请检查特殊标题格式")
+	}
+	profile.Warnings = append(profile.Warnings, "仅保存哈希与分析档案，不保存导入正文")
 	return profile
 }
 
@@ -195,10 +250,10 @@ func BuildProposal(profiles []Profile, skills []string) Proposal {
 	addendum := formatAddendum(rules, warnings)
 	skillAddenda := make(map[string]string, len(skills))
 	for _, skill := range skills {
-		skillAddenda[skill] = formatAddendum(rulesForSkill(skill, rules), warnings)
+		skillAddenda[skill] = formatAddendum(guidanceRulesForSkill(profiles, skill, rules), warnings)
 	}
 	h := sha256.Sum256([]byte(strings.Join(ids, "|") + strings.Join(skills, "|") + addendum))
-	return Proposal{ID: "refine-" + hex.EncodeToString(h[:])[:12], SourceIDs: ids, TargetSkills: append([]string(nil), skills...), Addendum: addendum, SkillAddenda: skillAddenda, Rules: rules, Method: "equal-source-median-v2", Warnings: warnings, CreatedAt: time.Now().UTC(), Status: "candidate", RollbackHint: "在 Prompt Skill 管理中恢复应用前版本，或从项目备份还原 prompt_overrides。"}
+	return Proposal{ID: "refine-" + hex.EncodeToString(h[:])[:12], SourceIDs: ids, TargetSkills: append([]string(nil), skills...), Addendum: addendum, SkillAddenda: skillAddenda, Rules: rules, Method: "equal-source-guidance-v3", Warnings: warnings, CreatedAt: time.Now().UTC(), Status: "candidate", RollbackHint: "在 Prompt Skill 管理中恢复应用前版本，或从项目备份还原 prompt_overrides。"}
 }
 
 func consensusMetrics(profiles []Profile) (Metrics, []string) {
@@ -214,12 +269,18 @@ func consensusMetrics(profiles []Profile) (Metrics, []string) {
 	}
 	m := Metrics{
 		AverageParagraphRunes: median(values(func(m Metrics) float64 { return m.AverageParagraphRunes })),
+		MedianParagraphRunes:  median(values(func(m Metrics) float64 { return m.MedianParagraphRunes })),
+		P90ParagraphRunes:     median(values(func(m Metrics) float64 { return m.P90ParagraphRunes })),
 		AverageSentenceRunes:  median(values(func(m Metrics) float64 { return m.AverageSentenceRunes })),
+		MedianSentenceRunes:   median(values(func(m Metrics) float64 { return m.MedianSentenceRunes })),
+		P90SentenceRunes:      median(values(func(m Metrics) float64 { return m.P90SentenceRunes })),
 		ParagraphVariation:    median(values(func(m Metrics) float64 { return m.ParagraphVariation })),
 		DialogueRatio:         median(values(func(m Metrics) float64 { return m.DialogueRatio })),
 		ShortParagraphRatio:   median(values(func(m Metrics) float64 { return m.ShortParagraphRatio })),
 		LongSentenceRatio:     median(values(func(m Metrics) float64 { return m.LongSentenceRatio })),
 		ExpositionMarkerRatio: median(values(func(m Metrics) float64 { return m.ExpositionMarkerRatio })),
+		ActionSentenceRatio:   median(values(func(m Metrics) float64 { return m.ActionSentenceRatio })),
+		ChapterHookRatio:      median(values(func(m Metrics) float64 { return m.ChapterHookRatio })),
 	}
 	var warnings []string
 	dialogue := values(func(m Metrics) float64 { return m.DialogueRatio })
@@ -281,9 +342,41 @@ func rulesForSkill(skill string, rules []string) []string {
 	return out
 }
 
+func guidanceRulesForSkill(profiles []Profile, skill string, fallback []string) []string {
+	seen := map[string]bool{}
+	var out []string
+	for _, profile := range profiles {
+		for _, card := range profile.GuidanceCards {
+			matched := false
+			for _, task := range card.Tasks {
+				if task == skill || (strings.Contains(skill, "对白") && (task == "对话" || task == "人物")) || (strings.Contains(skill, "节奏") && task == "续写") {
+					matched = true
+					break
+				}
+			}
+			instruction := strings.TrimSpace(card.Instruction)
+			if !matched || instruction == "" || seen[instruction] {
+				continue
+			}
+			seen[instruction] = true
+			if strings.TrimSpace(card.Counterexample) != "" {
+				instruction += "（不适用：" + strings.TrimSpace(card.Counterexample) + "）"
+			}
+			out = append(out, instruction)
+			if len(out) == 9 {
+				return out
+			}
+		}
+	}
+	if len(out) > 0 {
+		return out
+	}
+	return rulesForSkill(skill, fallback)
+}
+
 func formatAddendum(rules, warnings []string) string {
 	var b strings.Builder
-	b.WriteString("\n\n【本地语料校准候选】\n")
+	b.WriteString("\n\n【本地语料校准候选 · 真实网文指导】\n")
 	for _, rule := range rules {
 		b.WriteString("- ")
 		b.WriteString(rule)
@@ -295,7 +388,7 @@ func formatAddendum(rules, warnings []string) string {
 		b.WriteByte('\n')
 	}
 	b.WriteString("- 不复刻来源作品的专名、情节、句子或作者身份；统计锚点不是配额。若与项目设定、人物逻辑或本次指令冲突，后者优先。")
-	b.WriteString("\n【/本地语料校准候选】")
+	b.WriteString("\n【/本地语料校准候选 · 真实网文指导】")
 	return b.String()
 }
 
@@ -429,6 +522,83 @@ func splitSentences(text string) []string {
 		}
 	}
 	return out
+}
+func isChapterHeading(line string) bool {
+	line = strings.TrimSpace(line)
+	return utf8.RuneCountInString(line) <= 70 && chapterPattern.MatchString(line)
+}
+func isSceneBreak(line string) bool {
+	line = strings.TrimSpace(line)
+	if utf8.RuneCountInString(line) < 3 {
+		return false
+	}
+	for _, r := range line {
+		if r != '*' && r != '-' && r != '—' {
+			return false
+		}
+	}
+	return true
+}
+func dialogueStats(text string) (int, int) {
+	pairs := map[rune]rune{'“': '”', '「': '」', '『': '』', '"': '"'}
+	var closing rune
+	runes, turns := 0, 0
+	for _, r := range text {
+		if closing == 0 {
+			if close, ok := pairs[r]; ok {
+				closing = close
+				turns++
+			}
+			continue
+		}
+		if r == closing || r == '\n' {
+			closing = 0
+			continue
+		}
+		runes++
+	}
+	return runes, turns
+}
+func percentileInts(values []int, q float64) float64 {
+	if len(values) == 0 {
+		return 0
+	}
+	copyValues := append([]int(nil), values...)
+	sort.Ints(copyValues)
+	q = max(0, min(1, q))
+	at := float64(len(copyValues)-1) * q
+	lo, hi := int(at), int(at)
+	if float64(lo) < at {
+		hi++
+	}
+	if lo == hi {
+		return float64(copyValues[lo])
+	}
+	return float64(copyValues[lo]) + float64(copyValues[hi]-copyValues[lo])*(at-float64(lo))
+}
+func chapterHookRatio(lines []string, chapterLines []int) float64 {
+	if len(chapterLines) < 2 {
+		return 0
+	}
+	hooks, samples := 0, 0
+	for i, start := range chapterLines {
+		end := len(lines) - 1
+		if i+1 < len(chapterLines) {
+			end = chapterLines[i+1] - 1
+		}
+		for end > start && strings.TrimSpace(lines[end]) == "" {
+			end--
+		}
+		if end <= start {
+			continue
+		}
+		tail := strings.TrimSpace(lines[end])
+		samples++
+		if strings.HasSuffix(tail, "？") || strings.HasSuffix(tail, "?") || strings.HasSuffix(tail, "！") || strings.HasSuffix(tail, "!") || strings.HasSuffix(tail, "……") || strings.HasSuffix(tail, "—") || strings.Contains(tail, "忽然") || strings.Contains(tail, "没想到") || strings.Contains(tail, "就在这时") {
+			hooks++
+		}
+	}
+	return ratio(hooks, samples)
 }
 func isDialogue(p string) bool {
 	p = strings.TrimSpace(p)
@@ -577,4 +747,59 @@ func deriveRules(m Metrics) []string {
 		rules = append(rules, "解释性连接词只在因果确需澄清时使用，能由动作或反应呈现则删去直说")
 	}
 	return rules
+}
+
+func deriveGuidanceCards(m Metrics) []GuidanceCard {
+	medianParagraph := m.MedianParagraphRunes
+	if medianParagraph == 0 {
+		medianParagraph = m.AverageParagraphRunes
+	}
+	p90Paragraph := m.P90ParagraphRunes
+	if p90Paragraph == 0 {
+		p90Paragraph = medianParagraph
+	}
+	medianSentence := m.MedianSentenceRunes
+	if medianSentence == 0 {
+		medianSentence = m.AverageSentenceRunes
+	}
+	cards := []GuidanceCard{
+		{
+			ID: "rhythm", Title: "段落节拍", Scope: "场景推进与修订",
+			Tasks:          []string{"润色", "改写", "扩写", "缩写", "续写", "补写", "节奏", "战斗"},
+			Instruction:    fmt.Sprintf("把 %.0f 字左右视为常见段落而非目标值；动作、反应或信息发生转向时可断段，承载完整说明时允许延长，但通常不要无意超过约 %.0f 字。", medianParagraph, p90Paragraph),
+			Evidence:       fmt.Sprintf("段长中位数 %.0f，90 分位 %.0f，短段占 %.0f%%。", medianParagraph, p90Paragraph, m.ShortParagraphRatio*100),
+			Counterexample: "连续动作、完整对白交换或刻意压迫感需要时，不为迎合数字强行断段。",
+		},
+		{
+			ID: "dialogue", Title: "对白组织", Scope: "对白、人物与场景",
+			Tasks:          []string{"对话", "对白", "人物", "心理", "续写", "补写", "润色"},
+			Instruction:    fmt.Sprintf("把对白当作行动：每轮话应改变信息、关系或下一步选择；参考文本中引号对白约占 %.0f%%，只用于判断当前场景是否失衡。", m.DialogueRatio*100),
+			Evidence:       fmt.Sprintf("识别 %d 轮引号对白；同时统计段中对白，避免只识别以引号开头的段落。", m.DialogueTurns),
+			Counterexample: "独处、追逐、环境压迫或意识受限的场景可以几乎没有对白。",
+		},
+		{
+			ID: "sentence", Title: "句子负载", Scope: "表达清晰度",
+			Tasks:          []string{"润色", "改写", "缩写", "降AI", "校对", "节奏"},
+			Instruction:    fmt.Sprintf("常见句长约 %.0f 字；一句优先承载一个主要动作、判断或信息变化，长句必须保持指代与动作链清楚。", medianSentence),
+			Evidence:       fmt.Sprintf("句长 90 分位 %.0f，长句占 %.0f%%。", m.P90SentenceRunes, m.LongSentenceRatio*100),
+			Counterexample: "视角人物连续观察、思绪滑移或语势蓄积时，可以保留有控制的长句。",
+		},
+		{
+			ID: "showing", Title: "解释与行动", Scope: "叙述密度",
+			Tasks:          []string{"润色", "改写", "续写", "补写", "心理", "情感", "降AI"},
+			Instruction:    "先让人物的判断、动作和后果建立因果，再决定是否需要旁白解释；解释用于补足读者无法从场面获得的关键信息。",
+			Evidence:       fmt.Sprintf("解释标记句约 %.0f%%，动作动词句约 %.0f%%。", m.ExpositionMarkerRatio*100, m.ActionSentenceRatio*100),
+			Counterexample: "世界规则、时间跳转或复杂计划若不说明就会误读时，应保留必要解释。",
+		},
+	}
+	if m.Chapters >= 3 {
+		cards = append(cards, GuidanceCard{
+			ID: "chapter", Title: "章节收束", Scope: "续写、转折与结尾",
+			Tasks:          []string{"续写", "补写", "节奏", "悬疑", "转折", "结局", "大纲"},
+			Instruction:    "章节结尾落在可见变化、未完成动作、新信息或明确选择上；钩子来自因果未闭合，不靠无来源反转。",
+			Evidence:       fmt.Sprintf("识别 %d 个章节标题；约 %.0f%% 的章末带问题、突变或未完成信号。", m.Chapters, m.ChapterHookRatio*100),
+			Counterexample: "情绪落定、关系确认或阶段总结章节，可以安静收束，不必每章悬崖。",
+		})
+	}
+	return cards
 }

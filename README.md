@@ -7,7 +7,7 @@ Writing Workshop 是一个本地优先、作者确认写入的长篇创作工作
 
 **在线版：** [GitHub Pages](https://zizegak916-glitch.github.io/writing-workshop/) · [使用教程](https://zizegak916-glitch.github.io/writing-workshop/docs.html) · [问题反馈](https://github.com/zizegak916-glitch/writing-workshop/issues)
 
-GitHub Pages 是正式 HTTPS 静态站点，不是 Sites 预览。它可以在浏览器本地完成项目管理、导入导出、Prompt Skill、授权语料校准与 BYOK 模型调用；Key 和资料不会进入仓库。浏览器直连仍要求模型接口允许当前站点跨域。需要服务端托管密钥、后端 Skill、Go 语料分析和同源 API 时，使用 Docker 或本地可执行文件。
+GitHub Pages 是正式 HTTPS 静态站点，不是 Sites 预览。它可以在浏览器本地完成项目管理、导入导出、Prompt Skill、真实网文指导库与 BYOK 模型调用；Key 和资料不会进入仓库。浏览器直连仍要求模型接口允许当前站点跨域。需要服务端托管密钥、后端 Skill、Go 语料分析、后台记忆和同源 API 时，使用 Docker 或本地可执行文件。
 
 ![Writing Workshop 首页](docs/images/landing-page.jpg)
 
@@ -24,19 +24,19 @@ Writing Workshop 默认使用仓库内的 Go 编排内核，代码位于 `intern
 
 现有 `ChatModel`、四协议适配器、可切换模型与 failover 已经是兼容边界。后续接入优秀外部引擎时，优先做薄适配并保留其优势，不复制整套实现，也不让第三方运行时绕过 Writing Workshop 的作者确认、工具门和数据边界。详见 [引擎与适配层](docs/NATIVE_ENGINE.md)。
 
-## 授权语料校准实验室
+## 真实网文指导与校准
 
-“流程 → 授权语料校准”可以导入你有权分析的 TXT、Markdown 或 DOCX 网文/稿件。它不是训练模型，也不提供具体作者仿写：
+“流程 → 真实网文指导库”可以导入你有权分析的 TXT、Markdown 或 DOCX 网文/稿件。它不是训练模型，也不提供具体作者仿写：
 
 1. 导入前必须确认拥有分析权限；
-2. 引擎计算章节、段落、句长、节奏、对话比例、标点与重复表达等聚合信号；
-3. 只保存文件哈希、元数据、聚合指标和派生规则，不保存原文；
-4. 生成的是 Prompt Skill 候选差分，作者预览后才可应用；
-5. 每次应用保留修改前快照，可精确撤销；
-6. 内置反规则禁止复刻作者身份、专名、情节和来源句子。
-7. 多本语料按来源等权形成中位基线，分歧会降级为弱约束；续写、节奏、对白与润色获得不同差分，不再共用一锅规则。
+2. 本地引擎计算章节、句段分位、段中对白、行动/解释、章末信号与重复开句，并对识别失败明确降级；
+3. 分析生成带适用范围、证据和反例的指导卡；启用后会按 Skill 动态加入写作请求，而不只用于改提示词；
+4. 可选 AI 深析只发送分层抽样，补充场景推进、人物行动、信息释放、对白功能与章节收束方法；
+5. 提示词支持追加、修改和整段替换，预览可编辑，每次应用保留精确快照；
+6. 分析总结、指导卡、提示词候选与写作候选都可汇入统一项目记忆，自部署还可写入 Go 后台记忆；
+7. 只保存文件哈希、元数据、指标、指导卡和分析总结，不保存原文；内置边界禁止复刻作者身份、专名、情节和来源句子。
 
-自部署版由 Go `internal/corpus` 分析并保存档案到 `.writing-workshop/corpus/index.json`；Pages 在浏览器内分析，原文不离开当前页面，也不持久化。完整边界见 [语料校准说明](docs/CORPUS_CALIBRATION.md)。
+自部署版由 Go `internal/corpus` 分析并保存档案到 `.writing-workshop/corpus/index.json`；Pages 在浏览器内完成本地分析，原文不持久化。只有作者点击 AI 深析时，约 1.8 万字以内的分层抽样才会发给所配置模型。完整边界见 [真实网文指导库说明](docs/CORPUS_CALIBRATION.md)。
 
 ## 现在能做什么
 
@@ -126,7 +126,7 @@ flowchart LR
 ```text
 cmd/writing-workshop/  可执行入口
 internal/engine/       仓库自有 Go Agent、上下文、协议与安全编辑
-internal/corpus/       授权语料抽取、聚合指标、候选校准
+internal/corpus/       授权语料分析、指导卡与候选提示词
 internal/web/          同源 API、SSE、能力与数据管理
 web/static/            Pages / 自部署共用工作台
 internal/store/        后端章节、人物、记忆和运行状态

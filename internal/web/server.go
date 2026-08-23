@@ -32,9 +32,10 @@ type Server struct {
 	store *storepkg.Store
 	addr  string
 
-	hub    *sseHub
-	runMu  sync.Mutex
-	runCtx map[string]context.CancelFunc
+	hub      *sseHub
+	runMu    sync.Mutex
+	runCtx   map[string]context.CancelFunc
+	memoryMu sync.Mutex
 
 	extension runtimeExtension
 }
@@ -108,6 +109,10 @@ func (s *Server) routes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/categories", s.handleCategories)
 	mux.HandleFunc("PUT /api/categories", s.handleCategories)
 	mux.HandleFunc("DELETE /api/categories", s.handleCategories)
+	mux.HandleFunc("GET /api/memories", s.handleMemories)
+	mux.HandleFunc("POST /api/memories", s.handleMemories)
+	mux.HandleFunc("PUT /api/memories", s.handleMemories)
+	mux.HandleFunc("DELETE /api/memories", s.handleMemories)
 	mux.HandleFunc("POST /api/run", s.handleRun)
 	mux.HandleFunc("GET /api/projects", s.handleProjects)
 	mux.HandleFunc("POST /api/projects", s.handleProjects)

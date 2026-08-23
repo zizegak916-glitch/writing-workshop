@@ -126,9 +126,17 @@ func (s *Server) executeRun(ctx context.Context, runID string, req runRequest) (
 	switch task {
 	case "ai", "generate":
 		req.Message = capabilityRunMessage(input, caps)
+		if memory := s.backendMemoryContext(req); memory != "" {
+			req.Message += "\n\n" + memory
+		}
 		output, err = s.runAI(ctx, req)
 	case "rewrite":
 		req.Message = capabilityRunMessage(input, caps)
+		if wantsAI(req) {
+			if memory := s.backendMemoryContext(req); memory != "" {
+				req.Message += "\n\n" + memory
+			}
+		}
 		output, err = s.runRewrite(ctx, req)
 	case "outline", "plan":
 		output = buildOutline(input)
@@ -169,6 +177,9 @@ func (s *Server) streamRun(ctx context.Context, w http.ResponseWriter, runID str
 	if usesAI {
 		input := runInputText(req)
 		req.Message = capabilityRunMessage(input, caps)
+		if memory := s.backendMemoryContext(req); memory != "" {
+			req.Message += "\n\n" + memory
+		}
 		if task == "rewrite" {
 			req.Message = "请改写以下内容，保持含义但优化表达：\n\n" + req.Message
 		}

@@ -554,6 +554,7 @@
               <button onclick="setPresLevel('heavy')" data-pl="heavy">重度</button>
             </div>
             <button class="tool-btn" onclick="aiQuickApply()" style="font-size:11px;padding:3px 8px">✓ 应用</button>
+            <button class="tool-btn" onclick="wwStageMemory(aiQuickLastResult,{title:'快捷工具 · '+aiQuickMode,category:'note',source:'writing'})" style="font-size:11px;padding:3px 8px">记忆</button>
             <button class="tool-btn" onclick="aiQuickCopy()" style="font-size:11px;padding:3px 8px"><svg class="ic ic-sm"><use href="#ic-copy"/></svg> 复制</button>
             <button class="tool-btn" onclick="closeAiQuickResult()" style="font-size:11px;padding:3px 8px"><svg class="ic ic-sm"><use href="#ic-close"/></svg></button>
           </div>
@@ -589,7 +590,7 @@
         <div id="aiTab-memory" style="display:none">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
             <span style="font-size:12px;color:var(--text-secondary)"><svg class="ic"><use href="#ic-brain"/></svg> AI 记忆</span>
-            <button onclick="openModal('memoryModal')" style="background:var(--accent-glow);border:1px solid var(--accent-dim);color:var(--accent);padding:4px 10px;border-radius:var(--radius-sm);font-size:11px;cursor:pointer;font-family:var(--font-sans)">＋ 添加</button>
+            <button onclick="wwStageMemory('',{title:'',category:'note',source:'manual'})" style="background:var(--accent-glow);border:1px solid var(--accent-dim);color:var(--accent);padding:4px 10px;border-radius:var(--radius-sm);font-size:11px;cursor:pointer;font-family:var(--font-sans)">＋ 添加</button>
           </div>
           <div style="font-size:10px;color:var(--text-hint);margin-bottom:8px;line-height:1.5">记忆内容会在每次AI生成时自动注入提示词，让AI了解你的剧情设定、写作风格偏好等。</div>
           <div id="memoryList"></div>
@@ -656,7 +657,7 @@
 <div class="ai-result-popup" id="aiResultPopup">
   <div class="arp-header"><div class="arp-title"><span><svg class="ic ic-sm"><use href="#ic-sparkles"/></svg></span> AI 生成结果 <span class="arp-tag" id="arpMode">润色</span></div><button class="arp-close" onclick="closeAiResult()">×</button></div>
   <div class="arp-body"><div class="arp-text" id="arpText"></div></div>
-  <div class="arp-actions"><button class="arp-btn" onclick="arpAction('replace')">替换原文</button><button class="arp-btn" onclick="arpAction('append')">追加到末尾</button><button class="arp-btn" onclick="arpAction('insert')">插入光标处</button><button class="arp-btn primary" onclick="arpAction('copy')">复制</button></div>
+  <div class="arp-actions"><button class="arp-btn" onclick="arpAction('replace')">替换原文</button><button class="arp-btn" onclick="arpAction('append')">追加到末尾</button><button class="arp-btn" onclick="arpAction('insert')">插入光标处</button><button class="arp-btn" onclick="arpAction('memory')">记入记忆</button><button class="arp-btn primary" onclick="arpAction('copy')">复制</button></div>
 </div>
 <!-- FOCUS MODE -->
 <div class="focus-overlay" id="focusOverlay"><div class="focus-editor-wrap"><textarea class="focus-editor" id="focusEditor" placeholder="专注写作..."></textarea><div class="focus-bar"><div class="focus-info" id="focusInfo">0 字 · Esc 退出</div><button class="focus-exit" onclick="closeFocus()">退出专注</button></div></div></div>
@@ -827,7 +828,7 @@
 </div>
 <!-- Memory Modal -->
 <div class="modal-overlay" id="memoryModal"><div class="modal">
-  <div class="modal-title"><svg class="ic"><use href="#ic-brain"/></svg> 添加记忆</div><div class="modal-sub">让AI记住你的设定、风格偏好等信息，每次生成时自动参考</div>
+  <div class="modal-title"><svg class="ic"><use href="#ic-brain"/></svg> 添加记忆</div><div class="modal-sub">写作、校准、分析和后台结果都可汇入同一项目记忆；保存前由你确认。</div>
   <div class="form-row"><div class="form-label">分类</div>
     <div class="genre-grid" id="memCatGrid" style="grid-template-columns:repeat(3,1fr)">
       <div class="genre-chip on" onclick="toggleMemCat(this)"><svg class="ic ic-sm"><use href="#ic-clipboard"/></svg> 剧情</div>
@@ -838,7 +839,9 @@
       <div class="genre-chip" onclick="toggleMemCat(this)">📏 规则</div>
     </div>
   </div>
+  <div class="form-row"><div class="form-label">标题</div><input class="form-input" id="memTitle" placeholder="例如：第三章人物关系确认"></div>
   <div class="form-row"><div class="form-label">记忆内容</div><textarea class="form-textarea" id="memContent" placeholder="例如：主角林远性格内向但关键时刻果断，口头禅是'再想想'..." style="min-height:100px"></textarea></div>
+  <label style="display:flex;align-items:flex-start;gap:8px;font-size:12px;color:var(--text-secondary);line-height:1.5"><input id="memBackend" type="checkbox" style="width:auto;margin-top:2px">自部署时同时写入 Go 后台记忆（Pages 模式不会发送）</label>
   <div class="modal-footer"><button class="btn-cancel" onclick="closeModal('memoryModal')">取消</button><button class="btn-confirm" onclick="saveMemory()">保存记忆 ✓</button></div>
 </div></div>
 <!-- Import Preview Modal -->

@@ -58,8 +58,35 @@ func TestBuildProposalIsCandidateAndRollbackable(t *testing.T) {
 	if len(proposal.TargetSkills) != 2 {
 		t.Fatalf("target skills must be deduplicated and bounded: %#v", proposal.TargetSkills)
 	}
-	if proposal.Method != "equal-source-median-v2" || proposal.SkillAddenda["节奏"] == proposal.SkillAddenda["润色"] {
+	if proposal.Method != "equal-source-guidance-v3" || proposal.SkillAddenda["节奏"] == proposal.SkillAddenda["润色"] {
 		t.Fatalf("proposal must be consensus-based and skill-specific: %+v", proposal)
+	}
+}
+
+func TestAnalyzeRecognizesCommonChapterFormatsAndInlineDialogue(t *testing.T) {
+	text := strings.Join([]string{
+		"001、雨夜",
+		"他推开门，她在身后说：“先别进去。”",
+		"风从走廊尽头压过来。",
+		"第二章 灯下",
+		"“你看见了吗？”他停住脚步。",
+		"她没有回答。",
+		"Chapter 3 Return",
+		"门忽然自己开了！",
+	}, "\n") + "\n" + strings.Repeat("他往前走了一步。\n", 40)
+	source, normalized, err := Parse("chapters.txt", strings.NewReader(text), true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	profile := Analyze(source, normalized)
+	if profile.Metrics.Chapters != 3 {
+		t.Fatalf("chapters=%d", profile.Metrics.Chapters)
+	}
+	if profile.Metrics.DialogueTurns < 2 || profile.Metrics.DialogueRatio <= 0 {
+		t.Fatalf("dialogue metrics=%+v", profile.Metrics)
+	}
+	if profile.Summary == "" || len(profile.GuidanceCards) < 4 || profile.Metrics.MedianParagraphRunes == 0 {
+		t.Fatalf("incomplete guidance profile: %+v", profile)
 	}
 }
 

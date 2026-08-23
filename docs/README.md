@@ -18,7 +18,7 @@
 | [`RELEASE_EVIDENCE.json`](RELEASE_EVIDENCE.json) | 机器可读证据 | 已验证提交、Actions、校验和和时间点指标 |
 | [`PRODUCT_BOUNDARY.md`](PRODUCT_BOUNDARY.md) | 现行产品规则 | 产品层、可选本地服务、外部社区与上游的归属边界 |
 | [`NATIVE_ENGINE.md`](NATIVE_ENGINE.md) | 现行架构 | 仓库自有 Go 引擎、协议、不变量、测试与限制 |
-| [`CORPUS_CALIBRATION.md`](CORPUS_CALIBRATION.md) | 现行功能 | 授权语料、聚合指标、候选应用、撤销与隐私边界 |
+| [`CORPUS_CALIBRATION.md`](CORPUS_CALIBRATION.md) | 现行功能 | 本地/AI 分析、指导卡、提示词修改、统一记忆与隐私边界 |
 | [`COMMUNITY_VIDEO_RESOURCES.md`](COMMUNITY_VIDEO_RESOURCES.md) | 现行资源状态 | LINUX DO 佬友视频公益站与开源工具的核验状态 |
 | [`LINUX_DO_POST_V030.md`](LINUX_DO_POST_V030.md) | 维护者事实清单 | 供维护者自行撰写更新时核对，不是可直接发布正文 |
 | [`LINUX_DO_POST_V025.md`](LINUX_DO_POST_V025.md) | 历史社区发布包 | v0.2.5 时点的发帖材料，不代表当前功能 |
@@ -40,5 +40,5 @@
 - 浏览器项目分类和后端能力分类也是两套明确存储：前者属于当前站点 IndexedDB/localStorage，后者属于工作目录 `.writing-workshop/categories.json`。
 - 浏览器 Prompt Skill 是第三套明确边界：默认定义在 `web/static/js/prompt-skills.js`，用户覆盖值在当前域名 `localStorage` 的 `ww_prompt_skills_v1`，项目包 v6 携带合法覆盖值。
 - Prompt Skill 的任务层、证据层和五类执行协议见 [`PROMPT_ARCHITECTURE.md`](PROMPT_ARCHITECTURE.md)。
-- 授权语料原文不进入持久化档案；v6 只携带哈希、聚合指标和校准历史。
+- 授权语料原文不进入持久化档案；v6 只携带哈希、分析指标、指导卡、AI 总结和提示词历史。
 - 历史文档继续保留，用状态标签避免把旧引擎设计误认成当前产品执行层。

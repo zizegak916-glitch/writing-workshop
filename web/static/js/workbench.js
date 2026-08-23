@@ -105,7 +105,7 @@ function reconcileStoredApiConfig(){
   }
   S.apiConfig=stored;
 }
-const S={proj:null,active:null,editCharId:null,aiMode:'润色',aiTemp:'mid',aiLen:'long',apiConfig:loadStoredApiConfig(),autoSave:true,unsaved:false,editorRevision:0,wordGoal:2000,curFontSize:16,lastArpResult:'',aiRunSnapshot:null,multiRunSnapshot:null,selectedProvider:'claude',previewMode:false,projects:[],aiMemories:[]};
+const S={proj:null,active:null,editCharId:null,aiMode:'润色',aiTemp:'mid',aiLen:'long',apiConfig:loadStoredApiConfig(),autoSave:true,unsaved:false,editorRevision:0,wordGoal:2000,curFontSize:16,lastArpResult:'',aiRunSnapshot:null,multiRunSnapshot:null,selectedProvider:'claude',previewMode:false,projects:[],aiMemories:[],pendingMemoryMeta:null};
 
 
 // ═══ Token Estimation & Context Limits ═══
@@ -3291,11 +3291,12 @@ function buildCtx(){if(!S.proj)return'';const p=S.proj.project,a=[];a.push('作�
 // ═══ AI Memory ═══
 function buildMemoryContext(){
   if(!S.proj||!S.aiMemories.length)return'';
-  const projMem=S.aiMemories.filter(m=>m.project_id===S.proj.project.id);
+  const projMem=S.aiMemories.filter(m=>m.project_id===S.proj.project.id&&m.enabled!==false).sort((a,b)=>(b.updated_at||b.created_at||0)-(a.updated_at||a.created_at||0)).slice(0,40);
   if(!projMem.length)return'';
-  const lines=projMem.map(m=>'['+m.category+'] '+m.content);
-  return'【AI记忆 — 请参考以下已知信息】\n'+lines.join('\n');
+  const lines=projMem.map(m=>'['+(m.category||'note')+(m.source?' · '+m.source:'')+'] '+(m.title?m.title+'：':'')+m.content);
+  return'【项目记忆 — 按来源与分类参考】\n'+lines.join('\n');
 }
+function writingSystemPrompt(){let prompt=typeof wwSystemPrompt==='function'?wwSystemPrompt():'你是一位专业的中文写作助手。';const memory=buildMemoryContext();if(memory)prompt+='\n\n'+memory;return prompt;}
 async function loadMemories(){
   if(!db)return;
   S.aiMemories=await dbAll('aiMemories');
@@ -3310,7 +3311,7 @@ function renderMemoryList(){
     return;
   }
   const cats={plot:'☐ 剧情',style:'✎ 风格',world:'◆ 世界观',char:'● 人物',note:'📝 备注',rule:'─ 规则'};
-  el.innerHTML=projMem.map(m=>'<div class="char-card" style="position:relative"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px"><span style="font-size:10px;padding:1px 6px;border-radius:10px;background:var(--accent-glow);color:var(--accent)">'+escapeHtml(cats[m.category]||(window.wwCategoryLabel?window.wwCategoryLabel(m.category):m.category))+'</span><div style="display:none;gap:4px" class="mem-actions"><button class="char-act-btn" onclick="event.stopPropagation();editMemory('+Number(m.id)+')">'+t('action-edit')+'</button><button class="char-act-btn" onclick="event.stopPropagation();delMemory('+Number(m.id)+')">'+t('action-delete')+'</button></div></div><div style="font-size:12px;color:var(--text-secondary);line-height:1.6">'+escapeHtml(m.content)+'</div></div>').join('');
+  el.innerHTML=projMem.map(m=>'<div class="char-card" style="position:relative"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px"><span style="font-size:10px;padding:1px 6px;border-radius:10px;background:var(--accent-glow);color:var(--accent)">'+escapeHtml(cats[m.category]||(window.wwCategoryLabel?window.wwCategoryLabel(m.category):m.category))+(m.source?' · '+escapeHtml(m.source):'')+'</span><div style="display:none;gap:4px" class="mem-actions"><button class="char-act-btn" onclick="event.stopPropagation();editMemory('+Number(m.id)+')">'+t('action-edit')+'</button><button class="char-act-btn" onclick="event.stopPropagation();delMemory('+Number(m.id)+')">'+t('action-delete')+'</button></div></div>'+(m.title?'<div style="font-size:12px;font-weight:700;margin-bottom:3px">'+escapeHtml(m.title)+'</div>':'')+'<div style="font-size:12px;color:var(--text-secondary);line-height:1.6">'+escapeHtml(m.content)+'</div></div>').join('');
   el.querySelectorAll('.char-card').forEach(c=>{
     c.addEventListener('mouseenter',()=>{const a=c.querySelector('.mem-actions');if(a)a.style.display='flex';});
     c.addEventListener('mouseleave',()=>{const a=c.querySelector('.mem-actions');if(a)a.style.display='none';});
@@ -3319,20 +3320,41 @@ function renderMemoryList(){
 async function saveMemory(){
   const content=document.getElementById('memContent').value.trim();
   if(!content){showToast('✕',t('toast-enter-memory'));return;}
-  if(!S.proj){showToast('✕',t('toast-no-proj'));return;}
   const catEl=document.querySelector('#memCatGrid .genre-chip.on');
   const category=catEl?catEl.textContent.replace(/^[^\s]+\s/,''):'备注';
   const catMap={'☐ 剧情':'plot','✎ 风格':'style','◆ 世界观':'world','● 人物':'char','📝 备注':'note','─ 规则':'rule'};
   const catKey=catEl?.dataset.categoryId||catMap[category]||'note';
-  const d={project_id:S.proj.project.id,category:catKey,content,created_at:Date.now()};
-  if(S.editMemoryId){d.id=S.editMemoryId;}
-  await dbPut('aiMemories',d);
-  S.editMemoryId=null;
-  document.getElementById('memContent').value='';
-  await loadMemories();
-  closeModal('memoryModal');
-  showToast('◆','记忆已保存');
-  updateContextBar();
+  try{
+    await remember(content,{...(S.pendingMemoryMeta||{}),id:S.editMemoryId||undefined,title:document.getElementById('memTitle')?.value.trim()||S.pendingMemoryMeta?.title||'',category:catKey,backend:!!document.getElementById('memBackend')?.checked});
+    S.editMemoryId=null;S.pendingMemoryMeta=null;
+    document.getElementById('memContent').value='';if(document.getElementById('memTitle'))document.getElementById('memTitle').value='';if(document.getElementById('memBackend'))document.getElementById('memBackend').checked=false;
+    closeModal('memoryModal');
+  }catch(e){showToast('✕',e.message);}
+}
+
+async function remember(content,options={}){
+  const value=String(content||'').trim();
+  if(!value)throw new Error('记忆内容不能为空');
+  if(!S.proj)throw new Error(t('toast-no-proj'));
+  const now=Date.now();
+  const existing=options.id?S.aiMemories.find(m=>m.id===options.id):null;
+  const row={...(existing||{}),project_id:S.proj.project.id,category:options.category||existing?.category||'note',title:String(options.title||existing?.title||'').trim(),content:value,source:options.source||existing?.source||'manual',scope:options.scope||existing?.scope||'project',enabled:options.enabled??existing?.enabled??true,created_at:existing?.created_at||now,updated_at:now};
+  if(options.id)row.id=options.id;
+  const id=await dbPut('aiMemories',row);row.id=row.id||id;
+  if(options.backend&&!WW_BROWSER_API_MODE){
+    await apiJSON('/api/memories',{method:'POST',body:JSON.stringify({title:row.title,content:row.content,category:row.category,source:row.source,scope:row.scope,project:S.proj.project.name,enabled:row.enabled})});
+  }
+  await loadMemories();showToast('◆',options.backend&&!WW_BROWSER_API_MODE?'已写入项目记忆与后台记忆':'记忆已保存');updateContextBar();return row;
+}
+
+function stageMemory(content,options={}){
+  if(!S.proj){showToast('✕',t('toast-no-proj'));return;}
+  S.editMemoryId=null;S.pendingMemoryMeta={source:options.source||'manual',scope:options.scope||'project',title:options.title||'',category:options.category||'note'};
+  const input=document.getElementById('memContent');if(input)input.value=String(content||'');
+  const title=document.getElementById('memTitle');if(title)title.value=options.title||'';
+  const backend=document.getElementById('memBackend');if(backend)backend.checked=!!options.backend&&!WW_BROWSER_API_MODE;
+  document.querySelectorAll('#memCatGrid .genre-chip').forEach(chip=>chip.classList.toggle('on',chip.dataset.categoryId===S.pendingMemoryMeta.category||chip.textContent.includes(({plot:'剧情',style:'风格',world:'世界观',char:'人物',note:'备注',rule:'规则'})[S.pendingMemoryMeta.category]||'备注')));
+  openModal('memoryModal');
 }
 async function delMemory(id){
   if(!confirm('删除此记忆？'))return;
@@ -3346,11 +3368,15 @@ function editMemory(id){
   const m=S.aiMemories.find(x=>x.id===id);
   if(!m)return;
   S.editMemoryId=id;
+  S.pendingMemoryMeta={source:m.source||'manual',scope:m.scope||'project',title:m.title||'',category:m.category||'note'};
+  if(document.getElementById('memTitle'))document.getElementById('memTitle').value=m.title||'';
   document.getElementById('memContent').value=m.content;
   const catMap2={plot:'☐ 剧情',style:'✎ 风格',world:'◆ 世界观',char:'● 人物',note:'📝 备注',rule:'─ 规则'};
   document.querySelectorAll('#memCatGrid .genre-chip').forEach(c=>c.classList.toggle('on',c.dataset.categoryId===m.category||c.textContent===catMap2[m.category]));
   openModal('memoryModal');
 }
+window.wwRemember=remember;
+window.wwStageMemory=stageMemory;
 function toggleMemCat(el){el.parentElement.querySelectorAll('.genre-chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');}
 function selectProvider(el,p){el.parentElement.querySelectorAll('.provider-chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');S.selectedProvider=p;const cur=el.closest('.provider-grid').id;const d={claude:'claude-sonnet-4-20250514',openai:'gpt-4o',deepseek:'deepseek-chat',xiaomi:'mimo-v2.5-pro',qwen:'qwen-plus',zhipu:'glm-4-flash',moonshot:'moonshot-v1-8k',siliconflow:'deepseek-ai/DeepSeek-V3',openrouter:'anthropic/claude-sonnet-4',gemini:'gemini-2.0-flash',grok:'grok-3',custom:''};const modelEl=cur==='sProviderGrid'?document.getElementById('sApiModel'):document.getElementById('apiModel');const urlEl=cur==='sProviderGrid'?document.getElementById('sApiBaseUrl'):document.getElementById('apiBaseUrl');if(modelEl)modelEl.placeholder=d[p]||'填写目标模型名';if(urlEl)urlEl.placeholder=PROVIDERS[p]?.url||'https://api.example.com/v1';}
 function apiFormConfig(prefix=''){
@@ -3437,7 +3463,7 @@ async function saveWriteSnapshot(mode,applyMode,result,snapshot){
 
 // ═══ AI Generate ═══
 async function doGenerate(){const ac=S.apiConfig;if(!aiHasConfig(ac)){showToast('⚙',t('toast-no-api'));openModal('apiModal');return;}const ed=document.getElementById('mainEditor'),sel=ed.value.slice(ed.selectionStart,ed.selectionEnd).trim(),full=ed.value.trim(),extra=document.getElementById('aiPrompt').value.trim(),content=sel||full.slice(-1000);if(!content&&!extra){showToast('✎',t('toast-no-content'));return;}S.aiRunSnapshot=makeEditorSnapshot();const lm={short:'100字以内',mid:'200-300字',long:'400-600字',xl:'800字以上'},tm={low:'保持严谨',mid:'适度创意',high:'大胆想象'};const md=AI_MODES[S.aiMode]||{p:'请处理以下内容：'};let prompt=(typeof wwPromptText==='function'?wwPromptText(S.aiMode):md.p)+'\n\n'+content+'\n\n【输出要求】'+lm[S.aiLen]+'。'+tm[S.aiTemp]+'。';if(S.proj)prompt+='\n\n【项目信息】\n'+buildCtx();if(extra)prompt+='\n\n【额外指令】'+extra;let sysPrompt=typeof wwSystemPrompt==='function'?wwSystemPrompt():'你是一位专业的中文写作助手。';const memCtx=buildMemoryContext();if(memCtx)sysPrompt+='\n\n'+memCtx;const btn=document.getElementById('generateBtn');btn.classList.add('loading');document.getElementById('generateBtnIcon').innerHTML='<div class="spinner"></div>';document.getElementById('generateBtnText').textContent=t('ap-gen-ing');try{showStreamingResult('arpText');const arpEl=document.getElementById('arpText');document.getElementById('arpMode').textContent=S.aiMode;document.getElementById('aiResultPopup').classList.add('show');let fullResult='';await callAIStream(prompt,ac,sysPrompt,(chunk)=>{fullResult+=chunk;arpEl.textContent=fullResult;});S.lastArpResult=fullResult;await addHistory(S.aiMode,fullResult,{project_id:S.aiRunSnapshot.project_id,active_type:S.aiRunSnapshot.active_type,active_id:S.aiRunSnapshot.active_id});}catch(e){showToast('✕',e.message||'请求失败');}finally{hideStreamingCursor();btn.classList.remove('loading');document.getElementById('generateBtnIcon').innerHTML='<svg class="ic ic-sm"><use href="icons/ai-mode-icons.svg#mode-workshop"/></svg>';document.getElementById('generateBtnText').textContent=t('ap-gen');}}
-async function arpAction(action){const text=S.lastArpResult,ed=document.getElementById('mainEditor');if(action==='copy'){navigator.clipboard.writeText(text).then(()=>showToast('✓',t('toast-copied')));return;}const snapshot=S.aiRunSnapshot||makeEditorSnapshot();if(!isSameEditorTarget(snapshot)){showToast('✕','生成后已切换文档，请复制结果或返回原文档后重试');return;}if(action==='replace'&&!isEditorSnapshotCurrent(snapshot)){showToast('✕','正文已在生成期间变化，为避免覆盖已阻止替换');return;}await saveWriteSnapshot(S.aiMode,action,text,makeEditorSnapshot());if(action==='replace'){const s=snapshot.selection_start,e=snapshot.selection_end;if(s!==e)ed.value=snapshot.document.slice(0,s)+text+snapshot.document.slice(e);else ed.value=text;showToast('✓','已替换');}else if(action==='append'){ed.value+='\n\n'+text;showToast('✓','已追加');}else if(action==='insert'){const p=ed.selectionStart;ed.value=ed.value.slice(0,p)+text+ed.value.slice(p);showToast('✓','已插入');}onEditorInput();closeAiResult();}
+async function arpAction(action){const text=S.lastArpResult,ed=document.getElementById('mainEditor');if(action==='copy'){navigator.clipboard.writeText(text).then(()=>showToast('✓',t('toast-copied')));return;}if(action==='memory'){stageMemory(text,{title:'AI 候选 · '+S.aiMode,category:'note',source:'writing'});return;}const snapshot=S.aiRunSnapshot||makeEditorSnapshot();if(!isSameEditorTarget(snapshot)){showToast('✕','生成后已切换文档，请复制结果或返回原文档后重试');return;}if(action==='replace'&&!isEditorSnapshotCurrent(snapshot)){showToast('✕','正文已在生成期间变化，为避免覆盖已阻止替换');return;}await saveWriteSnapshot(S.aiMode,action,text,makeEditorSnapshot());if(action==='replace'){const s=snapshot.selection_start,e=snapshot.selection_end;if(s!==e)ed.value=snapshot.document.slice(0,s)+text+snapshot.document.slice(e);else ed.value=text;showToast('✓','已替换');}else if(action==='append'){ed.value+='\n\n'+text;showToast('✓','已追加');}else if(action==='insert'){const p=ed.selectionStart;ed.value=ed.value.slice(0,p)+text+ed.value.slice(p);showToast('✓','已插入');}onEditorInput();closeAiResult();}
 function closeAiResult(){document.getElementById('aiResultPopup').classList.remove('show');}
 
 
@@ -4815,7 +4841,7 @@ async function aiProofread(){
   try{
     const ctx=S.proj?buildCtx()+'\n\n':'';
     const prompt=wwPromptText('校对')+'\n\n'+ctx+'【原文】\n'+text;
-    const result=await callAI(prompt,S.apiConfig);
+    const result=await callAI(prompt,S.apiConfig,writingSystemPrompt());
     // Check if it contains corrected text
     const correctedMatch=result.match(/修正后全文[：:]\s*([\s\S]*)/);
     if(correctedMatch){
@@ -4838,7 +4864,7 @@ async function aiAutoTitle(){
   try{
     const ctx=S.proj?buildCtx()+'\n\n':'';
     const prompt=wwPromptText('标题')+'\n\n'+ctx+'【内容】\n'+text.slice(0,2000);
-    const result=await callAI(prompt,S.apiConfig);
+    const result=await callAI(prompt,S.apiConfig,writingSystemPrompt());
     showAiQuickResult('◇ 标题建议（点击"应用"使用第一个标题）',result,'title');
     // Extract first title for apply
     const titles=result.match(/\d+[.、．)\s]+(.+)/g);
@@ -4861,7 +4887,7 @@ async function aiInspiration(){
     const selectedText=text.slice(document.getElementById('mainEditor').selectionStart,document.getElementById('mainEditor').selectionEnd).trim();
     const content=selectedText||text.slice(-800);
     const prompt=wwPromptText('实时灵感')+'\n\n'+ctx+(title?'【当前标题】'+title+'\n':'')+'【当前断点】\n'+(content||'（空文档，请先给出可确认的开篇方向）');
-    const result=await callAI(prompt,S.apiConfig);
+    const result=await callAI(prompt,S.apiConfig,writingSystemPrompt());
     showAiQuickResult('◆ 实时灵感',result,'inspire');
   }catch(e){showToast('✕',e.message||'获取灵感失败');}
   setLoading('aiBtnInspire',false);
@@ -4879,7 +4905,7 @@ async function aiResearch(){
     const ctx=S.proj?buildCtx()+'\n\n':'';
     const content=selectedText||text.slice(-500);
     const prompt=wwPromptText('资料搜索')+'\n\n'+ctx+(title?'【当前标题】'+title+'\n':'')+'【内容或关键词】\n'+(content||'请先列出需要作者补充的研究主题');
-    const result=await callAI(prompt,S.apiConfig);
+    const result=await callAI(prompt,S.apiConfig,writingSystemPrompt());
     showAiQuickResult('⊕ 资料搜索结果',result,'research');
   }catch(e){showToast('✕',e.message||'搜索失败');}
   setLoading('aiBtnResearch',false);
@@ -4904,7 +4930,7 @@ async function aiHumanize(){
     };
     const prompt=wwPromptText('降AI')+'\n\n【改写强度】'+levelPrompts[aiPresLevel]+'\n\n'+ctx+'【原文】\n'+text;
     const originalText=text;
-    const result=await callAI(prompt,S.apiConfig);
+    const result=await callAI(prompt,S.apiConfig,writingSystemPrompt());
     showAiQuickResult('◆ 降AI率结果 — 点击"应用"替换原文',result,'humanize');
     aiQuickLastResult=result;aiQuickMode='humanize';
     // Show diff view
@@ -4922,7 +4948,7 @@ async function aiDetect(){
   setLoading('aiBtnDetect',true);
   try{
     const prompt=wwPromptText('查AI')+'\n\n【待分析文字】\n'+text.slice(0,3000);
-    const result=await callAI(prompt,S.apiConfig);
+    const result=await callAI(prompt,S.apiConfig,writingSystemPrompt());
     // Parse scores from the AI response
     const scores=parseAiScores(result);
     const disclaimer='\n\n────────────────\n⚠ 以上分析仅供参考，不作为任何正式判定依据。AI检测工具本身存在较大误判率。';

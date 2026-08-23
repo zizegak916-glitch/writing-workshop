@@ -25,7 +25,8 @@ for (const marker of ['EVIDENCE_CONTRACT', 'TRANSFORM_PROTOCOL', 'GENERATE_PROTO
   assert(promptSource.includes(`const ${marker}`), `missing layered Prompt Skill protocol: ${marker}`);
 }
 assert(promptSource.includes('先判断用户提出的问题是否成立'), 'analysis skills must verify criticism before accepting it');
-assert(promptSource.includes('授权网文语料只提供') && promptSource.includes('不能成为写作配额'), 'corpus signals must remain evidence, not mechanical style quotas');
+assert(promptSource.includes('结构信号、指导卡与已确认总结') && promptSource.includes('可迁移指导'), 'real-fiction analysis must support reusable guidance, not statistics alone');
+assert(promptSource.includes('不是情节来源、作者身份或硬配额'), 'corpus guidance must remain evidence, not mechanical imitation');
 
 const iconSource = read('web/static/js/ai-mode-icons.js');
 const iconMap = new Map([...iconSource.matchAll(/'([^']+)':\s*'(mode-[^']+)'/g)].map(match => [match[1], match[2]]));
@@ -64,7 +65,11 @@ assert(workbenchSource.includes('WWApiAdapter.request') && workbenchSource.inclu
 assert(workbenchSource.includes("'/api/ai/stream'"), 'self-hosted AI must use the streaming endpoint');
 const corpusSource = read('web/static/js/corpus-lab.js');
 assert(corpusSource.includes("fetch('/api/corpus'") && corpusSource.includes('usesBrowser()'), 'corpus lab must use the Go API when self-hosted and browser analysis on Pages');
-assert(corpusSource.includes('text_stored:false') && corpusSource.includes('replaceCalibration'), 'corpus lab must avoid source retention and support reversible Prompt Skill replacement');
+for (const marker of ['wwCorpusGuidanceForSkill', 'AI 深度分析', '本地完整分析', '修改现有指导块', '整段替换提示词', 'guidance_cards', 'counterexample']) {
+  assert(corpusSource.includes(marker), `corpus guidance lab is missing: ${marker}`);
+}
+assert(corpusSource.includes('text_stored: false') && corpusSource.includes('rollback'), 'corpus lab must avoid source retention and support reversible Prompt Skill changes');
+assert(workbenchSource.includes('window.wwRemember=remember') && workbenchSource.includes("source:options.source"), 'unified browser memory intake is missing');
 const adapterSource = read('web/static/js/api-adapter.js');
 for (const protocol of ['openai-chat', 'openai-responses', 'anthropic', 'ollama']) {
   assert(adapterSource.includes(protocol), `API adapter protocol is missing: ${protocol}`);
@@ -109,6 +114,7 @@ const adminHtml = read('web/static/admin.html');
 assert(adminHtml.includes('Writing Workshop 本地服务控制台'), 'admin page must be named as the local service console');
 assert((adminHtml.match(/data-requires-service/g) || []).length >= 7, 'server-only console tabs must declare their runtime requirement');
 assert(adminHtml.includes("querySelectorAll('[data-requires-service]')") && adminHtml.includes('element.hidden=true'), 'static console must hide server-only tabs');
+assert(adminHtml.includes('Go 后台记忆') && adminHtml.includes("api('/api/memories'"), 'service console must manage backend memories');
 
 const htmlFiles = fs.readdirSync(path.join(root, 'web/static'))
   .filter(file => file.endsWith('.html'))
