@@ -4885,7 +4885,7 @@ function applyLang(){
       const modelInput=document.getElementById('apiModel');
       if(modelInput)modelInput.placeholder=t('form-api-model-ph');
       // Translate buttons
-      document.querySelectorAll('#apiModal .btn-cancel').forEach(b=>b.textContent=t('form-cancel'));
+      document.querySelectorAll('#apiModal .btn-cancel[data-i18n="form-cancel"]').forEach(b=>b.textContent=t('form-cancel'));
       document.querySelectorAll('#apiModal .btn-confirm').forEach(b=>b.textContent=t('form-save'));
     }
     if(id==='charModal'){
