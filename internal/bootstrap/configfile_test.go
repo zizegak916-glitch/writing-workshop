@@ -97,7 +97,7 @@ func TestLoadConfig_CorruptGlobalDoesNotBlockOverride(t *testing.T) {
 // 文件不存在是正常情况（便携/首次），不能报错。
 func TestLoadConfig_MissingFilesNoError(t *testing.T) {
 	home := t.TempDir()
-	t.Setenv("HOME", home) // ~/.writing-workshop/config.json 不存在
+	t.Setenv("HOME", home)       // ~/.writing-workshop/config.json 不存在
 	chdirForTest(t, t.TempDir()) // 也没有 ./.writing-workshop/config.json
 
 	if _, err := LoadConfig(""); err != nil {
