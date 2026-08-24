@@ -22,6 +22,7 @@ const summarize = async request => {
   }
   if (request.phase === 'chapter_merge') return `${request.chapter.title}完整章节记忆；全部${request.summaries.length}块已合并。`;
   if (request.phase === 'arc') return `阶段${request.arcIndex + 1}记忆；覆盖${request.chapters.length}章。`;
+  if (request.phase === 'book_merge') return `多级全书记忆合并；覆盖输入中的全部连续阶段。`;
   if (request.phase === 'book') return `全书记忆；完整覆盖${request.chapters.length}章，保留时间轴、人物状态、规则、伏笔与未决问题。`;
   throw new Error(`unexpected phase: ${request.phase}`);
 };
@@ -36,6 +37,9 @@ assert.deepEqual(first.digestMemory.covered_chapter_ids, chapters.map(chapter =>
 assert.ok(first.stats.analyzedChunks > chapters.length, 'long chapters must be read in multiple requests');
 assert.equal(calls.filter(call => call.phase === 'chapter_chunk').length, first.stats.analyzedChunks);
 assert.equal(new Set(calls.filter(call => call.phase === 'chapter_chunk').map(call => call.chapter.id)).size, chapters.length, 'every chapter must be read');
+assert.ok(calls.filter(call => call.phase === 'chapter_merge' && call.chapter.id === chapters[0].id).length >= 2, 'a very long chapter must be merged through more than one bounded level');
+assert.equal(first.stats.requestCount, calls.length, 'request count must record every compression and merge call');
+assert.equal(memory.estimateRequests({ chapters, chunkChars: 6000, arcSize: 6 }), first.stats.requestCount, 'confirmation estimate must match the planned hierarchy');
 
 const firstCalls = calls.length;
 const existingMemories = [...first.chapterMemories, ...first.arcMemories, first.digestMemory];
@@ -52,4 +56,20 @@ const third = await memory.build({ chapters: edited, existingMemories, summarize
 assert.equal(third.stats.reusedChapters, chapters.length - 1);
 assert.equal(new Set(calls.slice(thirdStart).filter(call => call.phase === 'chapter_chunk').map(call => call.chapter.id)).size, 1, 'only the edited chapter should be reread');
 
-console.log(`Long-book memory OK: ${chapters.length} chapters, ${first.stats.sourceChars.toLocaleString()} chars, every chunk read, unchanged chapters reused.`);
+const giantChapter = [{
+  id: 'giant',
+  title: '超长单章兼容验收',
+  sort_order: 0,
+  content: '这一连续段落必须经过有界分块和多级合并，不能把所有中间摘要塞回单次请求。\n'.repeat(20000)
+}];
+const giantStart = calls.length;
+const giant = await memory.build({ chapters: giantChapter, summarize, chunkChars: 6000 });
+const giantCalls = calls.slice(giantStart);
+assert.ok(giant.stats.sourceChars > 600000, 'giant chapter fixture must exceed 600k chars');
+assert.ok(giant.stats.analyzedChunks > 100, 'giant chapter must be split into many contiguous chunks');
+assert.ok(giantCalls.filter(call => call.phase === 'chapter_merge').length > 40, 'giant chapter must use a multi-level merge tree');
+assert.ok(giantCalls.filter(call => call.phase === 'chapter_merge').every(call => call.summaries.length <= memory.DEFAULT_MERGE_FAN_IN), 'no chapter merge request may receive an unbounded summary list');
+assert.ok(giantCalls.filter(call => call.phase === 'book').every(call => call.nodes.length <= memory.DEFAULT_MERGE_FAN_IN), 'final book merge must remain bounded');
+assert.equal(memory.estimateRequests({ chapters: giantChapter, chunkChars: 6000 }), giant.stats.requestCount);
+
+console.log(`Long-book memory OK: ${chapters.length} chapters plus ${giant.stats.sourceChars.toLocaleString()}-char giant chapter, every chunk read, bounded hierarchy, unchanged chapters reused.`);

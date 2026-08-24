@@ -3502,10 +3502,9 @@ async function updateLongBookMemory(){
   if(!(await flushActiveDocument()))return;
   const chapters=liveProjectChapters();
   if(!chapters.length)return showToast('✕','当前项目没有正文章节');
-  const estimatedChunks=chapters.reduce((sum,chapter)=>sum+Math.max(1,WWLongBookMemory.splitText(chapter.content).length),0);
-  const estimatedCalls=estimatedChunks+chapters.filter(chapter=>WWLongBookMemory.splitText(chapter.content).length>1).length+Math.ceil(chapters.length/WWLongBookMemory.DEFAULT_ARC_SIZE)+1;
-  if(!confirm(`将分块读取全部 ${chapters.length} 章，预计最多 ${estimatedCalls} 次模型请求；未改章节会复用已有章节记忆。原文不会写入记忆，只保存压缩结果。继续吗？`))return;
   const existing=projectLongBookMemories();
+  const estimatedCalls=WWLongBookMemory.estimateRequests({chapters,existingMemories:existing});
+  if(!confirm(`将分块读取全部 ${chapters.length} 章，预计约 ${estimatedCalls} 次模型请求；未改章节会复用已有章节记忆。超长章节和超多阶段会继续分层合并，不会塞进单次请求。原文不会写入记忆，只保存压缩结果。继续吗？`))return;
   setLongBookMemoryBusy(true);
   try{
     const result=await WWLongBookMemory.build({
