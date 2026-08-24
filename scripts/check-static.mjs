@@ -55,6 +55,11 @@ assert(!/<script(?![^>]*\bsrc=)[^>]*>/i.test(appHtml), 'workbench must not conta
 assert(workbenchSource.includes("DB_VER=5") && workbenchSource.includes("'notes'") && workbenchSource.includes("ensureIndex(st,'project_id','project_id')"), 'v5 browser database must include project-scoped notes and AI history');
 assert(workbenchSource.includes('flushActiveDocument') && workbenchSource.includes('importProjectBundleAtomic'), 'transactional editor switching and project import guards are missing');
 assert(workbenchSource.includes('version:6') && workbenchSource.includes('wwCorpusExport') && workbenchSource.includes('wwCorpusImport'), 'v6 project backups must carry corpus calibration profiles');
+for (const marker of ['classifyImportDocument', 'buildImportDataFromSources', 'setPendingImportSourceType', '文件内类型标记', 'Only the local parser and explicit project JSON']) {
+  assert(workbenchSource.includes(marker), `type-aware project import is missing: ${marker}`);
+}
+assert(workbenchSource.includes("chapters:[]") && workbenchSource.includes('不得输出 chapters 字段'), 'AI import analysis must be unable to manufacture prose chapters');
+assert(appHtml.includes('只补人物和缺失大纲，不创建或改写章节'), 'import preview must explain the AI chapter boundary');
 assert(workbenchSource.includes('function loadStoredApiConfig()'), 'browser API configuration loader is missing');
 assert(workbenchSource.includes('function loadSlot(n)'), 'multi-model slots must use the canonical scrubbed loader');
 assert(workbenchSource.includes('WW_BROWSER_API_MODE') && workbenchSource.includes("?'browser':'backend'"), 'Pages browser API mode is missing');

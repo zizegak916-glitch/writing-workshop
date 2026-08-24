@@ -2646,41 +2646,149 @@ async function parseDocx(arrayBuffer) {
   }
   return lines.join('\n');
 }
-// ═══ Smart Chapter Splitting ═══
+// ═══ Type-aware document import & chapter splitting ═══
+const IMPORT_TYPE_LABELS={manuscript:'正文章节',outline:'大纲',world_setting:'世界观',note:'笔记/资料'};
+function normalizeImportDocumentType(value){
+  const type=String(value||'').trim().toLowerCase().replace(/[\s.-]+/g,'_');
+  if(['outline','outlines','plot_outline','大纲'].includes(type))return'outline';
+  if(['world','worldbuilding','world_setting','setting','世界观','设定'].includes(type))return'world_setting';
+  if(['note','notes','reference','material','笔记','资料'].includes(type))return'note';
+  if(['chapter','chapters','manuscript','body','novel','正文','章节'].includes(type))return'manuscript';
+  return'';
+}
+function parseImportHint(text){
+  const source=String(text||'');
+  const match=source.match(/\[WRITING_WORKSHOP_IMPORT_HINT_V1\]([\s\S]*?)\[END_IMPORT_HINT\]/i);
+  if(!match)return{};
+  const hint={};
+  match[1].split(/\r?\n/).forEach(line=>{
+    const separator=line.indexOf('=');
+    if(separator<1)return;
+    hint[line.slice(0,separator).trim().toLowerCase()]=line.slice(separator+1).trim();
+  });
+  return hint;
+}
+function stripImportEnvelope(text){
+  return String(text||'')
+    .replace(/\[WRITING_WORKSHOP_IMPORT_HINT_V1\][\s\S]*?\[END_IMPORT_HINT\]\s*/ig,'')
+    .replace(/^\[(?:OUTLINE|WORLD_SETTING|MANUSCRIPT|NOTE)_CONTENT_(?:BEGIN|END)\]\s*$/gim,'')
+    .replace(/\r\n?/g,'\n')
+    .replace(/^\s+|\s+$/g,'');
+}
+function importFileBase(fileName){return String(fileName||'').replace(/\.[^.]+$/,'').trim()||'未命名资料';}
+function cleanImportedTitle(fileName){
+  return importFileBase(fileName)
+    .replace(/[_\s-]*(?:仅作大纲|仅作设定|禁止计入章节).*$/,'')
+    .replace(/[_\s-]+$/,'')||importFileBase(fileName);
+}
+function classifyImportDocument(fileName,text){
+  const hint=parseImportHint(text);
+  const hinted=normalizeImportDocumentType(hint.document_type||hint.type||hint.target);
+  if(hinted)return{type:hinted,reason:'文件内类型标记',projectName:String(hint.project||'').trim()};
+  if(/world[_\s.-]*setting|project\.world[_\s.-]*setting/i.test(String(hint.target||'')))return{type:'world_setting',reason:'文件内目标标记',projectName:String(hint.project||'').trim()};
+  const base=importFileBase(fileName);
+  if(/(?:世界观|世界设定|地域空间|地域母本|world\s*(?:building|setting)?)/i.test(base))return{type:'world_setting',reason:'文件名识别',projectName:''};
+  if(/(?:项目大纲|剧情大纲|故事大纲|大纲|outline|plot[_\s-]*plan)/i.test(base))return{type:'outline',reason:'文件名识别',projectName:''};
+  if(/(?:人物|角色|人设|笔记|资料|参考|考据|character|cast|note|reference)/i.test(base))return{type:'note',reason:'文件名识别',projectName:''};
+  if(/(?:正文|章节|稿件|manuscript|chapter|novel)/i.test(base))return{type:'manuscript',reason:'文件名识别',projectName:''};
+  const head=stripImportEnvelope(text).slice(0,2400);
+  if(/(?:《[^》]+》)?世界(?:观|设定)|九大地域|权威口径|地域核心/.test(head))return{type:'world_setting',reason:'本地内容识别',projectName:''};
+  if(/(?:《[^》]+》)?项目大纲|总主线|人物弧线|中期主线|终局方向/.test(head))return{type:'outline',reason:'本地内容识别',projectName:''};
+  return{type:'manuscript',reason:'默认按正文处理',projectName:''};
+}
+function chapterTitleFromLine(line){
+  const title=String(line||'').trim().replace(/^#{1,6}\s+/,'').trim();
+  if(!title||title.length>100)return'';
+  const suffix='(?:[\\s　:：｜|·.．\\-—]+.{0,80})?';
+  const chineseNumber='[一二三四五六七八九十百千万零〇两\\d]+';
+  if(new RegExp(`^第${chineseNumber}(?:章|回|节|篇)${suffix}$`).test(title))return title;
+  if(new RegExp(`^(?:序章|楔子|引子|前言|终章|尾声|后记)${suffix}$`).test(title))return title;
+  if(new RegExp(`^(?:chapter|section)\\s+\\d+${suffix}$`,'i').test(title))return title;
+  return'';
+}
 function splitIntoChapters(text) {
-  if (!text || !text.trim()) return [{ title: '未命名章节', content: text || '', word_count: 0 }];
-  const pattern = /(?:^|\n)(第[一二三四五六七八九十百千万零〇\d]+[章回卷部]|Chapter\s+\d+[.:：\s\-]*.*|CHAPTER\s+\d+[.:：\s\-]*.*|第[一二三四五六七八九十百千万零〇\d]+[节篇]|Section\s+\d+[.:：\s\-]*.*|#{1,3}\s+.+)/i;
-  const matches = [...text.matchAll(new RegExp(pattern.source, 'gm'))];
-  if (matches.length >= 2) {
-    const chapters = [];
-    for (let i = 0; i < matches.length; i++) {
-      const matchEnd = matches[i].index + matches[i][0].length;
-      let title = (matches[i][1] || matches[i][0]).trim().replace(/^#+\s*/, '');
-      const contentEnd = i + 1 < matches.length ? matches[i + 1].index : text.length;
-      const content = text.slice(matchEnd, contentEnd).trim();
-      if (content || title) chapters.push({ title, content, word_count: countWords(content) });
-    }
-    if (chapters.length >= 2) {
-      const preContent = text.slice(0, matches[0].index).trim();
-      if (countWords(preContent) > 50) chapters.unshift({ title: '序章', content: preContent, word_count: countWords(preContent) });
-      return chapters;
+  const source=String(text||'').replace(/\r\n?/g,'\n').trim();
+  if(!source)return[{title:'未命名章节',content:'',word_count:0}];
+  const headings=[];
+  let offset=0;
+  for(const line of source.split('\n')){
+    const title=chapterTitleFromLine(line);
+    if(title)headings.push({title,start:offset,end:offset+line.length});
+    offset+=line.length+1;
+  }
+  if(headings.length){
+    const chapters=[];
+    const preContent=source.slice(0,headings[0].start).trim();
+    if(countWords(preContent)>50)chapters.push({title:'序章',content:preContent,word_count:countWords(preContent)});
+    headings.forEach((heading,index)=>{
+      const contentEnd=index+1<headings.length?headings[index+1].start:source.length;
+      const content=source.slice(heading.end,contentEnd).trim();
+      if(content||heading.title)chapters.push({title:heading.title,content,word_count:countWords(content)});
+    });
+    if(chapters.length)return chapters;
+  }
+  return[{title:'全文',content:source,word_count:countWords(source)}];
+}
+function inferImportProjectName(sources){
+  const hinted=sources.map(source=>source.projectName).filter(Boolean);
+  if(hinted.length)return hinted[0];
+  if(sources.length===1)return sources[0].fileBase;
+  const prefixes=sources.map(source=>source.fileBase.split(/[_\s-]+/)[0]).filter(Boolean);
+  if(prefixes.length===sources.length&&prefixes.every(prefix=>prefix===prefixes[0])&&prefixes[0].length>1)return prefixes[0];
+  return sources[0]?.fileBase||'未命名项目';
+}
+function buildImportDataFromSources(sources,name=''){
+  const chapters=[],outlines=[],notes=[],worldParts=[];
+  for(const source of sources){
+    const content=source.content||'';
+    if(source.type==='outline')outlines.push({title:source.title,content,sort_order:outlines.length});
+    else if(source.type==='world_setting')worldParts.push({title:source.title,content});
+    else if(source.type==='note')notes.push({title:source.title,content,sort_order:notes.length});
+    else{
+      const split=splitIntoChapters(content);
+      split.forEach(chapter=>chapters.push({
+        title:split.length===1&&chapter.title==='全文'?source.title:chapter.title,
+        content:chapter.content,
+        word_count:chapter.word_count||countWords(chapter.content||''),
+        sort_order:chapters.length
+      }));
     }
   }
-  return [{ title: '全文', content: text.trim(), word_count: countWords(text) }];
+  const world_setting=worldParts.map((part,index)=>worldParts.length>1?`【${part.title}】\n${part.content}`:part.content).join('\n\n');
+  return{
+    name:name||inferImportProjectName(sources),chapters,outlines,notes,world_setting,
+    world_setting_sources:worldParts.length,sources,created_at:Date.now()
+  };
 }
 // ═══ Import Preview & Confirm ═══
 let pendingImportData = null;
 function showImportPreview(importData) {
   pendingImportData = importData;
-  const totalWords = importData.chapters.reduce((s, c) => s + (c.word_count || countWords(c.content || '')), 0);
-  const chapterCount = importData.chapters.length;
+  const totalWords=(importData.chapters||[]).reduce((sum,chapter)=>sum+(chapter.word_count||countWords(chapter.content||'')),0);
+  const chapterCount=(importData.chapters||[]).length;
+  const outlineCount=(importData.outlines||[]).length;
+  const worldCount=importData.world_setting_sources||0;
+  const noteCount=(importData.notes||[]).length;
   let h = '<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:16px">';
-  h += '<div style="display:flex;gap:24px;margin-bottom:12px">';
+  h += '<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:12px">';
   h += '<div><div style="font-size:24px;font-weight:700;color:var(--accent)">' + chapterCount + '</div><div style="font-size:11px;color:var(--text-hint)">章节</div></div>';
-  h += '<div><div style="font-size:24px;font-weight:700;color:var(--accent)">' + totalWords + '</div><div style="font-size:11px;color:var(--text-hint)">总字数</div></div>';
+  h += '<div><div style="font-size:24px;font-weight:700;color:var(--accent)">' + outlineCount + '</div><div style="font-size:11px;color:var(--text-hint)">大纲</div></div>';
+  h += '<div><div style="font-size:24px;font-weight:700;color:var(--accent)">' + worldCount + '</div><div style="font-size:11px;color:var(--text-hint)">世界观资料</div></div>';
+  h += '<div><div style="font-size:24px;font-weight:700;color:var(--accent)">' + noteCount + '</div><div style="font-size:11px;color:var(--text-hint)">笔记资料</div></div>';
+  h += '<div><div style="font-size:24px;font-weight:700;color:var(--accent)">' + totalWords + '</div><div style="font-size:11px;color:var(--text-hint)">正文字数</div></div>';
   h += '</div>';
-  if (chapterCount <= 10) {
-    h += '<div style="max-height:120px;overflow-y:auto">';
+  if(importData.sources?.length){
+    h+='<div style="font-size:12px;font-weight:700;margin:4px 0 8px">资料分流（可修改）</div><div style="max-height:180px;overflow:auto">';
+    importData.sources.forEach((source,index)=>{
+      const options=Object.entries(IMPORT_TYPE_LABELS).map(([value,label])=>'<option value="'+value+'"'+(source.type===value?' selected':'')+'>'+label+'</option>').join('');
+      h+='<div style="display:grid;grid-template-columns:minmax(0,1fr) 110px;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)"><div style="min-width:0"><div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+escapeHtml(source.fileName)+'</div><div style="font-size:10px;color:var(--text-hint)">'+escapeHtml(source.reason||'手动指定')+'</div></div><select class="form-input" style="padding:7px" onchange="setPendingImportSourceType('+index+',this.value)">'+options+'</select></div>';
+    });
+    h+='</div>';
+  }
+  if (chapterCount === 0) {
+    h += '<div style="font-size:12px;color:var(--text-hint);margin-top:12px">当前没有正文章节；可以只导入大纲、世界观或笔记。</div>';
+  } else if (chapterCount <= 10) {
+    h += '<div style="font-size:12px;font-weight:700;margin:12px 0 6px">正文章节预览</div><div style="max-height:140px;overflow-y:auto">';
     importData.chapters.forEach((c, i) => {
       h += '<div style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:12px;border-bottom:1px solid var(--border)">';
       h += '<span style="color:var(--text-muted)">' + (i + 1) + '.</span>';
@@ -2696,6 +2804,17 @@ function showImportPreview(importData) {
   document.getElementById('importPreviewContent').innerHTML = h;
   document.getElementById('importProjectName').value = importData.name || '';
   openModal('importPreviewModal');
+}
+function setPendingImportSourceType(index,type){
+  if(!pendingImportData?.sources?.[index])return;
+  const normalized=normalizeImportDocumentType(type);
+  if(!normalized)return;
+  const projectName=document.getElementById('importProjectName')?.value.trim()||pendingImportData.name;
+  const autoAnalyze=document.getElementById('importAutoAnalyzeVal')?.value||'1';
+  pendingImportData.sources[index].type=normalized;
+  pendingImportData.sources[index].reason='手动指定';
+  showImportPreview(buildImportDataFromSources(pendingImportData.sources,projectName));
+  document.getElementById('importAutoAnalyzeVal').value=autoAnalyze;
 }
 async function confirmImport() {
   if (!pendingImportData) return;
@@ -2765,9 +2884,8 @@ async function importProject(e) {
     e.target.value = '';
     return;
   }
-  // Multi-file or non-JSON: show preview
-  const allChapters = [];
-  let projectName = '';
+  // Multi-file or non-JSON: classify locally before creating project records.
+  const sources=[];
   for (const f of files) {
     try {
       const ext = (f.name || '').split('.').pop().toLowerCase();
@@ -2779,28 +2897,19 @@ async function importProject(e) {
         text = await f.text();
       }
       if (!text.trim()) continue;
-      const chapters = splitIntoChapters(text);
-      const fileBase = (f.name || '').replace(/\.[^.]+$/, '');
-      if (files.length === 1 && !projectName) projectName = fileBase;
-      chapters.forEach((ch) => {
-        allChapters.push({
-          title: chapters.length === 1 ? fileBase : ch.title,
-          content: ch.content,
-          word_count: ch.word_count || countWords(ch.content || ''),
-          sort_order: allChapters.length
-        });
+      const classification=classifyImportDocument(f.name,text);
+      sources.push({
+        fileName:f.name,fileBase:importFileBase(f.name),title:cleanImportedTitle(f.name),
+        content:stripImportEnvelope(text),type:classification.type,reason:classification.reason,
+        projectName:classification.projectName||''
       });
     } catch (err) {
       console.warn('Failed to read file:', f.name, err);
       showToast('✕', '读取失败: ' + f.name);
     }
   }
-  if (allChapters.length === 0) { showToast('✕', '未检测到有效内容'); e.target.value = ''; return; }
-  showImportPreview({
-    name: projectName || files[0]?.name?.replace(/\.[^.]+$/, '') || '未命名项目',
-    chapters: allChapters,
-    created_at: Date.now()
-  });
+  if(!sources.length){showToast('✕','未检测到有效内容');e.target.value='';return;}
+  showImportPreview(buildImportDataFromSources(sources));
   e.target.value = '';
 }
 
@@ -2810,12 +2919,12 @@ function collectProjectText(proj){
   const p=proj.project||{};
   if(p.name)parts.push('项目：'+p.name);
   if(p.genre)parts.push('类型：'+p.genre);
-  if(p.description)parts.push('简介：'+p.description);
-  if(p.world_setting)parts.push('世界观：'+p.world_setting);
-  (proj.outlines||[]).forEach(o=>parts.push('【大纲】'+(o.title||'')+'\n'+(o.content||'')));
-  (proj.characters||[]).forEach(c=>parts.push('【人物】'+[c.name,c.role,c.personality,c.background,c.appearance,c.skills].filter(Boolean).join(' / ')));
-  (proj.chapters||[]).forEach(c=>parts.push('【章节】'+(c.title||'')+'\n'+(c.content||'')));
-  (proj.notes||[]).forEach(note=>parts.push('【笔记】'+(note.title||'')+'\n'+(note.content||'')));
+  if(p.description)parts.push('简介：'+String(p.description).slice(0,1200));
+  (proj.characters||[]).forEach(c=>parts.push('【已有人物】'+[c.name,c.role,c.personality,c.background,c.appearance,c.skills].filter(Boolean).join(' / ')));
+  if(p.world_setting)parts.push('【世界观资料，不是章节】\n'+String(p.world_setting).slice(0,5000));
+  (proj.outlines||[]).slice(0,4).forEach(o=>parts.push('【已有大纲，不是章节】'+(o.title||'')+'\n'+String(o.content||'').slice(0,4000)));
+  (proj.chapters||[]).slice(0,12).forEach(c=>parts.push('【已解析正文章节】'+(c.title||'')+'\n'+String(c.content||'').slice(0,1400)));
+  (proj.notes||[]).slice(0,4).forEach(note=>parts.push('【笔记资料，不是章节】'+(note.title||'')+'\n'+String(note.content||'').slice(0,1200)));
   return parts.join('\n\n').slice(0,24000);
 }
 function parseAiImportAnalysis(text){
@@ -2825,51 +2934,49 @@ function parseAiImportAnalysis(text){
   try{return JSON.parse(m[0]);}catch{return null;}
 }
 function fallbackImportAnalysis(proj){
-  const p=proj.project||{},chapters=proj.chapters||[],text=collectProjectText(proj);
+  const chapters=proj.chapters||[];
   const outlines=[];
-  if(text.trim())outlines.push({title:p.name||t('outline-new'),content:text.slice(0,800)});
-  const generatedChapters=[];
-  if(!chapters.length&&text.trim()){
-    const sections=text.split(/(?:^|\n)(?:第[一二三四五六七八九十百千万0-9]+[章节回]|chapter\s+\d+)[:：\s-]*/i).filter(x=>x.trim().length>80).slice(0,12);
-    (sections.length?sections:[text]).forEach((content,i)=>generatedChapters.push({title:(i+1)+'. '+(content.trim().split('\n')[0]||t('chapter-new')).slice(0,40),content:content.trim().slice(0,4000)}));
+  if(!(proj.outlines||[]).length&&chapters.length){
+    outlines.push({title:'章节目录',content:chapters.map((chapter,index)=>(index+1)+'. '+(chapter.title||t('chapter-new'))).join('\n')});
   }
-  return {outlines,characters:[],chapters:generatedChapters};
+  return{outlines,characters:[],chapters:[]};
 }
 async function applyImportAnalysis(projectId,analysis){
   if(!analysis)return 0;
-  const [os,cs,chs]=await Promise.all([dbByIndex('outlines','project_id',projectId),dbByIndex('characters','project_id',projectId),dbByIndex('chapters','project_id',projectId)]);
+  const [os,cs]=await Promise.all([dbByIndex('outlines','project_id',projectId),dbByIndex('characters','project_id',projectId)]);
   const now=Date.now();let added=0;
   const outlineTitles=new Set(os.map(o=>(o.title||'').trim().toLowerCase()));
-  for(const [i,o] of (analysis.outlines||[]).slice(0,12).entries()){
-    const title=String(o.title||t('outline-new')).trim().slice(0,80);
-    if(!title||outlineTitles.has(title.toLowerCase()))continue;
-    await dbPut('outlines',{project_id:projectId,title,content:String(o.content||o.summary||'').trim(),sort_order:os.length+i,created_at:now,updated_at:now});added++;
+  if(!os.length){
+    for(const [i,o] of (analysis.outlines||[]).slice(0,12).entries()){
+      const title=String(o.title||t('outline-new')).trim().slice(0,80);
+      if(!title||outlineTitles.has(title.toLowerCase()))continue;
+      await dbPut('outlines',{project_id:projectId,title,content:String(o.content||o.summary||'').trim(),sort_order:os.length+i,created_at:now,updated_at:now});
+      outlineTitles.add(title.toLowerCase());added++;
+    }
   }
   const charNames=new Set(cs.map(c=>(c.name||'').trim().toLowerCase()));
   for(const c of (analysis.characters||[]).slice(0,24)){
     const name=String(c.name||'').trim().slice(0,40);
     if(!name||charNames.has(name.toLowerCase()))continue;
-    await dbPut('characters',{project_id:projectId,name,role:String(c.role||'').slice(0,30),personality:String(c.personality||'').slice(0,500),background:String(c.background||'').slice(0,800),appearance:String(c.appearance||'').slice(0,500),skills:String(c.skills||'').slice(0,500),created_at:now});added++;
+    await dbPut('characters',{project_id:projectId,name,role:String(c.role||'').slice(0,30),personality:String(c.personality||'').slice(0,500),background:String(c.background||'').slice(0,800),appearance:String(c.appearance||'').slice(0,500),skills:String(c.skills||'').slice(0,500),created_at:now});
+    charNames.add(name.toLowerCase());added++;
   }
-  const chapterTitles=new Set(chs.map(c=>(c.title||'').trim().toLowerCase()));
-  for(const [i,c] of (analysis.chapters||[]).slice(0,40).entries()){
-    const title=String(c.title||t('chapter-new')).trim().slice(0,80);
-    if(!title||chapterTitles.has(title.toLowerCase()))continue;
-    const content=String(c.content||c.summary||'').trim();
-    await dbPut('chapters',{project_id:projectId,title,content,word_count:countWords(content),sort_order:chs.length+i,created_at:now,updated_at:now});added++;
-  }
+  // AI may summarize or label imported prose, but summaries are never project chapters.
+  // Only the local parser and explicit project JSON are allowed to create chapter records.
   return added;
 }
 async function autoAnalyzeImportedProject(projectId){
   const p=await dbGet('projects',projectId);if(!p)return;
-  const proj={project:p,outlines:await dbByIndex('outlines','project_id',projectId),characters:await dbByIndex('characters','project_id',projectId),chapters:await dbByIndex('chapters','project_id',projectId)};
+  const proj={project:p,outlines:await dbByIndex('outlines','project_id',projectId),characters:await dbByIndex('characters','project_id',projectId),chapters:await dbByIndex('chapters','project_id',projectId),notes:await dbByIndex('notes','project_id',projectId)};
   const source=collectProjectText(proj);if(!source.trim())return;
   showToast('⊕',t('toast-import-scan'));
   let analysis=null;
   if(aiHasConfig(S.apiConfig)){
     try{
-      const prompt='请扫描以下导入的写作项目内容，识别并补全项目结构。只输出严格 JSON，不要 Markdown。JSON 格式：{"outlines":[{"title":"","content":""}],"characters":[{"name":"","role":"","personality":"","background":"","appearance":"","skills":""}],"chapters":[{"title":"","summary":""}]}。如果项目已经有章节/人物/大纲，也请根据内容识别可能缺失的条目，避免重复。\n\n'+source;
-      analysis=parseAiImportAnalysis(await callAI(prompt,S.apiConfig,'你是写作项目导入分析助手，负责从文本中提取大纲、人物和章节结构。'));
+      const needsOutline=!proj.outlines.length;
+      const prompt='请分析以下已经由本地导入器分流的写作项目，只补全明确缺失的人物'+(needsOutline?'和一份项目大纲':'')+'。只输出严格 JSON，不要 Markdown。JSON 格式：{"outlines":[{"title":"","content":""}],"characters":[{"name":"","role":"","personality":"","background":"","appearance":"","skills":""}]}。硬性规则：标为“已有大纲”“世界观资料”“笔记资料”的内容都不是正文章节；现有章节已由本地解析完成；不得输出 chapters 字段，不得把章节摘要、标题列表或规划节点写成正文，不得补写原文。已有大纲时 outlines 必须为空；人物未知字段留空，不要猜测。\n\n'+source;
+      analysis=parseAiImportAnalysis(await callAI(prompt,S.apiConfig,'你是写作项目导入分析助手。你只能整理明确人物事实，并在缺少大纲时生成大纲；你无权创建、改写或补写正文章节。'));
+      if(analysis){analysis.chapters=[];if(!needsOutline)analysis.outlines=[];}
     }catch(err){console.warn('import analysis failed',err);}
   }
   if(!analysis)analysis=fallbackImportAnalysis(proj);

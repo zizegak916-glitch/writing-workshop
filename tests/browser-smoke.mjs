@@ -36,6 +36,108 @@ try {
   await page.waitForFunction(() => document.getElementById('workflowServiceLink'));
   assert.equal(await page.locator('#workflowServiceLink').getAttribute('hidden'), null, 'self-hosted workflow may link to the local service console');
 
+  const importRouting = await page.evaluate(() => {
+    const outlineText = `[WRITING_WORKSHOP_IMPORT_HINT_V1]
+project=续人间
+document_type=outline
+target=outlines
+must_not_create_chapters=true
+[END_IMPORT_HINT]
+
+[OUTLINE_CONTENT_BEGIN]
+《续人间》项目大纲
+总主线
+第23章之后，调查由追线转为破局。
+第一卷后半冲突进入巨楔争夺。
+[OUTLINE_CONTENT_END]`;
+    const worldText = `《续人间》世界地域空间母本
+一、权威口径
+九大地域固定，地域颜色不表示主权。`;
+    const bodyText = `序章 白日之后
+
+陈亦醒来时，左手腕上刻着两个已经结痂的字。这里的人把容易忘掉的事情刻在木桩和门板上。
+
+第一章 尾水
+
+他在旧渠尾水醒来，先确认勒痕、车辙和草席留下的搬运痕迹。
+
+第二章 肉车
+
+肉车沿着城门前的桥进入九津，查验的人只看见一个浑身泥血的活人。
+
+第三章　空盒
+
+住处的暗槽已经空了，留下的一长一短两道压痕还没有消失。`;
+    const rawSources = [
+      ['续人间_01_项目大纲_仅作大纲_禁止计入章节.txt', outlineText],
+      ['续人间_02_世界观母本_仅作设定_禁止计入章节.txt', worldText],
+      ['续人间_03_重写正文_序章至第三章.txt', bodyText]
+    ];
+    const sources = rawSources.map(([fileName, text]) => {
+      const classification = classifyImportDocument(fileName, text);
+      return {
+        fileName,
+        fileBase: importFileBase(fileName),
+        title: cleanImportedTitle(fileName),
+        content: stripImportEnvelope(text),
+        type: classification.type,
+        reason: classification.reason,
+        projectName: classification.projectName
+      };
+    });
+    const result = buildImportDataFromSources(sources);
+    return {
+      name: result.name,
+      sourceTypes: result.sources.map(source => source.type),
+      chapters: result.chapters.map(chapter => chapter.title),
+      outlines: result.outlines.length,
+      worldSources: result.world_setting_sources,
+      worldContains: result.world_setting.includes('九大地域固定'),
+      outlineContainsHint: result.outlines[0].content.includes('WRITING_WORKSHOP_IMPORT_HINT'),
+      falseHeadings: [chapterTitleFromLine('第23章之后，调查由追线转为破局。'), chapterTitleFromLine('第一卷后半冲突进入巨楔争夺。')]
+    };
+  });
+  assert.equal(importRouting.name, '续人间');
+  assert.deepEqual(importRouting.sourceTypes, ['outline', 'world_setting', 'manuscript']);
+  assert.deepEqual(importRouting.chapters, ['序章 白日之后', '第一章 尾水', '第二章 肉车', '第三章　空盒']);
+  assert.equal(importRouting.outlines, 1);
+  assert.equal(importRouting.worldSources, 1);
+  assert.equal(importRouting.worldContains, true);
+  assert.equal(importRouting.outlineContainsHint, false, 'machine import hints must not pollute stored outline content');
+  assert.deepEqual(importRouting.falseHeadings, ['', ''], 'outline prose and volume descriptions must not become chapter headings');
+
+  const importAiGuard = await page.evaluate(async () => {
+    const now = Date.now();
+    const projectId = await importProjectBundleAtomic({
+      version: 6,
+      project: { name: '导入 AI 防重复验收', created_at: now },
+      outlines: [{ title: '现有大纲', content: '已经导入的大纲' }],
+      characters: [],
+      chapters: [{ title: '第一章 尾水', content: '完整正文内容应当保留。' }],
+      notes: [], memories: [], history: [], categories: []
+    });
+    const added = await applyImportAnalysis(projectId, {
+      outlines: [{ title: 'AI 重复大纲', content: '不应写入' }],
+      characters: [{ name: '陈亦', role: '主角' }],
+      chapters: [{ title: '第一章', summary: '几十字摘要不应成为新章节' }]
+    });
+    const result = {
+      added,
+      outlines: (await dbByIndex('outlines', 'project_id', projectId)).map(item => item.title),
+      characters: (await dbByIndex('characters', 'project_id', projectId)).map(item => item.name),
+      chapters: (await dbByIndex('chapters', 'project_id', projectId)).map(item => item.title)
+    };
+    for (const store of ['outlines', 'characters', 'chapters', 'notes', 'aiMemories', 'aiHistory']) {
+      for (const row of await dbByIndex(store, 'project_id', projectId)) await dbDel(store, row.id);
+    }
+    await dbDel('projects', projectId);
+    return result;
+  });
+  assert.equal(importAiGuard.added, 1);
+  assert.deepEqual(importAiGuard.outlines, ['现有大纲']);
+  assert.deepEqual(importAiGuard.characters, ['陈亦']);
+  assert.deepEqual(importAiGuard.chapters, ['第一章 尾水'], 'AI summaries must never create duplicate prose chapters');
+
   await page.evaluate(() => {
     localStorage.setItem('ww_api', JSON.stringify({ provider: 'openai', model: 'legacy-model', key: 'legacy-secret', baseUrl: 'https://example.invalid/v1' }));
     localStorage.setItem('ww_slot1', JSON.stringify({ enabled: true, preset: 'openai', model: 'legacy-model', key: 'legacy-slot-secret', url: 'https://example.invalid/v1' }));

@@ -800,7 +800,7 @@
 </div></div>
 <!-- Import Preview Modal -->
 <div class="modal-overlay" id="importPreviewModal"><div class="modal">
-  <div class="modal-title">📥 导入预览</div><div class="modal-sub">确认导入设置</div>
+  <div class="modal-title">📥 导入预览</div><div class="modal-sub">先核对每个文件进入正文、大纲、世界观还是笔记；识别错误可以手动修改</div>
   <div id="importPreviewContent" style="margin-bottom:12px"></div>
   <div class="form-row"><div class="form-label">项目名称</div><input class="form-input" id="importProjectName" placeholder="输入项目名称"></div>
   <div class="form-row"><div class="form-label">AI 自动分析</div>
@@ -810,7 +810,7 @@
         <button class="seg-btn" onclick="document.getElementById('importAnalyzeToggle').querySelectorAll('.seg-btn').forEach(b=>b.classList.remove('on'));this.classList.add('on');document.getElementById('importAutoAnalyzeVal').value='0'">关闭</button>
       </div>
       <input type="hidden" id="importAutoAnalyzeVal" value="1">
-      <span style="font-size:11px;color:var(--text-hint)">导入后自动识别人物、大纲等</span>
+      <span style="font-size:11px;color:var(--text-hint)">只补人物和缺失大纲，不创建或改写章节</span>
     </div>
   </div>
   <div class="modal-footer"><button class="btn-cancel" onclick="closeModal('importPreviewModal')">取消</button><button class="btn-confirm" onclick="confirmImport()">确认导入 ✓</button></div>
@@ -857,7 +857,7 @@
 <script src="js/prompt-skills.js"></script>
 <script src="js/corpus-lab.js"></script>
 <script src="js/api-adapter.js"></script>
-<script src="js/workbench.js"></script>
+<script src="js/workbench.js?v=20260824-import-routing"></script>
 <script src="js/workflows.js"></script>
 <script src="js/recursive.js"></script>
 <script src="js/product-extensions.js"></script>
