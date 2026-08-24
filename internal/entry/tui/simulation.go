@@ -187,13 +187,13 @@ func (m Model) handleSimulationKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.simulator = nil
 		return m, m.textarea.Focus()
 	case tea.KeyUp:
-		m.simulator.viewport.ScrollUp(1)
+		m.simulator.viewport.LineUp(1)
 	case tea.KeyDown:
-		m.simulator.viewport.ScrollDown(1)
+		m.simulator.viewport.LineDown(1)
 	case tea.KeyPgUp:
-		m.simulator.viewport.HalfPageUp()
+		m.simulator.viewport.HalfViewUp()
 	case tea.KeyPgDown:
-		m.simulator.viewport.HalfPageDown()
+		m.simulator.viewport.HalfViewDown()
 	}
 	return m, nil
 }

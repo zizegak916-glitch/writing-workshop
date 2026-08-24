@@ -98,16 +98,16 @@ func (m Model) handleHelpKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.help = nil
 		return m, m.textarea.Focus()
 	case tea.KeyUp:
-		m.help.viewport.ScrollUp(1)
+		m.help.viewport.LineUp(1)
 		return m, nil
 	case tea.KeyDown:
-		m.help.viewport.ScrollDown(1)
+		m.help.viewport.LineDown(1)
 		return m, nil
 	case tea.KeyPgUp:
-		m.help.viewport.HalfPageUp()
+		m.help.viewport.HalfViewUp()
 		return m, nil
 	case tea.KeyPgDown:
-		m.help.viewport.HalfPageDown()
+		m.help.viewport.HalfViewDown()
 		return m, nil
 	default:
 		return m, nil

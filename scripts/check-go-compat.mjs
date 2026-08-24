@@ -42,6 +42,7 @@ for (const file of walk(root)) {
   const relative = path.relative(root, file);
   const source = fs.readFileSync(file, 'utf8');
   assert(!/strings\.(?:SplitSeq|FieldsSeq)\b/.test(source), `${relative} uses a post-Go-1.21 iterator API`);
+  assert(!/\.(?:ScrollUp|ScrollDown|HalfPageUp|HalfPageDown)\(/.test(source), `${relative} uses a viewport API newer than the Go-1.21 dependency line`);
   assert(!/for\s+(?:(?:[A-Za-z_]\w*)\s*:=\s*)?range\s+\d+\b/.test(source), `${relative} uses Go 1.22 integer range syntax`);
   assert(!/for\s+(?:[A-Za-z_]\w*)\s*:=\s*range\s+[A-Za-z_]\w*\s*[+\-*/]\s*\d+\b/.test(source), `${relative} uses Go 1.22 integer range syntax`);
 }

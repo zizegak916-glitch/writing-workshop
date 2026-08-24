@@ -187,13 +187,13 @@ func (m Model) handleImportKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.importer = nil
 		return m, m.textarea.Focus()
 	case tea.KeyUp:
-		m.importer.viewport.ScrollUp(1)
+		m.importer.viewport.LineUp(1)
 	case tea.KeyDown:
-		m.importer.viewport.ScrollDown(1)
+		m.importer.viewport.LineDown(1)
 	case tea.KeyPgUp:
-		m.importer.viewport.HalfPageUp()
+		m.importer.viewport.HalfViewUp()
 	case tea.KeyPgDown:
-		m.importer.viewport.HalfPageDown()
+		m.importer.viewport.HalfViewDown()
 	}
 	return m, nil
 }

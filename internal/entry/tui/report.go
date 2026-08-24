@@ -354,16 +354,16 @@ func (m Model) handleReportKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.report = nil
 		return m, m.textarea.Focus()
 	case tea.KeyUp:
-		m.report.viewport.ScrollUp(1)
+		m.report.viewport.LineUp(1)
 		return m, nil
 	case tea.KeyDown:
-		m.report.viewport.ScrollDown(1)
+		m.report.viewport.LineDown(1)
 		return m, nil
 	case tea.KeyPgUp:
-		m.report.viewport.HalfPageUp()
+		m.report.viewport.HalfViewUp()
 		return m, nil
 	case tea.KeyPgDown:
-		m.report.viewport.HalfPageDown()
+		m.report.viewport.HalfViewDown()
 		return m, nil
 	default:
 		return m, nil
