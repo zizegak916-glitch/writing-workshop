@@ -389,13 +389,13 @@
     <h3>2. 配置 API</h3>
     <ol><li>进入「设置 → API」。</li><li>填写模型、Base URL、Key 和协议；无 Key 服务选“无鉴权”。</li><li>先测试，成功后保存。Pages 直连需要目标接口允许浏览器 CORS。</li></ol>
     <h3>3. 生成并确认候选</h3>
-    <ol><li>选中文本，再选择润色、续写、改写、对白或其他功能。</li><li>只加入本次需要的项目、大纲、人物、笔记与记忆，检查上下文预算。</li><li>生成结果先留在候选区，再决定替换、插入、追加、复制或记入记忆。</li></ol>
+    <ol><li>选择“智能长篇、当前文档、当前选区或全书原文”阅读范围，再选择润色、续写、改写、对白或其他功能。</li><li>长篇首次使用先点“更新全书记忆”：它会分块读完每个章节，保存章节、阶段和全书压缩记录；未改章节下次复用。</li><li>检查上下文预算。全书原文放不下时会明确阻止，不会截掉前文后假装读完。</li><li>生成结果先留在候选区，再决定替换、插入、追加、复制或记入记忆。</li></ol>
     <h3>4. 真实网文指导库</h3>
     <ol><li>进入「流程 → 真实网文指导库」。</li><li>导入有权分析的 TXT / MD / DOCX，确认权限后点「本地完整分析」。</li><li>查看综合总结、指标和带适用范围/证据/例外的指导卡。</li><li>可选「AI 深度分析」只发送约 1.8 万字以内的分层抽样；不点击就不发送原文。</li><li>保持档案启用，相关卡片会在润色、续写、对白、节奏等任务中动态调用。</li></ol>
     <h3>5. Prompt Skill</h3>
     <p>在「流程 → 内置 Prompt Skill」查看每个功能的提示词。指导库可生成“修改旧指导块、追加、完整替换”三种候选；预览可编辑，确认后生效，并可按 Skill 精确回退。</p>
     <h3>6. 统一记忆</h3>
-    <p>手工内容、写作/快捷/流程候选、语料总结、指导卡和提示词候选都能进入同一记忆表单。保存前检查标题、分类、来源、项目范围和内容；一次性命令放补充指令，不要存成长期记忆。</p>
+    <p>手工内容、写作/快捷/流程候选、语料总结、指导卡、提示词候选和长篇分层记忆都进入项目记忆。长篇只保存压缩记录，不保存重复原文；保存前仍要检查人物知识边界、矛盾事实和未决伏笔。</p>
     <h3>7. Pages 与自部署</h3>
     <ul><li><strong>Pages：</strong>项目、Prompt Skill、分析档案与 API 配置保存在当前浏览器。</li><li><strong>自部署：</strong>增加服务端 Key、后端 Skill、Go 语料 API、SSE 与后台记忆。</li><li>浏览器与后端不会静默双向同步；需要迁移时显式导入/导出。</li></ul>
     <h3>8. 手机端</h3>
@@ -536,6 +536,16 @@
       <div class="ai-panel-body">
         <div id="aiTab-modes">
           <div id="aiModeGrid"></div>
+          <div class="long-context-control">
+            <div class="long-context-head"><label for="aiContextMode">阅读范围</label><button type="button" onclick="updateLongBookMemory()">更新全书记忆</button></div>
+            <select id="aiContextMode" onchange="setAIContextMode(this.value)">
+              <option value="smart">智能长篇：全书记忆 + 当前章节</option>
+              <option value="current">当前章节 / 当前文档</option>
+              <option value="selection">仅当前选区</option>
+              <option value="full">全书原文（仅容量允许时）</option>
+            </select>
+            <div class="long-context-status" id="longContextStatus">尚未建立全书记忆；当前先使用章节与人工记忆。</div>
+          </div>
           <div class="param-row"><div class="param-label" data-i18n="ap-temp">创意度</div><div class="seg-ctrl"><button class="seg-btn" data-i18n="param-strict" onclick="setTemp('low',this)">严谨</button><button class="seg-btn on" data-i18n="param-balance" onclick="setTemp('mid',this)">平衡</button><button class="seg-btn" data-i18n="param-creative" onclick="setTemp('high',this)">创意</button></div></div>
           <div class="param-row"><div class="param-label" data-i18n="ap-len">输出长度</div><div class="seg-ctrl"><button class="seg-btn" data-i18n="param-short" onclick="setLen('short',this)">短</button><button class="seg-btn" data-i18n="param-medium" onclick="setLen('mid',this)">中</button><button class="seg-btn on" data-i18n="param-long" onclick="setLen('long',this)">长</button><button class="seg-btn" data-i18n="param-xlong" onclick="setLen('xl',this)">超长</button></div></div>
         </div>
@@ -547,6 +557,14 @@
             <button onclick="wwStageMemory('',{title:'',category:'note',source:'manual'})" style="background:var(--accent-glow);border:1px solid var(--accent-dim);color:var(--accent);padding:4px 10px;border-radius:var(--radius-sm);font-size:11px;cursor:pointer;font-family:var(--font-sans)">＋ 添加</button>
           </div>
           <div style="font-size:10px;color:var(--text-hint);margin-bottom:8px;line-height:1.5">记忆内容会在每次AI生成时自动注入提示词，让AI了解你的剧情设定、写作风格偏好等。</div>
+          <div class="longbook-memory-card">
+            <div><strong>长篇分层记忆</strong><span id="longBookMemoryStatus">尚未生成。系统会分块读完全部章节，再压缩为章节、阶段和全书记忆。</span></div>
+            <button type="button" id="longBookMemoryBtn" onclick="updateLongBookMemory()">读取全书并更新</button>
+          </div>
+          <details class="longbook-memory-audit">
+            <summary id="longBookMemoryAuditSummary">压缩记录 · 尚无</summary>
+            <div id="longBookMemoryAuditList">更新全书记忆后，可在这里核对每章和每个阶段的覆盖记录。</div>
+          </details>
           <div id="memoryList"></div>
         </div>
       </div>
@@ -590,6 +608,16 @@
 <div class="mobile-panel" id="mp-notes"><div id="mpNoteList"></div><button class="add-item-btn" onclick="addNote()">＋ 添加笔记</button></div>
 <div class="mobile-panel" id="mp-ai" style="padding:0">
   <div style="padding:12px"><div id="mpAiModeGrid"></div>
+  <div class="long-context-control long-context-control-mobile">
+    <div class="long-context-head"><label for="mpAiContextMode">阅读范围</label><button type="button" onclick="updateLongBookMemory()">更新记忆</button></div>
+    <select id="mpAiContextMode" onchange="setAIContextMode(this.value)">
+      <option value="smart">智能长篇：全书记忆 + 当前章节</option>
+      <option value="current">当前章节 / 当前文档</option>
+      <option value="selection">仅当前选区</option>
+      <option value="full">全书原文（容量允许）</option>
+    </select>
+    <div class="long-context-status" id="mpLongContextStatus">尚未建立全书记忆。</div>
+  </div>
   <div class="param-row"><div class="param-label" data-i18n="ap-temp">创意度</div><div class="seg-ctrl"><button class="seg-btn" data-i18n="param-strict" onclick="setTemp('low',this)">严谨</button><button class="seg-btn on" data-i18n="param-balance" onclick="setTemp('mid',this)">平衡</button><button class="seg-btn" data-i18n="param-creative" onclick="setTemp('high',this)">创意</button></div></div>
   <div class="param-row"><div class="param-label" data-i18n="ap-len">输出长度</div><div class="seg-ctrl"><button class="seg-btn" data-i18n="param-short" onclick="setLen('short',this)">短</button><button class="seg-btn" data-i18n="param-medium" onclick="setLen('mid',this)">中</button><button class="seg-btn on" data-i18n="param-long" onclick="setLen('long',this)">长</button><button class="seg-btn" data-i18n="param-xlong" onclick="setLen('xl',this)">超长</button></div></div>
   <div class="ai-prompt-area"><label data-i18n="ap-prompt">补充指令</label><textarea id="mpAiPrompt" data-i18n-ph="ap-prompt-ph" placeholder="可选：输入额外要求..." oninput="updateContextBar()"></textarea></div>
@@ -858,6 +886,7 @@
 <script src="js/ai-task-contract.js?v=20260824-longtext"></script>
 <script src="js/corpus-lab.js"></script>
 <script src="js/api-adapter.js"></script>
+<script src="js/longbook-memory.js?v=20260824-fullbook"></script>
 <script src="js/workbench.js?v=20260824-longtext-corpus-clean"></script>
 <script src="js/workflows.js"></script>
 <script src="js/recursive.js"></script>

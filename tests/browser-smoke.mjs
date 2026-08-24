@@ -52,7 +52,7 @@ try {
       polluted: profile.cleaned_text.includes('qidian.com') || profile.cleaned_text.includes('adv2') || profile.cleaned_text.includes('求月票')
     };
   });
-  assert.equal(aiAndDirtyTextContract.taskCount, 52);
+  assert.equal(aiAndDirtyTextContract.taskCount, 56);
   assert.equal(aiAndDirtyTextContract.skillTaskCount, 32);
   assert.equal(aiAndDirtyTextContract.encoding, 'gb18030');
   assert.equal(aiAndDirtyTextContract.decodedHeading, true);
@@ -61,6 +61,44 @@ try {
   assert.equal(aiAndDirtyTextContract.cleaning.html_lines, 1);
   assert.ok(aiAndDirtyTextContract.cleaning.ad_lines >= 1);
   assert.equal(aiAndDirtyTextContract.polluted, false);
+
+  const longBookContract = await page.evaluate(async () => {
+    const chapters = Array.from({ length: 5 }, (_, index) => ({
+      id: index + 1,
+      title: `第${index + 1}章 浏览器长篇验收`,
+      sort_order: index,
+      content: `${index + 1}章事实。`.repeat(900)
+    }));
+    const calls = [];
+    const result = await WWLongBookMemory.build({
+      chapters,
+      chunkChars: 2000,
+      arcSize: 2,
+      summarize: async request => {
+        calls.push(request);
+        if (request.phase === 'chapter_chunk') return `${request.chapter.title} 第${request.chunkIndex + 1}块事实`;
+        if (request.phase === 'chapter_merge') return `${request.chapter.title} 完整章节记忆`;
+        if (request.phase === 'arc') return `阶段${request.arcIndex + 1}记忆`;
+        return `完整覆盖${request.chapters.length}章的全书记忆`;
+      }
+    });
+    return {
+      desktopOptions: [...document.getElementById('aiContextMode').options].map(option => option.value),
+      mobileOptions: [...document.getElementById('mpAiContextMode').options].map(option => option.value),
+      defaultMode: getAIContextMode(),
+      chapters: result.chapterMemories.length,
+      arcs: result.arcMemories.length,
+      covered: result.digestMemory.covered_chapter_ids.length,
+      chunkedChapters: new Set(calls.filter(call => call.phase === 'chapter_chunk').map(call => call.chapter.id)).size
+    };
+  });
+  assert.deepEqual(longBookContract.desktopOptions, ['smart', 'current', 'selection', 'full']);
+  assert.deepEqual(longBookContract.mobileOptions, ['smart', 'current', 'selection', 'full']);
+  assert.equal(longBookContract.defaultMode, 'smart');
+  assert.equal(longBookContract.chapters, 5);
+  assert.equal(longBookContract.arcs, 3);
+  assert.equal(longBookContract.covered, 5);
+  assert.equal(longBookContract.chunkedChapters, 5, 'browser long-book engine must read every chapter');
 
   const importRouting = await page.evaluate(() => {
     const outlineText = `[WRITING_WORKSHOP_IMPORT_HINT_V1]
@@ -579,6 +617,11 @@ must_not_create_chapters=true
   await mobilePage.locator('#bottomNav .btab', { hasText: '笔记' }).click();
   await mobilePage.waitForFunction(() => document.getElementById('mp-notes')?.classList.contains('on'));
   await mobilePage.waitForFunction(() => document.querySelector('#mpNoteList .oi-text')?.textContent === '未手动保存的设定核对');
+  await mobilePage.locator('#bottomNav .btab', { hasText: 'AI' }).click();
+  await mobilePage.waitForFunction(() => document.getElementById('mp-ai')?.classList.contains('on'));
+  assert.equal(await mobilePage.locator('#mpAiContextMode').inputValue(), 'smart');
+  await mobilePage.locator('#mpAiContextMode').selectOption('current');
+  assert.equal(await mobilePage.evaluate(() => getAIContextMode()), 'current');
   assert.deepEqual(mobileErrors, [], `mobile browser errors:\n${mobileErrors.join('\n')}`);
 
   const doomedProjectId = await page.evaluate(async () => {
@@ -602,7 +645,7 @@ must_not_create_chapters=true
   assert.deepEqual(errors, [], `desktop browser errors after project cleanup:\n${errors.join('\n')}`);
 
   await desktop.close();
-  console.log('Browser smoke OK: transactional editor switching/export, v1-v5 to v6 migration, guarded candidates, corpus refinement, Pages/custom-static BYOK, desktop context and mobile notes navigation.');
+  console.log('Browser smoke OK: transactional editor switching/export, long-book hierarchy, v1-v5 to v6 migration, guarded candidates, corpus refinement, Pages/custom-static BYOK, desktop/mobile context controls.');
 } finally {
   await browser.close();
 }

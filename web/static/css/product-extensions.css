@@ -193,6 +193,123 @@
   font: 500 9px/1.3 var(--font-sans);
 }
 
+.long-context-control {
+  display: grid;
+  gap: 7px;
+  margin: 10px 0 12px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--bg-card) 84%, transparent);
+}
+
+.long-context-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.long-context-head button,
+.longbook-memory-card button {
+  border: 1px solid var(--accent-dim);
+  border-radius: var(--radius-sm);
+  padding: 5px 8px;
+  background: var(--accent-glow);
+  color: var(--accent);
+  font: inherit;
+  cursor: pointer;
+}
+
+.long-context-control select {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px;
+  background: var(--bg-input);
+  color: var(--text-primary);
+  font: inherit;
+}
+
+.long-context-status {
+  color: var(--text-hint);
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.longbook-memory-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 0 0 10px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-card);
+}
+
+.longbook-memory-card strong,
+.longbook-memory-card span {
+  display: block;
+}
+
+.longbook-memory-card strong {
+  margin-bottom: 3px;
+  color: var(--text-primary);
+  font-size: 12px;
+}
+
+.longbook-memory-card span {
+  color: var(--text-hint);
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.longbook-memory-card button[disabled],
+.long-context-head button[disabled] {
+  cursor: wait;
+  opacity: .55;
+}
+
+.longbook-memory-audit {
+  margin: 0 0 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--bg-card) 84%, transparent);
+  color: var(--text-secondary);
+  font-size: 11px;
+}
+
+.longbook-memory-audit summary {
+  cursor: pointer;
+  padding: 8px 10px;
+  color: var(--text-primary);
+  font-weight: 650;
+}
+
+.longbook-memory-audit > div {
+  max-height: 220px;
+  overflow: auto;
+  padding: 0 10px 9px;
+  line-height: 1.65;
+}
+
+.longbook-audit-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 5px 0;
+  border-top: 1px dashed var(--border);
+}
+
+.longbook-audit-row span:last-child {
+  flex: 0 0 auto;
+  color: var(--text-hint);
+}
+
 .ai-context-detail span:last-child {
   min-width: 0;
   overflow: hidden;

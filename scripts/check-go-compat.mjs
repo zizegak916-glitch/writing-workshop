@@ -19,12 +19,14 @@ for (const requirement of [
 ]) assert(goMod.includes(requirement), `missing compatibility pin: ${requirement}`);
 
 const dockerfile = read('Dockerfile');
-assert(/^FROM .*golang:1\.21\.13 AS builder$/m.test(dockerfile), 'Docker builder must use Go 1.21.13');
+assert(/^ARG GO_VERSION=1\.25\.12$/m.test(dockerfile), 'Docker must expose the Go 1.25 build lane');
+assert(/^FROM .*golang:\$\{GO_VERSION\} AS builder$/m.test(dockerfile), 'Docker builder must accept an explicit Go lane');
 
 for (const workflow of ['.github/workflows/ci.yml', '.github/workflows/release.yml']) {
   const source = read(workflow);
   assert(source.includes('GOTOOLCHAIN: local'), `${workflow} must disable automatic toolchain upgrades`);
   assert(source.includes('go-version: "1.21.13"'), `${workflow} must test with Go 1.21.13`);
+  assert(source.includes('go-version: "1.25.12"'), `${workflow} must also test the Go 1.25 lane`);
 }
 
 function walk(dir) {
@@ -54,4 +56,4 @@ for (const doc of ['README.md', 'DEVELOPMENT.md', 'docs/USER_GUIDE.md', 'web/sta
   assert(!/需要 Go 1\.2[2-9]|Go 1\.2[2-9] 或更高|Go 1\.25\.5\+/.test(read(doc)), `${doc} advertises a higher source requirement`);
 }
 
-console.log('Go compatibility contract OK: source floor 1.21, CI/Docker toolchain 1.21.13, no auto-upgrade.');
+console.log('Go compatibility contract OK: one source tree, Go 1.21.13 and Go 1.25.12 lanes, no auto-upgrade.');

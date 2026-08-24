@@ -59,7 +59,7 @@
 
         <div class="tutorial-step">
           <span class="tutorial-number">03</span>
-          <div><h3>完成一次可检查的 AI 写作</h3><ol><li>选中正文中要处理的范围。</li><li>在 AI 面板选“润色、续写、改写、对白、节奏”等功能。</li><li>只勾选本次真正需要的项目、大纲、人物、笔记和记忆。</li><li>看上下文预算，在“补充指令”写清本次任务，再生成。</li><li>候选出来后选择替换、插入、追加、复制或记入记忆。</li></ol><p class="tutorial-note">候选与正文隔离。生成期间正文发生变化时，旧替换坐标会被阻止，避免一段旧结果覆盖新稿。</p></div>
+          <div><h3>完成一次可检查的 AI 写作</h3><ol><li>在 AI 面板选择“智能长篇、当前文档、当前选区或全书原文”阅读范围。</li><li>长篇项目先点“更新全书记忆”；确认预计请求数后，系统会逐章分块读取全部现有正文。</li><li>选择“润色、续写、改写、对白、节奏”等功能。</li><li>看上下文预算，在“补充指令”写清本次任务，再生成。</li><li>候选出来后选择替换、插入、追加、复制或记入记忆。</li></ol><p class="tutorial-note">智能长篇会组合当前章节完整原文、相邻章节记忆、全书记忆和人工记忆。全书原文只有在模型容量明确且确实放得下时才发送；超限会阻止，不会静默截掉前文。</p></div>
         </div>
 
         <div class="tutorial-step" id="tutorial-corpus">
@@ -98,10 +98,10 @@
         <h3>路线 0：无需安装，继续使用 Pages</h3>
         <p>打开 <a href="app.html">Writing Workshop 工作台</a>，新建项目即可编辑。无需安装 Go 或 Docker。由于项目数据属于当前 <code>github.io</code> 域名的浏览器存储，请定期使用顶部导出或项目操作台下载备份。</p>
         <h3>路线 A：直接运行发布包（Linux VM 推荐）</h3>
-        <p>从 <a href="https://github.com/zizegak916-glitch/writing-workshop/releases">Releases</a> 下载与机器匹配的 <code>Linux_x86_64</code> 或 <code>Linux_arm64</code> 压缩包。解压后运行：</p>
+        <p>从 <a href="https://github.com/zizegak916-glitch/writing-workshop/releases">Releases</a> 下载与机器匹配的包：旧虚拟机选择文件名带 <code>_go1.21</code> 的兼容版，新环境选择 <code>_go1.25</code> 版。两者功能相同，解压后运行：</p>
         <pre><code>chmod +x writing-workshop
 ./writing-workshop serve --demo --port 8080</code></pre>
-        <p>发布包使用 <code>CGO_ENABLED=0</code> 构建，不要求虚拟机预装 Go。只有修改并从源码编译引擎时才需要 Go 工具链。</p>
+        <p>两类发布包均使用 <code>CGO_ENABLED=0</code> 静态构建，不要求虚拟机预装 Go。只有修改并从源码编译引擎时才需要 Go 工具链。</p>
 
         <h3>路线 B：Docker</h3>
         <p>需要安装 Git 与 Docker Desktop。复制下面四行命令：</p>
@@ -111,10 +111,11 @@ docker compose up --build
 
 # 浏览器打开
 http://127.0.0.1:8080/app.html</code></pre>
+        <p>Docker 默认使用 Go 1.25.12 构建；需要兼容线时可运行 <code>docker build --build-arg GO_VERSION=1.21.13 -t writing-workshop:go121 .</code>。宿主机只需要 Docker。</p>
         <p>第一次会以无密钥 Demo 模式启动。看到工作台后，点击“设置 → API”配置模型；也可以先不配，验证本地项目和内置能力链路。服务端项目、规则和后端 Skill 管理位于同一地址下的 <a href="admin.html">本地服务控制台</a>。</p>
 
         <h3>路线 C：直接运行源码</h3>
-        <p>最低需要 Go 1.21；项目 CI 固定用 Go 1.21.13 并禁止自动切换到更高工具链：</p>
+        <p>同一套源码同时支持 Go 1.21.13 兼容线与 Go 1.25.12 新版线；CI 两边都测试，并禁止自动切换工具链：</p>
         <pre><code>git clone https://github.com/zizegak916-glitch/writing-workshop.git
 cd writing-workshop
 GOTOOLCHAIN=local CGO_ENABLED=0 go build -o writing-workshop ./cmd/writing-workshop
@@ -211,7 +212,7 @@ GOTOOLCHAIN=local CGO_ENABLED=0 go build -o writing-workshop ./cmd/writing-works
           <article class="doc-card"><h3>自部署</h3><p>Go 引擎把分析档案写入 <code>.writing-workshop/corpus/index.json</code>，后台记忆写入独立文件；原文仍不保存，优秀外部模型可继续通过适配层参与深析和写作。</p></article>
         </div>
         <div class="doc-callout info"><b>真实下载版 TXT 验收：</b>先核对编码、章节数、清洗行数和正文保留率。章节翻倍通常来自目录章名与正文章名重复；现在会合并连续重复标题。正文仍有网址、<code>&lt;!--adv--&gt;</code>、更新求票说明或成片错码时，先停用档案并保留复现文件。</div>
-        <p>仓库回归会用约 26 万字中文输入模拟全部 52 个已登记 AI 入口，并分别覆盖普通响应与流式响应，检查长文本请求没有在适配层静默截断。这是功能与协议回归，不代替你所选模型的真实上下文、质量和稳定性测试。</p>
+        <p>仓库回归会用约 26 万字中文输入模拟全部 56 个已登记 AI 入口，并分别覆盖普通响应与流式响应；另用 50 万字以上正文检查全书逐章分块覆盖、阶段合并和未改章节复用。这是功能与协议回归，不代替你所选模型的真实上下文、质量和稳定性测试。</p>
       </section>
 
       <section id="memory">

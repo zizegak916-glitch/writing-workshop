@@ -6,7 +6,7 @@ before:
     - go mod tidy
 
 builds:
-  - id: writing-workshop
+  - id: writing-workshop-go125
     main: ./cmd/writing-workshop
     binary: writing-workshop
     env:
@@ -27,7 +27,7 @@ builds:
 archives:
   - id: writing-workshop-archive
     ids:
-      - writing-workshop
+      - writing-workshop-go125
     formats:
       - tar.gz
     format_overrides:
@@ -41,10 +41,10 @@ archives:
       {{ .ProjectName }}_{{ .Version }}_
       {{- title .Os }}_
       {{- if eq .Arch "amd64" }}x86_64
-      {{- else }}{{ .Arch }}{{ end }}
+      {{- else }}{{ .Arch }}{{ end }}_go1.25
 
 checksum:
-  name_template: "{{ .ProjectName }}_checksums.txt"
+  name_template: "{{ .ProjectName }}_go1.25_checksums.txt"
   algorithm: sha256
 
 changelog:

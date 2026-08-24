@@ -25,7 +25,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Go
+      - name: Set up Go 1.21 compatibility lane
         uses: actions/setup-go@v6
         with:
           go-version: "1.21.13"
@@ -56,7 +56,19 @@ jobs:
           fi
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
 
-      - name: Verify release candidate
+      - name: Verify Go 1.21 release candidate
+        run: go test ./...
+
+      - name: Build Go 1.21 compatibility archives
+        run: scripts/build-release-lane.sh "${{ steps.release.outputs.tag }}" go1.21 compat-dist
+
+      - name: Set up Go 1.25 lane
+        uses: actions/setup-go@v6
+        with:
+          go-version: "1.25.12"
+          cache: true
+
+      - name: Verify Go 1.25 release candidate
         run: go test ./...
 
       - name: Generate release notes
@@ -76,3 +88,8 @@ jobs:
             --release-notes=release-notes.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Attach Go 1.21 compatibility archives
+        run: gh release upload "${{ steps.release.outputs.tag }}" compat-dist/* --clobber
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

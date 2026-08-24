@@ -35,7 +35,14 @@ jobs:
         run: npm ci
 
       - name: Go 1.21 compatibility and formatting
-        run: test -z "$(gofmt -l .)"
+        run: |
+          unformatted="$(gofmt -l .)"
+          if [[ -n "$unformatted" ]]; then
+            echo "Files requiring gofmt:"
+            echo "$unformatted"
+            gofmt -d $unformatted
+            exit 1
+          fi
 
       - name: Go tests
         run: go test ./...
@@ -63,6 +70,7 @@ jobs:
           npm run test:ai-long
           npm run test:corpus
           npm run test:import
+          npm run test:longbook
 
       - name: Offline server smoke test
         run: |
@@ -99,3 +107,17 @@ jobs:
           done
           cat /tmp/writing-workshop-browser.log
           exit 1
+
+  go125:
+    name: Go 1.25 build lane
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version: "1.25.12"
+          cache: true
+      - name: Test with Go 1.25
+        run: go test ./...
+      - name: Build static Go 1.25 binary
+        run: CGO_ENABLED=0 go build -trimpath -o writing-workshop-go125 ./cmd/writing-workshop

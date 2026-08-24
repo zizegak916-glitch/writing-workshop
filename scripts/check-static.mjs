@@ -49,6 +49,7 @@ assert(appHtml.includes('js/corpus-lab.js') && appHtml.includes('css/corpus-lab.
 assert(appHtml.includes('v0.3.0 · 2026-08-22'), 'workbench release label is stale');
 assert(appHtml.includes('js/api-adapter.js'), 'workbench must load the shared API adapter');
 assert(appHtml.indexOf('js/api-adapter.js') < appHtml.indexOf('js/workbench.js'), 'API adapter must load before workbench');
+assert(appHtml.includes('js/longbook-memory.js') && appHtml.indexOf('js/longbook-memory.js') < appHtml.indexOf('js/workbench.js'), 'long-book memory engine must load before workbench');
 assert(appHtml.includes('js/ai-task-contract.js'), 'workbench must load the AI task contract');
 assert(appHtml.indexOf('js/ai-task-contract.js') < appHtml.indexOf('js/corpus-lab.js') && appHtml.indexOf('js/ai-task-contract.js') < appHtml.indexOf('js/workbench.js'), 'AI task contract must load before AI feature modules');
 assert(appHtml.includes('css/main.css') && appHtml.includes('js/workbench.js'), 'workbench must load its canonical CSS and JavaScript entrypoints');
@@ -82,7 +83,7 @@ for (const marker of ['gb18030', 'big5', 'utf-16le', 'cleanCorpusText', 'duplica
 const taskContractSource = read('web/static/js/ai-task-contract.js');
 const registeredSkills = [...taskContractSource.matchAll(/'([^']+)'/g)].map(match => match[1]).filter(name => expectedPromptSkills.includes(name));
 for (const name of expectedPromptSkills) assert(registeredSkills.includes(name), `AI long-text registry is missing Prompt Skill: ${name}`);
-for (const taskId of ['import.analysis', 'api.connection', 'multi.desktop', 'multi.mobile', 'analysis.deep-check', 'humanize.smart', 'continuation.suggest', 'style.learn', 'quick.proofread', 'quick.title', 'quick.inspiration', 'quick.research', 'quick.humanize', 'quick.detect', 'corpus.deep-analysis', 'corpus.prompt-rewrite', 'recursive.plan', 'recursive.design', 'recursive.write', 'workflow.run']) {
+for (const taskId of ['import.analysis', 'api.connection', 'multi.desktop', 'multi.mobile', 'analysis.deep-check', 'humanize.smart', 'continuation.suggest', 'style.learn', 'quick.proofread', 'quick.title', 'quick.inspiration', 'quick.research', 'quick.humanize', 'quick.detect', 'corpus.deep-analysis', 'corpus.prompt-rewrite', 'memory.chapter-compress', 'memory.chapter-merge', 'memory.arc-compress', 'memory.book-compress', 'recursive.plan', 'recursive.design', 'recursive.write', 'workflow.run']) {
   assert(taskContractSource.includes(`'${taskId}'`), `AI long-text registry is missing feature: ${taskId}`);
 }
 assert((workbenchSource.match(/\bcallAI\(/g) || []).length === 2, 'AI features must use callAITask instead of bypassing the task registry');
@@ -102,13 +103,21 @@ for (const coreFunction of ['renderCharList', 'countWords', 'escapeHtml']) {
 
 const contextLayoutIds = [
   'aiRequestDock', 'desktopContextMeter', 'ctxText', 'ctxBar', 'ctxPercent', 'ctxModel',
-  'mobileContextMeter', 'mpCtxText', 'mpCtxBar', 'mpCtxPercent', 'mpCtxModel'
+  'mobileContextMeter', 'mpCtxText', 'mpCtxBar', 'mpCtxPercent', 'mpCtxModel',
+  'aiContextMode', 'mpAiContextMode', 'longBookMemoryStatus', 'longBookMemoryAuditList'
 ];
 for (const id of contextLayoutIds) {
   const matches = appHtml.match(new RegExp(`id=["']${id}["']`, 'g')) || [];
   assert(matches.length === 1, `expected one #${id}, found ${matches.length}`);
 }
 assert(!/function updateContextBar\(\)\s*\{[\s\S]{0,160}if\(!aiHasConfig\(ac\)\)return;/.test(workbenchSource), 'context estimate must not require an API configuration');
+const longBookSource = read('web/static/js/longbook-memory.js');
+for (const marker of ['buildAIWritingContext', 'updateLongBookMemory', 'longBookMemoryFreshness', '全书原文模式需要先在 API 设置中填写模型上下文上限']) {
+  assert(workbenchSource.includes(marker), `long-form writing context is missing: ${marker}`);
+}
+for (const marker of ['memory.chapter-compress', 'memory.chapter-merge', 'memory.arc-compress', 'memory.book-compress', 'source_hash']) {
+  assert(longBookSource.includes(marker), `long-book memory engine is missing: ${marker}`);
+}
 const extensionCss = read('web/static/css/product-extensions.css');
 assert(extensionCss.includes('.ai-request-dock') && extensionCss.includes('.ai-context-meter'), 'missing persistent context-dock layout styles');
 const workflowSource = read('web/static/js/workflows.js');

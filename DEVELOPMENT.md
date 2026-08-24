@@ -9,7 +9,7 @@ go build -o writing-workshop ./cmd/writing-workshop
 ./writing-workshop serve --demo --port 8080
 ```
 
-最低需要 Go 1.21；兼容基线使用 Go 1.21.13，并以 `GOTOOLCHAIN=local` 验证，防止本机或 CI 悄悄下载更高版本掩盖不兼容代码。前端位于 `web/static/` 并通过 `go:embed` 进入可执行文件；没有前端 bundler，新增脚本/样式必须在 HTML 中显式加载，并加入静态合约检查。
+同一源码维护两条工具链：Go 1.21.13 是最低兼容线，Go 1.25.12 是新版构建线。CI 两边都以 `GOTOOLCHAIN=local` 验证，防止悄悄下载其他版本掩盖不兼容代码。前端位于 `web/static/` 并通过 `go:embed` 进入可执行文件；没有前端 bundler，新增脚本/样式必须在 HTML 中显式加载，并加入静态合约检查。
 
 ## 当前架构权威位置
 
@@ -44,6 +44,7 @@ go build ./cmd/writing-workshop
 find web/static -name '*.js' -print0 | xargs -0 -n1 node --check
 node scripts/check-static.mjs
 node tests/api-adapter.test.mjs
+node tests/longbook-memory.test.mjs
 npm ci
 npx playwright install --with-deps chromium
 npm run test:browser

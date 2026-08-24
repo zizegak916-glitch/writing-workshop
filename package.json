@@ -5,6 +5,7 @@
     "test:api-adapter": "node tests/api-adapter.test.mjs",
     "test:corpus": "node tests/corpus-analyzer.test.mjs",
     "test:ai-long": "node tests/ai-longtext.test.mjs",
+    "test:longbook": "node tests/longbook-memory.test.mjs",
     "test:go-compat": "node scripts/check-go-compat.mjs",
     "test:import": "node tests/import-routing.test.mjs",
     "test:browser": "node tests/browser-smoke.mjs"

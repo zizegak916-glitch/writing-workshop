@@ -57,21 +57,21 @@ Writing Workshop 默认使用仓库内的 Go 编排内核，代码位于 `intern
 1. 打开 [在线工作台](https://zizegak916-glitch.github.io/writing-workshop/app.html)。
 2. 点击顶部 `＋` 创建项目，或从项目操作台导入文件。
 3. 需要 AI 时打开“设置 → API”，填写协议、Base URL、模型和 Key，先点测试再保存。
-4. 在编辑器选择文本，选一个功能，检查上下文预算后生成。
+4. 选一个功能和“阅读范围”；长篇项目先点“更新全书记忆”，检查上下文预算后生成。
 5. 在候选区确认写入；重要阶段导出 v6 项目包。
 
 Pages 保存 API 配置不会请求静态 `/api/config`，因此不会因保存动作产生 405。若测试失败，优先检查完整端点、鉴权方式、模型 ID、CORS 与 HTTPS 混合内容。
 
 ### 直接运行发布包（Linux VM 推荐）
 
-从 [Releases](https://github.com/zizegak916-glitch/writing-workshop/releases) 下载与机器匹配的 `Linux_x86_64` 或 `Linux_arm64` 压缩包，解压后运行：
+从 [Releases](https://github.com/zizegak916-glitch/writing-workshop/releases) 下载与机器匹配的包。旧虚拟机选文件名带 `_go1.21` 的兼容版；新环境选 `_go1.25` 版。两者功能相同，都是静态可执行文件，解压后运行：
 
 ```bash
 chmod +x writing-workshop
 ./writing-workshop serve --demo --port 8080
 ```
 
-发布包使用 `CGO_ENABLED=0` 构建，不要求虚拟机预装 Go。只有从源码编译时才需要 Go 工具链；这是低配或旧环境最省事的自部署路线。
+发布包使用 `CGO_ENABLED=0` 构建，不要求虚拟机预装 Go。Go 1.21 版优先兼容旧系统，Go 1.25 版使用较新的编译器；只有从源码编译时才需要 Go 工具链。
 
 ### Docker（完整自部署）
 
@@ -80,6 +80,8 @@ git clone https://github.com/zizegak916-glitch/writing-workshop.git
 cd writing-workshop
 docker compose up --build
 ```
+
+Docker 默认使用 Go 1.25.12 构建。需要验证兼容线时使用 `docker build --build-arg GO_VERSION=1.21.13 -t writing-workshop:go121 .`；这只改变构建工具链，不要求宿主机安装 Go。
 
 打开：
 
@@ -91,7 +93,7 @@ docker compose up --build
 
 ### 从源码运行
 
-最低需要 Go 1.21，CI 固定用 Go 1.21.13 且禁止自动切换到更高工具链：
+同一套源码提供两条构建线：Go 1.21.13 是最低兼容线，Go 1.25.12 是新版构建线；CI 会同时测试，且禁止自动切换工具链：
 
 ```bash
 GOTOOLCHAIN=local CGO_ENABLED=0 go build -o writing-workshop ./cmd/writing-workshop
@@ -99,6 +101,12 @@ GOTOOLCHAIN=local CGO_ENABLED=0 go build -o writing-workshop ./cmd/writing-works
 ```
 
 默认只监听 `127.0.0.1`。公网使用前请增加 HTTPS、登录鉴权、请求大小限制和访问控制；不要直接暴露 8080。
+
+## 长篇阅读与记忆
+
+AI 面板不再只截取当前章节尾部。默认“智能长篇”会组合当前章节完整原文、相邻章节压缩记忆、全书记忆和人工记忆。首次使用长篇项目时点击“更新全书记忆”：系统逐章分块调用模型，先形成章节记忆，再合并阶段记忆和全书记忆；每个现有章节都会被覆盖，未修改章节后续会按内容指纹复用。原文不会写入记忆，项目包只保存可核对的压缩记录。
+
+“全书原文”只在已知模型上下文容量且正文与输出预留确实放得下时发送；超过上限会明确阻止，不静默截断。几十万字长篇应使用分批阅读，因为“把整本书塞进一次请求”并不等于可靠记忆。
 
 ## 核心闭环
 

@@ -140,24 +140,80 @@ function getContextLimit(model){
   }
   return null;
 }
+const AI_CONTEXT_MODES=new Set(['smart','current','selection','full']);
+function getAIContextMode(){const value=localStorage.getItem('ww_ai_context_mode')||'smart';return AI_CONTEXT_MODES.has(value)?value:'smart';}
+function setAIContextMode(value){const mode=AI_CONTEXT_MODES.has(value)?value:'smart';localStorage.setItem('ww_ai_context_mode',mode);for(const id of ['aiContextMode','mpAiContextMode']){const el=document.getElementById(id);if(el&&el.value!==mode)el.value=mode;}refreshLongBookMemoryUI();updateContextBar();}
+function liveProjectChapters(){
+  if(!S.proj)return[];
+  const editor=document.getElementById('mainEditor');
+  return(S.proj.chapters||[]).map(chapter=>S.active?.type==='chapter'&&S.active.id===chapter.id?{...chapter,title:document.getElementById('chapterTitle')?.value||chapter.title,content:editor?.value||chapter.content||''}:chapter);
+}
+function projectLongBookMemories(){return S.proj?S.aiMemories.filter(memory=>memory.project_id===S.proj.project.id&&memory.source==='longbook'&&memory.enabled!==false):[];}
+function currentBookDigest(){return projectLongBookMemories().filter(memory=>memory.kind==='book_digest').sort((a,b)=>(b.built_at||b.updated_at||0)-(a.built_at||a.updated_at||0))[0]||null;}
+function longBookMemoryFreshness(chapters=liveProjectChapters(),memories=projectLongBookMemories()){
+  const digest=memories.filter(memory=>memory.kind==='book_digest').sort((a,b)=>(b.built_at||b.updated_at||0)-(a.built_at||a.updated_at||0))[0]||null;
+  const summaries=memories.filter(memory=>memory.kind==='chapter_summary');
+  const byChapter=new Map(summaries.map(memory=>[String(memory.chapter_id),memory]));
+  const ordered=chapters.map(chapter=>byChapter.get(String(chapter.id))||null);
+  const freshIds=new Set(chapters.filter((chapter,index)=>ordered[index]?.source_hash===WWLongBookMemory.fingerprint(`${chapter.title}\n${chapter.content||''}`)).map(chapter=>String(chapter.id)));
+  const coverageHash=ordered.every(Boolean)?WWLongBookMemory.fingerprint(ordered.map(memory=>memory.source_hash).join('|')):'';
+  const complete=!!(chapters.length&&digest&&freshIds.size===chapters.length&&digest.coverage_hash===coverageHash);
+  return{digest,summaries,freshIds,complete,staleCount:Math.max(0,chapters.length-freshIds.size)};
+}
+function buildAIWritingContext(mode=getAIContextMode()){
+  const editor=document.getElementById('mainEditor');
+  const start=editor?.selectionStart||0,end=editor?.selectionEnd||0;
+  const selection=start!==end?(editor?.value||'').slice(start,end).trim():'';
+  const current=(editor?.value||'').trim();
+  if(mode==='selection')return{text:selection,label:'当前选区',mode,complete:false,warning:selection?'':'请先在编辑器中选择需要处理的原文'};
+  if(mode==='current')return{text:current,label:S.active?.type==='chapter'?'当前章节':'当前文档',mode,complete:false,warning:''};
+  const chapters=liveProjectChapters();
+  if(mode==='full'){
+    const text=chapters.map((chapter,index)=>`【${index+1}. ${chapter.title||'未命名章节'}】\n${chapter.content||''}`).join('\n\n');
+    return{text,label:`全书原文 · ${chapters.length} 章`,mode,complete:true,warning:chapters.length?'':'当前项目没有正文章节'};
+  }
+  const blocks=[];
+  const memoryState=longBookMemoryFreshness(chapters),digest=memoryState.digest;
+  if(digest?.content)blocks.push(`【全书分层记忆 · 完整覆盖 ${digest.chapter_count||digest.covered_chapter_ids?.length||0} 章】\n${digest.content}`);
+  const activeIndex=S.active?.type==='chapter'?chapters.findIndex(chapter=>chapter.id===S.active.id):-1;
+  if(activeIndex>=0){
+    const wanted=new Set([activeIndex-2,activeIndex-1,activeIndex+1].filter(index=>index>=0&&index<chapters.length));
+    const related=projectLongBookMemories().filter(memory=>memory.kind==='chapter_summary'&&wanted.has(Number(memory.coverage_index))).sort((a,b)=>Number(a.coverage_index)-Number(b.coverage_index));
+    if(related.length)blocks.push('【相邻章节压缩记忆】\n'+related.map(memory=>`${memory.chapter_title||memory.title}\n${memory.content}`).join('\n\n'));
+  }
+  if(current)blocks.push(`【${S.active?.type==='chapter'?'当前章节完整原文':'当前文档'}】\n${current}`);
+  const warning=memoryState.complete?'':digest?`全书记忆有 ${memoryState.staleCount} 章待更新；本次会标明旧记忆并保留当前章节完整原文`:'尚未建立全书记忆；本次只能读取当前文档与已有人工记忆';
+  if(warning)blocks.unshift(`【记忆覆盖状态】\n${warning}`);
+  return{text:blocks.join('\n\n'),label:'智能长篇上下文',mode,complete:memoryState.complete,warning};
+}
+function buildGenerationRequest(extra='',options={validate:true}){
+  const context=buildAIWritingContext();
+  if(options.validate&&context.warning&&(!context.text||context.mode==='selection'))throw new Error(context.warning);
+  const lm={short:'100字以内',mid:'200-300字',long:'400-600字',xl:'800字以上'},tm={low:'保持严谨',mid:'适度创意',high:'大胆想象'};
+  const md=AI_MODES[S.aiMode]||{p:'请处理以下内容：'};
+  let prompt=(typeof wwPromptText==='function'?wwPromptText(S.aiMode):md.p)+`\n\n【阅读上下文 · ${context.label}】\n${context.text}`+'\n\n【输出要求】'+lm[S.aiLen]+'。'+tm[S.aiTemp]+'。';
+  if(S.proj)prompt+='\n\n【项目信息】\n'+buildCtx();
+  if(extra)prompt+='\n\n【额外指令】'+extra;
+  let systemPrompt=typeof wwSystemPrompt==='function'?wwSystemPrompt():'你是一位专业的中文写作助手。';
+  const memory=buildMemoryContext();if(memory)systemPrompt+='\n\n'+memory;
+  const tokens=estimateTokens(prompt+'\n\n'+systemPrompt);
+  const limit=getContextLimit(S.apiConfig?.model||'');
+  const task=WWAITaskContract.taskForSkill(S.aiMode);
+  const reserve=limit?Math.min(task.maxTokens,Math.max(1024,Math.floor(limit*.18))):task.maxTokens;
+  if(options.validate&&context.mode==='full'&&!limit)throw new Error('全书原文模式需要先在 API 设置中填写模型上下文上限；否则无法判断是否会截断');
+  if(options.validate&&limit&&tokens+reserve>limit*.96)throw new Error(`本次约 ${tokens.toLocaleString()} tokens，连同输出预留将超过 ${limit.toLocaleString()} 上限。请使用“智能长篇”并先更新全书记忆`);
+  return{prompt,systemPrompt,context,tokens,limit};
+}
 function updateContextBar(){
   const ac=S.apiConfig||{};
-  const ed=document.getElementById('mainEditor');
-  if(!ed)return;
-  const sel=ed.value.slice(ed.selectionStart,ed.selectionEnd).trim();
-  const content=sel||ed.value.trim().slice(-1000);
+  if(!document.getElementById('mainEditor'))return;
   const desktopExtra=document.getElementById('aiPrompt')?.value.trim()||'';
   const mobileExtra=document.getElementById('mpAiPrompt')?.value.trim()||'';
   const isMobile=window.matchMedia?.('(max-width: 560px)').matches;
   const extra=(isMobile?mobileExtra:desktopExtra)||(isMobile?desktopExtra:mobileExtra);
-  const md=AI_MODES[S.aiMode]||{p:''};
-  let fullPrompt=(typeof wwPromptText==='function'?wwPromptText(S.aiMode):md.p)+'\n\n'+content;
-  if(S.proj)fullPrompt+='\n\n'+buildCtx();
-  if(extra)fullPrompt+='\n\n'+extra;
-  const memCtx=buildMemoryContext();
-  if(memCtx)fullPrompt+='\n\n'+memCtx;
-  const promptTokens=estimateTokens(fullPrompt);
-  const limit=getContextLimit(ac.model||'');
+  const request=buildGenerationRequest(extra,{validate:false});
+  const promptTokens=request.tokens;
+  const limit=request.limit;
   const hasLimit=Number(limit)>0;
   const pctRaw=hasLimit?Math.min(100,promptTokens/limit*100):0;
   const pctLabel=!hasLimit?'—':pctRaw===0?'0%':pctRaw<1?'<1%':(pctRaw<10?pctRaw.toFixed(1):Math.round(pctRaw))+'%';
@@ -2317,6 +2373,9 @@ async function initApp(){
   setInterval(()=>{if(S.autoSave&&S.unsaved)saveDoc({silent:true}).catch(()=>{});},30000);
   const ed=document.getElementById('mainEditor');
   ed.addEventListener('input',onEditorInput);
+  ed.addEventListener('select',updateContextBar);
+  ed.addEventListener('keyup',updateContextBar);
+  ed.addEventListener('mouseup',updateContextBar);
   ed.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='s'){e.preventDefault();saveDoc();}});
   document.getElementById('focusEditor').addEventListener('input',()=>{document.getElementById('focusInfo').textContent=countWords(document.getElementById('focusEditor').value)+' 字 · Esc 退出';});
   document.addEventListener('keydown',e=>{
@@ -2454,6 +2513,7 @@ async function loadProject(id){
   else if(os.length>0)await loadOutlineContent(os[0].id);
   else if(notes.length>0)await loadNoteContent(notes[0].id);
   else setEditorDocument('','');
+  refreshLongBookMemoryUI();
   showToast('📁',p.name);
   return true;
 }
@@ -3406,9 +3466,11 @@ function buildCtx(){if(!S.proj)return'';const p=S.proj.project,a=[];a.push('作�
 // ═══ AI Memory ═══
 function buildMemoryContext(){
   if(!S.proj||!S.aiMemories.length)return'';
-  const projMem=S.aiMemories.filter(m=>m.project_id===S.proj.project.id&&m.enabled!==false).sort((a,b)=>(b.updated_at||b.created_at||0)-(a.updated_at||a.created_at||0)).slice(0,40);
+  const projMem=S.aiMemories.filter(m=>m.project_id===S.proj.project.id&&m.enabled!==false&&m.source!=='longbook').sort((a,b)=>(b.updated_at||b.created_at||0)-(a.updated_at||a.created_at||0)).slice(0,40);
   if(!projMem.length)return'';
-  const lines=projMem.map(m=>'['+(m.category||'note')+(m.source?' · '+m.source:'')+'] '+(m.title?m.title+'：':'')+m.content);
+  const lines=[];let chars=0;
+  for(const memory of projMem){const line='['+(memory.category||'note')+(memory.source?' · '+memory.source:'')+'] '+(memory.title?memory.title+'：':'')+memory.content;if(chars+line.length>16000)break;lines.push(line);chars+=line.length;}
+  if(lines.length<projMem.length)lines.push(`[另有 ${projMem.length-lines.length} 条人工记忆因本次预算未自动注入]`);
   return'【项目记忆 — 按来源与分类参考】\n'+lines.join('\n');
 }
 function writingSystemPrompt(){let prompt=typeof wwSystemPrompt==='function'?wwSystemPrompt():'你是一位专业的中文写作助手。';const memory=buildMemoryContext();if(memory)prompt+='\n\n'+memory;return prompt;}
@@ -3416,11 +3478,61 @@ async function loadMemories(){
   if(!db)return;
   S.aiMemories=await dbAll('aiMemories');
   renderMemoryList();
+  refreshLongBookMemoryUI();
+}
+function refreshLongBookMemoryUI(message=''){
+  const mode=getAIContextMode();for(const id of ['aiContextMode','mpAiContextMode']){const select=document.getElementById(id);if(select)select.value=mode;}
+  const chapters=liveProjectChapters(),memories=projectLongBookMemories(),state=longBookMemoryFreshness(chapters,memories),digest=state.digest;
+  const status=message||(digest?`已覆盖 ${state.freshIds.size}/${chapters.length} 章${state.staleCount?' · '+state.staleCount+' 章待更新':''} · 全书记忆 ${Number(digest.compressed_chars||digest.content?.length||0).toLocaleString()} 字`:`尚未建立全书记忆 · 当前项目 ${chapters.length} 章`);
+  for(const id of ['longContextStatus','mpLongContextStatus','longBookMemoryStatus']){const el=document.getElementById(id);if(el)el.textContent=status;}
+  const arcMemories=memories.filter(memory=>memory.kind==='arc_summary').sort((a,b)=>Number(a.coverage_start)-Number(b.coverage_start));
+  const summary=document.getElementById('longBookMemoryAuditSummary'),list=document.getElementById('longBookMemoryAuditList');
+  if(summary)summary.textContent=`压缩记录 · ${state.summaries.length} 章 / ${arcMemories.length} 阶段 / ${digest?1:0} 全书`;
+  if(list){
+    const rows=state.summaries.sort((a,b)=>Number(a.coverage_index)-Number(b.coverage_index)).map(memory=>`<div class="longbook-audit-row"><span>${escapeHtml(memory.chapter_title||memory.title||'章节记忆')}</span><span>${Number(memory.chunks||1)} 块 · ${Number(memory.source_chars||0).toLocaleString()} 字 · ${state.freshIds.has(String(memory.chapter_id))?'已同步':'待更新'}</span></div>`);
+    rows.push(...arcMemories.map(memory=>`<div class="longbook-audit-row"><span>${escapeHtml(memory.title||'阶段记忆')}</span><span>第 ${Number(memory.coverage_start)+1}–${Number(memory.coverage_end)+1} 章</span></div>`));
+    if(digest)rows.push(`<div class="longbook-audit-row"><span>${escapeHtml(digest.title||'全书记忆')}</span><span>${Number(digest.compressed_chars||digest.content?.length||0).toLocaleString()} 字 · ${state.complete?'已同步':'待更新'}</span></div>`);
+    list.innerHTML=rows.join('')||'更新全书记忆后，可在这里核对每章和每个阶段的覆盖记录。';
+  }
+}
+function setLongBookMemoryBusy(busy){for(const id of ['longBookMemoryBtn']){const button=document.getElementById(id);if(button){button.disabled=busy;button.textContent=busy?'正在分批阅读…':'读取全书并更新';}}document.querySelectorAll('.long-context-head button').forEach(button=>{button.disabled=busy;button.textContent=busy?'阅读中…':button.closest('.long-context-control-mobile')?'更新记忆':'更新全书记忆';});}
+async function updateLongBookMemory(){
+  if(!S.proj)return showToast('✕',t('toast-no-proj'));
+  if(!aiHasConfig(S.apiConfig)){showToast('⚙',t('toast-no-api'));openModal('apiModal');return;}
+  if(!(await flushActiveDocument()))return;
+  const chapters=liveProjectChapters();
+  if(!chapters.length)return showToast('✕','当前项目没有正文章节');
+  const estimatedChunks=chapters.reduce((sum,chapter)=>sum+Math.max(1,WWLongBookMemory.splitText(chapter.content).length),0);
+  const estimatedCalls=estimatedChunks+chapters.filter(chapter=>WWLongBookMemory.splitText(chapter.content).length>1).length+Math.ceil(chapters.length/WWLongBookMemory.DEFAULT_ARC_SIZE)+1;
+  if(!confirm(`将分块读取全部 ${chapters.length} 章，预计最多 ${estimatedCalls} 次模型请求；未改章节会复用已有章节记忆。原文不会写入记忆，只保存压缩结果。继续吗？`))return;
+  const existing=projectLongBookMemories();
+  setLongBookMemoryBusy(true);
+  try{
+    const result=await WWLongBookMemory.build({
+      chapters,
+      existingMemories:existing,
+      onProgress:progress=>{if(progress.phase==='chapter')refreshLongBookMemoryUI(`读取章节 ${progress.chapterIndex+1}/${progress.chapterCount} · ${progress.title}${progress.reused?'（复用）':''}`);else if(progress.phase==='arc')refreshLongBookMemoryUI(`压缩阶段 ${progress.arcIndex+1}/${progress.arcCount}`);else refreshLongBookMemoryUI('正在合并全书记忆…');},
+      summarize:({taskId,prompt})=>callAITask(taskId,prompt,S.apiConfig,'你是长篇小说记忆压缩器。必须忠于输入、保留因果和人物知识边界、标出矛盾与不确定项，禁止补写剧情。')
+    });
+    const now=Date.now(),all=[...result.chapterMemories,...result.arcMemories,result.digestMemory],existingByKey=new Map(existing.map(memory=>[memory.longbook_key,memory]));
+    const keep=new Set();
+    for(const memory of all){
+      const previous=existingByKey.get(memory.longbook_key),row={...(previous||{}),...memory,project_id:S.proj.project.id,scope:'project',created_at:previous?.created_at||now,updated_at:now};
+      if(previous?.id)row.id=previous.id;
+      await dbPut('aiMemories',row);keep.add(memory.longbook_key);
+    }
+    for(const memory of existing){if(!keep.has(memory.longbook_key))await dbDel('aiMemories',memory.id);}
+    await loadMemories();
+    refreshLongBookMemoryUI(`已完整读取 ${result.stats.chapterCount} 章 · 新分析 ${result.stats.analyzedChapters} 章 · 复用 ${result.stats.reusedChapters} 章`);
+    setAIContextMode('smart');
+    showToast('✓','全书分层记忆已更新');
+  }catch(error){refreshLongBookMemoryUI('更新失败：'+String(error.message||error).slice(0,160));showToast('✕',error.message||'全书记忆更新失败');}
+  finally{setLongBookMemoryBusy(false);}
 }
 function renderMemoryList(){
   const el=document.getElementById('memoryList');
   if(!el)return;
-  const projMem=S.proj?S.aiMemories.filter(m=>m.project_id===S.proj.project.id):[];
+  const projMem=S.proj?S.aiMemories.filter(m=>m.project_id===S.proj.project.id&&(m.source!=='longbook'||m.kind==='book_digest')):[];
   if(!projMem.length){
     el.innerHTML='<div style="text-align:center;padding:20px;color:var(--text-hint);font-size:12px">暂无记忆条目<br><span style="font-size:11px;opacity:0.7">添加记忆后，AI会自动参考这些信息</span></div>';
     return;
@@ -3577,7 +3689,17 @@ async function saveWriteSnapshot(mode,applyMode,result,snapshot){
 }
 
 // ═══ AI Generate ═══
-async function doGenerate(){const ac=S.apiConfig;if(!aiHasConfig(ac)){showToast('⚙',t('toast-no-api'));openModal('apiModal');return;}const ed=document.getElementById('mainEditor'),sel=ed.value.slice(ed.selectionStart,ed.selectionEnd).trim(),full=ed.value.trim(),extra=document.getElementById('aiPrompt').value.trim(),content=sel||full.slice(-1000);if(!content&&!extra){showToast('✎',t('toast-no-content'));return;}S.aiRunSnapshot=makeEditorSnapshot();const lm={short:'100字以内',mid:'200-300字',long:'400-600字',xl:'800字以上'},tm={low:'保持严谨',mid:'适度创意',high:'大胆想象'};const md=AI_MODES[S.aiMode]||{p:'请处理以下内容：'};let prompt=(typeof wwPromptText==='function'?wwPromptText(S.aiMode):md.p)+'\n\n'+content+'\n\n【输出要求】'+lm[S.aiLen]+'。'+tm[S.aiTemp]+'。';if(S.proj)prompt+='\n\n【项目信息】\n'+buildCtx();if(extra)prompt+='\n\n【额外指令】'+extra;let sysPrompt=typeof wwSystemPrompt==='function'?wwSystemPrompt():'你是一位专业的中文写作助手。';const memCtx=buildMemoryContext();if(memCtx)sysPrompt+='\n\n'+memCtx;const btn=document.getElementById('generateBtn');btn.classList.add('loading');document.getElementById('generateBtnIcon').innerHTML='<div class="spinner"></div>';document.getElementById('generateBtnText').textContent=t('ap-gen-ing');try{showStreamingResult('arpText');const arpEl=document.getElementById('arpText');document.getElementById('arpMode').textContent=S.aiMode;document.getElementById('aiResultPopup').classList.add('show');let fullResult='';await callAITaskStream('skill.'+S.aiMode,prompt,ac,sysPrompt,(chunk)=>{fullResult+=chunk;arpEl.textContent=fullResult;});S.lastArpResult=fullResult;await addHistory(S.aiMode,fullResult,{project_id:S.aiRunSnapshot.project_id,active_type:S.aiRunSnapshot.active_type,active_id:S.aiRunSnapshot.active_id});}catch(e){showToast('✕',e.message||'请求失败');}finally{hideStreamingCursor();btn.classList.remove('loading');document.getElementById('generateBtnIcon').innerHTML='<svg class="ic ic-sm"><use href="icons/ai-mode-icons.svg#mode-workshop"/></svg>';document.getElementById('generateBtnText').textContent=t('ap-gen');}}
+async function doGenerate(){
+  const ac=S.apiConfig;if(!aiHasConfig(ac)){showToast('⚙',t('toast-no-api'));openModal('apiModal');return;}
+  const extra=document.getElementById('aiPrompt').value.trim();let request;
+  try{request=buildGenerationRequest(extra);}catch(error){showToast('✕',error.message);return;}
+  if(!request.context.text&&!extra){showToast('✎',t('toast-no-content'));return;}
+  S.aiRunSnapshot=makeEditorSnapshot();
+  const btn=document.getElementById('generateBtn');btn.classList.add('loading');document.getElementById('generateBtnIcon').innerHTML='<div class="spinner"></div>';document.getElementById('generateBtnText').textContent=t('ap-gen-ing');
+  try{showStreamingResult('arpText');const arpEl=document.getElementById('arpText');document.getElementById('arpMode').textContent=S.aiMode;document.getElementById('aiResultPopup').classList.add('show');let fullResult='';await callAITaskStream('skill.'+S.aiMode,request.prompt,ac,request.systemPrompt,(chunk)=>{fullResult+=chunk;arpEl.textContent=fullResult;});S.lastArpResult=fullResult;await addHistory(S.aiMode,fullResult,{project_id:S.aiRunSnapshot.project_id,active_type:S.aiRunSnapshot.active_type,active_id:S.aiRunSnapshot.active_id,context_mode:request.context.mode,context_tokens:request.tokens});}
+  catch(e){showToast('✕',e.message||'请求失败');}
+  finally{hideStreamingCursor();btn.classList.remove('loading');document.getElementById('generateBtnIcon').innerHTML='<svg class="ic ic-sm"><use href="icons/ai-mode-icons.svg#mode-workshop"/></svg>';document.getElementById('generateBtnText').textContent=t('ap-gen');}
+}
 async function arpAction(action){const text=S.lastArpResult,ed=document.getElementById('mainEditor');if(action==='copy'){navigator.clipboard.writeText(text).then(()=>showToast('✓',t('toast-copied')));return;}if(action==='memory'){stageMemory(text,{title:'AI 候选 · '+S.aiMode,category:'note',source:'writing'});return;}const snapshot=S.aiRunSnapshot||makeEditorSnapshot();if(!isSameEditorTarget(snapshot)){showToast('✕','生成后已切换文档，请复制结果或返回原文档后重试');return;}if(action==='replace'&&!isEditorSnapshotCurrent(snapshot)){showToast('✕','正文已在生成期间变化，为避免覆盖已阻止替换');return;}await saveWriteSnapshot(S.aiMode,action,text,makeEditorSnapshot());if(action==='replace'){const s=snapshot.selection_start,e=snapshot.selection_end;if(s!==e)ed.value=snapshot.document.slice(0,s)+text+snapshot.document.slice(e);else ed.value=text;showToast('✓','已替换');}else if(action==='append'){ed.value+='\n\n'+text;showToast('✓','已追加');}else if(action==='insert'){const p=ed.selectionStart;ed.value=ed.value.slice(0,p)+text+ed.value.slice(p);showToast('✓','已插入');}onEditorInput();closeAiResult();}
 function closeAiResult(){document.getElementById('aiResultPopup').classList.remove('show');}
 
@@ -3664,17 +3786,10 @@ async function doMultiGenerate(){
   const ac=S.apiConfig;
   if(!aiHasConfig(ac)){showToast('⚙',t('toast-no-api'));openModal('apiModal');return;}
   S.multiRunSnapshot=makeEditorSnapshot();
-  const content=document.getElementById('mainEditor').value.slice(-800)||'请创作一段精彩的故事片段';
-  const lm={short:'100字以内',mid:'200-300字',long:'400-600字',xl:'800字以上'};
-  const tm={low:'保持严谨',mid:'适度创意',high:'大胆想象'};
-  const md=AI_MODES[S.aiMode]||{p:'请处理以下内容：'};
-  let prompt=(typeof wwPromptText==='function'?wwPromptText(S.aiMode):md.p)+'\n\n'+content+'\n\n【输出要求】'+(lm[S.aiLen]||'400-600字')+'。'+(tm[S.aiTemp]||'适度创意')+'。';
-  if(S.proj)prompt+='\n\n【项目信息】\n'+buildCtx();
   const extra=document.getElementById('aiPrompt')?.value?.trim();
-  if(extra)prompt+='\n\n【额外指令】'+extra;
-  let sysPrompt=typeof wwSystemPrompt==='function'?wwSystemPrompt():'你是一位专业的中文写作助手。';
-  const memCtx=buildMemoryContext();
-  if(memCtx)sysPrompt+='\n\n'+memCtx;
+  let request;
+  try{request=buildGenerationRequest(extra);}catch(error){showToast('✕',error.message);return;}
+  const prompt=request.prompt,sysPrompt=request.systemPrompt;
   const promises=[];
   const results=[];
   for(let i=1;i<=3;i++){
@@ -3693,7 +3808,7 @@ async function doMultiGenerate(){
     if(r.skipped)continue;
     const p=(async()=>{
       const start=performance.now();
-      const text=await callAITask('multi.desktop',prompt,r.conf);
+      const text=await callAITask('multi.desktop',prompt,r.conf,sysPrompt);
       const elapsed=Math.round(performance.now()-start);
       const wc=text.replace(/\s/g,'').length;
       const el=document.getElementById('slotResult'+r.i);
@@ -3836,16 +3951,10 @@ function saveMpSlot(n,val,key){
 }
 async function doMultiGenerateMobile(){
   const ac=S.apiConfig;if(!aiHasConfig(ac)){showToast('⚙',t('toast-no-api'));openModal('apiModal');return;}
-  const content=document.getElementById('mainEditor').value.slice(-800)||'请创作一段精彩的故事片段';
-  const lm={short:'100字以内',mid:'200-300字',long:'400-600字',xl:'800字以上'};
-  const tm={low:'保持严谨',mid:'适度创意',high:'大胆想象'};
-  const md=AI_MODES[S.aiMode]||{p:'请处理以下内容：'};
-  let prompt=(typeof wwPromptText==='function'?wwPromptText(S.aiMode):md.p)+'\n\n'+content+'\n\n【输出要求】'+(lm[S.aiLen]||'400-600字')+'。'+(tm[S.aiTemp]||'适度创意')+'。';
-  if(S.proj)prompt+='\n\n【项目信息】\n'+buildCtx();
   const extra=document.getElementById('mpAiPrompt')?.value?.trim();
-  if(extra)prompt+='\n\n【额外指令】'+extra;
-  let sysPrompt=typeof wwSystemPrompt==='function'?wwSystemPrompt():'你是一位专业的中文写作助手。';
-  const memCtx=buildMemoryContext();if(memCtx)sysPrompt+='\n\n'+memCtx;
+  let request;
+  try{request=buildGenerationRequest(extra);}catch(error){showToast('✕',error.message);return;}
+  const prompt=request.prompt,sysPrompt=request.systemPrompt;
   const tasks=[];
   for(let i=1;i<=3;i++){
     const s=loadSlot(i);
@@ -5099,7 +5208,16 @@ function renderMpChapter(){if(!S.proj)return;const el=document.getElementById('m
 function renderMpChar(){if(!S.proj)return;const el=document.getElementById('mpCharList');if(!S.proj.characters.length){el.innerHTML='<div style="text-align:center;padding:40px;color:var(--text-hint)">'+t('sb-empty-char')+'</div>';return;}el.innerHTML=S.proj.characters.map(c=>'<div class="char-card" onclick="loadCharContent('+Number(c.id)+');backToEditor()"><div class="char-name">'+escapeHtml(c.name)+'</div><span class="char-role">'+escapeHtml(c.role)+'</span><div class="char-desc">'+escapeHtml(c.personality||t('char-no-desc'))+'</div></div>').join('');}
 function renderMpNote(){if(!S.proj)return;const el=document.getElementById('mpNoteList');if(!el)return;const notes=S.proj.notes||[];if(!notes.length){el.innerHTML='<div class="sidebar-empty">'+t('sb-empty-notes')+'</div>';return;}el.innerHTML=notes.map(note=>'<div class="outline-item" onclick="loadNoteContent('+Number(note.id)+');backToEditor()"><span class="oi-icon"><svg class="ic ic-sm"><use href="#ic-note"/></svg></span><span class="oi-text">'+escapeHtml(note.title||'未命名笔记')+'</span><span class="oi-count">'+countWords(note.content||'')+t('ps-units-2')+'</span></div>').join('');}
 function renderMpAi(){const el=document.getElementById('mpAiModeGrid');if(!el||el.children.length>0)return;const g={};for(const[k,v]of Object.entries(AI_MODES)){if(!g[v.group])g[v.group]=[];g[v.group].push(k);}let h='';for(const[label,keys]of Object.entries(g)){h+='<div class="mode-group" data-mode-group="'+label+'"><div class="mode-group-title">'+t('grp-'+label)+'</div><div class="mode-grid">';for(const k of keys)h+='<button class="mode-btn'+(S.aiMode===k?' selected':'')+'" data-mode="'+k+'" onclick="selectMode(this,\''+k+'\')"><span class="micon">'+wwAiModeIcon(k)+'</span>'+t('mode-'+k)+'</button>';h+='</div></div>';}el.innerHTML=h;if(typeof renderMpMultiSlots==='function')renderMpMultiSlots();}
-async function doGenerateMobile(){const ac=S.apiConfig;if(!aiHasConfig(ac)){showToast('⚙',t('toast-no-api'));openModal('apiModal');return;}const ed=document.getElementById('mainEditor'),content=ed.value.slice(-1000)||'';const extra=document.getElementById('mpAiPrompt')?.value.trim()||'';if(!content&&!extra){showToast('✎',t('toast-no-content'));return;}S.aiRunSnapshot=makeEditorSnapshot();const lm={short:'100字以内',mid:'200-300字',long:'400-600字',xl:'800字以上'},tm={low:'保持严谨',mid:'适度创意',high:'大胆想象'};const md=AI_MODES[S.aiMode]||{p:'请处理以下内容：'};let prompt=(typeof wwPromptText==='function'?wwPromptText(S.aiMode):md.p)+'\n\n'+content+'\n\n【输出要求】'+lm[S.aiLen]+'。'+tm[S.aiTemp]+'。';if(S.proj)prompt+='\n\n【项目信息】\n'+buildCtx();if(extra)prompt+='\n\n【额外指令】'+extra;let sysPrompt=typeof wwSystemPrompt==='function'?wwSystemPrompt():'你是一位专业的中文写作助手。';const memCtx=buildMemoryContext();if(memCtx)sysPrompt+='\n\n'+memCtx;const btn=document.getElementById('mpGenerateBtn');btn.classList.add('loading');btn.textContent=t('ap-gen-ing');try{const r=await callAITask('skill.'+S.aiMode,prompt,ac,sysPrompt);S.lastArpResult=r;document.getElementById('arpText').textContent=r;document.getElementById('arpMode').textContent=S.aiMode;document.getElementById('aiResultPopup').classList.add('show');await addHistory(S.aiMode,r,{project_id:S.aiRunSnapshot.project_id,active_type:S.aiRunSnapshot.active_type,active_id:S.aiRunSnapshot.active_id});}catch(e){showToast('✕',e.message||'失败');}finally{btn.classList.remove('loading');btn.innerHTML='<span><svg class="ic ic-sm"><use href="icons/ai-mode-icons.svg#mode-workshop"/></svg></span><span data-i18n="ap-gen">'+t('ap-gen')+'</span>';}}
+async function doGenerateMobile(){
+  const ac=S.apiConfig;if(!aiHasConfig(ac)){showToast('⚙',t('toast-no-api'));openModal('apiModal');return;}
+  const extra=document.getElementById('mpAiPrompt')?.value.trim()||'';let request;
+  try{request=buildGenerationRequest(extra);}catch(error){showToast('✕',error.message);return;}
+  if(!request.context.text&&!extra){showToast('✎',t('toast-no-content'));return;}
+  S.aiRunSnapshot=makeEditorSnapshot();const btn=document.getElementById('mpGenerateBtn');btn.classList.add('loading');btn.textContent=t('ap-gen-ing');
+  try{const r=await callAITask('skill.'+S.aiMode,request.prompt,ac,request.systemPrompt);S.lastArpResult=r;document.getElementById('arpText').textContent=r;document.getElementById('arpMode').textContent=S.aiMode;document.getElementById('aiResultPopup').classList.add('show');await addHistory(S.aiMode,r,{project_id:S.aiRunSnapshot.project_id,active_type:S.aiRunSnapshot.active_type,active_id:S.aiRunSnapshot.active_id,context_mode:request.context.mode,context_tokens:request.tokens});}
+  catch(e){showToast('✕',e.message||'失败');}
+  finally{btn.classList.remove('loading');btn.innerHTML='<span><svg class="ic ic-sm"><use href="icons/ai-mode-icons.svg#mode-workshop"/></svg></span><span data-i18n="ap-gen">'+t('ap-gen')+'</span>';}
+}
 
 // ═══ Cookie Consent & Privacy ═══
 function showPrivacyModal(){document.getElementById('privacyModal').classList.add('show');}
