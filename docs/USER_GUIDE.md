@@ -32,12 +32,15 @@ Pages 与自部署站点使用不同域名时，浏览器数据不会自动同�
 
 1. 打开“设置 → API”。
 2. 选择服务商；中转、自建服务或兼容接口选择“自定义”。
-3. 填写模型 ID、Base URL 和 Key。
-4. 默认可让工作台自动识别协议；必要时在高级设置中明确选择 OpenAI Chat Completions、OpenAI Responses、Anthropic Messages 或 Ollama Chat。
-5. 无 Key 的接口选择“无鉴权”。需要特殊请求头时填写 JSON。
-6. 先测试，确认返回正文后再保存。
+3. 填写 Base URL 和 Key，点“获取模型”读取目标服务提供的真实模型 ID；页面上的 `0.1x` 等价格/额度倍率不属于模型 ID。也可以手动填写已确认的模型 ID。
+4. 在高级设置中核对 OpenAI Chat Completions、OpenAI Responses、Anthropic Messages 或 Ollama Chat。只填 `/v1` 时默认按 Chat；CPA 的 Codex / Responses 路线应明确选择 Responses。
+5. 标准 Base URL 让工作台自动补路径；非标准完整接口勾选“按填写 URL 原样请求”。无 Key 的接口选择“无鉴权”。
+6. 特殊兼容字段写进“请求体覆盖”JSON，例如 `{"max_tokens":null,"max_completion_tokens":4096}`；核心 `model/messages/input/stream` 不允许覆盖。
+7. 先点“预览实际请求”，核对最终 URL、协议、脱敏请求头和请求体；再测试并保存。
 
-如果测试失败：`401` 先查 Key 和鉴权；`404` 先查模型 ID、协议与地址；浏览器直接报网络错误时再查 CORS、HTTPS 混合内容、DNS 或代理。Pages 不能替目标服务器放开跨域权限。
+如果测试失败：准备阶段查 URL 与 JSON；`401` 查 Key 和鉴权；`404` 查模型、协议和最终 URL；解析阶段查响应协议。只有显示“请求未获得 HTTP 响应”时，才继续检查预检、重定向、CORS、HTTPS 混合内容、DNS 或代理。诊断会保留浏览器原始错误，不再把所有失败统称为网络问题。
+
+特别注意：HTTPS Pages 无法直连 `http://` API，浏览器会在 POST 发出前拦截；这类地址必须换成 HTTPS，或交给自部署 Go 后端请求。若 HTTPS API 的标准 CORS 正常却仍在预检阶段失败，先清空从其他服务遗留的自定义请求头，再逐项添加目标端明确允许的头。
 
 ### 3. 选择任务和上下文
 

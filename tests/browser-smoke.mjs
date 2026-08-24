@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+import { createServer } from 'node:http';
 import { chromium } from 'playwright';
 
 const baseURL = process.env.WW_TEST_BASE_URL || 'http://127.0.0.1:8080';
@@ -19,6 +20,63 @@ async function collectErrors(page) {
     if (message.type() === 'error') errors.push(message.text());
   });
   return errors;
+}
+
+async function startCorsMock() {
+  const state = { preflights: 0, modelRequests: 0, requests: [] };
+  const server = createServer((request, response) => {
+    const corsHeaders = {
+      'Access-Control-Allow-Origin': request.headers.origin || '*',
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Headers': request.headers['access-control-request-headers'] || 'Content-Type, Authorization, X-Route',
+      'Access-Control-Expose-Headers': 'x-request-id',
+      Vary: 'Origin'
+    };
+    if (request.method === 'OPTIONS') {
+      state.preflights += 1;
+      response.writeHead(204, corsHeaders);
+      response.end();
+      return;
+    }
+    if (request.method === 'GET' && request.url === '/v1/models') {
+      state.modelRequests += 1;
+      response.writeHead(200, { ...corsHeaders, 'Content-Type': 'application/json' });
+      response.end(JSON.stringify({ data: [{ id: 'test-model' }, { id: 'gpt-5.6-luna' }] }));
+      return;
+    }
+    if (request.method !== 'POST') {
+      response.writeHead(405, { ...corsHeaders, 'Content-Type': 'application/json' });
+      response.end(JSON.stringify({ error: { message: 'method not allowed' } }));
+      return;
+    }
+    let raw = '';
+    request.setEncoding('utf8');
+    request.on('data', chunk => { raw += chunk; });
+    request.on('end', () => {
+      state.requests.push({
+        path: request.url,
+        authorization: request.headers.authorization,
+        route: request.headers['x-route'],
+        body: JSON.parse(raw || '{}')
+      });
+      response.writeHead(200, { ...corsHeaders, 'Content-Type': 'application/json', 'x-request-id': 'cors-smoke' });
+      response.end(JSON.stringify({
+        choices: [{ message: { content: 'OK' } }],
+        usage: { prompt_tokens: 8, completion_tokens: 1 }
+      }));
+    });
+  });
+  await new Promise((resolve, reject) => {
+    server.once('error', reject);
+    server.listen(0, '127.0.0.1', resolve);
+  });
+  server.unref();
+  const address = server.address();
+  return {
+    origin: `http://127.0.0.1:${address.port}`,
+    state,
+    close: () => new Promise((resolve, reject) => server.close(error => error ? reject(error) : resolve()))
+  };
 }
 
 try {
@@ -490,26 +548,10 @@ must_not_create_chapters=true
   const pagesContext = await browser.newContext({ viewport: { width: 1280, height: 900 } });
   const pagesPage = await pagesContext.newPage();
   const pagesErrors = await collectErrors(pagesPage);
+  const corsMock = await startCorsMock();
   let configPosts = 0;
-  let directRequest = null;
   pagesPage.on('request', request => {
     if (request.url().endsWith('/api/config') && request.method() === 'POST') configPosts += 1;
-  });
-  await pagesPage.route('https://mock-api.example/v1/chat/completions', async route => {
-    const request = route.request();
-    directRequest = {
-      authorization: request.headers().authorization,
-      route: request.headers()['x-route'],
-      body: request.postDataJSON()
-    };
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({
-        choices: [{ message: { content: 'OK' } }],
-        usage: { prompt_tokens: 8, completion_tokens: 1 }
-      })
-    });
   });
   await pagesPage.goto(`${baseURL}/app.html?api_mode=browser`, { waitUntil: 'networkidle' });
   await pagesPage.waitForFunction(() => WW_BROWSER_API_MODE === true);
@@ -521,12 +563,16 @@ must_not_create_chapters=true
     const custom = document.querySelector('#providerGrid .provider-chip[onclick*="custom"]');
     selectProvider(custom, 'custom');
   });
-  await pagesPage.locator('#apiBaseUrl').fill('https://mock-api.example/v1');
+  await pagesPage.locator('#apiBaseUrl').fill(`${corsMock.origin}/v1`);
   await pagesPage.locator('#apiKey').fill('browser-test-key');
   await pagesPage.locator('#apiModel').fill('test-model');
   await pagesPage.locator('#apiModal .api-advanced > summary').click();
   await pagesPage.locator('#apiContextLimit').fill('32768');
   await pagesPage.locator('#apiHeaders').fill('{"X-Route":"pages"}');
+  await pagesPage.getByRole('button', { name: '获取模型' }).first().click();
+  await pagesPage.waitForFunction(() => document.getElementById('testResult')?.textContent.includes('已读取 2 个模型'));
+  assert.equal(corsMock.state.modelRequests, 1, 'Pages must read the real cross-origin model endpoint');
+  assert.deepEqual(await pagesPage.locator('#apiModelList option').evaluateAll(options => options.map(option => option.value)), ['test-model', 'gpt-5.6-luna']);
   assert.equal(
     await pagesPage.locator('#apiModal .btn-confirm').getAttribute('onclick'),
     'saveApi()',
@@ -535,7 +581,7 @@ must_not_create_chapters=true
   const preparedPagesConfig = await pagesPage.evaluate(() => apiFormConfig());
   assert.equal(preparedPagesConfig.provider, 'custom');
   assert.equal(preparedPagesConfig.transport, 'browser');
-  assert.equal(preparedPagesConfig.baseUrl, 'https://mock-api.example/v1');
+  assert.equal(preparedPagesConfig.baseUrl, `${corsMock.origin}/v1`);
   assert.equal(preparedPagesConfig.model, 'test-model');
   await pagesPage.evaluate(() => saveApi());
   assert.equal(
@@ -548,13 +594,15 @@ must_not_create_chapters=true
     provider: 'custom',
     key: 'browser-test-key',
     model: 'test-model',
-    baseUrl: 'https://mock-api.example/v1',
+    baseUrl: `${corsMock.origin}/v1`,
     type: 'openai',
     protocol: 'auto',
     authMode: 'auto',
     timeout: 60000,
     contextLimit: 32768,
     customHeaders: '{"X-Route":"pages"}',
+    bodyOverrides: '',
+    exactEndpoint: false,
     transport: 'browser'
   });
   assert.equal(configPosts, 0, 'Pages save must not POST to static /api/config');
@@ -562,15 +610,34 @@ must_not_create_chapters=true
   await pagesPage.locator('#apiModal .btn-test').click();
   await pagesPage.waitForFunction(() => document.getElementById('testResult')?.textContent.includes('✓ OK'));
   assert.equal(configPosts, 0, 'Pages API test must not POST to static /api/config');
+  const directRequest = corsMock.state.requests.at(-1);
+  assert.ok(corsMock.state.preflights >= 1, 'Pages request must pass a real cross-origin browser preflight');
+  assert.equal(directRequest.path, '/v1/chat/completions');
   assert.equal(directRequest.authorization, 'Bearer browser-test-key');
   assert.equal(directRequest.route, 'pages');
   assert.equal(directRequest.body.provider, undefined, 'browser request must not leak internal proxy fields');
   assert.equal(directRequest.body.model, 'test-model');
   assert.match(directRequest.body.messages[0].content, /Reply with exactly: OK/);
 
+  await pagesPage.locator('#apiBaseUrl').fill(`${corsMock.origin}/custom/invoke?route=pages`);
+  await pagesPage.locator('#apiExactEndpoint').check();
+  await pagesPage.locator('#apiBodyOverrides').fill('{"max_tokens":null,"max_completion_tokens":128}');
+  await pagesPage.getByRole('button', { name: '预览实际请求' }).first().click();
+  assert.match(await pagesPage.locator('#apiDiagnostic').textContent(), /\/custom\/invoke\?route=pages/);
+  assert.match(await pagesPage.locator('#apiDiagnostic').textContent(), /Bearer ••••/);
+  assert.doesNotMatch(await pagesPage.locator('#apiDiagnostic').textContent(), /browser-test-key/);
+  await pagesPage.locator('#apiModal .btn-test').click();
+  await pagesPage.waitForFunction(() => document.getElementById('testResult')?.textContent.includes('✓ OK'));
+  const exactRequest = corsMock.state.requests.at(-1);
+  assert.equal(exactRequest.path, '/custom/invoke?route=pages');
+  assert.equal(exactRequest.body.max_tokens, undefined);
+  assert.equal(exactRequest.body.max_completion_tokens, 128);
+
   await pagesPage.locator('#apiProtocol').selectOption('ollama');
   await pagesPage.locator('#apiAuthMode').selectOption('none');
   await pagesPage.locator('#apiBaseUrl').fill('http://127.0.0.1:11434');
+  await pagesPage.locator('#apiExactEndpoint').uncheck();
+  await pagesPage.locator('#apiBodyOverrides').fill('');
   await pagesPage.locator('#apiClearKey').check();
   await pagesPage.locator('#apiClearHeaders').check();
   await pagesPage.evaluate(() => saveApi());
@@ -581,6 +648,7 @@ must_not_create_chapters=true
   assert.equal(keylessConfig.customHeaders, '');
   assert.equal(configPosts, 0, 'keyless Pages save must not POST to static /api/config');
   assert.deepEqual(pagesErrors, [], `Pages browser API errors:\n${pagesErrors.join('\n')}`);
+  await corsMock.close();
   await pagesContext.close();
 
   const staticContext = await browser.newContext({ viewport: { width: 1100, height: 800 } });

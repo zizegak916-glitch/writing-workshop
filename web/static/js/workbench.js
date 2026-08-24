@@ -60,6 +60,8 @@ async function loadBackendConfig(){
         timeout:Number(pc.request_timeout_ms||60000),
         contextLimit:Number(cfg.context_window||0),
         customHeaders:'',
+        bodyOverrides:Object.keys(pc.extra_body||{}).length?JSON.stringify(pc.extra_body,null,2):'',
+        exactEndpoint:!!pc.exact_endpoint,
         transport:'backend'
       };
       localStorage.setItem('ww_api',JSON.stringify(S.apiConfig));
@@ -3317,7 +3319,7 @@ function aiHasConfig(conf){
 }
 function providerEndpoint(conf,p){
   const protocol=WWApiAdapter.inferProtocol({...conf,type:conf.type||p.type});
-  return WWApiAdapter.normalizeEndpoint(conf.baseUrl,protocol,p.url);
+  return WWApiAdapter.normalizeEndpoint(conf.baseUrl,protocol,p.url,!!conf.exactEndpoint);
 }
 function _parseMessages(prompt,systemPrompt){const msgs=[];if(systemPrompt)msgs.push({role:'system',content:systemPrompt});msgs.push({role:'user',content:prompt});return msgs;}
 function _runtimeConfig(conf,p){
@@ -3620,12 +3622,15 @@ function apiFormConfig(prefix=''){
   const timeoutSeconds=Math.max(5,Math.min(600,Number(fieldValue('Timeout')||60)));
   const contextLimit=Math.max(0,Number(fieldValue('ContextLimit')||0));
   const customHeaders=fieldValue('Headers');
+  const bodyOverrides=fieldValue('BodyOverrides');
+  const exactEndpoint=!!document.getElementById(fieldStem+'ExactEndpoint')?.checked;
   const clearKey=!!document.getElementById(fieldStem+'ClearKey')?.checked;
   const clearHeaders=!!document.getElementById(fieldStem+'ClearHeaders')?.checked;
   WWApiAdapter.parseCustomHeaders(customHeaders);
+  WWApiAdapter.parseBodyOverrides(bodyOverrides);
   const providerType=PROVIDERS[provider]?.type||'openai';
   const inferred=WWApiAdapter.inferProtocol({provider,protocol,type:providerType,baseUrl});
-  return{provider,key:key||(WW_BROWSER_API_MODE?'':'backend'),model:fieldValue('Model'),baseUrl,type:WWApiAdapter.protocolType(inferred),protocol,authMode,timeout:timeoutSeconds*1000,contextLimit,customHeaders,clearKey,clearHeaders,transport:WW_BROWSER_API_MODE?'browser':'backend'};
+  return{provider,key:key||(WW_BROWSER_API_MODE?'':'backend'),model:fieldValue('Model'),baseUrl,type:WWApiAdapter.protocolType(inferred),protocol,authMode,timeout:timeoutSeconds*1000,contextLimit,customHeaders,bodyOverrides,exactEndpoint,clearKey,clearHeaders,transport:WW_BROWSER_API_MODE?'browser':'backend'};
 }
 async function persistApiConfig(conf){
   if(WW_BROWSER_API_MODE){
@@ -3643,6 +3648,7 @@ async function persistApiConfig(conf){
     return;
   }
   const headers=WWApiAdapter.parseCustomHeaders(conf.customHeaders);
+  const bodyOverrides=WWApiAdapter.parseBodyOverrides(conf.bodyOverrides);
   await apiJSON('/api/config',{method:'POST',body:JSON.stringify({
     provider:conf.provider,
     model:conf.model,
@@ -3651,17 +3657,106 @@ async function persistApiConfig(conf){
     auth_mode:conf.authMode,
     request_timeout_ms:conf.timeout,
     context_window:conf.contextLimit,
+    exact_endpoint:conf.exactEndpoint,
     api_key:conf.key==='backend'?'':conf.key,
     clear_api_key:conf.clearKey,
     base_url:conf.baseUrl,
-    extra:conf.clearHeaders?{}:(Object.keys(headers).length?{headers}:undefined)
+    extra:conf.clearHeaders?{}:(Object.keys(headers).length?{headers}:undefined),
+    extra_body:bodyOverrides
   })});
-  S.apiConfig={provider:conf.provider,key:'backend',model:conf.model,baseUrl:conf.baseUrl,type:conf.type,protocol:conf.protocol,authMode:conf.authMode,timeout:conf.timeout,contextLimit:conf.contextLimit,customHeaders:'',transport:'backend'};
+  S.apiConfig={provider:conf.provider,key:'backend',model:conf.model,baseUrl:conf.baseUrl,type:conf.type,protocol:conf.protocol,authMode:conf.authMode,timeout:conf.timeout,contextLimit:conf.contextLimit,customHeaders:'',bodyOverrides:conf.bodyOverrides,exactEndpoint:conf.exactEndpoint,transport:'backend'};
   localStorage.setItem('ww_api',JSON.stringify(S.apiConfig));
 }
-async function testApi(){const r=document.getElementById('testResult');r.className='test-result ok';r.textContent='⟳ '+t('mod-api-test')+'...';try{const conf=apiFormConfig();if(!WW_BROWSER_API_MODE)await persistApiConfig(conf);const result=await callAITask('api.connection','Reply with exactly: OK',conf);r.className='test-result ok';r.textContent='✓ '+result.slice(0,30);}catch(e){r.className='test-result fail';r.textContent='✗ '+e.message;}}
+function apiRequestInspection(conf){
+  const p=PROVIDERS[conf.provider]||PROVIDERS.custom;
+  return WWApiAdapter.inspectRequest(_runtimeConfig(conf,p),_parseMessages('Reply with exactly: OK',''),{maxTokens:64,stream:false});
+}
+function renderApiDiagnostic(prefix,conf,error){
+  const target=document.getElementById(prefix?'sApiDiagnostic':'apiDiagnostic');
+  if(!target)return null;
+  const lines=[];
+  let inspection=null;
+  try{
+    inspection=apiRequestInspection(conf);
+    lines.push('最终 URL: '+inspection.endpoint);
+    lines.push('协议: '+inspection.protocol+' · 方法: '+inspection.method);
+    lines.push('请求头（密钥已隐藏）:\n'+JSON.stringify(inspection.headers,null,2));
+    lines.push('请求体:\n'+JSON.stringify(inspection.body,null,2));
+    const multiplierMatch=String(conf.model||'').match(/^(.+?)(\d+(?:\.\d+)?x)$/i);
+    if(multiplierMatch&&/(?:luna|sol|terra|opus|sonnet|haiku)$/i.test(multiplierMatch[1])){
+      lines.push('模型提醒: 末尾“'+multiplierMatch[2]+'”看起来像价格/额度倍率，不一定属于模型 ID；请点“获取模型”核对。');
+    }
+  }catch(prepareError){
+    if(!error)error=prepareError;
+  }
+  if(error){
+    const meta=['阶段: '+(error.stage||'unknown')];
+    if(error.status)meta.push('HTTP: '+error.status);
+    if(error.endpoint&&!inspection)meta.push('最终 URL: '+error.endpoint);
+    if(error.protocol&&!inspection)meta.push('协议: '+error.protocol);
+    lines.push('失败诊断: '+meta.join(' · '));
+    lines.push('错误: '+String(error.message||error));
+  }
+  target.textContent=lines.join('\n\n');
+  target.hidden=false;
+  return inspection;
+}
+function previewApiRequest(prefix=''){
+  try{
+    const conf=apiFormConfig(prefix);
+    renderApiDiagnostic(prefix,conf,null);
+  }catch(error){
+    const fallback={provider:S.selectedProvider||'custom',model:'',baseUrl:'',protocol:'auto'};
+    renderApiDiagnostic(prefix,fallback,error);
+  }
+}
+async function loadApiModels(prefix=''){
+  const result=document.getElementById(prefix?'sTestResult':'testResult');
+  result.className='test-result ok';result.textContent='⟳ 正在读取模型列表...';
+  try{
+    const conf=apiFormConfig(prefix);
+    let models=[],endpoint='';
+    if(WW_BROWSER_API_MODE){
+      const p=PROVIDERS[conf.provider]||PROVIDERS.custom;
+      const response=await WWApiAdapter.listModels(_runtimeConfig(conf,p));
+      models=response.models;endpoint=response.endpoint;
+    }else{
+      const response=await apiJSON('/api/models');
+      models=response.models?.[conf.provider]||[];endpoint='同源 /api/models';
+    }
+    if(!models.length)throw new Error('没有读取到可选模型；请确认 Key、Base URL 和服务端模型权限');
+    const list=document.getElementById(prefix?'sApiModelList':'apiModelList');
+    list.replaceChildren(...models.map(model=>{const option=document.createElement('option');option.value=model;return option;}));
+    const input=document.getElementById((prefix?prefix+'Api':'api')+'Model');
+    const original=input.value.trim();
+    const multiplierMatch=original.match(/^(.+?)(\d+(?:\.\d+)?x)$/i);
+    const corrected=multiplierMatch&&models.includes(multiplierMatch[1])?multiplierMatch[1]:'';
+    if(corrected)input.value=corrected;
+    const current=input.value.trim();
+    const known=!current||models.includes(current);
+    result.className='test-result '+(known?'ok':'fail');
+    result.textContent=corrected
+      ?'✓ 已读取 '+models.length+' 个模型，并把倍率标签从模型 ID 中移除：'+corrected
+      :(known?'✓ 已读取 '+models.length+' 个模型 · '+endpoint:'! 已读取 '+models.length+' 个模型，但当前值不在列表；请从候选中选择');
+  }catch(error){
+    result.className='test-result fail';result.textContent='✕ '+(error.message||error);
+  }
+}
+async function testApi(){
+  const r=document.getElementById('testResult');r.className='test-result ok';r.textContent='⟳ '+t('mod-api-test')+'...';
+  let conf;
+  try{
+    conf=apiFormConfig();renderApiDiagnostic('',conf,null);
+    if(!WW_BROWSER_API_MODE)await persistApiConfig(conf);
+    const result=await callAITask('api.connection','Reply with exactly: OK',conf);
+    r.className='test-result ok';r.textContent='✓ '+result.slice(0,30);
+  }catch(e){
+    if(conf)renderApiDiagnostic('',conf,e);
+    r.className='test-result fail';r.textContent='✗ '+e.message;
+  }
+}
 async function saveApi(){try{await persistApiConfig(apiFormConfig());if(!WW_BROWSER_API_MODE)document.getElementById('apiKey').value='';closeModal('apiModal');showToast('✓',t('toast-saved'));}catch(e){showToast('✕',e.message);}}
-function loadApiFields(prefix,c){const stem=prefix?prefix+'Api':'api';document.getElementById(stem+'Key').value=c.key==='backend'?'':(c.key||'');document.getElementById(stem+'Model').value=c.model||'';document.getElementById(stem+'BaseUrl').value=c.baseUrl||'';document.getElementById(stem+'Protocol').value=c.protocol||'auto';document.getElementById(stem+'AuthMode').value=c.authMode||'auto';document.getElementById(stem+'Timeout').value=Math.round(Number(c.timeout||60000)/1000);document.getElementById(stem+'ContextLimit').value=Number(c.contextLimit||0)||'';document.getElementById(stem+'Headers').value=c.customHeaders||'';const clearKey=document.getElementById(stem+'ClearKey'),clearHeaders=document.getElementById(stem+'ClearHeaders');if(clearKey)clearKey.checked=false;if(clearHeaders)clearHeaders.checked=false;}
+function loadApiFields(prefix,c){const stem=prefix?prefix+'Api':'api';document.getElementById(stem+'Key').value=c.key==='backend'?'':(c.key||'');document.getElementById(stem+'Model').value=c.model||'';document.getElementById(stem+'BaseUrl').value=c.baseUrl||'';document.getElementById(stem+'Protocol').value=c.protocol||'auto';document.getElementById(stem+'AuthMode').value=c.authMode||'auto';document.getElementById(stem+'Timeout').value=Math.round(Number(c.timeout||60000)/1000);document.getElementById(stem+'ContextLimit').value=Number(c.contextLimit||0)||'';document.getElementById(stem+'Headers').value=c.customHeaders||'';document.getElementById(stem+'BodyOverrides').value=c.bodyOverrides||'';document.getElementById(stem+'ExactEndpoint').checked=!!c.exactEndpoint;const clearKey=document.getElementById(stem+'ClearKey'),clearHeaders=document.getElementById(stem+'ClearHeaders');if(clearKey)clearKey.checked=false;if(clearHeaders)clearHeaders.checked=false;const diagnostic=document.getElementById(prefix?'sApiDiagnostic':'apiDiagnostic');if(diagnostic){diagnostic.hidden=true;diagnostic.textContent='';}}
 function loadApiUI(){const c=S.apiConfig;if(c.provider){const el=document.querySelector('.provider-chip[onclick*="'+c.provider+'"]');if(el)selectProvider(el,c.provider);}loadApiFields('',c);const notice=document.getElementById('apiStorageNotice');if(notice)notice.textContent=apiStorageDescription();}
 
 function makeEditorSnapshot(){
@@ -4624,7 +4719,8 @@ function settingsSetTheme(theme,el){
 function settingsTestApi(){
   const r=document.getElementById('sTestResult');
   r.className='test-result ok';r.textContent='⟳ '+t('mod-api-test')+'...';
-  const conf=apiFormConfig('s');
+  let conf;
+  try{conf=apiFormConfig('s');renderApiDiagnostic('s',conf,null);}catch(e){renderApiDiagnostic('s',{provider:S.selectedProvider||'custom',model:'',baseUrl:'',protocol:'auto'},e);r.className='test-result fail';r.textContent='✕ '+e.message;return;}
   const prepare=WW_BROWSER_API_MODE?Promise.resolve():persistApiConfig(conf);
   prepare.then(()=>callAITask('api.connection','Reply with exactly: OK',conf)).then(txt=>{
     r.className='test-result ok';r.textContent='✓ '+txt.slice(0,60);
@@ -4633,6 +4729,7 @@ function settingsTestApi(){
     if(msg.includes('429'))msg+=' (请求过于频繁，请稍后再试)';
     if(msg.includes('403'))msg+=' (API Key 无权限，请检查 Key 是否正确)';
     if(msg.includes('401')||msg.includes('invalid'))msg+=' (API Key 无效)';
+    renderApiDiagnostic('s',conf,e);
     r.className='test-result fail';r.textContent='✕ '+msg;
   });
 }

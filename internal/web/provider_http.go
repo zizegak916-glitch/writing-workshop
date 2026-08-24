@@ -80,7 +80,8 @@ func useRawProvider(provider resolvedAIProvider) bool {
 	if parsed, err := url.Parse(baseURL); err == nil {
 		baseURL = strings.TrimRight(parsed.Path, "/")
 	}
-	if provider.Protocol == "openai-responses" ||
+	if provider.Config.ExactEndpoint || len(provider.Config.ExtraBody) > 0 ||
+		provider.Protocol == "openai-responses" ||
 		strings.HasSuffix(baseURL, "/chat/completions") ||
 		strings.HasSuffix(baseURL, "/responses") ||
 		strings.HasSuffix(baseURL, "/messages") ||
@@ -118,7 +119,7 @@ func (s *Server) generateAI(ctx context.Context, provider, modelName string, mes
 }
 
 func rawProviderRequest(ctx context.Context, provider resolvedAIProvider, messages []engine.Message, stream bool, onDelta func(string)) (string, *engine.Usage, error) {
-	endpoint, err := rawProviderEndpoint(provider.Config.BaseURL, provider.Protocol)
+	endpoint, err := rawProviderEndpoint(provider.Config.BaseURL, provider.Protocol, provider.Config.ExactEndpoint)
 	if err != nil {
 		return "", nil, err
 	}
@@ -171,7 +172,7 @@ func rawProviderRequest(ctx context.Context, provider resolvedAIProvider, messag
 	return text, rawUsage(decoded), nil
 }
 
-func rawProviderEndpoint(baseURL, protocol string) (string, error) {
+func rawProviderEndpoint(baseURL, protocol string, exactEndpoint bool) (string, error) {
 	baseURL = strings.TrimSpace(baseURL)
 	if baseURL == "" {
 		return "", fmt.Errorf("provider Base URL is required")
@@ -179,6 +180,9 @@ func rawProviderEndpoint(baseURL, protocol string) (string, error) {
 	u, err := url.Parse(baseURL)
 	if err != nil || u.Scheme == "" || u.Host == "" || (u.Scheme != "http" && u.Scheme != "https") {
 		return "", fmt.Errorf("provider Base URL must be an http(s) URL")
+	}
+	if exactEndpoint {
+		return u.String(), nil
 	}
 	path := strings.TrimRight(u.Path, "/")
 	if strings.HasSuffix(path, "/chat/completions") || strings.HasSuffix(path, "/responses") ||
@@ -292,6 +296,10 @@ func rawProviderBody(provider resolvedAIProvider, messages []engine.Message, str
 	}
 	for key, value := range provider.Config.ExtraBody {
 		if key == "model" || key == "messages" || key == "input" || key == "stream" {
+			continue
+		}
+		if value == nil {
+			delete(body, key)
 			continue
 		}
 		body[key] = value

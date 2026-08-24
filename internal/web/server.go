@@ -899,6 +899,7 @@ type configUpdate struct {
 	AuthMode       string            `json:"auth_mode"`
 	RequestTimeout int               `json:"request_timeout_ms"`
 	ContextWindow  *int              `json:"context_window"`
+	ExactEndpoint  *bool             `json:"exact_endpoint"`
 	Models         []string          `json:"models"`
 	Extra          map[string]any    `json:"extra"`
 	ExtraBody      map[string]any    `json:"extra_body"`
@@ -1004,6 +1005,9 @@ func applyConfigUpdate(cfg *bootstrap.Config, req configUpdate) {
 	}
 	if req.RequestTimeout > 0 {
 		pc.RequestTimeoutMS = min(max(req.RequestTimeout, 5000), 600000)
+	}
+	if req.ExactEndpoint != nil {
+		pc.ExactEndpoint = *req.ExactEndpoint
 	}
 	if len(req.Models) > 0 {
 		pc.Models = append([]string(nil), req.Models...)

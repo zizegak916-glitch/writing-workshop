@@ -683,8 +683,8 @@
     <div class="provider-chip" onclick="selectProvider(this,'custom')"><svg class="ic" style="width:22px;height:22px"><use href="#ic-logo"/></svg> 自定义</div>
   </div></div>
   <div class="form-row" id="customUrlRow"><div class="form-label">Base URL（可选，可填中转地址或完整接口）</div><input class="form-input" id="apiBaseUrl" placeholder="留空使用所选服务商默认地址"></div>
-  <div class="form-row"><div class="form-label" data-i18n="form-api-key-label">API Key</div><div class="test-row"><input class="form-input" id="apiKey" type="password" placeholder="sk-..."><button class="btn-test" data-i18n="form-api-test" onclick="testApi()">测试</button></div><div class="test-result" id="testResult"></div></div>
-  <div class="form-row"><div class="form-label" data-i18n="form-api-model-label">模型</div><input class="form-input" id="apiModel" data-i18n-ph="form-api-model-ph" placeholder="留空使用默认"></div>
+  <div class="form-row"><div class="form-label" data-i18n="form-api-key-label">API Key</div><div class="test-row"><input class="form-input" id="apiKey" type="password" placeholder="sk-..."><button class="btn-test" data-i18n="form-api-test" onclick="testApi()">测试</button></div><div class="test-result" id="testResult"></div><pre class="api-diagnostic" id="apiDiagnostic" hidden></pre></div>
+  <div class="form-row"><div class="form-label" data-i18n="form-api-model-label">模型</div><div class="test-row"><input class="form-input" id="apiModel" list="apiModelList" data-i18n-ph="form-api-model-ph" placeholder="填写真实模型 ID"><button class="btn-test" type="button" onclick="loadApiModels()">获取模型</button></div><datalist id="apiModelList"></datalist></div>
   <details class="api-advanced">
     <summary>高级网络适配</summary>
     <div class="api-advanced-grid">
@@ -694,11 +694,14 @@
       <label>上下文上限（tokens）<input class="form-input" id="apiContextLimit" type="number" min="0" step="1024" placeholder="未知模型请填写"></label>
     </div>
     <label class="api-header-field">自定义请求头（JSON）<textarea class="form-input" id="apiHeaders" rows="3" placeholder='{"HTTP-Referer":"https://example.com"}'></textarea></label>
+    <label class="api-header-field">请求体覆盖（JSON；null 表示删除字段）<textarea class="form-input" id="apiBodyOverrides" rows="3" placeholder='{"max_tokens":null,"max_completion_tokens":4096}'></textarea></label>
     <div class="api-advanced-grid">
+      <label><input id="apiExactEndpoint" type="checkbox"> 按填写 URL 原样请求，不自动补路径</label>
       <label><input id="apiClearKey" type="checkbox"> 清除后端已保存的 API Key</label>
       <label><input id="apiClearHeaders" type="checkbox"> 清除后端已保存的自定义请求头</label>
+      <button class="btn-cancel api-preview-button" type="button" onclick="previewApiRequest()">预览实际请求</button>
     </div>
-    <p class="api-advanced-help">地址可填域名、兼容层 Base URL 或完整接口；系统会按协议补全路径。无密钥的 Ollama、局域网服务请选择“无鉴权”。Pages 直连仍要求目标服务允许 CORS。</p>
+    <p class="api-advanced-help">Base URL 默认按协议补全路径；如果 CPA 或兼容层提供的是非标准完整接口，请勾选“原样请求”。测试会显示最终 URL、协议、已脱敏请求头、请求体和失败阶段，不再把所有失败统称为网络问题。</p>
   </details>
   <div class="modal-footer"><button class="btn-cancel" data-i18n="form-cancel" onclick="closeModal('apiModal')">取消</button><button class="btn-confirm" data-i18n="form-save" onclick="saveApi()">保存 ✓</button></div>
 </div></div>
@@ -739,8 +742,8 @@
       <div class="provider-chip" onclick="selectProvider(this,'custom')"><svg class="ic" style="width:22px;height:22px"><use href="#ic-logo"/></svg> 自定义</div>
     </div></div>
     <div class="form-row" id="sCustomUrlRow"><div class="form-label">Base URL（可选，可填中转地址或完整接口）</div><input class="form-input" id="sApiBaseUrl" placeholder="留空使用所选服务商默认地址"></div>
-    <div class="form-row"><div class="form-label" data-i18n="form-api-key-label">API Key</div><div class="test-row"><input class="form-input" id="sApiKey" type="password" placeholder="sk-..."><button class="btn-test" data-i18n="form-api-test" onclick="settingsTestApi()">测试</button></div><div class="test-result" id="sTestResult"></div></div>
-    <div class="form-row"><div class="form-label" data-i18n="form-api-model-label">模型</div><input class="form-input" id="sApiModel" data-i18n-ph="form-api-model-ph" placeholder="留空使用默认"></div>
+    <div class="form-row"><div class="form-label" data-i18n="form-api-key-label">API Key</div><div class="test-row"><input class="form-input" id="sApiKey" type="password" placeholder="sk-..."><button class="btn-test" data-i18n="form-api-test" onclick="settingsTestApi()">测试</button></div><div class="test-result" id="sTestResult"></div><pre class="api-diagnostic" id="sApiDiagnostic" hidden></pre></div>
+    <div class="form-row"><div class="form-label" data-i18n="form-api-model-label">模型</div><div class="test-row"><input class="form-input" id="sApiModel" list="sApiModelList" data-i18n-ph="form-api-model-ph" placeholder="填写真实模型 ID"><button class="btn-test" type="button" onclick="loadApiModels('s')">获取模型</button></div><datalist id="sApiModelList"></datalist></div>
     <details class="api-advanced">
       <summary>高级网络适配</summary>
       <div class="api-advanced-grid">
@@ -750,11 +753,14 @@
         <label>上下文上限（tokens）<input class="form-input" id="sApiContextLimit" type="number" min="0" step="1024" placeholder="未知模型请填写"></label>
       </div>
       <label class="api-header-field">自定义请求头（JSON）<textarea class="form-input" id="sApiHeaders" rows="3" placeholder='{"HTTP-Referer":"https://example.com"}'></textarea></label>
+      <label class="api-header-field">请求体覆盖（JSON；null 表示删除字段）<textarea class="form-input" id="sApiBodyOverrides" rows="3" placeholder='{"max_tokens":null,"max_completion_tokens":4096}'></textarea></label>
       <div class="api-advanced-grid">
+        <label><input id="sApiExactEndpoint" type="checkbox"> 按填写 URL 原样请求，不自动补路径</label>
         <label><input id="sApiClearKey" type="checkbox"> 清除后端已保存的 API Key</label>
         <label><input id="sApiClearHeaders" type="checkbox"> 清除后端已保存的自定义请求头</label>
+        <button class="btn-cancel api-preview-button" type="button" onclick="previewApiRequest('s')">预览实际请求</button>
       </div>
-      <p class="api-advanced-help">地址可填域名、兼容层 Base URL 或完整接口；系统会按协议补全路径。无密钥的 Ollama、局域网服务请选择“无鉴权”。Pages 直连仍要求目标服务允许 CORS。</p>
+      <p class="api-advanced-help">Base URL 默认按协议补全路径；如果 CPA 或兼容层提供的是非标准完整接口，请勾选“原样请求”。测试会显示最终 URL、协议、已脱敏请求头、请求体和失败阶段，不再把所有失败统称为网络问题。</p>
     </details>
   </div>
   <div id="settingsTab-theme" style="display:none">

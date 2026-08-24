@@ -191,7 +191,11 @@ func TestMergeConfig_ProviderExtraFields(t *testing.T) {
 	overlay := Config{
 		Providers: map[string]ProviderConfig{
 			"openrouter": {
-				BaseURL: "https://proxy.example.com/v1",
+				BaseURL:          "https://proxy.example.com/v1/custom/invoke",
+				Protocol:         "openai-chat",
+				AuthMode:         "bearer",
+				RequestTimeoutMS: 90000,
+				ExactEndpoint:    true,
 				ExtraBody: map[string]any{
 					"min_p": 0.05,
 				},
@@ -210,8 +214,11 @@ func TestMergeConfig_ProviderExtraFields(t *testing.T) {
 	if pc.APIKey != "sk-test-123456" {
 		t.Fatalf("APIKey = %q, want inherited key", pc.APIKey)
 	}
-	if pc.BaseURL != "https://proxy.example.com/v1" {
+	if pc.BaseURL != "https://proxy.example.com/v1/custom/invoke" {
 		t.Fatalf("BaseURL = %q, want overlay URL", pc.BaseURL)
+	}
+	if pc.Protocol != "openai-chat" || pc.AuthMode != "bearer" || pc.RequestTimeoutMS != 90000 || !pc.ExactEndpoint {
+		t.Fatalf("network request options not merged: %#v", pc)
 	}
 	if _, ok := pc.ExtraBody["temperature"]; ok {
 		t.Fatalf("ExtraBody should be replaced by overlay, got %#v", pc.ExtraBody)

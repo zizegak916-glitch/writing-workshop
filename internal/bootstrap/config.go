@@ -54,6 +54,7 @@ type ProviderConfig struct {
 	RequestTimeoutMS int      `json:"request_timeout_ms,omitempty"` // Web 请求总超时；0 使用默认值
 	APIKey           string   `json:"api_key,omitempty"`            // API Key
 	BaseURL          string   `json:"base_url,omitempty"`           // API Base URL
+	ExactEndpoint    bool     `json:"exact_endpoint,omitempty"`     // Base URL 已是完整端点，不再补协议路径
 	Models           []string `json:"models,omitempty"`             // 可选模型列表，供 TUI 切换时展示
 	// ExtraBody 透传给该 provider 每次请求的额外参数（如 temperature/top_p/min_p/
 	// presence_penalty，或厂商特有键如 nvidia 开 think 的 chat_template_kwargs）。

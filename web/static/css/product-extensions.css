@@ -382,6 +382,27 @@
   font-size: 12px;
 }
 
+.api-preview-button {
+  align-self: end;
+  min-height: 38px;
+}
+
+.api-diagnostic {
+  max-height: 280px;
+  margin: 10px 0 0;
+  padding: 12px;
+  overflow: auto;
+  border: 1px solid color-mix(in srgb, var(--accent) 28%, var(--border));
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--bg-deep) 82%, transparent);
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
 .api-advanced-help {
   margin: 0;
   padding: 0 14px 14px;

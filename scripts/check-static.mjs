@@ -94,7 +94,12 @@ const adapterSource = read('web/static/js/api-adapter.js');
 for (const protocol of ['openai-chat', 'openai-responses', 'anthropic', 'ollama']) {
   assert(adapterSource.includes(protocol), `API adapter protocol is missing: ${protocol}`);
 }
-assert(adapterSource.includes('parseCustomHeaders') && adapterSource.includes('normalizeEndpoint'), 'API network compatibility helpers are missing');
+for (const marker of ['parseCustomHeaders', 'parseBodyOverrides', 'normalizeEndpoint', 'normalizeModelsEndpoint', 'listModels', 'inspectRequest', '请求未获得 HTTP 响应']) {
+  assert(adapterSource.includes(marker), `API request compatibility or diagnostics are missing: ${marker}`);
+}
+for (const id of ['apiExactEndpoint', 'apiBodyOverrides', 'apiDiagnostic', 'apiModelList', 'sApiExactEndpoint', 'sApiBodyOverrides', 'sApiDiagnostic', 'sApiModelList']) {
+  assert(appHtml.includes(`id="${id}"`), `API request inspection control is missing: #${id}`);
+}
 assert(!/slotKey|placeholder="API Key" value="'\+\(s\.key/.test(workbenchSource), 'multi-model slots must not render or persist browser API keys');
 for (const coreFunction of ['renderCharList', 'countWords', 'escapeHtml']) {
   const declarations = workbenchSource.match(new RegExp(`function\\s+${coreFunction}\\s*\\(`, 'g')) || [];

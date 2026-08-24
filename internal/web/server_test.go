@@ -452,6 +452,7 @@ func TestAIProviderContractsWithLocalMocks(t *testing.T) {
 
 func TestApplyConfigUpdatePreservesNetworkOptions(t *testing.T) {
 	contextWindow := 32768
+	exactEndpoint := true
 	cfg := bootstrap.Config{
 		Provider:  "custom",
 		ModelName: "old-model",
@@ -469,6 +470,7 @@ func TestApplyConfigUpdatePreservesNetworkOptions(t *testing.T) {
 		AuthMode:       "x-api-key",
 		RequestTimeout: 90000,
 		ContextWindow:  &contextWindow,
+		ExactEndpoint:  &exactEndpoint,
 		Extra: map[string]any{
 			"headers": map[string]any{"X-Relay-Route": "cn-a"},
 		},
@@ -478,7 +480,7 @@ func TestApplyConfigUpdatePreservesNetworkOptions(t *testing.T) {
 	if pc.Type != "anthropic" || pc.BaseURL != "https://relay.example/v1" {
 		t.Fatalf("network options not applied: %#v", pc)
 	}
-	if pc.Protocol != "anthropic" || pc.AuthMode != "x-api-key" || pc.RequestTimeoutMS != 90000 || cfg.ContextWindow != contextWindow {
+	if pc.Protocol != "anthropic" || pc.AuthMode != "x-api-key" || pc.RequestTimeoutMS != 90000 || cfg.ContextWindow != contextWindow || !pc.ExactEndpoint {
 		t.Fatalf("protocol options not applied: provider=%#v context=%d", pc, cfg.ContextWindow)
 	}
 	headers, ok := pc.Extra["headers"].(map[string]any)
@@ -500,6 +502,34 @@ func TestApplyConfigUpdatePreservesNetworkOptions(t *testing.T) {
 	pc = cfg.Providers["custom"]
 	if pc.APIKey != "" || len(pc.Extra) != 0 {
 		t.Fatalf("explicit clear did not remove secrets: %#v", pc)
+	}
+}
+
+func TestRawProviderExactEndpointAndBodyDeletion(t *testing.T) {
+	endpoint, err := rawProviderEndpoint("https://relay.example/custom/invoke?route=cn", "openai-chat", true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if endpoint != "https://relay.example/custom/invoke?route=cn" {
+		t.Fatalf("exact endpoint=%q", endpoint)
+	}
+	provider := resolvedAIProvider{
+		Model:    "compat-model",
+		Protocol: "openai-chat",
+		Config: bootstrap.ProviderConfig{ExtraBody: map[string]any{
+			"max_tokens":            nil,
+			"max_completion_tokens": 4096,
+		}},
+	}
+	body := rawProviderBody(provider, nil, false)
+	if _, exists := body["max_tokens"]; exists {
+		t.Fatalf("null override must delete max_tokens: %#v", body)
+	}
+	if body["max_completion_tokens"] != 4096 {
+		t.Fatalf("body override not applied: %#v", body)
+	}
+	if !useRawProvider(provider) {
+		t.Fatal("body overrides must use the guarded raw provider path")
 	}
 }
 

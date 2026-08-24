@@ -197,11 +197,23 @@ func mergeConfig(base, overlay Config) Config {
 			if v.Type != "" {
 				existing.Type = v.Type
 			}
+			if v.Protocol != "" {
+				existing.Protocol = v.Protocol
+			}
+			if v.AuthMode != "" {
+				existing.AuthMode = v.AuthMode
+			}
+			if v.RequestTimeoutMS > 0 {
+				existing.RequestTimeoutMS = v.RequestTimeoutMS
+			}
 			if v.APIKey != "" {
 				existing.APIKey = v.APIKey
 			}
 			if v.BaseURL != "" {
 				existing.BaseURL = v.BaseURL
+			}
+			if v.ExactEndpoint {
+				existing.ExactEndpoint = true
 			}
 			if len(v.Models) > 0 {
 				existing.Models = append([]string(nil), v.Models...)

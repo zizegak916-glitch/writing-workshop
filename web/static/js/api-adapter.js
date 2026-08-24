@@ -11,6 +11,8 @@
     'connection', 'content-length', 'cookie', 'host', 'origin', 'referer',
     'transfer-encoding', 'upgrade', 'via'
   ]);
+  const PROTECTED_BODY_FIELDS = new Set(['model', 'messages', 'input', 'system', 'stream']);
+  const UNSAFE_OBJECT_FIELDS = new Set(['__proto__', 'prototype', 'constructor']);
 
   function cleanProtocol(value) {
     const protocol = String(value || 'auto').trim().toLowerCase();
@@ -46,7 +48,7 @@
     }
   }
 
-  function normalizeEndpoint(baseUrl, protocolValue, fallbackUrl) {
+  function normalizeEndpoint(baseUrl, protocolValue, fallbackUrl, exactEndpoint) {
     const protocol = cleanProtocol(protocolValue) === 'auto'
       ? inferProtocol({ baseUrl, protocol: protocolValue })
       : cleanProtocol(protocolValue);
@@ -60,6 +62,7 @@
       throw new Error('Base URL 不是有效的 http(s) 地址');
     }
     if (!/^https?:$/.test(url.protocol)) throw new Error('Base URL 只支持 http:// 或 https://');
+    if (exactEndpoint) return url.toString();
 
     const path = url.pathname.replace(/\/+$/, '');
     if (/\/(?:chat\/completions|responses|messages|api\/chat)$/.test(path)) {
@@ -74,6 +77,31 @@
       url.pathname = '/v1/' + suffix;
     } else {
       url.pathname = path + '/' + suffix;
+    }
+    return url.toString();
+  }
+
+  function normalizeModelsEndpoint(baseUrl, protocolValue, fallbackUrl) {
+    const protocol = cleanProtocol(protocolValue) === 'auto'
+      ? inferProtocol({ baseUrl, protocol: protocolValue })
+      : cleanProtocol(protocolValue);
+    const raw = String(baseUrl || fallbackUrl || '').trim();
+    if (!raw) throw new Error('缺少 Base URL');
+    let url;
+    try {
+      url = new URL(raw);
+    } catch (_) {
+      throw new Error('Base URL 不是有效的 http(s) 地址');
+    }
+    if (!/^https?:$/.test(url.protocol)) throw new Error('Base URL 只支持 http:// 或 https://');
+    let path = url.pathname.replace(/\/+$/, '');
+    if (protocol === 'ollama') {
+      path = path.replace(/\/api\/chat$/, '');
+      url.pathname = (path || '') + '/api/tags';
+    } else {
+      path = path.replace(/\/(?:chat\/completions|responses|messages|api\/chat|models)$/, '');
+      if (!path || path === '/') path = '/v1';
+      url.pathname = path + '/models';
     }
     return url.toString();
   }
@@ -106,6 +134,31 @@
     return headers;
   }
 
+  function parseBodyOverrides(value) {
+    if (!value) return {};
+    let parsed = value;
+    if (typeof value === 'string') {
+      const source = value.trim();
+      if (!source) return {};
+      try {
+        parsed = JSON.parse(source);
+      } catch (_) {
+        throw new Error('请求体覆盖必须是 JSON 对象');
+      }
+    }
+    if (!parsed || Array.isArray(parsed) || typeof parsed !== 'object') {
+      throw new Error('请求体覆盖必须是 JSON 对象');
+    }
+    const overrides = {};
+    for (const [name, bodyValue] of Object.entries(parsed)) {
+      const key = String(name || '').trim();
+      if (!key || UNSAFE_OBJECT_FIELDS.has(key)) throw new Error('请求体字段名称无效：' + (key || '空名称'));
+      if (PROTECTED_BODY_FIELDS.has(key)) throw new Error('不允许覆盖核心请求体字段：' + key);
+      overrides[key] = bodyValue;
+    }
+    return overrides;
+  }
+
   function resolveAuthMode(config, protocol) {
     const requested = String(config.authMode || 'auto').trim().toLowerCase();
     if (AUTH_MODES.has(requested) && requested !== 'auto') return requested;
@@ -134,7 +187,16 @@
       .map(message => ({ role: String(message.role), content: message.content }));
   }
 
-  function buildBody(config, messages, options) {
+  function applyBodyOverrides(body, value) {
+    const overrides = parseBodyOverrides(value);
+    for (const [key, bodyValue] of Object.entries(overrides)) {
+      if (bodyValue === null) delete body[key];
+      else body[key] = bodyValue;
+    }
+    return body;
+  }
+
+  function buildBody(config, messages, options = {}) {
     const protocol = inferProtocol(config);
     const model = String(config.model || '').trim();
     if (!model) throw new Error('缺少模型名称');
@@ -149,16 +211,56 @@
     if (protocol === 'anthropic') {
       const body = { model, max_tokens: maxTokens, messages: nonSystem, stream };
       if (systemParts.length) body.system = systemParts.join('\n\n');
-      return body;
+      return applyBodyOverrides(body, config.bodyOverrides);
     }
     if (protocol === 'openai-responses') {
       const body = { model, input: allMessages, max_output_tokens: maxTokens, stream };
-      return body;
+      return applyBodyOverrides(body, config.bodyOverrides);
     }
     if (protocol === 'ollama') {
-      return { model, messages: allMessages, stream };
+      return applyBodyOverrides({ model, messages: allMessages, stream }, config.bodyOverrides);
     }
-    return { model, max_tokens: maxTokens, messages: allMessages, stream };
+    return applyBodyOverrides({ model, max_tokens: maxTokens, messages: allMessages, stream }, config.bodyOverrides);
+  }
+
+  function prepareRequest(config, messages, options = {}) {
+    const protocol = inferProtocol(config);
+    const endpoint = normalizeEndpoint(config.baseUrl, protocol, config.fallbackUrl, !!config.exactEndpoint);
+    const pageProtocol = String(config.pageProtocol || globalThis.location?.protocol || '');
+    if (config.browserDirect !== false && pageProtocol === 'https:' && new URL(endpoint).protocol === 'http:') {
+      throw withDiagnostic(
+        new Error('HTTPS Pages 不能直连 HTTP 接口：浏览器会按混合内容策略在发送前拦截。请改用 HTTPS API 地址，或从自部署工作台通过同源 Go 后端请求。'),
+        { stage: 'prepare', endpoint, protocol }
+      );
+    }
+    const streaming = !!options.stream;
+    const customHeaderNames = Object.keys(parseCustomHeaders(config.customHeaders));
+    return {
+      endpoint,
+      protocol,
+      method: 'POST',
+      headers: buildHeaders(config, protocol, streaming),
+      body: buildBody(config, messages, { ...options, stream: streaming }),
+      customHeaderNames
+    };
+  }
+
+  function redactHeader(name, value) {
+    const lower = String(name || '').toLowerCase();
+    if (/(authorization|api[-_]?key|token|secret|cookie)/.test(lower)) {
+      return lower === 'authorization' && /^Bearer\s+/i.test(String(value || '')) ? 'Bearer ••••' : '••••';
+    }
+    return String(value);
+  }
+
+  function inspectRequest(config, messages, options = {}) {
+    const prepared = prepareRequest(config, messages, options);
+    return {
+      ...prepared,
+      headers: Object.fromEntries(Object.entries(prepared.headers).map(([name, value]) => [name, redactHeader(name, value)])),
+      headerNames: Object.keys(prepared.headers),
+      bodyFields: Object.keys(prepared.body)
+    };
   }
 
   function contentText(value) {
@@ -212,19 +314,43 @@
     try { return JSON.parse(text); } catch (_) { return text; }
   }
 
-  function networkError(error) {
-    if (error?.name === 'AbortError') return new Error('请求超时或已中断');
-    if (error instanceof TypeError) {
-      return new Error('网络请求失败：请检查地址、DNS/代理、HTTPS 与 CORS。Pages 直连时，目标服务必须允许当前站点跨域访问。');
+  function withDiagnostic(error, meta = {}) {
+    const output = error instanceof Error ? error : new Error(String(error));
+    if (meta.stage && !output.stage) output.stage = meta.stage;
+    if (meta.endpoint && !output.endpoint) output.endpoint = meta.endpoint;
+    if (meta.protocol && !output.protocol) output.protocol = meta.protocol;
+    if (meta.originalMessage && !output.originalMessage) output.originalMessage = meta.originalMessage;
+    if (meta.status && !output.status) output.status = meta.status;
+    return output;
+  }
+
+  function networkError(error, meta = {}) {
+    const originalMessage = String(error?.message || error || '未知浏览器错误');
+    if (error?.name === 'AbortError') {
+      return withDiagnostic(new Error('请求超时或已中断'), { ...meta, stage: 'fetch', originalMessage });
     }
-    return error instanceof Error ? error : new Error(String(error));
+    if (error instanceof TypeError) {
+      const customHeaderHint = meta.customHeaderNames?.length
+        ? ' 本次还发送了自定义请求头：' + meta.customHeaderNames.join('、') + '；目标接口必须在预检中逐项允许它们。'
+        : '';
+      return withDiagnostic(
+        new Error('请求未获得 HTTP 响应：浏览器在发送、预检或重定向阶段拒绝了请求。' + customHeaderHint + ' 原始错误：' + originalMessage),
+        { ...meta, stage: 'fetch', originalMessage }
+      );
+    }
+    return withDiagnostic(error, { ...meta, stage: meta.stage || 'fetch', originalMessage });
+  }
+
+  function responseError(error, meta = {}) {
+    if (error?.name === 'AbortError' || error instanceof TypeError) return networkError(error, meta);
+    return withDiagnostic(error, meta);
   }
 
   function requestId(response) {
     return response.headers.get('x-request-id') || response.headers.get('request-id') || response.headers.get('cf-ray') || '';
   }
 
-  async function beginTimedStreamFetch(url, options, timeoutMs) {
+  async function beginTimedStreamFetch(url, options, timeoutMs, meta = {}) {
     const controller = new AbortController();
     const timeout = Math.max(1000, Number(timeoutMs || 60000));
     const timer = setTimeout(() => controller.abort(), timeout);
@@ -233,33 +359,85 @@
       return { response, dispose: () => clearTimeout(timer) };
     } catch (error) {
       clearTimeout(timer);
-      throw networkError(error);
+      throw networkError(error, { ...meta, endpoint: url });
+    }
+  }
+
+  function parseModelList(data) {
+    const rows = Array.isArray(data) ? data : (Array.isArray(data?.data) ? data.data : data?.models);
+    if (!Array.isArray(rows)) return [];
+    return [...new Set(rows.map(item => {
+      if (typeof item === 'string') return item.trim();
+      return String(item?.id || item?.model || item?.name || '').trim();
+    }).filter(Boolean))];
+  }
+
+  async function listModels(config) {
+    const protocol = inferProtocol(config);
+    const endpoint = normalizeModelsEndpoint(config.baseUrl, protocol, config.fallbackUrl);
+    const pageProtocol = String(config.pageProtocol || globalThis.location?.protocol || '');
+    if (config.browserDirect !== false && pageProtocol === 'https:' && new URL(endpoint).protocol === 'http:') {
+      throw withDiagnostic(
+        new Error('HTTPS Pages 不能读取 HTTP 接口的模型列表：浏览器会按混合内容策略在发送前拦截。'),
+        { stage: 'prepare', endpoint, protocol }
+      );
+    }
+    const headers = buildHeaders(config, protocol, false);
+    delete headers['Content-Type'];
+    const customHeaderNames = Object.keys(parseCustomHeaders(config.customHeaders));
+    const timed = await beginTimedStreamFetch(endpoint, { method: 'GET', headers }, config.timeoutMs || config.timeout, { protocol, customHeaderNames });
+    try {
+      const data = await responseData(timed.response);
+      if (!timed.response.ok || data?.error) {
+        const id = requestId(timed.response);
+        const detail = upstreamErrorText(data, timed.response.statusText || '读取模型列表失败');
+        throw withDiagnostic(
+          new Error('HTTP ' + timed.response.status + ': ' + detail + (id ? '（请求 ID：' + id + '）' : '')),
+          { stage: 'http', endpoint, protocol, status: timed.response.status }
+        );
+      }
+      const models = parseModelList(data);
+      if (!models.length) throw withDiagnostic(new Error('接口返回成功，但没有识别到模型 ID'), { stage: 'parse', endpoint, protocol });
+      return { models, data, endpoint, protocol };
+    } catch (error) {
+      throw responseError(error, { stage: 'parse', endpoint, protocol });
+    } finally {
+      timed.dispose();
     }
   }
 
   async function request(config, messages, options) {
-    const protocol = inferProtocol(config);
-    const url = normalizeEndpoint(config.baseUrl, protocol, config.fallbackUrl);
-    const headers = buildHeaders(config, protocol, false);
-    const body = buildBody(config, messages, { ...options, stream: false });
+    let prepared;
+    try {
+      prepared = prepareRequest(config, messages, { ...options, stream: false });
+    } catch (error) {
+      throw withDiagnostic(error, { stage: 'prepare' });
+    }
+    const { endpoint: url, protocol, headers, body, customHeaderNames } = prepared;
     const timed = await beginTimedStreamFetch(url, {
       method: 'POST',
       headers,
       body: JSON.stringify(body)
-    }, config.timeoutMs || config.timeout);
+    }, config.timeoutMs || config.timeout, { protocol, customHeaderNames });
     const response = timed.response;
     try {
       const data = await responseData(response);
       if (!response.ok || data?.error) {
         const id = requestId(response);
         const detail = upstreamErrorText(data, response.statusText || '上游接口返回错误');
-        throw new Error('HTTP ' + response.status + ': ' + detail + (id ? '（请求 ID：' + id + '）' : ''));
+        throw withDiagnostic(
+          new Error('HTTP ' + response.status + ': ' + detail + (id ? '（请求 ID：' + id + '）' : '')),
+          { stage: 'http', endpoint: url, protocol, status: response.status }
+        );
       }
       const text = parseResponse(data);
-      if (!text) throw new Error('接口返回成功，但没有识别到文本内容；请检查协议类型是否选对');
+      if (!text) throw withDiagnostic(
+        new Error('接口返回成功，但没有识别到文本内容；请检查协议类型是否选对'),
+        { stage: 'parse', endpoint: url, protocol }
+      );
       return { text, usage: parseUsage(data), data, endpoint: url, protocol };
     } catch (error) {
-      throw networkError(error);
+      throw responseError(error, { stage: 'parse', endpoint: url, protocol });
     } finally {
       timed.dispose();
     }
@@ -294,22 +472,28 @@
   }
 
   async function stream(config, messages, options) {
-    const protocol = inferProtocol(config);
-    const url = normalizeEndpoint(config.baseUrl, protocol, config.fallbackUrl);
-    const headers = buildHeaders(config, protocol, true);
-    const body = buildBody(config, messages, { ...options, stream: true });
+    let prepared;
+    try {
+      prepared = prepareRequest(config, messages, { ...options, stream: true });
+    } catch (error) {
+      throw withDiagnostic(error, { stage: 'prepare' });
+    }
+    const { endpoint: url, protocol, headers, body, customHeaderNames } = prepared;
     const timed = await beginTimedStreamFetch(url, {
       method: 'POST',
       headers,
       body: JSON.stringify(body)
-    }, config.timeoutMs || config.timeout);
+    }, config.timeoutMs || config.timeout, { protocol, customHeaderNames });
     const response = timed.response;
     try {
       if (!response.ok) {
         const data = await responseData(response);
         const id = requestId(response);
         const detail = upstreamErrorText(data, response.statusText || '上游接口返回错误');
-        throw new Error('HTTP ' + response.status + ': ' + detail + (id ? '（请求 ID：' + id + '）' : ''));
+        throw withDiagnostic(
+          new Error('HTTP ' + response.status + ': ' + detail + (id ? '（请求 ID：' + id + '）' : '')),
+          { stage: 'http', endpoint: url, protocol, status: response.status }
+        );
       }
 
       const contentType = response.headers.get('content-type') || '';
@@ -359,7 +543,7 @@
       if (!text) throw new Error('流式连接已结束，但没有识别到文本增量；可尝试关闭流式或切换协议类型');
       return { text, usage, endpoint: url, protocol };
     } catch (error) {
-      throw networkError(error);
+      throw responseError(error, { stage: 'stream', endpoint: url, protocol });
     } finally {
       timed.dispose();
     }
@@ -370,13 +554,19 @@
     inferProtocol,
     protocolType,
     normalizeEndpoint,
+    normalizeModelsEndpoint,
     parseCustomHeaders,
+    parseBodyOverrides,
     resolveAuthMode,
     buildHeaders,
     buildBody,
+    prepareRequest,
+    inspectRequest,
     parseResponse,
     parseUsage,
     parseStreamRecord,
+    parseModelList,
+    listModels,
     request,
     stream
   };

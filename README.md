@@ -56,11 +56,11 @@ Writing Workshop 默认使用仓库内的 Go 编排内核，代码位于 `intern
 
 1. 打开 [在线工作台](https://zizegak916-glitch.github.io/writing-workshop/app.html)。
 2. 点击顶部 `＋` 创建项目，或从项目操作台导入文件。
-3. 需要 AI 时打开“设置 → API”，填写协议、Base URL、模型和 Key，先点测试再保存。
+3. 需要 AI 时打开“设置 → API”，填写 Base URL 和 Key，先“获取模型”选择真实 ID，再预览最终 URL 与请求体、测试并保存。
 4. 选一个功能和“阅读范围”；长篇项目先点“更新全书记忆”，检查上下文预算后生成。
 5. 在候选区确认写入；重要阶段导出 v6 项目包。
 
-Pages 保存 API 配置不会请求静态 `/api/config`，因此不会因保存动作产生 405。若测试失败，优先检查完整端点、鉴权方式、模型 ID、CORS 与 HTTPS 混合内容。
+Pages 保存 API 配置不会请求静态 `/api/config`，因此不会因保存动作产生 405。测试诊断会区分请求准备、HTTP、响应解析与未获得 HTTP 响应；CPA 等兼容层可选择完整 URL 原样请求，并用 JSON 调整非核心请求体字段。
 
 ### 直接运行发布包（Linux VM 推荐）
 
