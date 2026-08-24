@@ -63,7 +63,7 @@ func TestExport_DeathLoopShape(t *testing.T) {
 		Content: []engine.ContentBlock{engine.TextBlock(sentinel)},
 	})
 	// 14 轮 commit_chapter(chapter:"7") + InputValidationError。
-	for range 14 {
+	for i := 0; i < 14; i++ {
 		msgs = append(msgs, commitCall(`"7"`))
 		msgs = append(msgs, errResult("InputValidationError: chapter must be int"))
 	}

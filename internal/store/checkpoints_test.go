@@ -153,11 +153,11 @@ func TestCheckpointStore_ConcurrentAppend(t *testing.T) {
 	const perGoroutine = 20
 
 	var wg sync.WaitGroup
-	for g := range goroutines {
+	for g := 0; g < goroutines; g++ {
 		wg.Add(1)
 		go func(gid int) {
 			defer wg.Done()
-			for i := range perGoroutine {
+			for i := 0; i < perGoroutine; i++ {
 				cs.Append(domain.ChapterScope(gid*100+i), "plan", "p", "")
 			}
 		}(g)

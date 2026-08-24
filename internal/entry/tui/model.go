@@ -343,7 +343,7 @@ func (m *Model) refitTextareaHeight() {
 		contentW = 1
 	}
 	total := 0
-	for line := range strings.SplitSeq(text, "\n") {
+	for _, line := range strings.Split(text, "\n") {
 		lw := lipgloss.Width(line)
 		if lw == 0 {
 			total++

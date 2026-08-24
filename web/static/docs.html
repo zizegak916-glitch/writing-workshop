@@ -97,7 +97,13 @@
         <h2>自部署启动</h2>
         <h3>路线 0：无需安装，继续使用 Pages</h3>
         <p>打开 <a href="app.html">Writing Workshop 工作台</a>，新建项目即可编辑。无需安装 Go 或 Docker。由于项目数据属于当前 <code>github.io</code> 域名的浏览器存储，请定期使用顶部导出或项目操作台下载备份。</p>
-        <h3>路线 A：Docker（最省事）</h3>
+        <h3>路线 A：直接运行发布包（Linux VM 推荐）</h3>
+        <p>从 <a href="https://github.com/zizegak916-glitch/writing-workshop/releases">Releases</a> 下载与机器匹配的 <code>Linux_x86_64</code> 或 <code>Linux_arm64</code> 压缩包。解压后运行：</p>
+        <pre><code>chmod +x writing-workshop
+./writing-workshop serve --demo --port 8080</code></pre>
+        <p>发布包使用 <code>CGO_ENABLED=0</code> 构建，不要求虚拟机预装 Go。只有修改并从源码编译引擎时才需要 Go 工具链。</p>
+
+        <h3>路线 B：Docker</h3>
         <p>需要安装 Git 与 Docker Desktop。复制下面四行命令：</p>
         <pre><code>git clone https://github.com/zizegak916-glitch/writing-workshop.git
 cd writing-workshop
@@ -107,11 +113,11 @@ docker compose up --build
 http://127.0.0.1:8080/app.html</code></pre>
         <p>第一次会以无密钥 Demo 模式启动。看到工作台后，点击“设置 → API”配置模型；也可以先不配，验证本地项目和内置能力链路。服务端项目、规则和后端 Skill 管理位于同一地址下的 <a href="admin.html">本地服务控制台</a>。</p>
 
-        <h3>路线 B：直接运行源码</h3>
-        <p>需要 Go 1.25 或更高版本：</p>
+        <h3>路线 C：直接运行源码</h3>
+        <p>最低需要 Go 1.21；项目 CI 固定用 Go 1.21.13 并禁止自动切换到更高工具链：</p>
         <pre><code>git clone https://github.com/zizegak916-glitch/writing-workshop.git
 cd writing-workshop
-go build -o writing-workshop ./cmd/writing-workshop
+GOTOOLCHAIN=local CGO_ENABLED=0 go build -o writing-workshop ./cmd/writing-workshop
 ./writing-workshop serve --demo --port 8080</code></pre>
         <p>默认只监听 <code>127.0.0.1</code>，这是为了避免把作品与密钥意外暴露到局域网。如确实需要容器或局域网访问，再显式加 <code>--host 0.0.0.0</code>，并自行配置反向代理鉴权。</p>
 

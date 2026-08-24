@@ -188,6 +188,13 @@ AI 负责补充统计难以判断的部分，例如场景推进、人物行动�
 
 ## 七、自部署增强
 
+低配置 Linux 虚拟机优先从 [Releases](https://github.com/zizegak916-glitch/writing-workshop/releases) 下载对应的 `Linux_x86_64` 或 `Linux_arm64` 发布包。发布包为 `CGO_ENABLED=0` 构建，不要求机器预装 Go：
+
+```bash
+chmod +x writing-workshop
+./writing-workshop serve --demo --port 8080
+```
+
 Docker：
 
 ```bash
@@ -203,6 +210,12 @@ docker compose up --build
 - 健康检查：<http://127.0.0.1:8080/api/health>
 
 自部署增加服务端密钥、后端 Skill、SSE、中断、Go 语料 API、后台记忆和后端项目导入。浏览器工作台仍保留候选确认与本地项目边界，不会因为有后端就自动覆盖正文或同步全部数据。
+
+需要修改 Go 引擎本身时再从源码编译。最低版本为 Go 1.21；项目 CI 使用 Go 1.21.13 和 `GOTOOLCHAIN=local` 验证，避免自动下载更高工具链后产生“看似兼容”的结果：
+
+```bash
+GOTOOLCHAIN=local CGO_ENABLED=0 go build -o writing-workshop ./cmd/writing-workshop
+```
 
 仓库自有 Go 内核负责上下文、工具权限、中断、候选写入和数据边界；模型与成熟外部引擎继续通过适配层接入。接入外部能力不意味着放弃其优势，也不允许它绕过作者确认或未授权发送资料。
 

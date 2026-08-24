@@ -84,7 +84,7 @@ func (p *Progress) LatestCompleted() int {
 // 模型偶尔会照抄提示词里的占位符而非生成真名，这些值视同未提取返回空，
 // 交由上层兜底（UI 显示"未定书名"），避免界面直接显示"书名"二字。
 func ExtractNovelNameFromPremise(premise string) string {
-	for raw := range strings.SplitSeq(strings.ReplaceAll(premise, "\r\n", "\n"), "\n") {
+	for _, raw := range strings.Split(strings.ReplaceAll(premise, "\r\n", "\n"), "\n") {
 		line := strings.TrimSpace(raw)
 		if line == "" {
 			continue

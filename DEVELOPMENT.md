@@ -9,7 +9,7 @@ go build -o writing-workshop ./cmd/writing-workshop
 ./writing-workshop serve --demo --port 8080
 ```
 
-需要 Go 1.25.5+。前端位于 `web/static/` 并通过 `go:embed` 进入可执行文件；没有前端 bundler，新增脚本/样式必须在 HTML 中显式加载，并加入静态合约检查。
+最低需要 Go 1.21；兼容基线使用 Go 1.21.13，并以 `GOTOOLCHAIN=local` 验证，防止本机或 CI 悄悄下载更高版本掩盖不兼容代码。前端位于 `web/static/` 并通过 `go:embed` 进入可执行文件；没有前端 bundler，新增脚本/样式必须在 HTML 中显式加载，并加入静态合约检查。
 
 ## 当前架构权威位置
 

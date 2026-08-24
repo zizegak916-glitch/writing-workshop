@@ -135,7 +135,7 @@ func TestBudgetSentinelZeroCostBlindWarning(t *testing.T) {
 	s := r.sentinel(bootstrap.BudgetConfig{BookUSD: 10, WarnRatio: 0.8})
 
 	// 连续零成本记账：到 blindZeroStreak 笔时恰好一次盲区告警，之后静默
-	for range blindZeroStreak + 3 {
+	for i := 0; i < blindZeroStreak+3; i++ {
 		s.OnCost(0)
 	}
 	if len(r.reports) != 1 || !strings.Contains(r.reports[0], "预算盲区") {
@@ -148,7 +148,7 @@ func TestBudgetSentinelZeroCostBlindWarning(t *testing.T) {
 	// 正常计价模型不应误报：每笔记账总额递增
 	r2 := &budgetRecorder{}
 	s2 := r2.sentinel(bootstrap.BudgetConfig{BookUSD: 10, WarnRatio: 0.8})
-	for i := range blindZeroStreak + 3 {
+	for i := 0; i < blindZeroStreak+3; i++ {
 		s2.OnCost(0.1 * float64(i+1))
 	}
 	for _, rep := range r2.reports {
@@ -163,10 +163,10 @@ func TestBudgetSentinelBlindWarningAfterModelSwitch(t *testing.T) {
 	r := &budgetRecorder{}
 	s := r.sentinel(bootstrap.BudgetConfig{BookUSD: 100, WarnRatio: 0.8})
 
-	for i := range 5 {
+	for i := 0; i < 5; i++ {
 		s.OnCost(1.0 * float64(i+1)) // 计价阶段：总额递增到 $5
 	}
-	for range blindZeroStreak {
+	for i := 0; i < blindZeroStreak; i++ {
 		s.OnCost(5.0) // 切到无价模型：总额钉死
 	}
 	if len(r.reports) != 1 || !strings.Contains(r.reports[0], "盲区") {

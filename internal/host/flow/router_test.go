@@ -287,7 +287,7 @@ func TestDispatcher_OnRepeatFiresOnceAtThreshold(t *testing.T) {
 	})
 
 	inst := &Instruction{Agent: "writer", Task: "写第 5 章"}
-	for range 6 {
+	for i := 0; i < 6; i++ {
 		d.trackRepeat(inst) // n=1..6：只在 n==3 时回调一次
 	}
 	if len(fired) != 1 || fired[0] != fmt.Sprintf("writer|写第 5 章|%d", repeatNotifyAt) {
@@ -296,7 +296,7 @@ func TestDispatcher_OnRepeatFiresOnceAtThreshold(t *testing.T) {
 
 	// 键变更后重新武装：换任务再连续 3 次 → 再触发一次
 	other := &Instruction{Agent: "writer", Task: "写第 6 章"}
-	for range 3 {
+	for i := 0; i < 3; i++ {
 		d.trackRepeat(other)
 	}
 	if len(fired) != 2 {

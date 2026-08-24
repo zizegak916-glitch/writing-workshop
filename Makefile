@@ -15,6 +15,7 @@ fmt-check:
 check: fmt-check test vet build
 	find web/static -name '*.js' -print0 | xargs -0 -n1 node --check
 	node scripts/check-static.mjs
+	node scripts/check-go-compat.mjs
 	npm run test:api-adapter
 	npm run test:corpus
 	npm run test:import

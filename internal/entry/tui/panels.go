@@ -1137,7 +1137,7 @@ var streamCursorFrames = []string{"·", "✢", "✳", "✶", "✻", "✽"}
 func renderStreamCursor(frame int) string {
 	f := frame % len(streamCursorFrames)
 	var dots [3]string
-	for i := range 3 {
+	for i := 0; i < len(dots); i++ {
 		dots[i] = streamCursorFrames[(f+i)%len(streamCursorFrames)]
 	}
 	trail := dots[0] + " " + dots[1] + " " + dots[2]

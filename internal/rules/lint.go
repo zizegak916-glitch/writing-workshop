@@ -29,7 +29,7 @@ func appendMarkdownResidue(vs []Violation, text string) []Violation {
 	}
 	headings := 0
 	seenContent := false
-	for line := range strings.SplitSeq(text, "\n") {
+	for _, line := range strings.Split(text, "\n") {
 		t := strings.TrimSpace(line)
 		if t == "" {
 			continue

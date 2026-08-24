@@ -776,7 +776,7 @@ func sqrt(x float64) float64 {
 		return 0
 	}
 	z := x
-	for range 12 {
+	for i := 0; i < 12; i++ {
 		z = (z + x/z) / 2
 	}
 	return z

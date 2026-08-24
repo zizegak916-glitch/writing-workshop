@@ -62,6 +62,17 @@ Writing Workshop 默认使用仓库内的 Go 编排内核，代码位于 `intern
 
 Pages 保存 API 配置不会请求静态 `/api/config`，因此不会因保存动作产生 405。若测试失败，优先检查完整端点、鉴权方式、模型 ID、CORS 与 HTTPS 混合内容。
 
+### 直接运行发布包（Linux VM 推荐）
+
+从 [Releases](https://github.com/zizegak916-glitch/writing-workshop/releases) 下载与机器匹配的 `Linux_x86_64` 或 `Linux_arm64` 压缩包，解压后运行：
+
+```bash
+chmod +x writing-workshop
+./writing-workshop serve --demo --port 8080
+```
+
+发布包使用 `CGO_ENABLED=0` 构建，不要求虚拟机预装 Go。只有从源码编译时才需要 Go 工具链；这是低配或旧环境最省事的自部署路线。
+
 ### Docker（完整自部署）
 
 ```bash
@@ -80,10 +91,10 @@ docker compose up --build
 
 ### 从源码运行
 
-需要 Go 1.25.5 或更高版本：
+最低需要 Go 1.21，CI 固定用 Go 1.21.13 且禁止自动切换到更高工具链：
 
 ```bash
-go build -o writing-workshop ./cmd/writing-workshop
+GOTOOLCHAIN=local CGO_ENABLED=0 go build -o writing-workshop ./cmd/writing-workshop
 ./writing-workshop serve --demo --port 8080
 ```
 

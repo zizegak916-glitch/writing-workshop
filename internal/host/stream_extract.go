@@ -120,7 +120,7 @@ func (e *jsonFieldExtractor) parent() byte {
 // writeIndent 写当前缩进。深度 = 嵌套层数 = len(stack)-1（root 容器内部不缩进）。
 func (e *jsonFieldExtractor) writeIndent(out *strings.Builder) {
 	depth := len(e.stack) - 1
-	for range depth {
+	for i := 0; i < depth; i++ {
 		out.WriteString("  ")
 	}
 }

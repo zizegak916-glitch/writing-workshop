@@ -336,7 +336,7 @@ func lastNonEmptyLine(text string) string {
 
 // firstParagraph 取第一个非空且非 Markdown 标题的行（章文件首行常是 # 标题）。
 func firstParagraph(text string) string {
-	for line := range strings.SplitSeq(text, "\n") {
+	for _, line := range strings.Split(text, "\n") {
 		line = strings.TrimSpace(line)
 		if line == "" || strings.HasPrefix(line, "#") {
 			continue
