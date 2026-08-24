@@ -8,7 +8,7 @@
   const DEFAULT_CHUNK_CHARS = 12000;
   const DEFAULT_ARC_SIZE = 8;
   const DEFAULT_MERGE_FAN_IN = 3;
-  const SUMMARY_CHAR_LIMITS = Object.freeze({ chunk: 3000, chapter: 4000, arc: 6000, book: 10000 });
+  const SUMMARY_CHAR_LIMITS = Object.freeze({ chunk: 2000, chapter: 3000, arc: 4000, book: 6000 });
 
   function normalizeText(value) {
     return String(value || '').replace(/\r\n?/g, '\n').trim();
