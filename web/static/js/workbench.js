@@ -4880,7 +4880,7 @@ function applyLang(){
         if(txt.includes('模型')||txt.includes('Model')||txt.includes('モデル')||txt.includes('모델')||txt.includes('Modèle')||txt.includes('Modell'))el.childNodes[0].textContent=t('form-api-model-label')+' ';
       });
       // Translate test button
-      document.querySelectorAll('#apiModal .btn-test').forEach(b=>b.textContent=t('form-api-test'));
+      document.querySelectorAll('#apiModal .btn-test[data-i18n="form-api-test"]').forEach(b=>b.textContent=t('form-api-test'));
       // Translate model placeholder
       const modelInput=document.getElementById('apiModel');
       if(modelInput)modelInput.placeholder=t('form-api-model-ph');

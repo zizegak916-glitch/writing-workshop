@@ -607,7 +607,7 @@ must_not_create_chapters=true
   });
   assert.equal(configPosts, 0, 'Pages save must not POST to static /api/config');
   await pagesPage.evaluate(() => openModal('apiModal'));
-  await pagesPage.locator('#apiModal .btn-test').click();
+  await pagesPage.locator('#apiModal button[onclick="testApi()"]').click();
   await pagesPage.waitForFunction(() => document.getElementById('testResult')?.textContent.includes('✓ OK'));
   assert.equal(configPosts, 0, 'Pages API test must not POST to static /api/config');
   const directRequest = corsMock.state.requests.at(-1);
@@ -626,7 +626,7 @@ must_not_create_chapters=true
   assert.match(await pagesPage.locator('#apiDiagnostic').textContent(), /\/custom\/invoke\?route=pages/);
   assert.match(await pagesPage.locator('#apiDiagnostic').textContent(), /Bearer ••••/);
   assert.doesNotMatch(await pagesPage.locator('#apiDiagnostic').textContent(), /browser-test-key/);
-  await pagesPage.locator('#apiModal .btn-test').click();
+  await pagesPage.locator('#apiModal button[onclick="testApi()"]').click();
   await pagesPage.waitForFunction(() => document.getElementById('testResult')?.textContent.includes('✓ OK'));
   const exactRequest = corsMock.state.requests.at(-1);
   assert.equal(exactRequest.path, '/custom/invoke?route=pages');
