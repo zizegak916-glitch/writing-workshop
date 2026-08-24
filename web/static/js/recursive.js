@@ -23,10 +23,10 @@ const RecursiveEngine = (() => {
   function cancel() { cancelled = true; running = false; }
 
   // ─── LLM Call (uses workshop's existing callAI) ───
-  async function llm(messages, systemPrompt) {
+  async function llm(taskId, messages, systemPrompt) {
     const conf = S.apiConfig;
     if (!conf.key) throw new Error('请先配置 API Key');
-    return await callAI(buildPromptFromMessages(messages), conf, systemPrompt);
+    return await callAITask(taskId, buildPromptFromMessages(messages), conf, systemPrompt);
   }
 
   function buildPromptFromMessages(messages) {
@@ -84,7 +84,7 @@ const RecursiveEngine = (() => {
       content: `写作需求：${prompt}\n${projectCtx ? '\n项目信息：\n' + projectCtx : ''}`
     }];
 
-    const result = await llm(msgs, PLAN_SYSTEM);
+    const result = await llm('recursive.plan', msgs, PLAN_SYSTEM);
 
     // Parse JSON from response
     const jsonMatch = result.match(/```json\s*([\s\S]*?)```/) || result.match(/\{[\s\S]*"sub_tasks"[\s\S]*\}/);
@@ -127,7 +127,7 @@ const RecursiveEngine = (() => {
     }
 
     const msgs = [{ role: 'user', content: context }];
-    return await llm(msgs, DESIGN_SYSTEM);
+    return await llm('recursive.design', msgs, DESIGN_SYSTEM);
   }
 
   // ─── Phase 3: Execute Write Task ───
@@ -165,7 +165,7 @@ const RecursiveEngine = (() => {
     if (task.output_desc) context += `\n${task.output_desc}`;
 
     const msgs = [{ role: 'user', content: context }];
-    return await llm(msgs, WRITE_SYSTEM);
+    return await llm('recursive.write', msgs, WRITE_SYSTEM);
   }
 
   // ─── DAG Helpers ───

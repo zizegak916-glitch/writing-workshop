@@ -1,8 +1,11 @@
 package corpus
 
 import (
+	"bytes"
 	"strings"
 	"testing"
+
+	"golang.org/x/text/encoding/simplifiedchinese"
 )
 
 func TestParseAnalyzeDoesNotRetainSourceText(t *testing.T) {
@@ -107,5 +110,28 @@ func TestPhraseAnalysisUsesBoundedSample(t *testing.T) {
 	frequencies := topPhraseFrequencies(text, 4, 8, 4)
 	if len(frequencies) == 0 || len(frequencies) > 8 {
 		t.Fatalf("unexpected bounded frequencies: %#v", frequencies)
+	}
+}
+
+func TestParseDecodesGB18030AndCleansDownloadedNovelNoise(t *testing.T) {
+	chapter := "第一章 雨夜（求月票）\n\n第一章 雨夜\n<!--adv2-->\n请登陆www.qidian.com，章节更多，支持作者，支持正版阅读！\n" + strings.Repeat("他推开门，她按住门说：“先别进去。”\n", 20)
+	text := strings.Repeat(chapter, 8)
+	encoded, err := simplifiedchinese.GB18030.NewEncoder().Bytes([]byte(text))
+	if err != nil {
+		t.Fatal(err)
+	}
+	source, clean, err := Parse("download.txt", bytes.NewReader(encoded), true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if source.Cleaning.Encoding != "gb18030" || source.Cleaning.AdLines < 8 || source.Cleaning.HTMLLines < 8 || source.Cleaning.DuplicateHeadingLines < 8 {
+		t.Fatalf("unexpected cleaning report: %+v", source.Cleaning)
+	}
+	if strings.Contains(clean, "qidian.com") || strings.Contains(clean, "adv2") || strings.Contains(clean, "求月票") {
+		t.Fatalf("download pollution survived cleaning: %q", clean[:min(300, len(clean))])
+	}
+	profile := Analyze(source, clean)
+	if !strings.Contains(profile.Summary, "清洗") || profile.Metrics.Chapters != 8 {
+		t.Fatalf("cleaning must feed the profile: %+v", profile)
 	}
 }

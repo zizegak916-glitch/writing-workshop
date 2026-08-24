@@ -13,6 +13,7 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
+	"html"
 	"io"
 	"os"
 	"path/filepath"
@@ -22,19 +23,35 @@ import (
 	"time"
 	"unicode"
 	"unicode/utf8"
+
+	"github.com/zizegak916-glitch/writing-workshop/internal/utils"
 )
 
 const MaxSourceBytes int64 = 20 << 20
 
 type Source struct {
-	ID         string    `json:"id"`
-	Name       string    `json:"name"`
-	Format     string    `json:"format"`
-	Bytes      int       `json:"bytes"`
-	SHA256     string    `json:"sha256"`
-	ImportedAt time.Time `json:"imported_at"`
-	Authorized bool      `json:"authorized"`
-	TextStored bool      `json:"text_stored"`
+	ID         string         `json:"id"`
+	Name       string         `json:"name"`
+	Format     string         `json:"format"`
+	Bytes      int            `json:"bytes"`
+	SHA256     string         `json:"sha256"`
+	ImportedAt time.Time      `json:"imported_at"`
+	Authorized bool           `json:"authorized"`
+	TextStored bool           `json:"text_stored"`
+	Cleaning   CleaningReport `json:"cleaning"`
+}
+
+type CleaningReport struct {
+	Encoding              string  `json:"encoding"`
+	EncodingConfidence    string  `json:"encoding_confidence"`
+	RawRunes              int     `json:"raw_runes"`
+	CleanedRunes          int     `json:"cleaned_runes"`
+	RetainedRatio         float64 `json:"retained_ratio"`
+	RemovedLines          int     `json:"removed_lines"`
+	AdLines               int     `json:"ad_lines"`
+	GarbledLines          int     `json:"garbled_lines"`
+	DuplicateHeadingLines int     `json:"duplicate_heading_lines"`
+	HTMLLines             int     `json:"html_lines"`
 }
 
 type Frequency struct {
@@ -109,6 +126,8 @@ type Archive struct {
 }
 
 var chapterPattern = regexp.MustCompile(`(?i)^(?:(?:正文\s*)?第\s*[〇零一二三四五六七八九十百千万两0-9０-９]+\s*[章卷节回部集篇](?:\s|$|[：:、.\-])|(?:chapter|chap\.?|卷)\s*[0-9０-９ivxlcdm]+(?:\s|$|[：:、.\-])|[0-9０-９]{1,5}\s*[、.．]\s*\S{1,40}|[〇零一二三四五六七八九十百千万两]{1,8}\s*[章回](?:\s|$|[：:、.\-]))`)
+var numericChapterPrefixPattern = regexp.MustCompile(`^[0-9０-９]{1,6}\s*[.．、]\s*(第)`)
+var htmlNoisePattern = regexp.MustCompile(`(?i)<!--.*?-->|</?(?:script|style|div|span|a|p|br|font|iframe)\b[^>]*>`)
 var sentenceSplit = regexp.MustCompile(`[。！？!?…]+`)
 var explanationMarkers = []string{"这意味着", "也就是说", "显然", "毫无疑问", "事实上", "因为", "所以", "原来", "换言之"}
 var actionMarkers = []string{"走", "跑", "冲", "抬", "伸", "抓", "推", "拉", "转", "看", "望", "盯", "坐", "站", "起", "落", "砸", "劈", "挥", "按", "拿", "放", "退", "进", "出", "开", "关", "躲", "追", "扑", "踢", "撞", "停", "翻", "掀", "甩", "接", "握"}
@@ -127,9 +146,10 @@ func Parse(name string, r io.Reader, authorized bool) (Source, string, error) {
 	}
 	ext := strings.ToLower(filepath.Ext(name))
 	var text string
+	encoding := "docx"
 	switch ext {
 	case ".txt", ".md", ".markdown":
-		text = string(bytes.TrimPrefix(data, []byte{0xef, 0xbb, 0xbf}))
+		text, encoding = utils.DecodeTextWithEncoding(data)
 	case ".docx":
 		text, err = parseDOCX(data)
 	default:
@@ -138,13 +158,13 @@ func Parse(name string, r io.Reader, authorized bool) (Source, string, error) {
 	if err != nil {
 		return Source{}, "", err
 	}
-	text = normalize(text)
+	text, cleaning := cleanDownloadedText(text, encoding)
 	if utf8.RuneCountInString(text) < 200 {
 		return Source{}, "", errors.New("有效正文不足 200 字，无法形成可信校准")
 	}
 	hash := sha256.Sum256(data)
 	sha := hex.EncodeToString(hash[:])
-	source := Source{ID: "corpus-" + sha[:12], Name: filepath.Base(name), Format: strings.TrimPrefix(ext, "."), Bytes: len(data), SHA256: sha, ImportedAt: time.Now().UTC(), Authorized: true, TextStored: false}
+	source := Source{ID: "corpus-" + sha[:12], Name: filepath.Base(name), Format: strings.TrimPrefix(ext, "."), Bytes: len(data), SHA256: sha, ImportedAt: time.Now().UTC(), Authorized: true, TextStored: false, Cleaning: cleaning}
 	return source, text, nil
 }
 
@@ -225,11 +245,19 @@ func Analyze(source Source, text string) Profile {
 	metrics.SentenceStarters = topFrequencies(sentenceStarters(sentences), 8, 2)
 	metrics.RepeatedPhrases = topPhraseFrequencies(text, 4, 8, 4)
 	profile := Profile{Source: source, Metrics: metrics, EvidenceGrade: evidenceGrade(runes, len(paragraphs)), AntiRules: []string{"不得要求模型模仿、复刻或冒充具体作者", "不得把语料中的专名、情节、句子或连续表达写入新稿", "所有提示词修改都必须先成为候选，由用户确认后应用"}}
-	profile.Summary = fmt.Sprintf("识别 %d 章、%d 个正文段和 %d 轮引号对白。典型段长 %.0f 字，90%% 段落不超过约 %.0f 字；对白约占 %.0f%%。结论按场景调用，不作为整书配额。", metrics.Chapters, metrics.Paragraphs, metrics.DialogueTurns, metrics.MedianParagraphRunes, metrics.P90ParagraphRunes, metrics.DialogueRatio*100)
+	cleanup := ""
+	if source.Cleaning.RemovedLines > 0 {
+		cleanup = fmt.Sprintf("清洗 %d 行下载站/乱码残留（广告 %d、乱码 %d、重复章名 %d、HTML %d）后，", source.Cleaning.RemovedLines, source.Cleaning.AdLines, source.Cleaning.GarbledLines, source.Cleaning.DuplicateHeadingLines, source.Cleaning.HTMLLines)
+	}
+	profile.Summary = fmt.Sprintf("%s识别 %d 章、%d 个正文段和 %d 轮引号对白。典型段长 %.0f 字，90%% 段落不超过约 %.0f 字；对白约占 %.0f%%。结论按场景调用，不作为整书配额。", cleanup, metrics.Chapters, metrics.Paragraphs, metrics.DialogueTurns, metrics.MedianParagraphRunes, metrics.P90ParagraphRunes, metrics.DialogueRatio*100)
 	profile.GuidanceCards = deriveGuidanceCards(metrics)
 	profile.Rules = deriveRules(metrics)
 	if profile.EvidenceGrade != "strong" {
 		profile.Warnings = append(profile.Warnings, "样本量不足以形成稳定风格结论；当前建议只作为弱证据")
+	}
+	if source.Cleaning.RetainedRatio > 0 && source.Cleaning.RetainedRatio < .7 {
+		profile.EvidenceGrade = "weak"
+		profile.Warnings = append(profile.Warnings, fmt.Sprintf("清洗后仅保留 %.0f%%，污染较重；指导已降级，建议换来源或人工抽查", source.Cleaning.RetainedRatio*100))
 	}
 	if metrics.Chapters == 1 && runes > 100000 {
 		profile.Warnings = append(profile.Warnings, "未可靠识别章节标题；章末与章节节拍结论已降级，请检查特殊标题格式")
@@ -496,6 +524,120 @@ func parseDOCX(data []byte) (string, error) {
 	}
 	return "", errors.New("DOCX 缺少 word/document.xml")
 }
+
+var adFragments = []string{
+	"http://", "https://", "www.", "请登陆", "请登录", "请访问", "最新网址", "章节更多", "支持正版",
+	"正版阅读", "手机用户", "txt全集", "txt下载", "本章未完", "点击下一页", "加入书签", "加入书架",
+	"投月票", "投推荐票", "求月票", "求推荐票", "稳定更新",
+}
+var navigationLines = map[string]bool{
+	"上一章": true, "下一章": true, "返回目录": true, "章节目录": true, "目录": true, "书页": true,
+	"加入书架": true, "收藏本书": true, "投推荐票": true,
+}
+var mojibakeFragments = []string{"锛", "銆", "鈥", "鈫", "娴", "浣", "鍙", "鐨", "闂", "姣", "绔", "閿", "纭", "缁", "鎴", "瀹", "鏄", "鍦", "浠", "璇", "杩", "濂", "鏃", "鏈", "鐗", "姝", "绗", "澶", "灏", "锟斤拷"}
+var promoWords = []string{"求", "月票", "推荐票", "加更", "感谢", "更新"}
+
+func cleanDownloadedText(text, encoding string) (string, CleaningReport) {
+	text = html.UnescapeString(strings.TrimPrefix(strings.ReplaceAll(strings.ReplaceAll(text, "\r\n", "\n"), "\r", "\n"), "\uFEFF"))
+	rawRunes := utf8.RuneCountInString(text)
+	lines := strings.Split(text, "\n")
+	kept := make([]string, 0, len(lines))
+	previousHeading := ""
+	previousWasHeading := false
+	report := CleaningReport{Encoding: encoding, EncodingConfidence: "strong", RawRunes: rawRunes}
+	for _, raw := range lines {
+		line := strings.TrimSpace(strings.NewReplacer("\t", " ", "\u00A0", " ", "\u3000", " ", "\x00", "").Replace(raw))
+		if line == "" {
+			continue
+		}
+		if heading := canonicalChapterHeading(line); heading != "" {
+			cleanHeading := trimPromoSuffix(numericChapterPrefixPattern.ReplaceAllString(line, "$1"))
+			if previousWasHeading && previousHeading == canonicalChapterHeading(cleanHeading) {
+				report.RemovedLines++
+				report.DuplicateHeadingLines++
+				continue
+			}
+			kept = append(kept, cleanHeading)
+			previousHeading = canonicalChapterHeading(cleanHeading)
+			previousWasHeading = true
+			continue
+		}
+		previousWasHeading = false
+		if htmlNoisePattern.MatchString(line) {
+			report.RemovedLines++
+			report.HTMLLines++
+			continue
+		}
+		if isGarbledLine(line) {
+			report.RemovedLines++
+			report.GarbledLines++
+			continue
+		}
+		if isDownloadNoise(line) {
+			report.RemovedLines++
+			report.AdLines++
+			continue
+		}
+		kept = append(kept, line)
+		previousHeading = ""
+	}
+	clean := strings.Join(kept, "\n")
+	report.CleanedRunes = utf8.RuneCountInString(clean)
+	report.RetainedRatio = ratio(report.CleanedRunes, max(1, report.RawRunes))
+	return clean, report
+}
+
+func canonicalChapterHeading(line string) string {
+	line = trimPromoSuffix(numericChapterPrefixPattern.ReplaceAllString(strings.TrimSpace(line), "$1"))
+	if !isChapterHeading(line) {
+		return ""
+	}
+	return strings.ToLower(strings.Join(strings.Fields(line), ""))
+}
+
+func trimPromoSuffix(line string) string {
+	pairs := [][2]string{{"（", "）"}, {"(", ")"}, {"【", "】"}, {"[", "]"}}
+	for _, pair := range pairs {
+		start := strings.LastIndex(line, pair[0])
+		if start < 0 || !strings.HasSuffix(line, pair[1]) {
+			continue
+		}
+		inside := line[start+len(pair[0]) : len(line)-len(pair[1])]
+		if utf8.RuneCountInString(inside) > 60 {
+			continue
+		}
+		for _, marker := range promoWords {
+			if strings.Contains(inside, marker) {
+				return strings.TrimSpace(line[:start])
+			}
+		}
+	}
+	return strings.TrimSpace(line)
+}
+
+func isDownloadNoise(line string) bool {
+	lower := strings.ToLower(strings.TrimSpace(line))
+	if navigationLines[lower] || strings.HasPrefix(lower, "章节错误") {
+		return true
+	}
+	for _, fragment := range adFragments {
+		if strings.Contains(lower, fragment) {
+			return true
+		}
+	}
+	return false
+}
+
+func isGarbledLine(line string) bool {
+	runes := max(1, utf8.RuneCountInString(line))
+	replacements := strings.Count(line, "�")
+	mojibake := 0
+	for _, fragment := range mojibakeFragments {
+		mojibake += strings.Count(line, fragment)
+	}
+	return float64(replacements)/float64(runes) > .015 || mojibake >= max(2, runes/18)
+}
+
 func normalize(text string) string {
 	text = strings.ReplaceAll(text, "\r\n", "\n")
 	text = strings.ReplaceAll(text, "\r", "\n")

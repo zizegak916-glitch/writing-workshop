@@ -49,6 +49,8 @@ assert(appHtml.includes('js/corpus-lab.js') && appHtml.includes('css/corpus-lab.
 assert(appHtml.includes('v0.3.0 · 2026-08-22'), 'workbench release label is stale');
 assert(appHtml.includes('js/api-adapter.js'), 'workbench must load the shared API adapter');
 assert(appHtml.indexOf('js/api-adapter.js') < appHtml.indexOf('js/workbench.js'), 'API adapter must load before workbench');
+assert(appHtml.includes('js/ai-task-contract.js'), 'workbench must load the AI task contract');
+assert(appHtml.indexOf('js/ai-task-contract.js') < appHtml.indexOf('js/corpus-lab.js') && appHtml.indexOf('js/ai-task-contract.js') < appHtml.indexOf('js/workbench.js'), 'AI task contract must load before AI feature modules');
 assert(appHtml.includes('css/main.css') && appHtml.includes('js/workbench.js'), 'workbench must load its canonical CSS and JavaScript entrypoints');
 assert(!/<style[\s>]/i.test(appHtml), 'workbench must not contain inline style blocks');
 assert(!/<script(?![^>]*\bsrc=)[^>]*>/i.test(appHtml), 'workbench must not contain inline script blocks');
@@ -74,6 +76,18 @@ for (const marker of ['wwCorpusGuidanceForSkill', 'AI 深度分析', '本地完�
   assert(corpusSource.includes(marker), `corpus guidance lab is missing: ${marker}`);
 }
 assert(corpusSource.includes('text_stored: false') && corpusSource.includes('rollback'), 'corpus lab must avoid source retention and support reversible Prompt Skill changes');
+for (const marker of ['gb18030', 'big5', 'utf-16le', 'cleanCorpusText', 'duplicate_heading_lines', 'ad_lines', 'garbled_lines', 'encoding_confidence']) {
+  assert(corpusSource.includes(marker), `downloaded fiction cleaning is missing: ${marker}`);
+}
+const taskContractSource = read('web/static/js/ai-task-contract.js');
+const registeredSkills = [...taskContractSource.matchAll(/'([^']+)'/g)].map(match => match[1]).filter(name => expectedPromptSkills.includes(name));
+for (const name of expectedPromptSkills) assert(registeredSkills.includes(name), `AI long-text registry is missing Prompt Skill: ${name}`);
+for (const taskId of ['import.analysis', 'api.connection', 'multi.desktop', 'multi.mobile', 'analysis.deep-check', 'humanize.smart', 'continuation.suggest', 'style.learn', 'quick.proofread', 'quick.title', 'quick.inspiration', 'quick.research', 'quick.humanize', 'quick.detect', 'corpus.deep-analysis', 'corpus.prompt-rewrite', 'recursive.plan', 'recursive.design', 'recursive.write', 'workflow.run']) {
+  assert(taskContractSource.includes(`'${taskId}'`), `AI long-text registry is missing feature: ${taskId}`);
+}
+assert((workbenchSource.match(/\bcallAI\(/g) || []).length === 2, 'AI features must use callAITask instead of bypassing the task registry');
+assert((workbenchSource.match(/\bcallAIStream\(/g) || []).length === 2, 'streaming AI features must use callAITaskStream instead of bypassing the task registry');
+assert(corpusSource.includes("callAITask('corpus.deep-analysis'") && corpusSource.includes("callAITask('corpus.prompt-rewrite'"), 'corpus AI features must use registered task calls');
 assert(workbenchSource.includes('window.wwRemember=remember') && workbenchSource.includes("source:options.source"), 'unified browser memory intake is missing');
 const adapterSource = read('web/static/js/api-adapter.js');
 for (const protocol of ['openai-chat', 'openai-responses', 'anthropic', 'ollama']) {

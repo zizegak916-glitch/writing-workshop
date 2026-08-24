@@ -16,6 +16,12 @@
     对白: ['对话', '对白', '人物', '心理'],
     总结: ['总结', '分析', '大纲']
   };
+  const DOWNLOAD_AD_PATTERN = /(?:https?:\/\/|www\.|请(?:登陆|登录|访问|记住)|最新网址|章节更多|支持正版|正版阅读|手机用户|txt(?:全集|下载)|本章未完|点击(?:下一页|继续阅读)|加入书签|投(?:月票|推荐票)|求(?:月票|推荐票|订阅)|第[一二三四五六七八九十0-9]+更(?:已|求|送|完|到|，|,|\s)|稳定更新|明天.{0,18}更新|下一集.{0,24}(?:回归|更新)|感谢.{0,30}(?:盟主|打赏|月票|订阅))/i;
+  const NAVIGATION_PATTERN = /^(?:上一章|下一章|返回目录|章节目录|目录|书页|加入书架|收藏本书|投推荐票|章节错误.{0,20})$/i;
+  const HTML_NOISE_PATTERN = /<!--[^]*?-->|<\/?(?:script|style|div|span|a|p|br|font|iframe)\b[^>]*>/i;
+  const MOJIBAKE_PATTERN = /(?:锛|銆|鈥|鈫|娴|浣|鍙|鐨|闂|姣|绔|閿|纭|缁|鎴|瀹|鏄|鍦|浠|璇|杩|濂|鏃|鏈|鐗|姝|绗|澶|灏|锟斤拷)/g;
+  const PROMO_WORDS = '(?:求|月票|推荐票|加更|第[一二三四五六七八九十0-9]+更|感谢|更新)';
+  const PROMO_SUFFIX_PATTERN = new RegExp(`\\s*(?:（(?=[^）]{0,60}${PROMO_WORDS})[^）]{0,60}）|\\((?=[^)]{0,60}${PROMO_WORDS})[^)]{0,60}\\)|【(?=[^】]{0,60}${PROMO_WORDS})[^】]{0,60}】|\\[(?=[^\\]]{0,60}${PROMO_WORDS})[^\\]]{0,60}\\])\\s*$`, 'i');
 
   let pendingFiles = [];
   let candidate = null;
@@ -56,6 +62,7 @@
       authorized: source.authorized !== false,
       active: old.active ?? raw.active ?? true,
       metrics: raw.metrics || {},
+      cleaning: source.cleaning || raw.cleaning || old.cleaning || {},
       summary: raw.summary || old.summary || '',
       guidance_cards: raw.guidance_cards || raw.guidance || old.guidance_cards || [],
       rules: raw.rules || old.rules || [],
@@ -74,14 +81,106 @@
     return [...new Uint8Array(digest)].map(value => value.toString(16).padStart(2, '0')).join('');
   }
 
+  function decodeScore(text, encoding) {
+    const value = String(text || '');
+    const runes = Math.max(1, countRunes(value));
+    const replacement = (value.match(/�/g) || []).length;
+    const controls = (value.match(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g) || []).length;
+    const mojibake = (value.match(MOJIBAKE_PATTERN) || []).length;
+    const cjk = (value.match(/[\u3400-\u9FFF]/g) || []).length;
+    const headings = value.split(/\r?\n/).slice(0, 20000).filter(isChapterHeading).length;
+    const preference = encoding === 'utf-8' ? 0 : encoding === 'gb18030' ? 2 : encoding.startsWith('utf-16') ? 4 : 8;
+    return replacement * 1000 + controls * 120 + mojibake * 22 - Math.min(cjk / runes, .9) * 60 - Math.min(headings, 30) * 2 + preference;
+  }
+
+  function decodeBytes(buffer) {
+    const bytes = buffer instanceof Uint8Array ? buffer : new Uint8Array(buffer || 0);
+    const bom = bytes.length >= 3 && bytes[0] === 0xef && bytes[1] === 0xbb && bytes[2] === 0xbf ? 'utf-8'
+      : bytes.length >= 2 && bytes[0] === 0xff && bytes[1] === 0xfe ? 'utf-16le'
+        : bytes.length >= 2 && bytes[0] === 0xfe && bytes[1] === 0xff ? 'utf-16be' : '';
+    const labels = bom ? [bom] : ['utf-8', 'gb18030', 'big5', 'utf-16le'];
+    const candidates = [];
+    for (const encoding of labels) {
+      try {
+        const text = new TextDecoder(encoding, { fatal: encoding === 'utf-8' && !bom }).decode(bytes).replace(/^\uFEFF/, '');
+        candidates.push({ text, encoding, score: decodeScore(text, encoding) });
+      } catch (_) { /* invalid candidate */ }
+    }
+    if (!candidates.length) return { text: new TextDecoder().decode(bytes).replace(/^\uFEFF/, ''), encoding: 'utf-8-replacement', confidence: 'weak' };
+    candidates.sort((a, b) => a.score - b.score);
+    const best = candidates[0], second = candidates[1];
+    return { text: best.text, encoding: best.encoding, confidence: !second || second.score - best.score >= 18 ? 'strong' : 'moderate' };
+  }
+
   async function fileText(file) {
     const ext = file.name.split('.').pop().toLowerCase();
     if (ext === 'docx') {
       if (typeof window.parseDocx !== 'function') throw new Error('当前浏览器无法解析 DOCX');
-      return window.parseDocx(await file.arrayBuffer());
+      return { text: await window.parseDocx(await file.arrayBuffer()), encoding: 'docx', confidence: 'strong' };
     }
     if (!['txt', 'md', 'markdown'].includes(ext)) throw new Error('只支持 TXT、Markdown、DOCX');
-    return file.text();
+    return decodeBytes(await file.arrayBuffer());
+  }
+
+  function decodeEntities(value) {
+    return String(value || '').replace(/&nbsp;/gi, ' ').replace(/&quot;/gi, '"').replace(/&apos;/gi, "'")
+      .replace(/&lt;/gi, '<').replace(/&gt;/gi, '>').replace(/&amp;/gi, '&')
+      .replace(/&#(x?[0-9a-f]+);/gi, (_, code) => {
+        const value = code[0].toLowerCase() === 'x' ? parseInt(code.slice(1), 16) : parseInt(code, 10);
+        return Number.isFinite(value) && value > 0 && value <= 0x10ffff ? String.fromCodePoint(value) : '';
+      });
+  }
+
+  function canonicalChapterHeading(line) {
+    let value = String(line || '').trim().replace(/^[0-9０-９]{1,6}\s*[.．、]\s*(?=第)/, '');
+    value = value.replace(PROMO_SUFFIX_PATTERN, '').replace(/\s+/g, ' ').trim();
+    return isChapterHeading(value) ? value.replace(/\s+/g, '').toLowerCase() : '';
+  }
+
+  function cleanCorpusText(text, decoding = {}) {
+    const normalized = decodeEntities(String(text || '')).normalize('NFC').replace(/\r\n?/g, '\n').replace(/^\uFEFF/, '').replace(/\u0000/g, '');
+    const rawLines = normalized.split('\n');
+    const shortCounts = new Map();
+    for (const raw of rawLines) {
+      const line = raw.replace(/[\t\u00A0\u3000]+/g, ' ').trim();
+      if (line && countRunes(line) <= 160) shortCounts.set(line, (shortCounts.get(line) || 0) + 1);
+    }
+    const kept = [];
+    let removedLines = 0, adLines = 0, garbledLines = 0, duplicateHeadingLines = 0, htmlLines = 0;
+    let previousHeading = '', previousWasHeading = false;
+    for (const raw of rawLines) {
+      let line = raw.replace(/[\t\u00A0\u3000]+/g, ' ').trimEnd();
+      const trimmed = line.trim();
+      if (!trimmed) { if (kept.length && kept[kept.length - 1] !== '') kept.push(''); continue; }
+      const heading = canonicalChapterHeading(trimmed);
+      if (heading) {
+        const cleanedHeading = trimmed.replace(/^[0-9０-９]{1,6}\s*[.．、]\s*(?=第)/, '').replace(PROMO_SUFFIX_PATTERN, '').trim();
+        if (previousWasHeading && previousHeading === canonicalChapterHeading(cleanedHeading)) { removedLines += 1; duplicateHeadingLines += 1; continue; }
+        kept.push(cleanedHeading); previousHeading = canonicalChapterHeading(cleanedHeading); previousWasHeading = true; continue;
+      }
+      previousWasHeading = false;
+      const replacement = (trimmed.match(/�/g) || []).length;
+      const mojibake = (trimmed.match(MOJIBAKE_PATTERN) || []).length;
+      if (replacement / Math.max(1, countRunes(trimmed)) > .015 || mojibake >= Math.max(2, Math.floor(countRunes(trimmed) / 18))) {
+        removedLines += 1; garbledLines += 1; continue;
+      }
+      if (HTML_NOISE_PATTERN.test(trimmed)) { removedLines += 1; htmlLines += 1; continue; }
+      const repeatedBoilerplate = (shortCounts.get(trimmed) || 0) >= 3 && (DOWNLOAD_AD_PATTERN.test(trimmed) || NAVIGATION_PATTERN.test(trimmed));
+      if (NAVIGATION_PATTERN.test(trimmed) || DOWNLOAD_AD_PATTERN.test(trimmed) || repeatedBoilerplate) {
+        removedLines += 1; adLines += 1; continue;
+      }
+      kept.push(line); previousHeading = '';
+    }
+    const cleanText = kept.join('\n').replace(/\n{4,}/g, '\n\n\n').trim();
+    const rawRunes = countRunes(normalized), cleanRunes = countRunes(cleanText);
+    return {
+      text: cleanText,
+      report: {
+        encoding: decoding.encoding || 'text', encoding_confidence: decoding.confidence || 'unknown', raw_runes: rawRunes, cleaned_runes: cleanRunes,
+        retained_ratio: cleanRunes / Math.max(1, rawRunes), removed_lines: removedLines, ad_lines: adLines, garbled_lines: garbledLines,
+        duplicate_heading_lines: duplicateHeadingLines, html_lines: htmlLines
+      }
+    };
   }
 
   function isChapterHeading(line) {
@@ -174,8 +273,9 @@
     return cards;
   }
 
-  function analyze(text) {
-    const normalized = String(text || '').replace(/\r\n?/g, '\n').replace(/^\uFEFF/, '');
+  function analyze(text, decoding) {
+    const cleaned = cleanCorpusText(text, decoding);
+    const normalized = cleaned.text;
     const rawLines = normalized.split('\n');
     const lines = rawLines.map(line => line.trim()).filter(Boolean);
     const paragraphs = lines.filter(line => !isChapterHeading(line) && !/^(?:\*{3,}|-{3,}|—{3,}|#{1,6}\s*)$/.test(line));
@@ -217,14 +317,22 @@
       sentence_starters: topStarters(sentences)
     };
     const guidanceCards = deriveGuidance(metrics);
-    const summary = `识别 ${metrics.chapters.toLocaleString()} 章、${metrics.paragraphs.toLocaleString()} 个正文段和 ${metrics.dialogue_turns.toLocaleString()} 轮引号对白。典型段长 ${Math.round(metrics.median_paragraph_runes)} 字，90% 段落不超过约 ${Math.round(metrics.p90_paragraph_runes)} 字；对白约占 ${pct(metrics.dialogue_ratio)}。以下结论按场景调用，不作为整书配额。`;
+    const quality = cleaned.report;
+    const cleanup = quality.removed_lines ? `清洗 ${quality.removed_lines.toLocaleString()} 行下载站/乱码残留（广告 ${quality.ad_lines}、乱码 ${quality.garbled_lines}、重复章名 ${quality.duplicate_heading_lines}、HTML ${quality.html_lines}）后，` : '';
+    const summary = `${cleanup}识别 ${metrics.chapters.toLocaleString()} 章、${metrics.paragraphs.toLocaleString()} 个正文段和 ${metrics.dialogue_turns.toLocaleString()} 轮引号对白。典型段长 ${Math.round(metrics.median_paragraph_runes)} 字，90% 段落不超过约 ${Math.round(metrics.p90_paragraph_runes)} 字；对白约占 ${pct(metrics.dialogue_ratio)}。以下结论按场景调用，不作为整书配额。`;
+    const warnings = [];
+    if (quality.encoding_confidence === 'weak') warnings.push('文本编码判断置信度较低；请先查看清洗统计，避免把错码当作风格证据。');
+    if (quality.retained_ratio < .7) warnings.push(`清洗后仅保留 ${pct(quality.retained_ratio)}，污染较重；指导已降级，建议换来源或人工抽查。`);
+    if (metrics.chapters === 1 && runes > 100000) warnings.push('未可靠识别章节标题；章末与章节节拍结论已降级。可检查文本是否使用特殊标题格式。');
     return {
       metrics,
+      cleaning: quality,
+      cleaned_text: normalized,
       summary,
       guidance_cards: guidanceCards,
       rules: guidanceCards.map(card => card.instruction),
-      evidence_grade: runes >= 100000 && paragraphs.length >= 1000 && metrics.chapters >= 5 ? 'strong' : runes >= 30000 && paragraphs.length >= 250 ? 'moderate' : 'weak',
-      warnings: metrics.chapters === 1 && runes > 100000 ? ['未可靠识别章节标题；章末与章节节拍结论已降级。可检查文本是否使用特殊标题格式。'] : []
+      evidence_grade: quality.retained_ratio < .7 ? 'weak' : runes >= 100000 && paragraphs.length >= 1000 && metrics.chapters >= 5 ? 'strong' : runes >= 30000 && paragraphs.length >= 250 ? 'moderate' : 'weak',
+      warnings
     };
   }
 
@@ -284,9 +392,10 @@
     const prepared = [];
     for (const file of pendingFiles) {
       if (file.size > MAX_FILE) throw new Error(`${file.name}: 文件超过 20 MiB`);
-      const text = await fileText(file);
-      if (countRunes(text) < 200) throw new Error(`${file.name}: 有效正文不足 200 字`);
-      prepared.push({ file, text, hash: await sha256(file), local: analyze(text) });
+      const decoded = await fileText(file);
+      const local = analyze(decoded.text, decoded);
+      if (countRunes(local.cleaned_text) < 200) throw new Error(`${file.name}: 清洗后有效正文不足 200 字`);
+      prepared.push({ file, text: local.cleaned_text, hash: await sha256(file), local: { ...local, cleaned_text: undefined } });
     }
     return prepared;
   }
@@ -338,13 +447,13 @@
     const profiles = read(PROFILE_KEY, []).filter(profile => profile.active !== false);
     const available = profiles.map(profile => ({ profile, source: sessionSources.get(profile.id) })).filter(item => item.source?.sample);
     if (!available.length) return toast('✕', 'AI 深析需要本次页面内的原文抽样；请重新选择文件并先运行本地分析');
-    const metrics = available.map(({ profile }) => ({ name: profile.name, summary: profile.summary, metrics: profile.metrics }));
+    const metrics = available.map(({ profile }) => ({ name: profile.name, summary: profile.summary, cleaning: profile.cleaning, metrics: profile.metrics }));
     const samples = available.map(({ profile, source }) => `【来源：${profile.name} · 分层抽样】\n${source.sample}`).join('\n\n========\n\n').slice(0, MAX_AI_SAMPLE);
-    const prompt = `请分析以下用户有权使用的真实网文分层抽样。先校验本地统计，再提取可迁移的叙事方法。不要模仿作者，不要复述或保存原句，不要从作品搬运专名、人物、桥段。\n\n【本地统计】\n${JSON.stringify(metrics)}\n\n【抽样正文】\n${samples}\n\n只输出 JSON：{"summary":"综合总结","guidance_cards":[{"title":"标题","scope":"适用场景","instruction":"可执行指导","evidence":"来自抽样的结构证据，不引用原句","counterexample":"何时不应套用","tasks":["润色","续写"]}],"prompt_notes":["提示词调整建议"],"uncertainties":["不确定项"]}`;
+    const prompt = `请分析以下用户有权使用的真实网文分层抽样。先校验本地统计与解码清洗报告，再提取可迁移的叙事方法。不要模仿作者，不要复述或保存原句，不要从作品搬运专名、人物、桥段。清洗报告已经标记广告、HTML、重复章名和错码残留；若抽样中仍出现下载站提示、作者更新/投票说明、网址、乱码或重复标题，必须忽略，不得把它们当作叙事风格。\n\n【本地统计与清洗报告】\n${JSON.stringify(metrics)}\n\n【清洗后的抽样正文】\n${samples}\n\n只输出 JSON：{"summary":"综合总结","guidance_cards":[{"title":"标题","scope":"适用场景","instruction":"可执行指导","evidence":"来自抽样的结构证据，不引用原句","counterexample":"何时不应套用","tasks":["润色","续写"]}],"prompt_notes":["提示词调整建议"],"uncertainties":["不确定项"]}`;
     const system = '你是中文网络小说语料分析器。必须区分证据、推断和不确定性；提取因果组织、场景推进、人物行动、对白功能、信息释放和章节收束的方法，不做作者身份仿写。';
     const button = document.getElementById('corpusAI'); button.disabled = true; button.textContent = 'AI 分析中…';
     try {
-      const data = cleanAIJSON(await callAI(prompt, S.apiConfig, system));
+      const data = cleanAIJSON(await callAITask('corpus.deep-analysis', prompt, S.apiConfig, system));
       const report = { created_at: new Date().toISOString(), source_ids: available.map(item => item.profile.id), summary: String(data.summary || '').slice(0, 3000), guidance_cards: normalizeAICards(data.guidance_cards), prompt_notes: (Array.isArray(data.prompt_notes) ? data.prompt_notes : []).map(String).slice(0, 12), uncertainties: (Array.isArray(data.uncertainties) ? data.uncertainties : []).map(String).slice(0, 12) };
       if (!report.summary || !report.guidance_cards.length) throw new Error('AI 分析结构不完整，请重试或更换模型');
       write(AI_REPORT_KEY, report); document.dispatchEvent(new CustomEvent('ww:corpus-guidance-changed')); render(); toast('✓', `AI 深析完成，新增 ${report.guidance_cards.length} 张指导卡`);
@@ -446,7 +555,7 @@
     const prompt = `修改以下 Prompt Skill 候选，使要求更具体、完整、无冲突。保留每个“===== 名称 =====”与闭合标记，不能删掉事实优先级、人物知识边界、不得复制来源内容、按场景而非统计配额等边界。不要解释，只输出修改后的全部分段。\n\n${current}`;
     const button = document.getElementById('corpusAIRewrite'); button.disabled = true; button.textContent = 'AI 修改中…';
     try {
-      const result = await callAI(prompt, S.apiConfig, '你是提示词编辑器。你修改的是用户可审阅候选，不执行写作任务。');
+      const result = await callAITask('corpus.prompt-rewrite', prompt, S.apiConfig, '你是提示词编辑器。你修改的是用户可审阅候选，不执行写作任务。');
       parsePreview(result, candidate.target_skills); document.getElementById('corpusPreview').value = result.trim(); toast('✓', 'AI 修改已写入预览，尚未应用');
     } catch (error) { toast('✕', error.message); }
     finally { button.disabled = false; button.textContent = 'AI 修改候选'; }
@@ -509,7 +618,7 @@
     if (!document.getElementById('corpusLab')) return;
     const profiles = read(PROFILE_KEY, []), summary = combinedSummary();
     document.getElementById('corpusSummary').textContent = summary || '分析后会解释识别到了什么、哪些结论可靠、哪些需要降级。';
-    document.getElementById('corpusProfiles').innerHTML = profiles.length ? profiles.map(profile => `<article class="corpus-profile ${profile.active === false ? 'disabled' : ''}"><div class="corpus-profile-head"><div><strong>${esc(profile.name)}</strong><div class="corpus-muted">${esc(profile.evidence_grade)} 证据 · ${profile.active === false ? '已停用指导' : '写作指导已启用'}</div></div><div class="corpus-actions compact"><button class="corpus-btn" type="button" data-toggle-corpus="${esc(profile.id)}">${profile.active === false ? '启用' : '停用'}</button><button class="corpus-btn danger" type="button" data-remove-corpus="${esc(profile.id)}">删除</button></div></div><div class="corpus-metrics"><div class="corpus-metric"><strong>${Number(profile.metrics.runes || 0).toLocaleString()}</strong>字</div><div class="corpus-metric"><strong>${Number(profile.metrics.chapters || 0).toLocaleString()}</strong>章节</div><div class="corpus-metric"><strong>${pct(profile.metrics.dialogue_ratio)}</strong>对白</div><div class="corpus-metric"><strong>${Math.round(profile.metrics.median_paragraph_runes || profile.metrics.average_paragraph_runes || 0)}</strong>段长中位</div></div><p class="corpus-profile-summary">${esc(profile.summary || '')}</p>${(profile.warnings || []).map(warning => `<div class="corpus-warning">${esc(warning)}</div>`).join('')}</article>`).join('') : '<div class="corpus-muted">还没有语料档案。</div>';
+    document.getElementById('corpusProfiles').innerHTML = profiles.length ? profiles.map(profile => { const cleaning = profile.cleaning || {}; return `<article class="corpus-profile ${profile.active === false ? 'disabled' : ''}"><div class="corpus-profile-head"><div><strong>${esc(profile.name)}</strong><div class="corpus-muted">${esc(profile.evidence_grade)} 证据 · ${profile.active === false ? '已停用指导' : '写作指导已启用'}</div></div><div class="corpus-actions compact"><button class="corpus-btn" type="button" data-toggle-corpus="${esc(profile.id)}">${profile.active === false ? '启用' : '停用'}</button><button class="corpus-btn danger" type="button" data-remove-corpus="${esc(profile.id)}">删除</button></div></div><div class="corpus-metrics"><div class="corpus-metric"><strong>${Number(profile.metrics.runes || 0).toLocaleString()}</strong>字</div><div class="corpus-metric"><strong>${Number(profile.metrics.chapters || 0).toLocaleString()}</strong>章节</div><div class="corpus-metric"><strong>${pct(profile.metrics.dialogue_ratio)}</strong>对白</div><div class="corpus-metric"><strong>${Math.round(profile.metrics.median_paragraph_runes || profile.metrics.average_paragraph_runes || 0)}</strong>段长中位</div></div>${cleaning.encoding ? `<div class="corpus-muted">解码 ${esc(cleaning.encoding)}（${esc(cleaning.encoding_confidence || 'unknown')}） · 清洗 ${Number(cleaning.removed_lines || 0).toLocaleString()} 行 · 保留 ${pct(cleaning.retained_ratio)}</div>` : ''}<p class="corpus-profile-summary">${esc(profile.summary || '')}</p>${(profile.warnings || []).map(warning => `<div class="corpus-warning">${esc(warning)}</div>`).join('')}</article>`; }).join('') : '<div class="corpus-muted">还没有语料档案。</div>';
     document.querySelectorAll('[data-remove-corpus]').forEach(button => button.onclick = () => removeProfile(button.dataset.removeCorpus));
     document.querySelectorAll('[data-toggle-corpus]').forEach(button => button.onclick = () => toggleProfile(button.dataset.toggleCorpus));
     const names = (window.wwPromptSkillManifest || []).map(skill => skill.name), checked = new Set([...document.querySelectorAll('[data-corpus-skill]:checked')].map(input => input.value));
@@ -557,6 +666,8 @@
   window.wwCorpusGuidanceForSkill = guidanceForSkill;
   window.wwRefreshCorpusSummary = refreshSummary;
   window.wwCorpusAnalyzeText = analyze;
+  window.wwCorpusDecodeBytes = decodeBytes;
+  window.wwCorpusCleanText = cleanCorpusText;
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => { ensure(); refreshSummary(); });
   else { ensure(); refreshSummary(); }

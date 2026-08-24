@@ -50,6 +50,7 @@ jobs:
         run: |
           node scripts/check-static.mjs
           npm run test:api-adapter
+          npm run test:ai-long
           npm run test:corpus
           npm run test:import
 

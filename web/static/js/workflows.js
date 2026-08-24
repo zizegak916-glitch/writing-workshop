@@ -556,6 +556,7 @@
     setStatus('running', '执行中');
     const started = performance.now();
     try {
+      WWAITaskContract.record('workflow.run', message, '', true);
       const response = await fetch('/api/run', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream' },

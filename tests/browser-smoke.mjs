@@ -36,6 +36,32 @@ try {
   await page.waitForFunction(() => document.getElementById('workflowServiceLink'));
   assert.equal(await page.locator('#workflowServiceLink').getAttribute('hidden'), null, 'self-hosted workflow may link to the local service console');
 
+  const aiAndDirtyTextContract = await page.evaluate(() => {
+    const raw = atob('tdrSu9XCINPq0rkKy/vNxr+qw8WhowrH67XHwr13d3cucWlkaWFuLmNvbaOs1cK92rj8tuCjrNans9bX99Xfo6zWp7PW1f2w5tTEtsGjoQ==');
+    const bytes = Uint8Array.from(raw, char => char.charCodeAt(0));
+    const decoded = wwCorpusDecodeBytes(bytes);
+    const dirty = '第一章 雨夜（求月票）\n\n第一章 雨夜\n<!--adv2-->\n请登陆www.qidian.com，章节更多，支持作者，支持正版阅读！\n' + '他推开门。\n'.repeat(80);
+    const profile = wwCorpusAnalyzeText(dirty, decoded);
+    return {
+      taskCount: WWAITaskContract.list().length,
+      skillTaskCount: WWAITaskContract.list().filter(task => task.id.startsWith('skill.')).length,
+      encoding: decoded.encoding,
+      decodedHeading: decoded.text.includes('第一章 雨夜'),
+      chapters: profile.metrics.chapters,
+      cleaning: profile.cleaning,
+      polluted: profile.cleaned_text.includes('qidian.com') || profile.cleaned_text.includes('adv2') || profile.cleaned_text.includes('求月票')
+    };
+  });
+  assert.equal(aiAndDirtyTextContract.taskCount, 52);
+  assert.equal(aiAndDirtyTextContract.skillTaskCount, 32);
+  assert.equal(aiAndDirtyTextContract.encoding, 'gb18030');
+  assert.equal(aiAndDirtyTextContract.decodedHeading, true);
+  assert.equal(aiAndDirtyTextContract.chapters, 1);
+  assert.equal(aiAndDirtyTextContract.cleaning.duplicate_heading_lines, 1);
+  assert.equal(aiAndDirtyTextContract.cleaning.html_lines, 1);
+  assert.ok(aiAndDirtyTextContract.cleaning.ad_lines >= 1);
+  assert.equal(aiAndDirtyTextContract.polluted, false);
+
   const importRouting = await page.evaluate(() => {
     const outlineText = `[WRITING_WORKSHOP_IMPORT_HINT_V1]
 project=续人间

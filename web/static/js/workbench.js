@@ -2975,7 +2975,7 @@ async function autoAnalyzeImportedProject(projectId){
     try{
       const needsOutline=!proj.outlines.length;
       const prompt='请分析以下已经由本地导入器分流的写作项目，只补全明确缺失的人物'+(needsOutline?'和一份项目大纲':'')+'。只输出严格 JSON，不要 Markdown。JSON 格式：{"outlines":[{"title":"","content":""}],"characters":[{"name":"","role":"","personality":"","background":"","appearance":"","skills":""}]}。硬性规则：标为“已有大纲”“世界观资料”“笔记资料”的内容都不是正文章节；现有章节已由本地解析完成；不得输出 chapters 字段，不得把章节摘要、标题列表或规划节点写成正文，不得补写原文。已有大纲时 outlines 必须为空；人物未知字段留空，不要猜测。\n\n'+source;
-      analysis=parseAiImportAnalysis(await callAI(prompt,S.apiConfig,'你是写作项目导入分析助手。你只能整理明确人物事实，并在缺少大纲时生成大纲；你无权创建、改写或补写正文章节。'));
+      analysis=parseAiImportAnalysis(await callAITask('import.analysis',prompt,S.apiConfig,'你是写作项目导入分析助手。你只能整理明确人物事实，并在缺少大纲时生成大纲；你无权创建、改写或补写正文章节。'));
       if(analysis){analysis.chapters=[];if(!needsOutline)analysis.outlines=[];}
     }catch(err){console.warn('import analysis failed',err);}
   }
@@ -3348,7 +3348,7 @@ async function _backendStream(conf,msgs,onChunk){
     clearTimeout(timer);
   }
 }
-async function callAI(prompt,conf,systemPrompt){
+async function callAI(prompt,conf,systemPrompt,options={}){
   const pr=conf.provider||'claude',p=PROVIDERS[pr]||PROVIDERS.custom;
   const msgs=_parseMessages(prompt,systemPrompt);
   const direct=usesBrowserAPI(conf);
@@ -3356,7 +3356,7 @@ async function callAI(prompt,conf,systemPrompt){
   for(let attempt=0;attempt<3;attempt++){
     try{
       const result=direct
-        ?await WWApiAdapter.request(_runtimeConfig(conf,p),msgs,{maxTokens:2000})
+        ?await WWApiAdapter.request(_runtimeConfig(conf,p),msgs,{maxTokens:Number(options.maxTokens||2000)})
         :await _backendRequest(conf,msgs);
       if(result.usage)updateUsageDisplay(result.usage);
       return result.text;
@@ -3364,7 +3364,7 @@ async function callAI(prompt,conf,systemPrompt){
   }
   throw lastErr;
 }
-async function callAIStream(prompt,conf,systemPrompt,onChunk){
+async function callAIStream(prompt,conf,systemPrompt,onChunk,options={}){
   if(!usesBrowserAPI(conf)){
     const result=await _backendStream(conf,_parseMessages(prompt,systemPrompt),onChunk);
     if(result.usage)updateUsageDisplay(result.usage);
@@ -3374,10 +3374,18 @@ async function callAIStream(prompt,conf,systemPrompt,onChunk){
   const result=await WWApiAdapter.stream(
     _runtimeConfig(conf,p),
     _parseMessages(prompt,systemPrompt),
-    {maxTokens:2000,onChunk}
+    {maxTokens:Number(options.maxTokens||2000),onChunk}
   );
   if(result.usage)updateUsageDisplay(result.usage);
   return result.text;
+}
+async function callAITask(taskId,prompt,conf,systemPrompt){
+  const task=WWAITaskContract.record(taskId,prompt,systemPrompt,false);
+  return callAI(prompt,conf,systemPrompt,{maxTokens:task.maxTokens});
+}
+async function callAITaskStream(taskId,prompt,conf,systemPrompt,onChunk){
+  const task=WWAITaskContract.record(taskId,prompt,systemPrompt,true);
+  return callAIStream(prompt,conf,systemPrompt,onChunk,{maxTokens:task.maxTokens});
 }
 function showStreamingResult(elementId){const el=document.getElementById(elementId);if(!el)return;el.textContent='';el.classList.add('streaming-cursor');}
 function hideStreamingCursor(){const el=document.getElementById('arpText');if(el)el.classList.remove('streaming-cursor');}
@@ -3540,7 +3548,7 @@ async function persistApiConfig(conf){
   S.apiConfig={provider:conf.provider,key:'backend',model:conf.model,baseUrl:conf.baseUrl,type:conf.type,protocol:conf.protocol,authMode:conf.authMode,timeout:conf.timeout,contextLimit:conf.contextLimit,customHeaders:'',transport:'backend'};
   localStorage.setItem('ww_api',JSON.stringify(S.apiConfig));
 }
-async function testApi(){const r=document.getElementById('testResult');r.className='test-result ok';r.textContent='⟳ '+t('mod-api-test')+'...';try{const conf=apiFormConfig();if(!WW_BROWSER_API_MODE)await persistApiConfig(conf);const result=await callAI('Reply with exactly: OK',conf);r.className='test-result ok';r.textContent='✓ '+result.slice(0,30);}catch(e){r.className='test-result fail';r.textContent='✗ '+e.message;}}
+async function testApi(){const r=document.getElementById('testResult');r.className='test-result ok';r.textContent='⟳ '+t('mod-api-test')+'...';try{const conf=apiFormConfig();if(!WW_BROWSER_API_MODE)await persistApiConfig(conf);const result=await callAITask('api.connection','Reply with exactly: OK',conf);r.className='test-result ok';r.textContent='✓ '+result.slice(0,30);}catch(e){r.className='test-result fail';r.textContent='✗ '+e.message;}}
 async function saveApi(){try{await persistApiConfig(apiFormConfig());if(!WW_BROWSER_API_MODE)document.getElementById('apiKey').value='';closeModal('apiModal');showToast('✓',t('toast-saved'));}catch(e){showToast('✕',e.message);}}
 function loadApiFields(prefix,c){const stem=prefix?prefix+'Api':'api';document.getElementById(stem+'Key').value=c.key==='backend'?'':(c.key||'');document.getElementById(stem+'Model').value=c.model||'';document.getElementById(stem+'BaseUrl').value=c.baseUrl||'';document.getElementById(stem+'Protocol').value=c.protocol||'auto';document.getElementById(stem+'AuthMode').value=c.authMode||'auto';document.getElementById(stem+'Timeout').value=Math.round(Number(c.timeout||60000)/1000);document.getElementById(stem+'ContextLimit').value=Number(c.contextLimit||0)||'';document.getElementById(stem+'Headers').value=c.customHeaders||'';const clearKey=document.getElementById(stem+'ClearKey'),clearHeaders=document.getElementById(stem+'ClearHeaders');if(clearKey)clearKey.checked=false;if(clearHeaders)clearHeaders.checked=false;}
 function loadApiUI(){const c=S.apiConfig;if(c.provider){const el=document.querySelector('.provider-chip[onclick*="'+c.provider+'"]');if(el)selectProvider(el,c.provider);}loadApiFields('',c);const notice=document.getElementById('apiStorageNotice');if(notice)notice.textContent=apiStorageDescription();}
@@ -3569,7 +3577,7 @@ async function saveWriteSnapshot(mode,applyMode,result,snapshot){
 }
 
 // ═══ AI Generate ═══
-async function doGenerate(){const ac=S.apiConfig;if(!aiHasConfig(ac)){showToast('⚙',t('toast-no-api'));openModal('apiModal');return;}const ed=document.getElementById('mainEditor'),sel=ed.value.slice(ed.selectionStart,ed.selectionEnd).trim(),full=ed.value.trim(),extra=document.getElementById('aiPrompt').value.trim(),content=sel||full.slice(-1000);if(!content&&!extra){showToast('✎',t('toast-no-content'));return;}S.aiRunSnapshot=makeEditorSnapshot();const lm={short:'100字以内',mid:'200-300字',long:'400-600字',xl:'800字以上'},tm={low:'保持严谨',mid:'适度创意',high:'大胆想象'};const md=AI_MODES[S.aiMode]||{p:'请处理以下内容：'};let prompt=(typeof wwPromptText==='function'?wwPromptText(S.aiMode):md.p)+'\n\n'+content+'\n\n【输出要求】'+lm[S.aiLen]+'。'+tm[S.aiTemp]+'。';if(S.proj)prompt+='\n\n【项目信息】\n'+buildCtx();if(extra)prompt+='\n\n【额外指令】'+extra;let sysPrompt=typeof wwSystemPrompt==='function'?wwSystemPrompt():'你是一位专业的中文写作助手。';const memCtx=buildMemoryContext();if(memCtx)sysPrompt+='\n\n'+memCtx;const btn=document.getElementById('generateBtn');btn.classList.add('loading');document.getElementById('generateBtnIcon').innerHTML='<div class="spinner"></div>';document.getElementById('generateBtnText').textContent=t('ap-gen-ing');try{showStreamingResult('arpText');const arpEl=document.getElementById('arpText');document.getElementById('arpMode').textContent=S.aiMode;document.getElementById('aiResultPopup').classList.add('show');let fullResult='';await callAIStream(prompt,ac,sysPrompt,(chunk)=>{fullResult+=chunk;arpEl.textContent=fullResult;});S.lastArpResult=fullResult;await addHistory(S.aiMode,fullResult,{project_id:S.aiRunSnapshot.project_id,active_type:S.aiRunSnapshot.active_type,active_id:S.aiRunSnapshot.active_id});}catch(e){showToast('✕',e.message||'请求失败');}finally{hideStreamingCursor();btn.classList.remove('loading');document.getElementById('generateBtnIcon').innerHTML='<svg class="ic ic-sm"><use href="icons/ai-mode-icons.svg#mode-workshop"/></svg>';document.getElementById('generateBtnText').textContent=t('ap-gen');}}
+async function doGenerate(){const ac=S.apiConfig;if(!aiHasConfig(ac)){showToast('⚙',t('toast-no-api'));openModal('apiModal');return;}const ed=document.getElementById('mainEditor'),sel=ed.value.slice(ed.selectionStart,ed.selectionEnd).trim(),full=ed.value.trim(),extra=document.getElementById('aiPrompt').value.trim(),content=sel||full.slice(-1000);if(!content&&!extra){showToast('✎',t('toast-no-content'));return;}S.aiRunSnapshot=makeEditorSnapshot();const lm={short:'100字以内',mid:'200-300字',long:'400-600字',xl:'800字以上'},tm={low:'保持严谨',mid:'适度创意',high:'大胆想象'};const md=AI_MODES[S.aiMode]||{p:'请处理以下内容：'};let prompt=(typeof wwPromptText==='function'?wwPromptText(S.aiMode):md.p)+'\n\n'+content+'\n\n【输出要求】'+lm[S.aiLen]+'。'+tm[S.aiTemp]+'。';if(S.proj)prompt+='\n\n【项目信息】\n'+buildCtx();if(extra)prompt+='\n\n【额外指令】'+extra;let sysPrompt=typeof wwSystemPrompt==='function'?wwSystemPrompt():'你是一位专业的中文写作助手。';const memCtx=buildMemoryContext();if(memCtx)sysPrompt+='\n\n'+memCtx;const btn=document.getElementById('generateBtn');btn.classList.add('loading');document.getElementById('generateBtnIcon').innerHTML='<div class="spinner"></div>';document.getElementById('generateBtnText').textContent=t('ap-gen-ing');try{showStreamingResult('arpText');const arpEl=document.getElementById('arpText');document.getElementById('arpMode').textContent=S.aiMode;document.getElementById('aiResultPopup').classList.add('show');let fullResult='';await callAITaskStream('skill.'+S.aiMode,prompt,ac,sysPrompt,(chunk)=>{fullResult+=chunk;arpEl.textContent=fullResult;});S.lastArpResult=fullResult;await addHistory(S.aiMode,fullResult,{project_id:S.aiRunSnapshot.project_id,active_type:S.aiRunSnapshot.active_type,active_id:S.aiRunSnapshot.active_id});}catch(e){showToast('✕',e.message||'请求失败');}finally{hideStreamingCursor();btn.classList.remove('loading');document.getElementById('generateBtnIcon').innerHTML='<svg class="ic ic-sm"><use href="icons/ai-mode-icons.svg#mode-workshop"/></svg>';document.getElementById('generateBtnText').textContent=t('ap-gen');}}
 async function arpAction(action){const text=S.lastArpResult,ed=document.getElementById('mainEditor');if(action==='copy'){navigator.clipboard.writeText(text).then(()=>showToast('✓',t('toast-copied')));return;}if(action==='memory'){stageMemory(text,{title:'AI 候选 · '+S.aiMode,category:'note',source:'writing'});return;}const snapshot=S.aiRunSnapshot||makeEditorSnapshot();if(!isSameEditorTarget(snapshot)){showToast('✕','生成后已切换文档，请复制结果或返回原文档后重试');return;}if(action==='replace'&&!isEditorSnapshotCurrent(snapshot)){showToast('✕','正文已在生成期间变化，为避免覆盖已阻止替换');return;}await saveWriteSnapshot(S.aiMode,action,text,makeEditorSnapshot());if(action==='replace'){const s=snapshot.selection_start,e=snapshot.selection_end;if(s!==e)ed.value=snapshot.document.slice(0,s)+text+snapshot.document.slice(e);else ed.value=text;showToast('✓','已替换');}else if(action==='append'){ed.value+='\n\n'+text;showToast('✓','已追加');}else if(action==='insert'){const p=ed.selectionStart;ed.value=ed.value.slice(0,p)+text+ed.value.slice(p);showToast('✓','已插入');}onEditorInput();closeAiResult();}
 function closeAiResult(){document.getElementById('aiResultPopup').classList.remove('show');}
 
@@ -3685,7 +3693,7 @@ async function doMultiGenerate(){
     if(r.skipped)continue;
     const p=(async()=>{
       const start=performance.now();
-      const text=await callAI(prompt,r.conf);
+      const text=await callAITask('multi.desktop',prompt,r.conf);
       const elapsed=Math.round(performance.now()-start);
       const wc=text.replace(/\s/g,'').length;
       const el=document.getElementById('slotResult'+r.i);
@@ -3848,7 +3856,7 @@ async function doMultiGenerateMobile(){
   showToast('⟳','并行生成中...');
   const results=await Promise.allSettled(tasks.map(async({i,conf})=>{
     const t0=Date.now();
-    try{const r=await callAI(prompt,conf,sysPrompt);return{i,text:r,time:Date.now()-t0};}
+    try{const r=await callAITask('multi.mobile',prompt,conf,sysPrompt);return{i,text:r,time:Date.now()-t0};}
     catch(e){return{i,text:'✕ '+e.message,time:Date.now()-t0};}
   }));
   for(const r of results){
@@ -4013,7 +4021,7 @@ async function deepAiCheck() {
 
 ⚠️ 仅供参考，不构成正式判定。`;
 
-    const result = await callAI('分析以下文本：\n\n' + content, S.apiConfig, systemPrompt);
+    const result = await callAITask('analysis.deep-check', '分析以下文本：\n\n' + content, S.apiConfig, systemPrompt);
 
     // Parse JSON
     let analysis;
@@ -4178,7 +4186,7 @@ async function smartReduceAi(intensity = 'medium') {
     document.getElementById('reduceAiModal').style.display = 'flex';
 
     let fullResult = '';
-    await callAIStream('请改写以下文本：\n\n' + content, S.apiConfig, systemPrompt, (chunk) => {
+    await callAITaskStream('humanize.smart', '请改写以下文本：\n\n' + content, S.apiConfig, systemPrompt, (chunk) => {
       fullResult += chunk;
       resultEl.textContent = fullResult;
     });
@@ -4290,7 +4298,7 @@ async function aiSuggestContinuations() {
   ]
 }`;
 
-    const result = await callAI('请为以下文本提供3个续写方向：\n\n' + context, S.apiConfig, systemPrompt);
+    const result = await callAITask('continuation.suggest', '请为以下文本提供3个续写方向：\n\n' + context, S.apiConfig, systemPrompt);
 
     // Parse and display
     let suggestions;
@@ -4376,7 +4384,7 @@ async function learnWritingStyle() {
 }`;
 
     const sample = allContent.slice(0, 2000); // Sample first 2000 chars
-    const result = await callAI('分析以下文本的写作风格：\n\n' + sample, S.apiConfig, systemPrompt);
+    const result = await callAITask('style.learn', '分析以下文本的写作风格：\n\n' + sample, S.apiConfig, systemPrompt);
 
     // Parse and save
     let styleData;
@@ -4510,7 +4518,7 @@ function settingsTestApi(){
   r.className='test-result ok';r.textContent='⟳ '+t('mod-api-test')+'...';
   const conf=apiFormConfig('s');
   const prepare=WW_BROWSER_API_MODE?Promise.resolve():persistApiConfig(conf);
-  prepare.then(()=>callAI('Reply with exactly: OK',conf)).then(txt=>{
+  prepare.then(()=>callAITask('api.connection','Reply with exactly: OK',conf)).then(txt=>{
     r.className='test-result ok';r.textContent='✓ '+txt.slice(0,60);
   }).catch(e=>{
     let msg=e.message||'Error';
@@ -4948,7 +4956,7 @@ async function aiProofread(){
   try{
     const ctx=S.proj?buildCtx()+'\n\n':'';
     const prompt=wwPromptText('校对')+'\n\n'+ctx+'【原文】\n'+text;
-    const result=await callAI(prompt,S.apiConfig,writingSystemPrompt());
+    const result=await callAITask('quick.proofread',prompt,S.apiConfig,writingSystemPrompt());
     // Check if it contains corrected text
     const correctedMatch=result.match(/修正后全文[：:]\s*([\s\S]*)/);
     if(correctedMatch){
@@ -4971,7 +4979,7 @@ async function aiAutoTitle(){
   try{
     const ctx=S.proj?buildCtx()+'\n\n':'';
     const prompt=wwPromptText('标题')+'\n\n'+ctx+'【内容】\n'+text.slice(0,2000);
-    const result=await callAI(prompt,S.apiConfig,writingSystemPrompt());
+    const result=await callAITask('quick.title',prompt,S.apiConfig,writingSystemPrompt());
     showAiQuickResult('◇ 标题建议（点击"应用"使用第一个标题）',result,'title');
     // Extract first title for apply
     const titles=result.match(/\d+[.、．)\s]+(.+)/g);
@@ -4994,7 +5002,7 @@ async function aiInspiration(){
     const selectedText=text.slice(document.getElementById('mainEditor').selectionStart,document.getElementById('mainEditor').selectionEnd).trim();
     const content=selectedText||text.slice(-800);
     const prompt=wwPromptText('实时灵感')+'\n\n'+ctx+(title?'【当前标题】'+title+'\n':'')+'【当前断点】\n'+(content||'（空文档，请先给出可确认的开篇方向）');
-    const result=await callAI(prompt,S.apiConfig,writingSystemPrompt());
+    const result=await callAITask('quick.inspiration',prompt,S.apiConfig,writingSystemPrompt());
     showAiQuickResult('◆ 实时灵感',result,'inspire');
   }catch(e){showToast('✕',e.message||'获取灵感失败');}
   setLoading('aiBtnInspire',false);
@@ -5012,7 +5020,7 @@ async function aiResearch(){
     const ctx=S.proj?buildCtx()+'\n\n':'';
     const content=selectedText||text.slice(-500);
     const prompt=wwPromptText('资料搜索')+'\n\n'+ctx+(title?'【当前标题】'+title+'\n':'')+'【内容或关键词】\n'+(content||'请先列出需要作者补充的研究主题');
-    const result=await callAI(prompt,S.apiConfig,writingSystemPrompt());
+    const result=await callAITask('quick.research',prompt,S.apiConfig,writingSystemPrompt());
     showAiQuickResult('⊕ 资料搜索结果',result,'research');
   }catch(e){showToast('✕',e.message||'搜索失败');}
   setLoading('aiBtnResearch',false);
@@ -5037,7 +5045,7 @@ async function aiHumanize(){
     };
     const prompt=wwPromptText('降AI')+'\n\n【改写强度】'+levelPrompts[aiPresLevel]+'\n\n'+ctx+'【原文】\n'+text;
     const originalText=text;
-    const result=await callAI(prompt,S.apiConfig,writingSystemPrompt());
+    const result=await callAITask('quick.humanize',prompt,S.apiConfig,writingSystemPrompt());
     showAiQuickResult('◆ 降AI率结果 — 点击"应用"替换原文',result,'humanize');
     aiQuickLastResult=result;aiQuickMode='humanize';
     // Show diff view
@@ -5055,7 +5063,7 @@ async function aiDetect(){
   setLoading('aiBtnDetect',true);
   try{
     const prompt=wwPromptText('查AI')+'\n\n【待分析文字】\n'+text.slice(0,3000);
-    const result=await callAI(prompt,S.apiConfig,writingSystemPrompt());
+    const result=await callAITask('quick.detect',prompt,S.apiConfig,writingSystemPrompt());
     // Parse scores from the AI response
     const scores=parseAiScores(result);
     const disclaimer='\n\n────────────────\n⚠ 以上分析仅供参考，不作为任何正式判定依据。AI检测工具本身存在较大误判率。';
@@ -5091,7 +5099,7 @@ function renderMpChapter(){if(!S.proj)return;const el=document.getElementById('m
 function renderMpChar(){if(!S.proj)return;const el=document.getElementById('mpCharList');if(!S.proj.characters.length){el.innerHTML='<div style="text-align:center;padding:40px;color:var(--text-hint)">'+t('sb-empty-char')+'</div>';return;}el.innerHTML=S.proj.characters.map(c=>'<div class="char-card" onclick="loadCharContent('+Number(c.id)+');backToEditor()"><div class="char-name">'+escapeHtml(c.name)+'</div><span class="char-role">'+escapeHtml(c.role)+'</span><div class="char-desc">'+escapeHtml(c.personality||t('char-no-desc'))+'</div></div>').join('');}
 function renderMpNote(){if(!S.proj)return;const el=document.getElementById('mpNoteList');if(!el)return;const notes=S.proj.notes||[];if(!notes.length){el.innerHTML='<div class="sidebar-empty">'+t('sb-empty-notes')+'</div>';return;}el.innerHTML=notes.map(note=>'<div class="outline-item" onclick="loadNoteContent('+Number(note.id)+');backToEditor()"><span class="oi-icon"><svg class="ic ic-sm"><use href="#ic-note"/></svg></span><span class="oi-text">'+escapeHtml(note.title||'未命名笔记')+'</span><span class="oi-count">'+countWords(note.content||'')+t('ps-units-2')+'</span></div>').join('');}
 function renderMpAi(){const el=document.getElementById('mpAiModeGrid');if(!el||el.children.length>0)return;const g={};for(const[k,v]of Object.entries(AI_MODES)){if(!g[v.group])g[v.group]=[];g[v.group].push(k);}let h='';for(const[label,keys]of Object.entries(g)){h+='<div class="mode-group" data-mode-group="'+label+'"><div class="mode-group-title">'+t('grp-'+label)+'</div><div class="mode-grid">';for(const k of keys)h+='<button class="mode-btn'+(S.aiMode===k?' selected':'')+'" data-mode="'+k+'" onclick="selectMode(this,\''+k+'\')"><span class="micon">'+wwAiModeIcon(k)+'</span>'+t('mode-'+k)+'</button>';h+='</div></div>';}el.innerHTML=h;if(typeof renderMpMultiSlots==='function')renderMpMultiSlots();}
-async function doGenerateMobile(){const ac=S.apiConfig;if(!aiHasConfig(ac)){showToast('⚙',t('toast-no-api'));openModal('apiModal');return;}const ed=document.getElementById('mainEditor'),content=ed.value.slice(-1000)||'';const extra=document.getElementById('mpAiPrompt')?.value.trim()||'';if(!content&&!extra){showToast('✎',t('toast-no-content'));return;}S.aiRunSnapshot=makeEditorSnapshot();const lm={short:'100字以内',mid:'200-300字',long:'400-600字',xl:'800字以上'},tm={low:'保持严谨',mid:'适度创意',high:'大胆想象'};const md=AI_MODES[S.aiMode]||{p:'请处理以下内容：'};let prompt=(typeof wwPromptText==='function'?wwPromptText(S.aiMode):md.p)+'\n\n'+content+'\n\n【输出要求】'+lm[S.aiLen]+'。'+tm[S.aiTemp]+'。';if(S.proj)prompt+='\n\n【项目信息】\n'+buildCtx();if(extra)prompt+='\n\n【额外指令】'+extra;let sysPrompt=typeof wwSystemPrompt==='function'?wwSystemPrompt():'你是一位专业的中文写作助手。';const memCtx=buildMemoryContext();if(memCtx)sysPrompt+='\n\n'+memCtx;const btn=document.getElementById('mpGenerateBtn');btn.classList.add('loading');btn.textContent=t('ap-gen-ing');try{const r=await callAI(prompt,ac,sysPrompt);S.lastArpResult=r;document.getElementById('arpText').textContent=r;document.getElementById('arpMode').textContent=S.aiMode;document.getElementById('aiResultPopup').classList.add('show');await addHistory(S.aiMode,r,{project_id:S.aiRunSnapshot.project_id,active_type:S.aiRunSnapshot.active_type,active_id:S.aiRunSnapshot.active_id});}catch(e){showToast('✕',e.message||'失败');}finally{btn.classList.remove('loading');btn.innerHTML='<span><svg class="ic ic-sm"><use href="icons/ai-mode-icons.svg#mode-workshop"/></svg></span><span data-i18n="ap-gen">'+t('ap-gen')+'</span>';}}
+async function doGenerateMobile(){const ac=S.apiConfig;if(!aiHasConfig(ac)){showToast('⚙',t('toast-no-api'));openModal('apiModal');return;}const ed=document.getElementById('mainEditor'),content=ed.value.slice(-1000)||'';const extra=document.getElementById('mpAiPrompt')?.value.trim()||'';if(!content&&!extra){showToast('✎',t('toast-no-content'));return;}S.aiRunSnapshot=makeEditorSnapshot();const lm={short:'100字以内',mid:'200-300字',long:'400-600字',xl:'800字以上'},tm={low:'保持严谨',mid:'适度创意',high:'大胆想象'};const md=AI_MODES[S.aiMode]||{p:'请处理以下内容：'};let prompt=(typeof wwPromptText==='function'?wwPromptText(S.aiMode):md.p)+'\n\n'+content+'\n\n【输出要求】'+lm[S.aiLen]+'。'+tm[S.aiTemp]+'。';if(S.proj)prompt+='\n\n【项目信息】\n'+buildCtx();if(extra)prompt+='\n\n【额外指令】'+extra;let sysPrompt=typeof wwSystemPrompt==='function'?wwSystemPrompt():'你是一位专业的中文写作助手。';const memCtx=buildMemoryContext();if(memCtx)sysPrompt+='\n\n'+memCtx;const btn=document.getElementById('mpGenerateBtn');btn.classList.add('loading');btn.textContent=t('ap-gen-ing');try{const r=await callAITask('skill.'+S.aiMode,prompt,ac,sysPrompt);S.lastArpResult=r;document.getElementById('arpText').textContent=r;document.getElementById('arpMode').textContent=S.aiMode;document.getElementById('aiResultPopup').classList.add('show');await addHistory(S.aiMode,r,{project_id:S.aiRunSnapshot.project_id,active_type:S.aiRunSnapshot.active_type,active_id:S.aiRunSnapshot.active_id});}catch(e){showToast('✕',e.message||'失败');}finally{btn.classList.remove('loading');btn.innerHTML='<span><svg class="ic ic-sm"><use href="icons/ai-mode-icons.svg#mode-workshop"/></svg></span><span data-i18n="ap-gen">'+t('ap-gen')+'</span>';}}
 
 // ═══ Cookie Consent & Privacy ═══
 function showPrivacyModal(){document.getElementById('privacyModal').classList.add('show');}
