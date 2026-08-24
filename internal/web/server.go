@@ -1,6 +1,7 @@
 package web
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -83,64 +84,55 @@ func (s *Server) routes(mux *http.ServeMux) {
 	s.extension.Mount(mux)
 	sub, _ := fs.Sub(staticfiles.Files, ".")
 	mux.Handle("/", http.FileServer(http.FS(sub)))
-	mux.HandleFunc("GET /admin", s.handleAdmin)
-	mux.HandleFunc("GET /api/health", s.handleHealth)
-	mux.HandleFunc("GET /api/events", s.handleEvents)
-	mux.HandleFunc("GET /api/dashboard", s.handleDashboard)
-	mux.HandleFunc("GET /api/agents/status", s.handleAgents)
-	mux.HandleFunc("GET /api/config", s.handleConfig)
-	mux.HandleFunc("POST /api/config", s.handleConfig)
-	mux.HandleFunc("PUT /api/config", s.handleConfig)
-	mux.HandleFunc("GET /api/rules", s.handleRules)
-	mux.HandleFunc("POST /api/rules", s.handleRules)
-	mux.HandleFunc("PUT /api/rules", s.handleRules)
-	mux.HandleFunc("DELETE /api/rules", s.handleRules)
-	mux.HandleFunc("GET /api/capabilities", s.handleCapabilities)
-	mux.HandleFunc("POST /api/capabilities", s.handleCapabilities)
-	mux.HandleFunc("PUT /api/capabilities", s.handleCapabilities)
-	mux.HandleFunc("DELETE /api/capabilities", s.handleCapabilities)
-	mux.HandleFunc("GET /api/external-catalog", s.handleExternalCatalog)
-	mux.HandleFunc("POST /api/external-catalog", s.handleExternalCatalog)
-	mux.HandleFunc("GET /api/skill-packs", s.handleSkillPacks)
-	mux.HandleFunc("POST /api/skill-packs", s.handleSkillPacks)
-	mux.HandleFunc("PUT /api/skill-packs", s.handleSkillPacks)
-	mux.HandleFunc("DELETE /api/skill-packs", s.handleSkillPacks)
-	mux.HandleFunc("GET /api/categories", s.handleCategories)
-	mux.HandleFunc("POST /api/categories", s.handleCategories)
-	mux.HandleFunc("PUT /api/categories", s.handleCategories)
-	mux.HandleFunc("DELETE /api/categories", s.handleCategories)
-	mux.HandleFunc("GET /api/memories", s.handleMemories)
-	mux.HandleFunc("POST /api/memories", s.handleMemories)
-	mux.HandleFunc("PUT /api/memories", s.handleMemories)
-	mux.HandleFunc("DELETE /api/memories", s.handleMemories)
-	mux.HandleFunc("POST /api/run", s.handleRun)
-	mux.HandleFunc("GET /api/projects", s.handleProjects)
-	mux.HandleFunc("POST /api/projects", s.handleProjects)
-	mux.HandleFunc("PUT /api/projects", s.handleProjects)
-	mux.HandleFunc("DELETE /api/projects", s.handleProjects)
-	mux.HandleFunc("GET /api/directives", s.handleDirectives)
-	mux.HandleFunc("POST /api/directives", s.handleDirectives)
-	mux.HandleFunc("DELETE /api/directives", s.handleDirectives)
-	mux.HandleFunc("GET /api/chapters", s.handleChapters)
-	mux.HandleFunc("POST /api/chapters", s.handleChapters)
-	mux.HandleFunc("PUT /api/chapters", s.handleChapters)
-	mux.HandleFunc("DELETE /api/chapters", s.handleChapters)
-	mux.HandleFunc("GET /api/characters", s.handleCharacters)
-	mux.HandleFunc("POST /api/characters", s.handleCharacters)
-	mux.HandleFunc("PUT /api/characters", s.handleCharacters)
-	mux.HandleFunc("DELETE /api/characters", s.handleCharacters)
-	mux.HandleFunc("POST /api/start", s.handleStart)
-	mux.HandleFunc("POST /api/resume", s.handleResume)
-	mux.HandleFunc("POST /api/abort", s.handleAbort)
-	mux.HandleFunc("POST /api/ai", s.handleAI)
-	mux.HandleFunc("POST /api/ai/stream", s.handleAIStream)
-	mux.HandleFunc("GET /api/models", s.handleModels)
-	mux.HandleFunc("POST /api/models/switch", s.handleSwitchModel)
-	mux.HandleFunc("POST /api/style/check", s.handleStyleCheck)
-	mux.HandleFunc("GET /api/corpus", s.handleCorpus)
-	mux.HandleFunc("POST /api/corpus", s.handleCorpus)
-	mux.HandleFunc("DELETE /api/corpus", s.handleCorpus)
-	mux.HandleFunc("POST /api/corpus/refinements", s.handleCorpusRefinements)
+	handleMethods(mux, "/admin", s.handleAdmin, http.MethodGet)
+	handleMethods(mux, "/api/health", s.handleHealth, http.MethodGet)
+	handleMethods(mux, "/api/events", s.handleEvents, http.MethodGet)
+	handleMethods(mux, "/api/dashboard", s.handleDashboard, http.MethodGet)
+	handleMethods(mux, "/api/agents/status", s.handleAgents, http.MethodGet)
+	handleMethods(mux, "/api/config", s.handleConfig, http.MethodGet, http.MethodPost, http.MethodPut)
+	handleMethods(mux, "/api/rules", s.handleRules, http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete)
+	handleMethods(mux, "/api/capabilities", s.handleCapabilities, http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete)
+	handleMethods(mux, "/api/external-catalog", s.handleExternalCatalog, http.MethodGet, http.MethodPost)
+	handleMethods(mux, "/api/skill-packs", s.handleSkillPacks, http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete)
+	handleMethods(mux, "/api/categories", s.handleCategories, http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete)
+	handleMethods(mux, "/api/memories", s.handleMemories, http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete)
+	handleMethods(mux, "/api/run", s.handleRun, http.MethodPost)
+	handleMethods(mux, "/api/projects", s.handleProjects, http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete)
+	handleMethods(mux, "/api/directives", s.handleDirectives, http.MethodGet, http.MethodPost, http.MethodDelete)
+	handleMethods(mux, "/api/chapters", s.handleChapters, http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete)
+	handleMethods(mux, "/api/characters", s.handleCharacters, http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete)
+	handleMethods(mux, "/api/start", s.handleStart, http.MethodPost)
+	handleMethods(mux, "/api/resume", s.handleResume, http.MethodPost)
+	handleMethods(mux, "/api/abort", s.handleAbort, http.MethodPost)
+	handleMethods(mux, "/api/ai", s.handleAI, http.MethodPost)
+	handleMethods(mux, "/api/ai/stream", s.handleAIStream, http.MethodPost)
+	handleMethods(mux, "/api/models", s.handleModels, http.MethodGet)
+	handleMethods(mux, "/api/models/switch", s.handleSwitchModel, http.MethodPost)
+	handleMethods(mux, "/api/style/check", s.handleStyleCheck, http.MethodPost)
+	handleMethods(mux, "/api/corpus", s.handleCorpus, http.MethodGet, http.MethodPost, http.MethodDelete)
+	handleMethods(mux, "/api/corpus/refinements", s.handleCorpusRefinements, http.MethodPost)
+}
+
+// handleMethods preserves Go 1.22's method-aware ServeMux behavior while the
+// self-hosted runtime remains buildable with Go 1.21. GET also accepts HEAD.
+func handleMethods(mux *http.ServeMux, pattern string, handler http.HandlerFunc, methods ...string) {
+	allowed := make(map[string]struct{}, len(methods)+1)
+	allowHeader := append([]string(nil), methods...)
+	for _, method := range methods {
+		allowed[method] = struct{}{}
+		if method == http.MethodGet {
+			allowed[http.MethodHead] = struct{}{}
+			allowHeader = append(allowHeader, http.MethodHead)
+		}
+	}
+	mux.HandleFunc(pattern, func(w http.ResponseWriter, r *http.Request) {
+		if _, ok := allowed[r.Method]; !ok {
+			w.Header().Set("Allow", strings.Join(allowHeader, ", "))
+			http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
+			return
+		}
+		handler(w, r)
+	})
 }
 
 func (s *Server) handleHealth(w http.ResponseWriter, _ *http.Request) {
@@ -156,7 +148,12 @@ func (s *Server) handleHealth(w http.ResponseWriter, _ *http.Request) {
 }
 
 func (s *Server) handleAdmin(w http.ResponseWriter, r *http.Request) {
-	http.ServeFileFS(w, r, staticfiles.Files, "admin.html")
+	content, err := fs.ReadFile(staticfiles.Files, "admin.html")
+	if err != nil {
+		httpError(w, err, http.StatusInternalServerError)
+		return
+	}
+	http.ServeContent(w, r, "admin.html", time.Time{}, bytes.NewReader(content))
 }
 
 func (s *Server) handleEvents(w http.ResponseWriter, r *http.Request) {

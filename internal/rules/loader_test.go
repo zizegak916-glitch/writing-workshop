@@ -255,7 +255,18 @@ func TestDefaultProjectRulesDir(t *testing.T) {
 // DefaultOptions 把 cwd 下的 ./.writing-workshop/rules/ 接进 SourceProject 来源。
 func TestDefaultOptions_LoadsProjectRulesFromWorkshopDir(t *testing.T) {
 	proj := t.TempDir()
-	t.Chdir(proj)
+	original, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("getwd: %v", err)
+	}
+	if err := os.Chdir(proj); err != nil {
+		t.Fatalf("chdir: %v", err)
+	}
+	t.Cleanup(func() {
+		if err := os.Chdir(original); err != nil {
+			t.Errorf("restore cwd: %v", err)
+		}
+	})
 	rulesDir := filepath.Join(proj, ".writing-workshop", "rules")
 	if err := os.MkdirAll(rulesDir, 0o755); err != nil {
 		t.Fatal(err)

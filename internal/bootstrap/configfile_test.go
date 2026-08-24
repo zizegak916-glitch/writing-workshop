@@ -34,7 +34,7 @@ func writeGlobal(t *testing.T, content string) string {
 }
 
 // writeProjectConfig 在当前工作目录的 ./.writing-workshop/ 下写入项目级配置。
-// 调用前需先 t.Chdir 到目标目录。
+// 调用前需先 chdirForTest 到目标目录。
 func writeProjectConfig(t *testing.T, content string) {
 	t.Helper()
 	if err := os.MkdirAll(".writing-workshop", 0o755); err != nil {
@@ -45,11 +45,27 @@ func writeProjectConfig(t *testing.T, content string) {
 	}
 }
 
+func chdirForTest(t *testing.T, dir string) {
+	t.Helper()
+	original, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("getwd: %v", err)
+	}
+	if err := os.Chdir(dir); err != nil {
+		t.Fatalf("chdir %s: %v", dir, err)
+	}
+	t.Cleanup(func() {
+		if err := os.Chdir(original); err != nil {
+			t.Errorf("restore cwd %s: %v", original, err)
+		}
+	})
+}
+
 // 根因 3：项目级 ./.writing-workshop/config.json 存在但是坏 JSON，必须报错，不能静默吞掉退回全局。
 func TestLoadConfig_CorruptProjectFailsLoud(t *testing.T) {
 	writeGlobal(t, validGlobal)
 	proj := t.TempDir()
-	t.Chdir(proj)
+	chdirForTest(t, proj)
 	// 手抄示例多了个尾逗号——最常见的坏 JSON。
 	writeProjectConfig(t, `{ "model": "x", }`)
 
@@ -63,7 +79,7 @@ func TestLoadConfig_CorruptProjectFailsLoud(t *testing.T) {
 func TestLoadConfig_CorruptGlobalDoesNotBlockOverride(t *testing.T) {
 	writeGlobal(t, `{ not json`)
 	proj := t.TempDir()
-	t.Chdir(proj)
+	chdirForTest(t, proj)
 	good := filepath.Join(proj, "good.json")
 	if err := os.WriteFile(good, []byte(validGlobal), 0o644); err != nil {
 		t.Fatalf("write override: %v", err)
@@ -82,7 +98,7 @@ func TestLoadConfig_CorruptGlobalDoesNotBlockOverride(t *testing.T) {
 func TestLoadConfig_MissingFilesNoError(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home) // ~/.writing-workshop/config.json 不存在
-	t.Chdir(t.TempDir())   // 也没有 ./.writing-workshop/config.json
+	chdirForTest(t, t.TempDir()) // 也没有 ./.writing-workshop/config.json
 
 	if _, err := LoadConfig(""); err != nil {
 		t.Fatalf("缺失配置文件不应报错，得到: %v", err)
@@ -93,7 +109,7 @@ func TestLoadConfig_MissingFilesNoError(t *testing.T) {
 func TestLoadConfig_ValidMergeWorks(t *testing.T) {
 	writeGlobal(t, validGlobal)
 	proj := t.TempDir()
-	t.Chdir(proj)
+	chdirForTest(t, proj)
 	writeProjectConfig(t, `{
   "model": "google/gemini-2.5-pro",
   "thinking": "high",
@@ -135,7 +151,7 @@ func TestLoadConfig_LegacyPathsAreReadOnlyFallback(t *testing.T) {
 		t.Fatal(err)
 	}
 	project := t.TempDir()
-	t.Chdir(project)
+	chdirForTest(t, project)
 	legacyProject := filepath.Join(project, ".ainovel")
 	if err := os.MkdirAll(legacyProject, 0o755); err != nil {
 		t.Fatal(err)

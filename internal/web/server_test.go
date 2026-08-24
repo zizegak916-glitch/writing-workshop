@@ -2,6 +2,7 @@ package web
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -577,7 +578,7 @@ func TestRawProviderProtocolsAndAuthentication(t *testing.T) {
 					},
 				},
 			}
-			text, usage, err := rawProviderRequest(t.Context(), provider, nil, false, nil)
+			text, usage, err := rawProviderRequest(context.Background(), provider, nil, false, nil)
 			if err != nil {
 				t.Fatalf("raw request: %v", err)
 			}
