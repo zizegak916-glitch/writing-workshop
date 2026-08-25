@@ -8,8 +8,8 @@
   const PROTOCOLS = new Set(['auto', 'openai-chat', 'openai-responses', 'anthropic', 'ollama']);
   const AUTH_MODES = new Set(['auto', 'bearer', 'x-api-key', 'none']);
   const FORBIDDEN_HEADERS = new Set([
-    'connection', 'content-length', 'cookie', 'host', 'origin', 'referer',
-    'transfer-encoding', 'upgrade', 'via'
+    'cf-connecting-ip', 'connection', 'content-length', 'cookie', 'forwarded', 'host', 'origin', 'referer',
+    'transfer-encoding', 'true-client-ip', 'upgrade', 'via', 'x-real-ip', 'x-ww-bridge-token'
   ]);
   const PROTECTED_BODY_FIELDS = new Set(['model', 'messages', 'input', 'system', 'stream']);
   const UNSAFE_OBJECT_FIELDS = new Set(['__proto__', 'prototype', 'constructor']);
@@ -106,6 +106,42 @@
     return url.toString();
   }
 
+  function normalizeBridgeEndpoint(bridgeUrl, upstreamEndpoint, pageProtocol) {
+    const raw = String(bridgeUrl || '').trim();
+    if (!raw) return '';
+    let bridge;
+    let upstream;
+    try {
+      bridge = new URL(raw);
+      upstream = new URL(upstreamEndpoint);
+    } catch (_) {
+      throw new Error('HTTP 兼容桥地址不是有效的 http(s) URL');
+    }
+    if (!/^https?:$/.test(bridge.protocol)) throw new Error('HTTP 兼容桥只支持 http:// 或 https://');
+    if (bridge.search || bridge.hash) throw new Error('HTTP 兼容桥地址不能包含查询参数或片段');
+    if (String(pageProtocol || globalThis.location?.protocol || '') === 'https:' && bridge.protocol !== 'https:') {
+      throw new Error('HTTPS Pages 使用的兼容桥本身必须是 HTTPS');
+    }
+    bridge.pathname = bridge.pathname.replace(/\/+$/, '') + '/' + upstream.pathname.replace(/^\/+/, '');
+    bridge.search = upstream.search;
+    return bridge.toString();
+  }
+
+  function routeEndpoint(config, upstreamEndpoint) {
+    const bridgeUrl = String(config.bridgeUrl || '').trim();
+    if (!bridgeUrl) {
+      return { endpoint: upstreamEndpoint, upstreamEndpoint: '', transport: 'direct', bridgeToken: '' };
+    }
+    const bridgeToken = String(config.bridgeToken || '').trim();
+    if (!bridgeToken) throw new Error('已填写 HTTP 兼容桥地址，但没有填写桥访问令牌');
+    return {
+      endpoint: normalizeBridgeEndpoint(bridgeUrl, upstreamEndpoint, config.pageProtocol),
+      upstreamEndpoint,
+      transport: 'bridge',
+      bridgeToken
+    };
+  }
+
   function parseCustomHeaders(value) {
     if (!value) return {};
     let parsed = value;
@@ -125,7 +161,7 @@
     for (const [name, rawValue] of Object.entries(parsed)) {
       const key = String(name || '').trim();
       const lower = key.toLowerCase();
-      if (!key || FORBIDDEN_HEADERS.has(lower) || lower.startsWith('proxy-') || lower.startsWith('sec-')) {
+      if (!key || FORBIDDEN_HEADERS.has(lower) || lower.startsWith('proxy-') || lower.startsWith('sec-') || lower.startsWith('x-forwarded-')) {
         throw new Error('不允许覆盖请求头：' + (key || '空名称'));
       }
       if (rawValue == null) continue;
@@ -225,21 +261,26 @@
 
   function prepareRequest(config, messages, options = {}) {
     const protocol = inferProtocol(config);
-    const endpoint = normalizeEndpoint(config.baseUrl, protocol, config.fallbackUrl, !!config.exactEndpoint);
+    const upstreamEndpoint = normalizeEndpoint(config.baseUrl, protocol, config.fallbackUrl, !!config.exactEndpoint);
     const pageProtocol = String(config.pageProtocol || globalThis.location?.protocol || '');
-    if (config.browserDirect !== false && pageProtocol === 'https:' && new URL(endpoint).protocol === 'http:') {
+    const routed = routeEndpoint({ ...config, pageProtocol }, upstreamEndpoint);
+    if (config.browserDirect !== false && routed.transport === 'direct' && pageProtocol === 'https:' && new URL(upstreamEndpoint).protocol === 'http:') {
       throw withDiagnostic(
-        new Error('HTTPS Pages 不能直连 HTTP 接口：浏览器会按混合内容策略在发送前拦截。请改用 HTTPS API 地址，或从自部署工作台通过同源 Go 后端请求。'),
-        { stage: 'prepare', endpoint, protocol }
+        new Error('HTTPS Pages 不能直连 HTTP 接口：请填写 HTTPS 兼容桥，或改用 HTTPS API / 自部署工作台。'),
+        { stage: 'prepare', endpoint: upstreamEndpoint, protocol }
       );
     }
     const streaming = !!options.stream;
     const customHeaderNames = Object.keys(parseCustomHeaders(config.customHeaders));
+    const headers = buildHeaders(config, protocol, streaming);
+    if (routed.transport === 'bridge') headers['X-WW-Bridge-Token'] = routed.bridgeToken;
     return {
-      endpoint,
+      endpoint: routed.endpoint,
+      upstreamEndpoint: routed.upstreamEndpoint,
+      transport: routed.transport,
       protocol,
       method: 'POST',
-      headers: buildHeaders(config, protocol, streaming),
+      headers,
       body: buildBody(config, messages, { ...options, stream: streaming }),
       customHeaderNames
     };
@@ -321,6 +362,8 @@
     if (meta.protocol && !output.protocol) output.protocol = meta.protocol;
     if (meta.originalMessage && !output.originalMessage) output.originalMessage = meta.originalMessage;
     if (meta.status && !output.status) output.status = meta.status;
+    if (meta.upstreamEndpoint && !output.upstreamEndpoint) output.upstreamEndpoint = meta.upstreamEndpoint;
+    if (meta.transport && !output.transport) output.transport = meta.transport;
     return output;
   }
 
@@ -374,18 +417,21 @@
 
   async function listModels(config) {
     const protocol = inferProtocol(config);
-    const endpoint = normalizeModelsEndpoint(config.baseUrl, protocol, config.fallbackUrl);
+    const upstreamEndpoint = normalizeModelsEndpoint(config.baseUrl, protocol, config.fallbackUrl);
     const pageProtocol = String(config.pageProtocol || globalThis.location?.protocol || '');
-    if (config.browserDirect !== false && pageProtocol === 'https:' && new URL(endpoint).protocol === 'http:') {
+    const routed = routeEndpoint({ ...config, pageProtocol }, upstreamEndpoint);
+    if (config.browserDirect !== false && routed.transport === 'direct' && pageProtocol === 'https:' && new URL(upstreamEndpoint).protocol === 'http:') {
       throw withDiagnostic(
-        new Error('HTTPS Pages 不能读取 HTTP 接口的模型列表：浏览器会按混合内容策略在发送前拦截。'),
-        { stage: 'prepare', endpoint, protocol }
+        new Error('HTTPS Pages 不能读取 HTTP 接口的模型列表：请填写 HTTPS 兼容桥。'),
+        { stage: 'prepare', endpoint: upstreamEndpoint, protocol }
       );
     }
     const headers = buildHeaders(config, protocol, false);
     delete headers['Content-Type'];
+    if (routed.transport === 'bridge') headers['X-WW-Bridge-Token'] = routed.bridgeToken;
     const customHeaderNames = Object.keys(parseCustomHeaders(config.customHeaders));
-    const timed = await beginTimedStreamFetch(endpoint, { method: 'GET', headers }, config.timeoutMs || config.timeout, { protocol, customHeaderNames });
+    const meta = { protocol, customHeaderNames, upstreamEndpoint: routed.upstreamEndpoint, transport: routed.transport };
+    const timed = await beginTimedStreamFetch(routed.endpoint, { method: 'GET', headers }, config.timeoutMs || config.timeout, meta);
     try {
       const data = await responseData(timed.response);
       if (!timed.response.ok || data?.error) {
@@ -393,14 +439,14 @@
         const detail = upstreamErrorText(data, timed.response.statusText || '读取模型列表失败');
         throw withDiagnostic(
           new Error('HTTP ' + timed.response.status + ': ' + detail + (id ? '（请求 ID：' + id + '）' : '')),
-          { stage: 'http', endpoint, protocol, status: timed.response.status }
+          { ...meta, stage: 'http', endpoint: routed.endpoint, status: timed.response.status }
         );
       }
       const models = parseModelList(data);
-      if (!models.length) throw withDiagnostic(new Error('接口返回成功，但没有识别到模型 ID'), { stage: 'parse', endpoint, protocol });
-      return { models, data, endpoint, protocol };
+      if (!models.length) throw withDiagnostic(new Error('接口返回成功，但没有识别到模型 ID'), { ...meta, stage: 'parse', endpoint: routed.endpoint });
+      return { models, data, endpoint: routed.endpoint, upstreamEndpoint: routed.upstreamEndpoint, transport: routed.transport, protocol };
     } catch (error) {
-      throw responseError(error, { stage: 'parse', endpoint, protocol });
+      throw responseError(error, { ...meta, stage: 'parse', endpoint: routed.endpoint });
     } finally {
       timed.dispose();
     }
@@ -413,12 +459,13 @@
     } catch (error) {
       throw withDiagnostic(error, { stage: 'prepare' });
     }
-    const { endpoint: url, protocol, headers, body, customHeaderNames } = prepared;
+    const { endpoint: url, upstreamEndpoint, transport, protocol, headers, body, customHeaderNames } = prepared;
+    const meta = { protocol, customHeaderNames, upstreamEndpoint, transport };
     const timed = await beginTimedStreamFetch(url, {
       method: 'POST',
       headers,
       body: JSON.stringify(body)
-    }, config.timeoutMs || config.timeout, { protocol, customHeaderNames });
+    }, config.timeoutMs || config.timeout, meta);
     const response = timed.response;
     try {
       const data = await responseData(response);
@@ -427,17 +474,17 @@
         const detail = upstreamErrorText(data, response.statusText || '上游接口返回错误');
         throw withDiagnostic(
           new Error('HTTP ' + response.status + ': ' + detail + (id ? '（请求 ID：' + id + '）' : '')),
-          { stage: 'http', endpoint: url, protocol, status: response.status }
+          { ...meta, stage: 'http', endpoint: url, status: response.status }
         );
       }
       const text = parseResponse(data);
       if (!text) throw withDiagnostic(
         new Error('接口返回成功，但没有识别到文本内容；请检查协议类型是否选对'),
-        { stage: 'parse', endpoint: url, protocol }
+        { ...meta, stage: 'parse', endpoint: url }
       );
-      return { text, usage: parseUsage(data), data, endpoint: url, protocol };
+      return { text, usage: parseUsage(data), data, endpoint: url, upstreamEndpoint, transport, protocol };
     } catch (error) {
-      throw responseError(error, { stage: 'parse', endpoint: url, protocol });
+      throw responseError(error, { ...meta, stage: 'parse', endpoint: url });
     } finally {
       timed.dispose();
     }
@@ -478,12 +525,13 @@
     } catch (error) {
       throw withDiagnostic(error, { stage: 'prepare' });
     }
-    const { endpoint: url, protocol, headers, body, customHeaderNames } = prepared;
+    const { endpoint: url, upstreamEndpoint, transport, protocol, headers, body, customHeaderNames } = prepared;
+    const meta = { protocol, customHeaderNames, upstreamEndpoint, transport };
     const timed = await beginTimedStreamFetch(url, {
       method: 'POST',
       headers,
       body: JSON.stringify(body)
-    }, config.timeoutMs || config.timeout, { protocol, customHeaderNames });
+    }, config.timeoutMs || config.timeout, meta);
     const response = timed.response;
     try {
       if (!response.ok) {
@@ -492,7 +540,7 @@
         const detail = upstreamErrorText(data, response.statusText || '上游接口返回错误');
         throw withDiagnostic(
           new Error('HTTP ' + response.status + ': ' + detail + (id ? '（请求 ID：' + id + '）' : '')),
-          { stage: 'http', endpoint: url, protocol, status: response.status }
+          { ...meta, stage: 'http', endpoint: url, status: response.status }
         );
       }
 
@@ -502,7 +550,7 @@
         const text = parseResponse(data);
         if (!text) throw new Error('接口返回成功，但没有识别到文本内容；请检查协议类型是否选对');
         if (options.onChunk) options.onChunk(text);
-        return { text, usage: parseUsage(data), data, endpoint: url, protocol };
+        return { text, usage: parseUsage(data), data, endpoint: url, upstreamEndpoint, transport, protocol };
       }
 
       const reader = response.body.getReader();
@@ -541,9 +589,9 @@
       buffer += decoder.decode();
       if (buffer.trim()) consume(buffer);
       if (!text) throw new Error('流式连接已结束，但没有识别到文本增量；可尝试关闭流式或切换协议类型');
-      return { text, usage, endpoint: url, protocol };
+      return { text, usage, endpoint: url, upstreamEndpoint, transport, protocol };
     } catch (error) {
-      throw responseError(error, { stage: 'stream', endpoint: url, protocol });
+      throw responseError(error, { ...meta, stage: 'stream', endpoint: url });
     } finally {
       timed.dispose();
     }
@@ -555,6 +603,8 @@
     protocolType,
     normalizeEndpoint,
     normalizeModelsEndpoint,
+    normalizeBridgeEndpoint,
+    routeEndpoint,
     parseCustomHeaders,
     parseBodyOverrides,
     resolveAuthMode,

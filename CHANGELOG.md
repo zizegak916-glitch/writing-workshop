@@ -1,6 +1,10 @@
 # Changelog
 
-## Unreleased — 2026-08-24 — 真实网文指导库、统一记忆与资料分流
+## Unreleased — 2026-08-25 — 长篇写作、HTTP 兼容与资料分流
+
+- 新增受限 Go HTTP 兼容桥：HTTPS Pages 可经自己的 HTTPS 域名访问服务端白名单中的 HTTP/HTTPS 模型接口；目标别名、独立桥令牌、来源白名单、正文大小、并发和超时均由服务端约束，跨目标跳转与敏感浏览器头不会转发。
+- Pages API 高级适配增加 HTTPS 桥地址和桥令牌；预览与失败诊断同时显示浏览器实际地址和真实上游地址，模型列表、普通请求、流式请求、56 个 AI 任务与 Pages 对比槽位复用同一桥接配置。
+- 增加 Go 端长请求、CORS、令牌、目标、大小和跳转安全测试，以及真实 Chromium 长文本桥接链路；新增 Caddy、systemd、Go 1.21 / 1.25 与状态码分层排障教程。
 
 - Go 引擎源码编译下限由 1.25 降至 1.21：移除 1.22/1.24 才支持的整数 `range`、`strings.SplitSeq`、HTTP 方法路由、静态文件与测试辅助 API，回退终端 UI 和 Unicode 依赖到 Go 1.21 兼容线；兼容验证固定在 Go 1.21.13，并以 `GOTOOLCHAIN=local` 阻止自动升级掩盖问题。Linux 发布包继续使用 `CGO_ENABLED=0`，运行时不要求预装 Go。
 - 发布与 CI 增加 Go 1.21.13 / Go 1.25.12 双构建线：Release 文件名明确标注 `_go1.21` 或 `_go1.25`，Docker 可用 `GO_VERSION` 选择构建器；两条线使用同一套功能源码。

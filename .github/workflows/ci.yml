@@ -94,6 +94,11 @@ jobs:
         env:
           CI: "true"
           WW_TEST_BASE_URL: http://127.0.0.1:18080
+          WW_TEST_BRIDGE_URL: http://127.0.0.1:18080/api/http-bridge/browser
+          WW_TEST_BRIDGE_TOKEN: browser-bridge-token-with-32-characters
+          WW_TEST_UPSTREAM_PORT: "18081"
+          WRITING_WORKSHOP_HTTP_BRIDGE_TARGETS: '{"browser":"http://127.0.0.1:18081"}'
+          WRITING_WORKSHOP_HTTP_BRIDGE_TOKEN: browser-bridge-token-with-32-characters
         run: |
           ./writing-workshop serve --demo --host 127.0.0.1 --port 18080 > /tmp/writing-workshop-browser.log 2>&1 &
           pid=$!

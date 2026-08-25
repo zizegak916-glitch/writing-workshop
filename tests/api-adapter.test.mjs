@@ -39,6 +39,14 @@ assert.equal(
   A.normalizeModelsEndpoint('http://127.0.0.1:11434/api/chat', 'ollama'),
   'http://127.0.0.1:11434/api/tags'
 );
+assert.equal(
+  A.normalizeBridgeEndpoint(
+    'https://bridge.example/api/http-bridge/cpa',
+    'http://192.3.110.199:8317/v1/chat/completions?route=cn',
+    'https:'
+  ),
+  'https://bridge.example/api/http-bridge/cpa/v1/chat/completions?route=cn'
+);
 
 assert.equal(A.inferProtocol({ type: 'anthropic' }), 'anthropic');
 assert.equal(A.inferProtocol({ baseUrl: 'http://localhost:11434/api/chat' }), 'ollama');
@@ -50,6 +58,14 @@ assert.deepEqual(
 );
 assert.throws(
   () => A.parseCustomHeaders('{"Host":"evil.example"}'),
+  /不允许覆盖请求头/
+);
+assert.throws(
+  () => A.parseCustomHeaders('{"X-WW-Bridge-Token":"override"}'),
+  /不允许覆盖请求头/
+);
+assert.throws(
+  () => A.parseCustomHeaders('{"X-Forwarded-For":"203.0.113.7"}'),
   /不允许覆盖请求头/
 );
 
@@ -116,6 +132,44 @@ assert.throws(
     return true;
   }
 );
+const bridgeInspection = A.inspectRequest({
+  protocol: 'openai-chat',
+  model: 'http-through-bridge',
+  baseUrl: 'http://192.3.110.199:8317/v1',
+  bridgeUrl: 'https://bridge.example/api/http-bridge/cpa',
+  bridgeToken: 'bridge-must-not-leak',
+  key: 'provider-must-not-leak',
+  browserDirect: true,
+  pageProtocol: 'https:'
+}, messages, { maxTokens: 64 });
+assert.equal(bridgeInspection.endpoint, 'https://bridge.example/api/http-bridge/cpa/v1/chat/completions');
+assert.equal(bridgeInspection.upstreamEndpoint, 'http://192.3.110.199:8317/v1/chat/completions');
+assert.equal(bridgeInspection.transport, 'bridge');
+assert.equal(bridgeInspection.headers.Authorization, 'Bearer ••••');
+assert.equal(bridgeInspection.headers['X-WW-Bridge-Token'], '••••');
+assert.throws(
+  () => A.prepareRequest({
+    protocol: 'openai-chat',
+    model: 'bridge-without-token',
+    baseUrl: 'http://192.3.110.199:8317/v1',
+    bridgeUrl: 'https://bridge.example/api/http-bridge/cpa',
+    browserDirect: true,
+    pageProtocol: 'https:'
+  }, messages, { maxTokens: 64 }),
+  /没有填写桥访问令牌/
+);
+assert.throws(
+  () => A.prepareRequest({
+    protocol: 'openai-chat',
+    model: 'insecure-bridge',
+    baseUrl: 'http://192.3.110.199:8317/v1',
+    bridgeUrl: 'http://bridge.example/api/http-bridge/cpa',
+    bridgeToken: 'token',
+    browserDirect: true,
+    pageProtocol: 'https:'
+  }, messages, { maxTokens: 64 }),
+  /兼容桥本身必须是 HTTPS/
+);
 
 assert.equal(A.parseResponse({ choices: [{ message: { content: 'chat ok' } }] }), 'chat ok');
 assert.equal(A.parseResponse({ output_text: 'responses ok' }), 'responses ok');
@@ -163,6 +217,21 @@ try {
   assert.equal(modelsRequest.options.headers.Authorization, 'Bearer model-list-secret');
   assert.equal('Content-Type' in modelsRequest.options.headers, false, 'model listing must avoid an unnecessary content-type preflight header');
   assert.deepEqual(listed.models, ['gpt-5.6-luna', 'grok-4.5']);
+
+  const bridgedListed = await A.listModels({
+    protocol: 'openai-chat',
+    baseUrl: 'http://192.3.110.199:8317/v1',
+    bridgeUrl: 'https://bridge.example/api/http-bridge/cpa',
+    bridgeToken: 'bridge-list-token',
+    key: 'model-list-secret',
+    browserDirect: true,
+    pageProtocol: 'https:',
+    timeout: 2000
+  });
+  assert.equal(modelsRequest.url, 'https://bridge.example/api/http-bridge/cpa/v1/models');
+  assert.equal(modelsRequest.options.headers['X-WW-Bridge-Token'], 'bridge-list-token');
+  assert.equal(bridgedListed.upstreamEndpoint, 'http://192.3.110.199:8317/v1/models');
+  assert.equal(bridgedListed.transport, 'bridge');
 
   const chunks = [];
   globalThis.fetch = async () => new Response(new ReadableStream({

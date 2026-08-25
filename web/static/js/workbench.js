@@ -33,7 +33,7 @@ async function detectBrowserApiMode(){
   }
 }
 function usesBrowserAPI(conf){return !!(conf&&(conf.transport==='browser'||(WW_BROWSER_API_MODE&&conf.key&&conf.key!=='backend')));}
-function apiStorageDescription(){return WW_BROWSER_API_MODE?'API Key 与自定义地址只保存在当前浏览器；请求由浏览器直接发往模型服务。':'API Key 保存到当前自部署后端；浏览器通过同源 /api 请求。';}
+function apiStorageDescription(){return WW_BROWSER_API_MODE?'API Key、桥令牌与自定义地址只保存在当前浏览器；未配置桥时直连模型服务，配置桥时经你的 HTTPS Go 桥转送。':'API Key 保存到当前自部署后端；浏览器通过同源 /api 请求。';}
 async function apiJSON(url,opts={}){
   const r=await fetch(url,{headers:{'Content-Type':'application/json',...(opts.headers||{})},...opts});
   const d=await r.json().catch(()=>({}));
@@ -62,6 +62,8 @@ async function loadBackendConfig(){
         customHeaders:'',
         bodyOverrides:Object.keys(pc.extra_body||{}).length?JSON.stringify(pc.extra_body,null,2):'',
         exactEndpoint:!!pc.exact_endpoint,
+        bridgeUrl:'',
+        bridgeToken:'',
         transport:'backend'
       };
       localStorage.setItem('ww_api',JSON.stringify(S.apiConfig));
@@ -3623,6 +3625,8 @@ function apiFormConfig(prefix=''){
   const contextLimit=Math.max(0,Number(fieldValue('ContextLimit')||0));
   const customHeaders=fieldValue('Headers');
   const bodyOverrides=fieldValue('BodyOverrides');
+  const bridgeUrl=fieldValue('BridgeUrl');
+  const bridgeToken=fieldValue('BridgeToken');
   const exactEndpoint=!!document.getElementById(fieldStem+'ExactEndpoint')?.checked;
   const clearKey=!!document.getElementById(fieldStem+'ClearKey')?.checked;
   const clearHeaders=!!document.getElementById(fieldStem+'ClearHeaders')?.checked;
@@ -3630,7 +3634,7 @@ function apiFormConfig(prefix=''){
   WWApiAdapter.parseBodyOverrides(bodyOverrides);
   const providerType=PROVIDERS[provider]?.type||'openai';
   const inferred=WWApiAdapter.inferProtocol({provider,protocol,type:providerType,baseUrl});
-  return{provider,key:key||(WW_BROWSER_API_MODE?'':'backend'),model:fieldValue('Model'),baseUrl,type:WWApiAdapter.protocolType(inferred),protocol,authMode,timeout:timeoutSeconds*1000,contextLimit,customHeaders,bodyOverrides,exactEndpoint,clearKey,clearHeaders,transport:WW_BROWSER_API_MODE?'browser':'backend'};
+  return{provider,key:key||(WW_BROWSER_API_MODE?'':'backend'),model:fieldValue('Model'),baseUrl,type:WWApiAdapter.protocolType(inferred),protocol,authMode,timeout:timeoutSeconds*1000,contextLimit,customHeaders,bodyOverrides,exactEndpoint,bridgeUrl,bridgeToken,clearKey,clearHeaders,transport:WW_BROWSER_API_MODE?'browser':'backend'};
 }
 async function persistApiConfig(conf){
   if(WW_BROWSER_API_MODE){
@@ -3640,6 +3644,7 @@ async function persistApiConfig(conf){
     if(WWApiAdapter.resolveAuthMode(conf,protocol)!=='none'&&!conf.key)throw new Error('当前鉴权方式需要填写 API Key；无密钥服务请选择“无鉴权”');
     if(conf.provider==='custom'&&!conf.baseUrl)throw new Error('自定义服务需要填写 Base URL');
     if(conf.provider==='custom'&&!conf.model)throw new Error('自定义服务需要填写模型名称');
+    apiRequestInspection(conf);
     const stored={...conf};
     delete stored.clearKey;
     delete stored.clearHeaders;
@@ -3664,7 +3669,7 @@ async function persistApiConfig(conf){
     extra:conf.clearHeaders?{}:(Object.keys(headers).length?{headers}:undefined),
     extra_body:bodyOverrides
   })});
-  S.apiConfig={provider:conf.provider,key:'backend',model:conf.model,baseUrl:conf.baseUrl,type:conf.type,protocol:conf.protocol,authMode:conf.authMode,timeout:conf.timeout,contextLimit:conf.contextLimit,customHeaders:'',bodyOverrides:conf.bodyOverrides,exactEndpoint:conf.exactEndpoint,transport:'backend'};
+  S.apiConfig={provider:conf.provider,key:'backend',model:conf.model,baseUrl:conf.baseUrl,type:conf.type,protocol:conf.protocol,authMode:conf.authMode,timeout:conf.timeout,contextLimit:conf.contextLimit,customHeaders:'',bodyOverrides:conf.bodyOverrides,exactEndpoint:conf.exactEndpoint,bridgeUrl:'',bridgeToken:'',transport:'backend'};
   localStorage.setItem('ww_api',JSON.stringify(S.apiConfig));
 }
 function apiRequestInspection(conf){
@@ -3678,7 +3683,12 @@ function renderApiDiagnostic(prefix,conf,error){
   let inspection=null;
   try{
     inspection=apiRequestInspection(conf);
-    lines.push('最终 URL: '+inspection.endpoint);
+    if(inspection.transport==='bridge'){
+      lines.push('HTTPS 桥 URL: '+inspection.endpoint);
+      lines.push('桥后上游 URL: '+inspection.upstreamEndpoint);
+    }else{
+      lines.push('最终 URL: '+inspection.endpoint);
+    }
     lines.push('协议: '+inspection.protocol+' · 方法: '+inspection.method);
     lines.push('请求头（密钥已隐藏）:\n'+JSON.stringify(inspection.headers,null,2));
     lines.push('请求体:\n'+JSON.stringify(inspection.body,null,2));
@@ -3693,6 +3703,7 @@ function renderApiDiagnostic(prefix,conf,error){
     const meta=['阶段: '+(error.stage||'unknown')];
     if(error.status)meta.push('HTTP: '+error.status);
     if(error.endpoint&&!inspection)meta.push('最终 URL: '+error.endpoint);
+    if(error.upstreamEndpoint&&!inspection)meta.push('桥后上游: '+error.upstreamEndpoint);
     if(error.protocol&&!inspection)meta.push('协议: '+error.protocol);
     lines.push('失败诊断: '+meta.join(' · '));
     lines.push('错误: '+String(error.message||error));
@@ -3756,7 +3767,7 @@ async function testApi(){
   }
 }
 async function saveApi(){try{await persistApiConfig(apiFormConfig());if(!WW_BROWSER_API_MODE)document.getElementById('apiKey').value='';closeModal('apiModal');showToast('✓',t('toast-saved'));}catch(e){showToast('✕',e.message);}}
-function loadApiFields(prefix,c){const stem=prefix?prefix+'Api':'api';document.getElementById(stem+'Key').value=c.key==='backend'?'':(c.key||'');document.getElementById(stem+'Model').value=c.model||'';document.getElementById(stem+'BaseUrl').value=c.baseUrl||'';document.getElementById(stem+'Protocol').value=c.protocol||'auto';document.getElementById(stem+'AuthMode').value=c.authMode||'auto';document.getElementById(stem+'Timeout').value=Math.round(Number(c.timeout||60000)/1000);document.getElementById(stem+'ContextLimit').value=Number(c.contextLimit||0)||'';document.getElementById(stem+'Headers').value=c.customHeaders||'';document.getElementById(stem+'BodyOverrides').value=c.bodyOverrides||'';document.getElementById(stem+'ExactEndpoint').checked=!!c.exactEndpoint;const clearKey=document.getElementById(stem+'ClearKey'),clearHeaders=document.getElementById(stem+'ClearHeaders');if(clearKey)clearKey.checked=false;if(clearHeaders)clearHeaders.checked=false;const diagnostic=document.getElementById(prefix?'sApiDiagnostic':'apiDiagnostic');if(diagnostic){diagnostic.hidden=true;diagnostic.textContent='';}}
+function loadApiFields(prefix,c){const stem=prefix?prefix+'Api':'api';document.getElementById(stem+'Key').value=c.key==='backend'?'':(c.key||'');document.getElementById(stem+'Model').value=c.model||'';document.getElementById(stem+'BaseUrl').value=c.baseUrl||'';document.getElementById(stem+'Protocol').value=c.protocol||'auto';document.getElementById(stem+'AuthMode').value=c.authMode||'auto';document.getElementById(stem+'Timeout').value=Math.round(Number(c.timeout||60000)/1000);document.getElementById(stem+'ContextLimit').value=Number(c.contextLimit||0)||'';document.getElementById(stem+'Headers').value=c.customHeaders||'';document.getElementById(stem+'BodyOverrides').value=c.bodyOverrides||'';document.getElementById(stem+'BridgeUrl').value=c.bridgeUrl||'';document.getElementById(stem+'BridgeToken').value=c.bridgeToken||'';document.getElementById(stem+'ExactEndpoint').checked=!!c.exactEndpoint;const clearKey=document.getElementById(stem+'ClearKey'),clearHeaders=document.getElementById(stem+'ClearHeaders');if(clearKey)clearKey.checked=false;if(clearHeaders)clearHeaders.checked=false;const diagnostic=document.getElementById(prefix?'sApiDiagnostic':'apiDiagnostic');if(diagnostic){diagnostic.hidden=true;diagnostic.textContent='';}}
 function loadApiUI(){const c=S.apiConfig;if(c.provider){const el=document.querySelector('.provider-chip[onclick*="'+c.provider+'"]');if(el)selectProvider(el,c.provider);}loadApiFields('',c);const notice=document.getElementById('apiStorageNotice');if(notice)notice.textContent=apiStorageDescription();}
 
 function makeEditorSnapshot(){
@@ -3810,6 +3821,15 @@ function loadSlot(n){
   }
   return slot;
 }
+function slotReadyForRun(slot){
+  return !!(slot?.enabled&&(WW_BROWSER_API_MODE?(slot.model||S.apiConfig?.model):slot.preset));
+}
+function slotRequestConfig(slot){
+  if(WW_BROWSER_API_MODE){
+    return{...S.apiConfig,model:String(slot.model||S.apiConfig.model||'').trim(),transport:'browser'};
+  }
+  return{key:'backend',provider:slot.preset,model:slot.model,baseUrl:'',transport:'backend'};
+}
 function renderMultiSlots(){
   const el=document.getElementById('multiSlots');
   const hasMainKey=aiHasConfig(S.apiConfig);
@@ -3819,8 +3839,8 @@ function renderMultiSlots(){
     if(i===1&&hasMainKey&&!s._touched)s.enabled=true;
     const enabled=s.enabled;
     const presetName=s.preset||'';
-    const displayName=presetName?(SLOT_PRESETS[presetName]?presetName:'自定义'):'未配置';
-    const modelDisplay=s.model||SLOT_PRESETS[presetName]?.model||'';
+    const displayName=WW_BROWSER_API_MODE?(S.apiConfig.provider||'当前 API'):(presetName?(SLOT_PRESETS[presetName]?presetName:'自定义'):'未配置');
+    const modelDisplay=s.model||SLOT_PRESETS[presetName]?.model||(WW_BROWSER_API_MODE?S.apiConfig.model:'');
     h+='<div class="multi-slot'+(enabled?' slot-active':'')+'" id="multiSlot'+i+'">';
     h+='<div class="slot-header">';
     h+='<div class="slot-info"><span class="slot-num">'+i+'</span><span class="slot-provider-badge">'+displayName+'</span>';
@@ -3829,11 +3849,13 @@ function renderMultiSlots(){
     h+='<button class="slot-toggle'+(enabled?' on':'')+'" onclick="toggleSlot('+i+')"></button>';
     h+='</div>';
     h+='<div class="slot-fields'+(enabled?' show':'')+'" id="slotFields'+i+'">';
-    h+='<select class="slot-select" onchange="applySlotPreset('+i+',this.value)"><option value="">自定义</option>';
-    for(const[k]of Object.entries(SLOT_PRESETS))h+='<option value="'+k+'"'+(s.preset===k?' selected':'')+'>'+k+'</option>';
-    h+='</select>';
-    h+='<div class="slot-server-note">密钥与 Base URL 由自部署后端管理</div>';
-    h+='<input class="slot-input" id="slotModel'+i+'" placeholder="Model" value="'+(s.model||'')+'" onchange="saveSlot('+i+')">';
+    if(!WW_BROWSER_API_MODE){
+      h+='<select class="slot-select" onchange="applySlotPreset('+i+',this.value)"><option value="">自定义</option>';
+      for(const[k]of Object.entries(SLOT_PRESETS))h+='<option value="'+k+'"'+(s.preset===k?' selected':'')+'>'+k+'</option>';
+      h+='</select>';
+    }
+    h+='<div class="slot-server-note">'+(WW_BROWSER_API_MODE?'Pages 槽位复用当前 API、Key 与 HTTPS 桥，只切换模型':'密钥与 Base URL 由自部署后端管理')+'</div>';
+    h+='<input class="slot-input" id="slotModel'+i+'" placeholder="Model" value="'+escapeHtml(s.model||(WW_BROWSER_API_MODE?S.apiConfig.model:''))+'" onchange="saveSlot('+i+')">';
     h+='<div class="slot-result" id="slotResult'+i+'"></div>';
     h+='<div class="slot-meta" id="slotMeta'+i+'" style="display:none"></div>';
     h+='<div class="slot-actions" id="slotActions'+i+'" style="display:none">';
@@ -3888,14 +3910,14 @@ async function doMultiGenerate(){
   const results=[];
   for(let i=1;i<=3;i++){
     const s=loadSlot(i);
-    if(!s.enabled||!s.preset){results.push({i,skipped:true});continue;}
+    if(!slotReadyForRun(s)){results.push({i,skipped:true});continue;}
     const r=document.getElementById('slotResult'+i);
     const meta=document.getElementById('slotMeta'+i);
     const actions=document.getElementById('slotActions'+i);
     if(r){r.innerHTML='<div class="slot-loading"><div class="spinner"></div> 生成中...</div>';r.classList.remove('has-content');r.dataset.state='loading';}
     if(meta)meta.style.display='none';
     if(actions)actions.style.display='none';
-    const conf={key:'backend',provider:s.preset,model:s.model,baseUrl:''};
+    const conf=slotRequestConfig(s);
     results.push({i,conf});
   }
   for(const r of results){
@@ -4010,17 +4032,19 @@ function renderMpMultiSlots(){
     if(i===1&&hasMainKey&&!s._touched)s.enabled=true;
     const enabled=s.enabled;
     const presetName=s.preset||'';
-    const displayName=presetName?(SLOT_PRESETS[presetName]?presetName:'自定义'):'未配置';
+    const displayName=WW_BROWSER_API_MODE?(S.apiConfig.provider||'当前 API'):(presetName?(SLOT_PRESETS[presetName]?presetName:'自定义'):'未配置');
     h+='<div class="multi-slot'+(enabled?' slot-active':'')+'" style="margin-bottom:8px">';
     h+='<div class="slot-header"><div class="slot-info"><span class="slot-num">'+i+'</span><span class="slot-provider-badge">'+displayName+'</span></div>';
     h+='<button class="slot-toggle'+(enabled?' on':'')+'" onclick="toggleMpSlot('+i+')"></button></div>';
     if(enabled){
       h+='<div style="margin-top:6px">';
-      h+='<select class="slot-select" onchange="applySlotPreset('+i+',this.value);renderMpMultiSlots()"><option value="">自定义</option>';
-      for(const[k]of Object.entries(SLOT_PRESETS))h+='<option value="'+k+'"'+(s.preset===k?' selected':'')+'>'+k+'</option>';
-      h+='</select>';
-      h+='<div class="slot-server-note">密钥由自部署后端管理</div>';
-      h+='<input class="slot-input" placeholder="Model" value="'+(s.model||'')+'" onchange="saveMpSlot('+i+',this.value,\'model\')">';
+      if(!WW_BROWSER_API_MODE){
+        h+='<select class="slot-select" onchange="applySlotPreset('+i+',this.value);renderMpMultiSlots()"><option value="">自定义</option>';
+        for(const[k]of Object.entries(SLOT_PRESETS))h+='<option value="'+k+'"'+(s.preset===k?' selected':'')+'>'+k+'</option>';
+        h+='</select>';
+      }
+      h+='<div class="slot-server-note">'+(WW_BROWSER_API_MODE?'Pages 槽位复用当前 API、Key 与 HTTPS 桥，只切换模型':'密钥由自部署后端管理')+'</div>';
+      h+='<input class="slot-input" placeholder="Model" value="'+escapeHtml(s.model||(WW_BROWSER_API_MODE?S.apiConfig.model:''))+'" onchange="saveMpSlot('+i+',this.value,\'model\')">';
       h+='<div class="slot-result" id="mpSlotResult'+i+'" style="min-height:80px;max-height:200px;overflow-y:auto"></div>';
       h+='<div class="slot-meta" id="mpSlotMeta'+i+'" style="display:none"></div>';
       h+='</div>';
@@ -4052,8 +4076,8 @@ async function doMultiGenerateMobile(){
   const tasks=[];
   for(let i=1;i<=3;i++){
     const s=loadSlot(i);
-    if(!s.enabled||!s.preset)continue;
-    tasks.push({i,conf:{key:'backend',provider:s.preset,model:s.model,baseUrl:''}});
+    if(!slotReadyForRun(s))continue;
+    tasks.push({i,conf:slotRequestConfig(s)});
   }
   if(!tasks.length){showToast('✕','请至少启用一个已选择 Provider 的槽位');return;}
   showToast('⟳','并行生成中...');

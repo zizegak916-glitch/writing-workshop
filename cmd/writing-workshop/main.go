@@ -116,7 +116,11 @@ func runWithConfig(cfg bootstrap.Config, opts cliOptions, args []string) {
 		addr := net.JoinHostPort(opts.Host, strconv.Itoa(opts.Port))
 		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 		defer stop()
-		if err := web.NewServer(h, addr).ListenAndServe(ctx); err != nil {
+		server, err := web.NewServerFromEnv(h, addr)
+		if err != nil {
+			die("web: %v", err)
+		}
+		if err := server.ListenAndServe(ctx); err != nil {
 			die("web: %v", err)
 		}
 		return

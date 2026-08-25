@@ -94,11 +94,19 @@ const adapterSource = read('web/static/js/api-adapter.js');
 for (const protocol of ['openai-chat', 'openai-responses', 'anthropic', 'ollama']) {
   assert(adapterSource.includes(protocol), `API adapter protocol is missing: ${protocol}`);
 }
-for (const marker of ['parseCustomHeaders', 'parseBodyOverrides', 'normalizeEndpoint', 'normalizeModelsEndpoint', 'listModels', 'inspectRequest', '请求未获得 HTTP 响应']) {
+for (const marker of ['parseCustomHeaders', 'parseBodyOverrides', 'normalizeEndpoint', 'normalizeModelsEndpoint', 'normalizeBridgeEndpoint', 'routeEndpoint', 'X-WW-Bridge-Token', 'listModels', 'inspectRequest', '请求未获得 HTTP 响应']) {
   assert(adapterSource.includes(marker), `API request compatibility or diagnostics are missing: ${marker}`);
 }
-for (const id of ['apiExactEndpoint', 'apiBodyOverrides', 'apiDiagnostic', 'apiModelList', 'sApiExactEndpoint', 'sApiBodyOverrides', 'sApiDiagnostic', 'sApiModelList']) {
+for (const id of ['apiExactEndpoint', 'apiBodyOverrides', 'apiBridgeUrl', 'apiBridgeToken', 'apiDiagnostic', 'apiModelList', 'sApiExactEndpoint', 'sApiBodyOverrides', 'sApiBridgeUrl', 'sApiBridgeToken', 'sApiDiagnostic', 'sApiModelList']) {
   assert(appHtml.includes(`id="${id}"`), `API request inspection control is missing: #${id}`);
+}
+const bridgeSource = read('internal/web/http_bridge.go');
+for (const marker of ['WRITING_WORKSHOP_HTTP_BRIDGE_TARGETS', 'WRITING_WORKSHOP_HTTP_BRIDGE_TOKEN', 'WRITING_WORKSHOP_HTTP_BRIDGE_MAX_BYTES', 'httpBridgeRoutePrefix', 'defaultHTTPBridgeMaxConcurrent', 'X-WW-Bridge-Token']) {
+  assert(bridgeSource.includes(marker), `HTTP compatibility bridge is missing: ${marker}`);
+}
+const bridgeDocs = read('docs/HTTP_BRIDGE.md');
+for (const marker of ['WRITING_WORKSHOP_ALLOWED_ORIGINS', 'reverse_proxy 127.0.0.1:8080', 'flush_interval -1', 'Go 1.21', 'Go 1.25', '/api/http-bridge/cpa']) {
+  assert(bridgeDocs.includes(marker), `HTTP compatibility bridge documentation is missing: ${marker}`);
 }
 assert(!/slotKey|placeholder="API Key" value="'\+\(s\.key/.test(workbenchSource), 'multi-model slots must not render or persist browser API keys');
 for (const coreFunction of ['renderCharList', 'countWords', 'escapeHtml']) {
@@ -186,7 +194,7 @@ assert(evidence.schema === 'writing-workshop/release-evidence', 'unexpected rele
 assert(Array.isArray(evidence.verified_releases) && evidence.verified_releases.length > 0, 'release evidence has no verified releases');
 
 const docsIndex = read('docs/README.md');
-for (const file of ['UPDATE_TIMELINE.md', 'RELEASE_EVIDENCE.json', 'PRODUCT_BOUNDARY.md', 'CAPABILITY_PROTOCOL.md', 'UI_DESIGN_SYSTEM.md']) {
+for (const file of ['UPDATE_TIMELINE.md', 'RELEASE_EVIDENCE.json', 'PRODUCT_BOUNDARY.md', 'CAPABILITY_PROTOCOL.md', 'UI_DESIGN_SYSTEM.md', 'HTTP_BRIDGE.md']) {
   assert(docsIndex.includes(file), `documentation map does not include ${file}`);
 }
 

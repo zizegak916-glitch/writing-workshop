@@ -33,6 +33,8 @@ type Server struct {
 	store *storepkg.Store
 	addr  string
 
+	httpBridge *httpBridge
+
 	hub      *sseHub
 	runMu    sync.Mutex
 	runCtx   map[string]context.CancelFunc
@@ -55,6 +57,16 @@ func NewServer(h *host.Host, addr string) *Server {
 	}
 	s.hub.attachHost(h)
 	return s
+}
+
+func NewServerFromEnv(h *host.Host, addr string) (*Server, error) {
+	bridge, err := newHTTPBridgeFromEnv()
+	if err != nil {
+		return nil, err
+	}
+	server := NewServer(h, addr)
+	server.httpBridge = bridge
+	return server, nil
 }
 
 func (s *Server) ListenAndServe(ctx context.Context) error {
@@ -108,9 +120,14 @@ func (s *Server) routes(mux *http.ServeMux) {
 	handleMethods(mux, "/api/ai/stream", s.handleAIStream, http.MethodPost)
 	handleMethods(mux, "/api/models", s.handleModels, http.MethodGet)
 	handleMethods(mux, "/api/models/switch", s.handleSwitchModel, http.MethodPost)
+	handleMethods(mux, "/api/http-bridge/", s.handleHTTPBridge, http.MethodGet, http.MethodPost)
 	handleMethods(mux, "/api/style/check", s.handleStyleCheck, http.MethodPost)
 	handleMethods(mux, "/api/corpus", s.handleCorpus, http.MethodGet, http.MethodPost, http.MethodDelete)
 	handleMethods(mux, "/api/corpus/refinements", s.handleCorpusRefinements, http.MethodPost)
+}
+
+func (s *Server) handleHTTPBridge(w http.ResponseWriter, r *http.Request) {
+	s.httpBridge.serveHTTP(w, r)
 }
 
 // handleMethods preserves Go 1.22's method-aware ServeMux behavior while the
@@ -1407,7 +1424,8 @@ func cors(next http.Handler) http.Handler {
 			w.Header().Set("Access-Control-Allow-Origin", origin)
 			w.Header().Set("Vary", "Origin")
 			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
-			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With")
+			w.Header().Set("Access-Control-Allow-Headers", corsAllowedHeaders(r.Header.Get("Access-Control-Request-Headers")))
+			w.Header().Set("Access-Control-Expose-Headers", "X-Request-ID, Request-ID, CF-Ray, X-Writing-Workshop-Bridge")
 		}
 		if r.Method == http.MethodOptions {
 			w.WriteHeader(http.StatusNoContent)
@@ -1415,6 +1433,29 @@ func cors(next http.Handler) http.Handler {
 		}
 		next.ServeHTTP(w, r)
 	})
+}
+
+func corsAllowedHeaders(requested string) string {
+	defaults := []string{
+		"Content-Type", "Authorization", "X-Requested-With", "X-API-Key",
+		"Anthropic-Version", "Anthropic-Dangerous-Direct-Browser-Access", httpBridgeTokenHeader,
+	}
+	seen := make(map[string]bool, len(defaults))
+	for _, name := range defaults {
+		seen[strings.ToLower(name)] = true
+	}
+	for _, name := range strings.Split(requested, ",") {
+		name = http.CanonicalHeaderKey(strings.TrimSpace(name))
+		if name == "" || strings.ContainsAny(name, "\r\n") || bridgeRequestHeaderBlocked(name) {
+			continue
+		}
+		lower := strings.ToLower(name)
+		if !seen[lower] {
+			defaults = append(defaults, name)
+			seen[lower] = true
+		}
+	}
+	return strings.Join(defaults, ", ")
 }
 
 func originAllowed(origin, requestHost, configured string) bool {

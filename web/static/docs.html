@@ -19,13 +19,13 @@
     <aside class="docs-sidebar" aria-label="文档目录">
       <p>开始</p><a href="#overview">在线版与可选服务</a><a href="#pages-tutorial">Pages 完整教程</a><a href="#quickstart">自部署启动</a><a href="#first-project">第一个项目</a>
       <p style="margin-top:20px">创作</p><a href="#workspace">工作台导航</a><a href="#workflow">AI 流程</a><a href="#import-export">导入与导出</a><a href="#corpus">真实网文指导</a><a href="#memory">统一记忆</a>
-      <p style="margin-top:20px">连接</p><a href="#api">API 与模型</a><a href="#cors">CORS 说明</a><a href="#skills">Skill 与能力</a><a href="#engine-adapters">引擎适配原则</a><a href="#troubleshooting">故障排查</a>
+      <p style="margin-top:20px">连接</p><a href="#api">API 与模型</a><a href="#http-bridge">HTTP 兼容桥</a><a href="#cors">CORS 说明</a><a href="#skills">Skill 与能力</a><a href="#engine-adapters">引擎适配原则</a><a href="#troubleshooting">故障排查</a>
       <p style="margin-top:20px">社区资源</p><a href="#community-video">LINUX DO 视频公益站</a>
       <p style="margin-top:20px">记录</p><a href="#timeline">更新时间线</a>
     </aside>
 
     <main class="docs-main">
-      <span class="eyebrow">Product guide · 2026-08-24</span>
+      <span class="eyebrow">Product guide · 2026-08-25</span>
       <h1>从打开 Pages，到建立自己的写作方法。</h1>
       <p class="docs-lead">不需要先懂 API、Docker 或 Skill。下面先给出能照着点击的 Pages 全流程，再解释真实网文指导、提示词、记忆与自部署增强。</p>
 
@@ -54,7 +54,7 @@
 
         <div class="tutorial-step">
           <span class="tutorial-number">02</span>
-          <div><h3>配置自己的模型接口</h3><ol><li>进入“设置 → API”。</li><li>选择服务商；CPA、中转、自建或兼容接口选“自定义”。</li><li>填写实际模型 ID、Base URL 和 Key；无密钥接口选择“无鉴权”。</li><li>明确接口是 Chat Completions、Responses、Anthropic Messages 还是 Ollama Chat；CPA 的 Codex / Responses 路线不要误选成 Chat。</li><li>点“预览实际请求”，核对最终 URL 和请求体，再点“测试”。</li></ol><p class="tutorial-note">测试区会保留最终 URL、协议、失败阶段、HTTP 状态和浏览器原始错误。只有确实没有收到 HTTP 响应时，才继续排查预检、重定向、混合内容、CORS 或连接问题。</p></div>
+          <div><h3>配置自己的模型接口</h3><ol><li>进入“设置 → API”。</li><li>选择服务商；CPA、中转、自建或兼容接口选“自定义”。</li><li>填写实际模型 ID、Base URL 和 Key；无密钥接口选择“无鉴权”。</li><li>明确接口是 Chat Completions、Responses、Anthropic Messages 还是 Ollama Chat；CPA 的 Codex / Responses 路线不要误选成 Chat。</li><li>如果真实 Base URL 是 <code>http://</code>，另填自己的“HTTPS 桥地址”和“桥令牌”。</li><li>点“预览实际请求”，核对浏览器地址、真实上游地址和请求体，再点“测试”。</li></ol><p class="tutorial-note">测试区会保留两个最终 URL、协议、失败阶段、HTTP 状态和浏览器原始错误。只有确实没有收到 HTTP 响应时，才继续排查预检、重定向、混合内容、CORS 或连接问题。</p></div>
         </div>
 
         <div class="tutorial-step">
@@ -245,9 +245,34 @@ GOTOOLCHAIN=local CGO_ENABLED=0 go build -o writing-workshop ./cmd/writing-works
           <li>展开“高级网络适配”核对协议。自动模式会从完整路径识别；只填 <code>/v1</code> 时默认按 Chat Completions 发送。CPA 的 Codex / Responses 接口应明确选择 Responses。</li>
           <li>标准 Base URL 由工作台补全路径；非标准完整接口勾选“按填写 URL 原样请求”，避免再次拼接 <code>/chat/completions</code>。</li>
           <li>有 Key 的接口保持“自动”鉴权；无密钥服务选“无鉴权”。兼容层要求特殊字段时，可填写自定义请求头和“请求体覆盖”JSON；值为 <code>null</code> 会删除默认字段，例如删除 <code>max_tokens</code> 后补 <code>max_completion_tokens</code>。</li>
-          <li>先点“预览实际请求”，核对最终 URL、协议、脱敏请求头与请求体；再点“测试”。成功后保存，配置只跟随当前浏览器的当前域名。</li>
+          <li>真实 Base URL 是 <code>http://</code> 时，展开高级适配，另填自己部署的“HTTPS 桥地址”和独立“桥令牌”；不要把模型 Key 当成桥令牌。</li>
+          <li>先点“预览实际请求”，核对浏览器发送地址、真实上游地址、协议、脱敏请求头与请求体；再点“测试”。成功后保存，配置只跟随当前浏览器的当前域名。</li>
         </ol>
         <div class="doc-callout info"><b>405 已处理：</b>Pages 保存与测试不会再 POST 静态 <code>/api/config</code>；只有检测到同源 <code>/api/health</code> 的自部署模式才使用后端配置端点。自定义静态域名也会自动进入浏览器 API 模式。</div>
+        <div id="http-bridge" class="doc-card" style="margin:20px 0">
+          <h3>Pages 调用 HTTP API：自己的 HTTPS Go 兼容桥</h3>
+          <p>HTTPS 页面不能直接向 HTTP 接口发请求。内置兼容桥不是开放代理：目标地址必须预先写进服务器白名单，Pages 只提供目标别名、路径和独立桥令牌。</p>
+          <div class="doc-flow"><span>Pages HTTPS</span><span>自己的 Go 桥 HTTPS</span><span>白名单 HTTP API</span><span>候选返回</span></div>
+          <p>服务端最小环境变量：</p>
+          <pre><code>WRITING_WORKSHOP_HTTP_BRIDGE_TARGETS={"cpa":"http://192.3.110.199:8317"}
+WRITING_WORKSHOP_HTTP_BRIDGE_TOKEN=replace-with-a-random-token-at-least-24-characters
+WRITING_WORKSHOP_ALLOWED_ORIGINS=https://zizegak916-glitch.github.io</code></pre>
+          <p>Caddy 最小配置：</p>
+          <pre><code>bridge.example.com {
+    reverse_proxy 127.0.0.1:8080 {
+        flush_interval -1
+    }
+}</code></pre>
+          <table>
+            <thead><tr><th>Pages 字段</th><th>填写示例</th></tr></thead>
+            <tbody>
+              <tr><td>Base URL</td><td><code>http://192.3.110.199:8317/v1</code></td></tr>
+              <tr><td>HTTPS 桥地址</td><td><code>https://bridge.example.com/api/http-bridge/cpa</code></td></tr>
+              <tr><td>桥令牌</td><td>上面单独生成的长随机串，不是模型 Key</td></tr>
+            </tbody>
+          </table>
+          <p>Go 服务仅监听 <code>127.0.0.1:8080</code>，公网只开放 Caddy 的 443。老虚拟机可选 Go 1.21 发布包，新环境可选 Go 1.25 发布包；功能与配置相同。完整 systemd、安全限制、curl 验证和状态码说明见 <a href="https://github.com/zizegak916-glitch/writing-workshop/blob/main/docs/HTTP_BRIDGE.md">HTTP 兼容桥部署教程</a>。</p>
+        </div>
         <table>
           <thead><tr><th>接口类型</th><th>只填域名时使用的路径</th><th>流式格式</th></tr></thead>
           <tbody>
@@ -284,11 +309,11 @@ GOTOOLCHAIN=local CGO_ENABLED=0 go build -o writing-workshop ./cmd/writing-works
 
       <section id="cors">
         <h2>浏览器直连、请求诊断与密钥边界</h2>
-        <p>Pages BYOK 会从浏览器直接请求目标 API。目标接口必须允许当前 Pages origin、请求方法和 <code>Authorization</code> / <code>x-api-key</code> / <code>Content-Type</code> 等实际使用的请求头；这些由目标服务决定，Writing Workshop 不能替第三方服务器放开 CORS。</p>
+        <p>Pages BYOK 默认从浏览器直接请求目标 API。目标接口必须允许当前 Pages origin、请求方法和 <code>Authorization</code> / <code>x-api-key</code> / <code>Content-Type</code> 等实际使用的请求头；这些由目标服务决定，Writing Workshop 不能替第三方服务器放开 CORS。使用自己的 HTTPS 兼容桥时，CORS 由桥按 <code>WRITING_WORKSHOP_ALLOWED_ORIGINS</code> 严格放行，再由桥访问白名单上游。</p>
         <p>但“请求失败”不等于“网络坏了”。先查看测试区：有 HTTP 状态码，就按上游返回的鉴权、路径、模型或请求体错误处理；显示“请求未获得 HTTP 响应”，才说明浏览器没有拿到可读响应，需要继续检查预检、重定向和连接策略。</p>
         <div class="doc-flow"><span>Pages 工作台</span><span>浏览器本地配置</span><span>自定义 API</span><span>候选返回</span></div>
-        <p>自部署模式仍采用同源桥接：浏览器访问自己的 <code>/api/</code>，后端读取密钥并请求模型。这一模式不受模型厂商浏览器 CORS 限制，也更适合长期使用。</p>
-        <div class="doc-callout"><b>不要混淆：</b>把 Key 和自定义请求头存进当前浏览器是用户主动选择的 BYOK；把凭据硬编码进 Pages 文件、仓库 JavaScript、公开环境变量、Issue 或截图仍然是泄露。HTTPS Pages 访问 HTTP 本地接口还可能被浏览器按混合内容拦截。</div>
+        <p>完整自部署工作台仍采用同源 API：浏览器访问自己的 <code>/api/</code>，后端读取密钥并请求模型。兼容桥则只负责把 Pages 的模型请求安全转发到固定目标；二者用途不同。</p>
+        <div class="doc-callout"><b>不要混淆：</b>把 Key、桥令牌和自定义请求头存进当前浏览器是用户主动选择的 BYOK；把凭据硬编码进 Pages 文件、仓库 JavaScript、公开环境变量、Issue 或截图仍然是泄露。兼容桥必须是 HTTPS，真实上游才可以是 HTTP。</div>
       </section>
 
       <section id="skills">
@@ -372,7 +397,9 @@ GOTOOLCHAIN=local CGO_ENABLED=0 go build -o writing-workshop ./cmd/writing-works
             <tr><td>接口拒绝 <code>max_tokens</code></td><td>兼容层或模型只接受 <code>max_completion_tokens</code></td><td>在请求体覆盖中填写 <code>{"max_tokens":null,"max_completion_tokens":4096}</code>，预览确认后重试</td></tr>
             <tr><td>返回成功但没有文字</td><td>接口响应结构与所选协议不一致</td><td>在“高级网络适配”切换 Chat Completions、Responses、Anthropic 或 Ollama</td></tr>
             <tr><td>显示“请求未获得 HTTP 响应”</td><td>浏览器在发送、预检或重定向阶段未得到可读 HTTP 响应</td><td>复制诊断中的最终 URL 和原始错误；再查 HTTPS 混合内容、重定向、CORS、DNS/代理，不要先把它笼统归为断网</td></tr>
-            <tr><td>Pages 填写 <code>http://</code> API</td><td>HTTPS 页面会在发送前按混合内容策略拦截；这不是断网，POST 不会到达 API</td><td>改用该 API 的 HTTPS 地址；或打开自部署工作台，通过同源 Go 后端请求。前端不能绕过浏览器安全策略</td></tr>
+            <tr><td>Pages 填写 <code>http://</code> API</td><td>未配置兼容桥时，HTTPS 页面会在发送前按混合内容策略拦截；这不是断网，POST 不会到达 API</td><td>改用 API 的 HTTPS 地址、打开自部署工作台，或按上文部署自己的 HTTPS Go 兼容桥；前端本身不能绕过浏览器安全策略</td></tr>
+            <tr><td>兼容桥返回 401 / 403 / 404</td><td>桥令牌错误、Pages origin 未允许，或目标别名不在服务端白名单</td><td>分别核对桥令牌、<code>WRITING_WORKSHOP_ALLOWED_ORIGINS</code> 和目标 JSON；模型 Key 错误通常是上游返回的 401</td></tr>
+            <tr><td>兼容桥返回 413 / 429 / 502</td><td>请求过大、超过桥并发限制，或桥无法连接 HTTP 上游</td><td>收紧长篇上下文或按机器容量调整限制；在桥服务器检查上游地址、端口、防火墙和日志</td></tr>
             <tr><td>HUB 等标准地址仍显示发送/预检失败</td><td>旧配置可能残留目标端不允许的自定义请求头</td><td>查看诊断中的“自定义请求头”；先清空 <code>HTTP-Referer</code>、<code>X-Route</code> 等非必需项，再按目标站实际白名单逐项添加</td></tr>
             <tr><td>本地 Ollama 无法从 Pages 访问</td><td>未开放 CORS，或 HTTPS 页面访问 HTTP 接口被混合内容策略拦截</td><td>改用本地工作台，或给 Ollama 配置允许来源的 HTTPS 反向代理；鉴权选择“无鉴权”</td></tr>
             <tr><td>浏览器报 CORS</td><td>目标接口没有允许当前 Pages 域名或必要请求头</td><td>换用明确支持浏览器跨域的接口，或改用同源 Go 后端；前端不能代替目标服务放开 CORS</td></tr>

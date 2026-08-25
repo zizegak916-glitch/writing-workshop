@@ -9,6 +9,8 @@ Writing Workshop 是一个本地优先、作者确认写入的长篇创作工作
 
 GitHub Pages 是正式 HTTPS 静态站点，不是 Sites 预览。它可以在浏览器本地完成项目管理、导入导出、Prompt Skill、真实网文指导库与 BYOK 模型调用；Key 和资料不会进入仓库。浏览器直连仍要求模型接口允许当前站点跨域。需要服务端托管密钥、后端 Skill、Go 语料分析、后台记忆和同源 API 时，使用 Docker 或本地可执行文件。
 
+HTTPS Pages 需要调用自己控制的 `http://` 模型接口时，可部署内置的受限 Go 兼容桥：服务端只转发预先列入白名单的目标，Pages 用独立桥令牌访问，并同时显示浏览器实际地址与真实上游地址。完整的 Caddy、systemd、Go 1.21 / 1.25 和故障诊断教程见 [Pages 调用 HTTP API](docs/HTTP_BRIDGE.md)。
+
 ![Writing Workshop 首页](docs/images/landing-page.jpg)
 
 ## Go 编排内核与开放适配层
@@ -61,6 +63,8 @@ Writing Workshop 默认使用仓库内的 Go 编排内核，代码位于 `intern
 5. 在候选区确认写入；重要阶段导出 v6 项目包。
 
 Pages 保存 API 配置不会请求静态 `/api/config`，因此不会因保存动作产生 405。测试诊断会区分请求准备、HTTP、响应解析与未获得 HTTP 响应；CPA 等兼容层可选择完整 URL 原样请求，并用 JSON 调整非核心请求体字段。
+
+若 Base URL 是 `http://`，在高级网络适配中另填自己的 HTTPS 桥地址与桥令牌。Base URL 仍保留真实上游，用来正确判断协议和最终路径；桥的部署步骤见 [HTTP 兼容桥教程](docs/HTTP_BRIDGE.md)。
 
 ### 直接运行发布包（Linux VM 推荐）
 
@@ -171,6 +175,7 @@ make check
 
 - [完整使用教程](docs/USER_GUIDE.md)
 - [完整配置](CONFIG.md)
+- [Pages HTTP 兼容桥](docs/HTTP_BRIDGE.md)
 - [API 契约](API.md)
 - [开发与测试](DEVELOPMENT.md)
 - [引擎与适配层](docs/NATIVE_ENGINE.md)

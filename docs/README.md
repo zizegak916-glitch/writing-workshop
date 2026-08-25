@@ -20,6 +20,7 @@
 | [`NATIVE_ENGINE.md`](NATIVE_ENGINE.md) | 现行架构 | 仓库自有 Go 引擎、协议、不变量、测试与限制 |
 | [`CORPUS_CALIBRATION.md`](CORPUS_CALIBRATION.md) | 现行功能 | 本地/AI 分析、指导卡、提示词修改、统一记忆与隐私边界 |
 | [`USER_GUIDE.md`](USER_GUIDE.md) | 现行用户教程 | Pages / 自部署完整操作、真实网文指导、Prompt Skill、统一记忆与备份恢复 |
+| [`HTTP_BRIDGE.md`](HTTP_BRIDGE.md) | 现行部署教程 | Pages 访问白名单 HTTP API 的 Go 兼容桥、Caddy、systemd 与诊断 |
 | [`COMMUNITY_VIDEO_RESOURCES.md`](COMMUNITY_VIDEO_RESOURCES.md) | 现行资源状态 | LINUX DO 佬友视频公益站与开源工具的核验状态 |
 | [`LINUX_DO_POST_V030.md`](LINUX_DO_POST_V030.md) | 维护者事实清单 | 供维护者自行撰写更新时核对，不是可直接发布正文 |
 | [`LINUX_DO_POST_V025.md`](LINUX_DO_POST_V025.md) | 历史社区发布包 | v0.2.5 时点的发帖材料，不代表当前功能 |

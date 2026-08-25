@@ -28,10 +28,28 @@ Pages 保存设置不会 POST 静态 `/api/config`，因此保存动作不应返
 1. 模型 ID 与完整端点是否正确；
 2. 目标服务是否允许当前 Pages/自定义域名 CORS；
 3. 是否允许 `Authorization`、`Content-Type` 和自定义头；
-4. HTTPS 页面是否被浏览器阻止访问 HTTP 本地服务；
+4. HTTPS 页面是否被浏览器阻止访问 HTTP 本地服务；这类接口可使用下文的受限 HTTPS 兼容桥；
 5. 协议与鉴权是否误选。
 
 `?api_mode=browser` / `?api_mode=backend` 可显式覆盖运行时探测。浏览器 Key 不是加密保存，不要在公共设备使用。
+
+## Pages HTTP 兼容桥
+
+HTTPS Pages 不能直接请求 `http://` API。需要保留 HTTP 上游时，可把同一 Go 服务部署在自己的 HTTPS 域名后，并只开放固定目标：
+
+    WRITING_WORKSHOP_HTTP_BRIDGE_TARGETS={"cpa":"http://192.3.110.199:8317"}
+    WRITING_WORKSHOP_HTTP_BRIDGE_TOKEN=replace-with-a-random-token-at-least-24-characters
+    WRITING_WORKSHOP_ALLOWED_ORIGINS=https://zizegak916-glitch.github.io
+
+| 变量 | 默认 | 作用 |
+|---|---:|---|
+| `WRITING_WORKSHOP_HTTP_BRIDGE_TARGETS` | 未启用 | 目标别名到固定 HTTP/HTTPS 根地址的 JSON 对象 |
+| `WRITING_WORKSHOP_HTTP_BRIDGE_TOKEN` | 未启用 | Pages 访问桥的独立令牌，至少 24 个字符 |
+| `WRITING_WORKSHOP_HTTP_BRIDGE_MAX_BYTES` | 16777216 | 单次请求正文上限 |
+| `WRITING_WORKSHOP_HTTP_BRIDGE_MAX_CONCURRENT` | 4 | 同时转发的请求数量 |
+| `WRITING_WORKSHOP_HTTP_BRIDGE_TIMEOUT_MS` | 600000 | 包含长响应流在内的完整请求超时 |
+
+在 Pages 中，Base URL 继续填写真实 HTTP 上游；“HTTPS 桥地址”填写 `https://你的域名/api/http-bridge/目标别名`，再填写桥令牌。桥令牌与模型 API Key 是两个不同凭据。完整的 Caddy、systemd 和安全说明见 [`docs/HTTP_BRIDGE.md`](docs/HTTP_BRIDGE.md)。
 
 ## 自部署配置
 

@@ -57,6 +57,7 @@ async function startCorsMock() {
         path: request.url,
         authorization: request.headers.authorization,
         route: request.headers['x-route'],
+        bridgeToken: request.headers['x-ww-bridge-token'],
         body: JSON.parse(raw || '{}')
       });
       response.writeHead(200, { ...corsHeaders, 'Content-Type': 'application/json', 'x-request-id': 'cors-smoke' });
@@ -68,7 +69,7 @@ async function startCorsMock() {
   });
   await new Promise((resolve, reject) => {
     server.once('error', reject);
-    server.listen(0, '127.0.0.1', resolve);
+    server.listen(Number(process.env.WW_TEST_UPSTREAM_PORT || 0), '127.0.0.1', resolve);
   });
   server.unref();
   const address = server.address();
@@ -603,6 +604,8 @@ must_not_create_chapters=true
     customHeaders: '{"X-Route":"pages"}',
     bodyOverrides: '',
     exactEndpoint: false,
+    bridgeUrl: '',
+    bridgeToken: '',
     transport: 'browser'
   });
   assert.equal(configPosts, 0, 'Pages save must not POST to static /api/config');
@@ -632,6 +635,50 @@ must_not_create_chapters=true
   assert.equal(exactRequest.path, '/custom/invoke?route=pages');
   assert.equal(exactRequest.body.max_tokens, undefined);
   assert.equal(exactRequest.body.max_completion_tokens, 128);
+
+  const bridgeURL = process.env.WW_TEST_BRIDGE_URL || '';
+  const bridgeToken = process.env.WW_TEST_BRIDGE_TOKEN || '';
+  if (bridgeURL && bridgeToken) {
+    await pagesPage.locator('#apiProtocol').selectOption('openai-chat');
+    await pagesPage.locator('#apiAuthMode').selectOption('bearer');
+    await pagesPage.locator('#apiBaseUrl').fill(`${corsMock.origin}/v1`);
+    await pagesPage.locator('#apiExactEndpoint').uncheck();
+    await pagesPage.locator('#apiBodyOverrides').fill('');
+    await pagesPage.locator('#apiBridgeUrl').fill(bridgeURL);
+    await pagesPage.locator('#apiBridgeToken').fill(bridgeToken);
+    await pagesPage.getByRole('button', { name: '预览实际请求' }).first().click();
+    const bridgeDiagnostic = await pagesPage.locator('#apiDiagnostic').textContent();
+    assert.match(bridgeDiagnostic, /HTTPS 桥 URL/);
+    assert.match(bridgeDiagnostic, /桥后上游 URL/);
+    assert.match(bridgeDiagnostic, /\/api\/http-bridge\/browser\/v1\/chat\/completions/);
+    assert.doesNotMatch(bridgeDiagnostic, new RegExp(bridgeToken));
+
+    await pagesPage.getByRole('button', { name: '获取模型' }).first().click();
+    await pagesPage.waitForFunction(() => document.getElementById('testResult')?.textContent.includes('已读取 2 个模型'));
+    assert.equal(corsMock.state.modelRequests, 2, 'Pages bridge must relay the model list request through Go');
+
+    await pagesPage.locator('#apiModal button[onclick="testApi()"]').click();
+    await pagesPage.waitForFunction(() => document.getElementById('testResult')?.textContent.includes('✓ OK'));
+    const bridgedRequest = corsMock.state.requests.at(-1);
+    assert.equal(bridgedRequest.path, '/v1/chat/completions');
+    assert.equal(bridgedRequest.authorization, 'Bearer browser-test-key');
+    assert.equal(bridgedRequest.bridgeToken, undefined, 'Go bridge token must never reach the model provider');
+
+    const longBridgeResult = await pagesPage.evaluate(async () => {
+      const conf = apiFormConfig();
+      const runtime = _runtimeConfig(conf, PROVIDERS.custom);
+      const content = '长篇桥接记忆。'.repeat(50000);
+      const response = await WWApiAdapter.request(runtime, [{ role: 'user', content }], { maxTokens: 64 });
+      return { text: response.text, contentLength: content.length, transport: response.transport };
+    });
+    assert.equal(longBridgeResult.text, 'OK');
+    assert.equal(longBridgeResult.transport, 'bridge');
+    assert.equal(corsMock.state.requests.at(-1).body.messages[0].content.length, longBridgeResult.contentLength);
+    assert.ok(longBridgeResult.contentLength >= 300000, 'bridge browser smoke must exercise a long AI request');
+
+    await pagesPage.locator('#apiBridgeUrl').fill('');
+    await pagesPage.locator('#apiBridgeToken').fill('');
+  }
 
   await pagesPage.locator('#apiProtocol').selectOption('ollama');
   await pagesPage.locator('#apiAuthMode').selectOption('none');

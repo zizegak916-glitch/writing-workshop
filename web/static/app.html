@@ -695,6 +695,12 @@
     </div>
     <label class="api-header-field">自定义请求头（JSON）<textarea class="form-input" id="apiHeaders" rows="3" placeholder='{"HTTP-Referer":"https://example.com"}'></textarea></label>
     <label class="api-header-field">请求体覆盖（JSON；null 表示删除字段）<textarea class="form-input" id="apiBodyOverrides" rows="3" placeholder='{"max_tokens":null,"max_completion_tokens":4096}'></textarea></label>
+    <div class="api-bridge-box">
+      <div class="api-bridge-title">HTTP 兼容桥（Pages 可选）</div>
+      <label class="api-header-field">HTTPS 桥地址<input class="form-input" id="apiBridgeUrl" placeholder="https://bridge.example/api/http-bridge/cpa"></label>
+      <label class="api-header-field">桥访问令牌<input class="form-input" id="apiBridgeToken" type="password" autocomplete="off" placeholder="与服务器 WRITING_WORKSHOP_HTTP_BRIDGE_TOKEN 一致"></label>
+      <p class="api-advanced-help">原 Base URL 仍填写真实 HTTP API；桥地址只负责安全转送。目标服务器必须预先配置同名白名单，浏览器不能借此访问任意网址。</p>
+    </div>
     <div class="api-advanced-grid">
       <label><input id="apiExactEndpoint" type="checkbox"> 按填写 URL 原样请求，不自动补路径</label>
       <label><input id="apiClearKey" type="checkbox"> 清除后端已保存的 API Key</label>
@@ -754,6 +760,12 @@
       </div>
       <label class="api-header-field">自定义请求头（JSON）<textarea class="form-input" id="sApiHeaders" rows="3" placeholder='{"HTTP-Referer":"https://example.com"}'></textarea></label>
       <label class="api-header-field">请求体覆盖（JSON；null 表示删除字段）<textarea class="form-input" id="sApiBodyOverrides" rows="3" placeholder='{"max_tokens":null,"max_completion_tokens":4096}'></textarea></label>
+      <div class="api-bridge-box">
+        <div class="api-bridge-title">HTTP 兼容桥（Pages 可选）</div>
+        <label class="api-header-field">HTTPS 桥地址<input class="form-input" id="sApiBridgeUrl" placeholder="https://bridge.example/api/http-bridge/cpa"></label>
+        <label class="api-header-field">桥访问令牌<input class="form-input" id="sApiBridgeToken" type="password" autocomplete="off" placeholder="与服务器 WRITING_WORKSHOP_HTTP_BRIDGE_TOKEN 一致"></label>
+        <p class="api-advanced-help">原 Base URL 仍填写真实 HTTP API；桥地址只负责安全转送。目标服务器必须预先配置同名白名单。</p>
+      </div>
       <div class="api-advanced-grid">
         <label><input id="sApiExactEndpoint" type="checkbox"> 按填写 URL 原样请求，不自动补路径</label>
         <label><input id="sApiClearKey" type="checkbox"> 清除后端已保存的 API Key</label>
