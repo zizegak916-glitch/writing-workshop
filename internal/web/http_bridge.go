@@ -78,7 +78,7 @@ func newHTTPBridgeFromEnv() (*httpBridge, error) {
 	if err != nil {
 		return nil, err
 	}
-	timeoutMS, err := envInt64("WRITING_WORKSHOP_HTTP_BRIDGE_TIMEOUT_MS", defaultHTTPBridgeTimeout.Milliseconds(), 5000, int64((30*time.Minute).Milliseconds()))
+	timeoutMS, err := envInt64("WRITING_WORKSHOP_HTTP_BRIDGE_TIMEOUT_MS", defaultHTTPBridgeTimeout.Milliseconds(), 5000, int64((30 * time.Minute).Milliseconds()))
 	if err != nil {
 		return nil, err
 	}
