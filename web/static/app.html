@@ -385,11 +385,11 @@
     <h2>📖 工作台内快速教程</h2>
     <p style="margin-bottom:16px;padding:12px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px">需要逐按钮截图式路线时，打开 <span class="privacy-link" onclick="window.open('docs.html#pages-tutorial','_blank')">Pages 九步完整教程</span>。</p>
     <h3>1. 建项目与资料归位</h3>
-    <ol><li>点击顶栏「＋」创建项目。</li><li>正文放章节，大纲、人物、笔记分别放对应资料区。</li><li>完成第一次重要编辑后，导出 v6 项目备份。</li></ol>
+    <ol><li>点击顶栏「＋」创建项目。</li><li>正文放章节；在“大纲”资料栏直接编辑世界观与各份大纲，人物和笔记放对应资料区。</li><li>世界观与大纲是项目资料，不会计入章节。</li><li>完成第一次重要编辑后，导出 v6 项目备份。</li></ol>
     <h3>2. 配置 API</h3>
     <ol><li>进入「设置 → API」。</li><li>填写模型、Base URL、Key 和协议；无 Key 服务选“无鉴权”。</li><li>先测试，成功后保存。Pages 直连需要目标接口允许浏览器 CORS。</li></ol>
     <h3>3. 生成并确认候选</h3>
-    <ol><li>选择“智能长篇、当前文档、当前选区或全书原文”阅读范围，再选择润色、续写、改写、对白或其他功能。</li><li>长篇首次使用先点“更新全书记忆”：它会分块读完每个章节，保存章节、阶段和全书压缩记录；未改章节下次复用。</li><li>检查上下文预算。全书原文放不下时会明确阻止，不会截掉前文后假装读完。</li><li>生成结果先留在候选区，再决定替换、插入、追加、复制或记入记忆。</li></ol>
+    <ol><li>选择“智能长篇、当前文档、当前选区或全书原文”阅读范围，再选择润色、续写、改写、对白或其他功能。</li><li>每次写作都会核对世界观、大纲和完整人物卡；资料超过 3 万字符时，先点“更新全书记忆”完成项目资料与正文的分块阅读。</li><li>状态栏应显示“设定/大纲已同步”；资料修改后会变成待更新，旧记忆不再冒充完整。</li><li>检查上下文预算。全书原文放不下时会明确阻止，不会截掉前文后假装读完。</li><li>生成结果先留在候选区，再决定替换、插入、追加、复制或记入记忆。</li></ol>
     <h3>4. 真实网文指导库</h3>
     <ol><li>进入「流程 → 真实网文指导库」。</li><li>导入有权分析的 TXT / MD / DOCX，确认权限后点「本地完整分析」。</li><li>查看综合总结、指标和带适用范围/证据/例外的指导卡。</li><li>可选「AI 深度分析」只发送约 1.8 万字以内的分层抽样；不点击就不发送原文。</li><li>保持档案启用，相关卡片会在润色、续写、对白、节奏等任务中动态调用。</li></ol>
     <h3>5. Prompt Skill</h3>
@@ -539,12 +539,12 @@
           <div class="long-context-control">
             <div class="long-context-head"><label for="aiContextMode">阅读范围</label><button type="button" onclick="updateLongBookMemory()">更新全书记忆</button></div>
             <select id="aiContextMode" onchange="setAIContextMode(this.value)">
-              <option value="smart">智能长篇：全书记忆 + 当前章节</option>
-              <option value="current">当前章节 / 当前文档</option>
-              <option value="selection">仅当前选区</option>
-              <option value="full">全书原文（仅容量允许时）</option>
+              <option value="smart">智能长篇：设定/大纲 + 全书记忆 + 当前章节</option>
+              <option value="current">当前章节 / 文档 + 项目事实</option>
+              <option value="selection">当前选区 + 项目事实</option>
+              <option value="full">全书原文 + 项目事实（容量允许）</option>
             </select>
-            <div class="long-context-status" id="longContextStatus">尚未建立全书记忆；当前先使用章节与人工记忆。</div>
+            <div class="long-context-status" id="longContextStatus">尚未建立全书记忆；项目设定与大纲仍会进入请求。</div>
           </div>
           <div class="param-row"><div class="param-label" data-i18n="ap-temp">创意度</div><div class="seg-ctrl"><button class="seg-btn" data-i18n="param-strict" onclick="setTemp('low',this)">严谨</button><button class="seg-btn on" data-i18n="param-balance" onclick="setTemp('mid',this)">平衡</button><button class="seg-btn" data-i18n="param-creative" onclick="setTemp('high',this)">创意</button></div></div>
           <div class="param-row"><div class="param-label" data-i18n="ap-len">输出长度</div><div class="seg-ctrl"><button class="seg-btn" data-i18n="param-short" onclick="setLen('short',this)">短</button><button class="seg-btn" data-i18n="param-medium" onclick="setLen('mid',this)">中</button><button class="seg-btn on" data-i18n="param-long" onclick="setLen('long',this)">长</button><button class="seg-btn" data-i18n="param-xlong" onclick="setLen('xl',this)">超长</button></div></div>
@@ -558,7 +558,7 @@
           </div>
           <div style="font-size:10px;color:var(--text-hint);margin-bottom:8px;line-height:1.5">记忆内容会在每次AI生成时自动注入提示词，让AI了解你的剧情设定、写作风格偏好等。</div>
           <div class="longbook-memory-card">
-            <div><strong>长篇分层记忆</strong><span id="longBookMemoryStatus">尚未生成。系统会分块读完全部章节，再压缩为章节、阶段和全书记忆。</span></div>
+            <div><strong>长篇分层记忆</strong><span id="longBookMemoryStatus">尚未生成。系统会先读取世界观、大纲和人物卡，再分块读完全部章节。</span></div>
             <button type="button" id="longBookMemoryBtn" onclick="updateLongBookMemory()">读取全书并更新</button>
           </div>
           <details class="longbook-memory-audit">
@@ -611,10 +611,10 @@
   <div class="long-context-control long-context-control-mobile">
     <div class="long-context-head"><label for="mpAiContextMode">阅读范围</label><button type="button" onclick="updateLongBookMemory()">更新记忆</button></div>
     <select id="mpAiContextMode" onchange="setAIContextMode(this.value)">
-      <option value="smart">智能长篇：全书记忆 + 当前章节</option>
-      <option value="current">当前章节 / 当前文档</option>
-      <option value="selection">仅当前选区</option>
-      <option value="full">全书原文（容量允许）</option>
+      <option value="smart">智能长篇：设定/大纲 + 全书记忆 + 当前章节</option>
+      <option value="current">当前章节 / 文档 + 项目事实</option>
+      <option value="selection">当前选区 + 项目事实</option>
+      <option value="full">全书原文 + 项目事实（容量允许）</option>
     </select>
     <div class="long-context-status" id="mpLongContextStatus">尚未建立全书记忆。</div>
   </div>
@@ -904,8 +904,9 @@
 <script src="js/ai-task-contract.js?v=20260824-longtext"></script>
 <script src="js/corpus-lab.js"></script>
 <script src="js/api-adapter.js"></script>
+<script src="js/project-context.js?v=20260826-project-facts"></script>
 <script src="js/longbook-memory.js?v=20260824-fullbook"></script>
-<script src="js/workbench.js?v=20260824-longtext-corpus-clean"></script>
+<script src="js/workbench.js?v=20260826-project-facts"></script>
 <script src="js/workflows.js"></script>
 <script src="js/recursive.js"></script>
 <script src="js/product-extensions.js"></script>

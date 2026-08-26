@@ -70,6 +70,7 @@ jobs:
           npm run test:ai-long
           npm run test:corpus
           npm run test:import
+          npm run test:project-context
           npm run test:longbook
 
       - name: Offline server smoke test

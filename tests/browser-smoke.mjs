@@ -111,7 +111,7 @@ try {
       polluted: profile.cleaned_text.includes('qidian.com') || profile.cleaned_text.includes('adv2') || profile.cleaned_text.includes('求月票')
     };
   });
-  assert.equal(aiAndDirtyTextContract.taskCount, 56);
+  assert.equal(aiAndDirtyTextContract.taskCount, 58);
   assert.equal(aiAndDirtyTextContract.skillTaskCount, 32);
   assert.equal(aiAndDirtyTextContract.encoding, 'gb18030');
   assert.equal(aiAndDirtyTextContract.decodedHeading, true);
@@ -128,13 +128,18 @@ try {
       sort_order: index,
       content: `${index + 1}章事实。`.repeat(900)
     }));
+    const foundationText = `【世界观】BROWSER_WORLD_MEMORY_MARKER\n${'规则资料。'.repeat(1600)}\n【大纲】BROWSER_OUTLINE_MEMORY_MARKER 尚未发生。`;
+    const foundation = { sourceText: foundationText, sourceHash: WWLongBookMemory.fingerprint(foundationText), label: '浏览器项目事实' };
     const calls = [];
     const result = await WWLongBookMemory.build({
       chapters,
+      foundation,
       chunkChars: 2000,
       arcSize: 2,
       summarize: async request => {
         calls.push(request);
+        if (request.phase === 'foundation_chunk') return `项目事实第${request.chunkIndex + 1}块，保留世界规则和大纲规划`;
+        if (request.phase === 'foundation_merge') return '项目事实完整记忆，规划尚未发生';
         if (request.phase === 'chapter_chunk') return `${request.chapter.title} 第${request.chunkIndex + 1}块事实`;
         if (request.phase === 'chapter_merge') return `${request.chapter.title} 完整章节记忆`;
         if (request.phase === 'arc') return `阶段${request.arcIndex + 1}记忆`;
@@ -148,6 +153,9 @@ try {
       chapters: result.chapterMemories.length,
       arcs: result.arcMemories.length,
       covered: result.digestMemory.covered_chapter_ids.length,
+      foundationHash: result.digestMemory.foundation_hash,
+      expectedFoundationHash: foundation.sourceHash,
+      foundationChunks: calls.filter(call => call.phase === 'foundation_chunk').length,
       chunkedChapters: new Set(calls.filter(call => call.phase === 'chapter_chunk').map(call => call.chapter.id)).size
     };
   });
@@ -157,6 +165,8 @@ try {
   assert.equal(longBookContract.chapters, 5);
   assert.equal(longBookContract.arcs, 3);
   assert.equal(longBookContract.covered, 5);
+  assert.equal(longBookContract.foundationHash, longBookContract.expectedFoundationHash);
+  assert.ok(longBookContract.foundationChunks >= 2, 'browser long-book engine must fully chunk project facts');
   assert.equal(longBookContract.chunkedChapters, 5, 'browser long-book engine must read every chapter');
 
   const importRouting = await page.evaluate(() => {
@@ -352,7 +362,7 @@ must_not_create_chapters=true
   await page.keyboard.press('Escape');
   assert.match(await page.locator('#mainEditor').inputValue(), /不能等待三秒防抖/, 'Esc outside focus mode must not overwrite the editor');
   await page.locator('.nav-tab', { hasText: '大纲' }).click();
-  await page.locator('#outlineList .outline-item').first().click();
+  await page.locator('#outlineList .outline-item').nth(1).click();
   await page.waitForFunction(() => S.active?.type === 'outline');
   await page.locator('.nav-tab', { hasText: '笔记' }).click();
   await page.locator('#noteList .outline-item', { hasText: '未手动保存的设定核对' }).click();
@@ -370,7 +380,7 @@ must_not_create_chapters=true
   await page.locator('#chapterTitle').fill('事务测试人物·修订');
   await page.locator('#mainEditor').fill('【主角】事务测试人物·修订\n\n性格：克制而敏锐\n\n背景：用于验证中央编辑器写回\n\n外貌：黑发\n\n技能：识别未保存切换');
   await page.locator('.nav-tab', { hasText: '大纲' }).click();
-  await page.locator('#outlineList .outline-item').first().click();
+  await page.locator('#outlineList .outline-item').nth(1).click();
   await page.locator('.nav-tab', { hasText: '人物' }).click();
   await page.locator('#charList .char-card', { hasText: '事务测试人物·修订' }).click();
   assert.match(await page.locator('#mainEditor').inputValue(), /识别未保存切换/);
@@ -475,7 +485,7 @@ must_not_create_chapters=true
   assert.match(candidateText, /验证候选必须先审阅/);
 
   await page.locator('.nav-tab', { hasText: '大纲' }).click();
-  await page.locator('#outlineList .outline-item').first().click();
+  await page.locator('#outlineList .outline-item').nth(1).click();
   const outlineBeforeWrongApply = await page.locator('#mainEditor').inputValue();
   await page.locator('#workflowApplyMode').selectOption('append');
   await page.locator('#workflowApplyBtn').click();
@@ -621,6 +631,55 @@ must_not_create_chapters=true
   assert.equal(directRequest.body.provider, undefined, 'browser request must not leak internal proxy fields');
   assert.equal(directRequest.body.model, 'test-model');
   assert.match(directRequest.body.messages[0].content, /Reply with exactly: OK/);
+
+  const projectFactRun = await pagesPage.evaluate(async () => {
+    const now = Date.now();
+    const worldMarker = 'PAGES_WORLD_RULE_MARKER_北岸渡口只在落潮后开放';
+    const outlineMarker = 'PAGES_OUTLINE_PLAN_MARKER_此节点尚未发生';
+    const projectId = await importProjectBundleAtomic({
+      version: 6,
+      project: { name: 'Pages 项目事实验收', genre: '长篇', description: '验证大纲和世界观进入真实请求', world_setting: worldMarker, created_at: now, updated_at: now },
+      outlines: [{ title: '第一卷规划', content: outlineMarker, sort_order: 0, created_at: now }],
+      characters: [{ name: '陈亦', role: '主角', personality: '只相信亲眼所见', background: '不知道渡口规则的来源', skills: '无' }],
+      chapters: [{ title: '第一章 潮痕', content: '陈亦站在封闭的渡口前。', sort_order: 0, word_count: 12, created_at: now }],
+      notes: [], memories: [], history: [], categories: []
+    });
+    await loadProjects();
+    await loadProject(projectId);
+    await loadWorldContent();
+    const worldVisible = document.getElementById('mainEditor').value.includes(worldMarker);
+    document.getElementById('mainEditor').value += '\nPAGES_WORLD_EDIT_MARKER_月蚀时规则暂停';
+    onEditorInput();
+    await saveDoc({ silent: true });
+    await loadChapterContent(S.proj.chapters[0].id);
+    S.aiMode = '续写';
+    setAIContextMode('current');
+    const request = buildGenerationRequest('严格核对世界规则和大纲节点');
+    const response = await callAITask('skill.续写', request.prompt, S.apiConfig, request.systemPrompt);
+    return {
+      response,
+      worldVisible,
+      worldRows: document.querySelectorAll('#outlineList .outline-item').length,
+      outlines: S.proj.outlines.length,
+      chapters: S.proj.chapters.length,
+      contextFull: request.projectContext.full,
+      contextChars: request.projectContext.packet.sourceText.length
+    };
+  });
+  assert.equal(projectFactRun.response, 'OK');
+  assert.equal(projectFactRun.worldVisible, true, 'imported world setting must be visible and editable in the Pages library');
+  assert.equal(projectFactRun.worldRows, 2, 'world setting must be a distinct library row beside the outline');
+  assert.equal(projectFactRun.outlines, 1);
+  assert.equal(projectFactRun.chapters, 1, 'world and outline records must not become prose chapters');
+  assert.equal(projectFactRun.contextFull, true);
+  assert.ok(projectFactRun.contextChars > 100);
+  const projectFactRequest = corsMock.state.requests.at(-1);
+  const projectFactBody = projectFactRequest.body.messages.map(message => message.content || '').join('\n');
+  assert.match(projectFactBody, /PAGES_WORLD_RULE_MARKER_北岸渡口只在落潮后开放/);
+  assert.match(projectFactBody, /PAGES_WORLD_EDIT_MARKER_月蚀时规则暂停/);
+  assert.match(projectFactBody, /PAGES_OUTLINE_PLAN_MARKER_此节点尚未发生/);
+  assert.match(projectFactBody, /人物卡与知识边界/);
+  assert.match(projectFactBody, /大纲是未来规划/);
 
   await pagesPage.locator('#apiBaseUrl').fill(`${corsMock.origin}/custom/invoke?route=pages`);
   await pagesPage.locator('#apiExactEndpoint').check();

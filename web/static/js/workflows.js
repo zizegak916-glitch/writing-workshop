@@ -55,9 +55,9 @@
 
   function currentContextPrefs() {
     try {
-      return { current: true, project: true, outlines: false, characters: true, notes: false, memories: true, ...JSON.parse(localStorage.getItem('ww_workflow_context') || '{}') };
+      return { current: true, project: true, outlines: true, characters: true, notes: false, memories: true, ...JSON.parse(localStorage.getItem('ww_workflow_context') || '{}') };
     } catch (_) {
-      return { current: true, project: true, outlines: false, characters: true, notes: false, memories: true };
+      return { current: true, project: true, outlines: true, characters: true, notes: false, memories: true };
     }
   }
 
@@ -266,7 +266,7 @@
   function activeDocumentLabel() {
     const title = document.getElementById('chapterTitle')?.value?.trim();
     const type = typeof S !== 'undefined' && S.active ? S.active.type : 'document';
-    return `${type === 'chapter' ? '章节' : type === 'outline' ? '大纲' : type === 'character' ? '人物' : type === 'note' ? '笔记' : '文档'}：${title || '未命名'}`;
+    return `${type === 'chapter' ? '章节' : type === 'outline' ? '大纲' : type === 'world' ? '世界观' : type === 'character' ? '人物' : type === 'note' ? '笔记' : '文档'}：${title || '未命名'}`;
   }
 
   function collectContext() {

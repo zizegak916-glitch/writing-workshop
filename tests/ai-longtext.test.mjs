@@ -6,7 +6,7 @@ await import('../web/static/js/api-adapter.js');
 const contract = globalThis.WWAITaskContract;
 const adapter = globalThis.WWApiAdapter;
 const tasks = contract.list();
-assert.equal(tasks.length, 56, 'every Prompt Skill and every non-Skill AI feature must be registered');
+assert.equal(tasks.length, 58, 'every Prompt Skill and every non-Skill AI feature must be registered');
 assert.equal(tasks.filter(task => task.id.startsWith('skill.')).length, 32);
 
 const longText = Array.from({ length: 5000 }, (_, index) => `第${index + 1}段：雨落在旧站台上，他核对门牌后才继续往前走；这段内容用于验证长文本不会在请求适配层被静默截断。`).join('\n');

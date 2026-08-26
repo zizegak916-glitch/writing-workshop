@@ -152,17 +152,46 @@ function liveProjectChapters(){
   const editor=document.getElementById('mainEditor');
   return(S.proj.chapters||[]).map(chapter=>S.active?.type==='chapter'&&S.active.id===chapter.id?{...chapter,title:document.getElementById('chapterTitle')?.value||chapter.title,content:editor?.value||chapter.content||''}:chapter);
 }
+function liveProjectBundle(){
+  if(!S.proj)return null;
+  const editor=document.getElementById('mainEditor'),title=document.getElementById('chapterTitle')?.value||'';
+  const bundle={...S.proj,project:{...(S.proj.project||{})},outlines:(S.proj.outlines||[]).map(item=>({...item})),characters:(S.proj.characters||[]).map(item=>({...item}))};
+  if(S.active?.type==='world')bundle.project.world_setting=editor?.value||'';
+  if(S.active?.type==='outline'){
+    const outline=bundle.outlines.find(item=>item.id===S.active.id);
+    if(outline){outline.title=title||outline.title;outline.content=editor?.value||'';}
+  }
+  if(S.active?.type==='character'){
+    const character=bundle.characters.find(item=>item.id===S.active.id);
+    if(character)Object.assign(character,parseCharacterDocument(editor?.value||'',character),{name:title||character.name});
+  }
+  return bundle;
+}
+function projectFactPacket(){return WWProjectContext.build(liveProjectBundle());}
 function projectLongBookMemories(){return S.proj?S.aiMemories.filter(memory=>memory.project_id===S.proj.project.id&&memory.source==='longbook'&&memory.enabled!==false):[];}
 function currentBookDigest(){return projectLongBookMemories().filter(memory=>memory.kind==='book_digest').sort((a,b)=>(b.built_at||b.updated_at||0)-(a.built_at||a.updated_at||0))[0]||null;}
+function currentFoundationDigest(){return projectLongBookMemories().filter(memory=>memory.kind==='foundation_digest').sort((a,b)=>(b.updated_at||b.created_at||0)-(a.updated_at||a.created_at||0))[0]||null;}
+function buildProjectAIContext(options={}){
+  if(!S.proj)return{text:'',full:true,fresh:true,packet:null,memory:null,warning:''};
+  const packet=projectFactPacket(),memory=currentFoundationDigest();
+  const fresh=!!memory?.content&&memory.source_hash===packet.sourceHash;
+  const preferDigest=options.preferDigest!==false&&packet.sourceText.length>30000;
+  if(preferDigest&&fresh)return{text:`【项目正式事实包 · 分层压缩】\n以下内容由系统完整分块读取世界观、大纲和人物卡后生成；大纲仍是规划，不代表正文已经发生。\n${memory.content}\n【/项目正式事实包】`,full:false,fresh:true,packet,memory,warning:''};
+  const warning=preferDigest&&!fresh?'项目世界观、大纲与人物资料超过 3 万字符，且分层项目记忆尚未建立或已经过期；请先点击“更新全书记忆”，系统会完整分块读取后再执行写作':'';
+  if(options.validate&&warning)throw new Error(warning);
+  return{text:packet.text,full:true,fresh,packet,memory,warning};
+}
 function longBookMemoryFreshness(chapters=liveProjectChapters(),memories=projectLongBookMemories()){
   const digest=memories.filter(memory=>memory.kind==='book_digest').sort((a,b)=>(b.built_at||b.updated_at||0)-(a.built_at||a.updated_at||0))[0]||null;
+  const foundationPacket=projectFactPacket(),foundation=memories.filter(memory=>memory.kind==='foundation_digest').sort((a,b)=>(b.updated_at||b.created_at||0)-(a.updated_at||a.created_at||0))[0]||null;
+  const foundationFresh=!!foundation?.content&&foundation.source_hash===foundationPacket.sourceHash;
   const summaries=memories.filter(memory=>memory.kind==='chapter_summary');
   const byChapter=new Map(summaries.map(memory=>[String(memory.chapter_id),memory]));
   const ordered=chapters.map(chapter=>byChapter.get(String(chapter.id))||null);
   const freshIds=new Set(chapters.filter((chapter,index)=>ordered[index]?.source_hash===WWLongBookMemory.fingerprint(`${chapter.title}\n${chapter.content||''}`)).map(chapter=>String(chapter.id)));
-  const coverageHash=ordered.every(Boolean)?WWLongBookMemory.fingerprint(ordered.map(memory=>memory.source_hash).join('|')):'';
-  const complete=!!(chapters.length&&digest&&freshIds.size===chapters.length&&digest.coverage_hash===coverageHash);
-  return{digest,summaries,freshIds,complete,staleCount:Math.max(0,chapters.length-freshIds.size)};
+  const coverageHash=ordered.every(Boolean)?WWLongBookMemory.fingerprint(`${foundationPacket.sourceHash}|${ordered.map(memory=>memory.source_hash).join('|')}`):'';
+  const complete=!!(chapters.length&&digest&&foundationFresh&&freshIds.size===chapters.length&&digest.foundation_hash===foundationPacket.sourceHash&&digest.coverage_hash===coverageHash);
+  return{digest,foundation,foundationFresh,foundationPacket,summaries,freshIds,complete,staleCount:Math.max(0,chapters.length-freshIds.size)};
 }
 function buildAIWritingContext(mode=getAIContextMode()){
   const editor=document.getElementById('mainEditor');
@@ -186,7 +215,7 @@ function buildAIWritingContext(mode=getAIContextMode()){
     if(related.length)blocks.push('【相邻章节压缩记忆】\n'+related.map(memory=>`${memory.chapter_title||memory.title}\n${memory.content}`).join('\n\n'));
   }
   if(current)blocks.push(`【${S.active?.type==='chapter'?'当前章节完整原文':'当前文档'}】\n${current}`);
-  const warning=memoryState.complete?'':digest?`全书记忆有 ${memoryState.staleCount} 章待更新；本次会标明旧记忆并保留当前章节完整原文`:'尚未建立全书记忆；本次只能读取当前文档与已有人工记忆';
+  const warning=memoryState.complete?'':digest?`${memoryState.foundationFresh?'设定/大纲已同步':'设定/大纲记忆待更新'}${memoryState.staleCount?'；另有 '+memoryState.staleCount+' 章待更新':''}；本次保留当前文档完整原文`:'尚未建立全书记忆；项目设定与大纲仍会直接进入请求，长篇资料请先更新分层记忆';
   if(warning)blocks.unshift(`【记忆覆盖状态】\n${warning}`);
   return{text:blocks.join('\n\n'),label:'智能长篇上下文',mode,complete:memoryState.complete,warning};
 }
@@ -196,7 +225,8 @@ function buildGenerationRequest(extra='',options={validate:true}){
   const lm={short:'100字以内',mid:'200-300字',long:'400-600字',xl:'800字以上'},tm={low:'保持严谨',mid:'适度创意',high:'大胆想象'};
   const md=AI_MODES[S.aiMode]||{p:'请处理以下内容：'};
   let prompt=(typeof wwPromptText==='function'?wwPromptText(S.aiMode):md.p)+`\n\n【阅读上下文 · ${context.label}】\n${context.text}`+'\n\n【输出要求】'+lm[S.aiLen]+'。'+tm[S.aiTemp]+'。';
-  if(S.proj)prompt+='\n\n【项目信息】\n'+buildCtx();
+  const projectContext=buildProjectAIContext({validate:options.validate});
+  if(projectContext.text)prompt+='\n\n'+projectContext.text;
   if(extra)prompt+='\n\n【额外指令】'+extra;
   let systemPrompt=typeof wwSystemPrompt==='function'?wwSystemPrompt():'你是一位专业的中文写作助手。';
   const memory=buildMemoryContext();if(memory)systemPrompt+='\n\n'+memory;
@@ -206,7 +236,7 @@ function buildGenerationRequest(extra='',options={validate:true}){
   const reserve=limit?Math.min(task.maxTokens,Math.max(1024,Math.floor(limit*.18))):task.maxTokens;
   if(options.validate&&context.mode==='full'&&!limit)throw new Error('全书原文模式需要先在 API 设置中填写模型上下文上限；否则无法判断是否会截断');
   if(options.validate&&limit&&tokens+reserve>limit*.96)throw new Error(`本次约 ${tokens.toLocaleString()} tokens，连同输出预留将超过 ${limit.toLocaleString()} 上限。请使用“智能长篇”并先更新全书记忆`);
-  return{prompt,systemPrompt,context,tokens,limit};
+  return{prompt,systemPrompt,context,projectContext,tokens,limit};
 }
 function updateContextBar(){
   const ac=S.apiConfig||{};
@@ -2514,6 +2544,7 @@ async function loadProject(id){
   await renderHistory();
   await window.workflowRenderHistory?.();
   if(chs.length>0)await loadChapterContent(chs[0].id);
+  else if(p.world_setting)await loadWorldContent();
   else if(os.length>0)await loadOutlineContent(os[0].id);
   else if(notes.length>0)await loadNoteContent(notes[0].id);
   else setEditorDocument('','');
@@ -3052,7 +3083,20 @@ async function autoAnalyzeImportedProject(projectId){
 
 
 // ═══ Outlines ═══
-function renderOutlineList(){if(!S.proj)return;const el=document.getElementById('outlineList');if(!S.proj.outlines.length){el.innerHTML='<div style="text-align:center;padding:20px;color:var(--text-hint);font-size:12px">'+t('sb-empty-outline')+'</div>';return;}el.innerHTML=S.proj.outlines.map(o=>'<div class="outline-item'+(S.active&&S.active.type==='outline'&&S.active.id===o.id?' active':'')+'" onclick="loadOutlineContent('+Number(o.id)+')"><span class="oi-icon"><svg class="ic ic-sm"><use href="#ic-outline"/></svg></span><span class="oi-text">'+escapeHtml(o.title)+'</span><span class="oi-count">'+(o.content?countWords(o.content):0)+t('ps-units-2')+'</span><button class="oi-del" onclick="event.stopPropagation();delOutline('+Number(o.id)+')">✕</button></div>').join('');}
+function worldSettingRow(mobile=false){
+  const active=S.active?.type==='world',count=countWords(S.proj?.project?.world_setting||'');
+  return'<div class="outline-item'+(active?' active':'')+'" onclick="loadWorldContent()'+(mobile?';backToEditor()':'')+'"><span class="oi-icon"><svg class="ic ic-sm"><use href="#ic-globe"/></svg></span><span class="oi-text">世界观与硬设定</span><span class="oi-count">'+count+t('ps-units-2')+'</span></div>';
+}
+function renderOutlineList(){if(!S.proj)return;const el=document.getElementById('outlineList');const empty=S.proj.outlines.length?'':'<div style="text-align:center;padding:14px;color:var(--text-hint);font-size:12px">'+t('sb-empty-outline')+'</div>';el.innerHTML=worldSettingRow()+empty+S.proj.outlines.map(o=>'<div class="outline-item'+(S.active&&S.active.type==='outline'&&S.active.id===o.id?' active':'')+'" onclick="loadOutlineContent('+Number(o.id)+')"><span class="oi-icon"><svg class="ic ic-sm"><use href="#ic-outline"/></svg></span><span class="oi-text">'+escapeHtml(o.title)+'</span><span class="oi-count">'+(o.content?countWords(o.content):0)+t('ps-units-2')+'</span><button class="oi-del" onclick="event.stopPropagation();delOutline('+Number(o.id)+')">✕</button></div>').join('');}
+async function loadWorldContent(){
+  if(!S.proj)return false;
+  if(S.active?.type==='world')return true;
+  if(!(await flushActiveDocument()))return false;
+  S.active={type:'world',id:S.proj.project.id,data:S.proj.project};
+  setEditorDocument('世界观与硬设定',S.proj.project.world_setting||'');
+  renderOutlineList();renderMpOutline();
+  return true;
+}
 async function addOutline(){if(!S.proj)return showToast('✕',t('toast-no-proj'));const now=Date.now(),id=await dbPut('outlines',{project_id:S.proj.project.id,title:t('outline-new'),content:'',sort_order:S.proj.outlines.length,created_at:now});S.proj.outlines.push({id,project_id:S.proj.project.id,title:t('outline-new'),content:'',sort_order:S.proj.outlines.length});renderOutlineList();showToast('✓',t('toast-added'));}
 async function loadOutlineContent(id){
   if(S.active?.type==='outline'&&S.active.id===id)return true;
@@ -3245,7 +3289,12 @@ async function saveDocOnce(options={}){
   const activeId=S.active.id;
   const now=Date.now();
   try{
-    if(S.active.type==='outline'){
+    if(S.active.type==='world'){
+      S.proj.project.world_setting=text;
+      S.proj.project.updated_at=now;
+      await dbPut('projects',{...S.proj.project});
+      renderOutlineList();renderMpOutline();
+    }else if(S.active.type==='outline'){
       const o=S.proj.outlines.find(x=>x.id===S.active.id);
       if(!o)throw new Error('当前大纲已不存在');
       Object.assign(o,{title:title||'未命名大纲',content:text,updated_at:now});
@@ -3277,6 +3326,7 @@ async function saveDocOnce(options={}){
     }
     S.proj.project.updated_at=now;
     await dbPut('projects',S.proj.project);
+    refreshLongBookMemoryUI();
     const savedCurrent=S.active?.type===activeType&&S.active?.id===activeId&&(S.editorRevision||0)===revision;
     if(savedCurrent){
       S.unsaved=false;
@@ -3464,7 +3514,7 @@ function updateUsageDisplay(usage){
     el.hidden=false;
   });
 }
-function buildCtx(){if(!S.proj)return'';const p=S.proj.project,a=[];a.push('作品：《'+p.name+'》');if(p.genre)a.push('类型：'+p.genre);if(p.description)a.push('简介：'+p.description);if(p.world_setting)a.push('世界观：'+p.world_setting);if(S.proj.characters.length)a.push('人物：'+S.proj.characters.map(c=>c.name+'('+c.role+')').join('、'));return a.join('\n');}
+function buildCtx(options={}){return buildProjectAIContext({validate:options.validate!==false,preferDigest:options.preferDigest!==false}).text;}
 
 
 // ═══ AI Memory ═══
@@ -3487,13 +3537,16 @@ async function loadMemories(){
 function refreshLongBookMemoryUI(message=''){
   const mode=getAIContextMode();for(const id of ['aiContextMode','mpAiContextMode']){const select=document.getElementById(id);if(select)select.value=mode;}
   const chapters=liveProjectChapters(),memories=projectLongBookMemories(),state=longBookMemoryFreshness(chapters,memories),digest=state.digest;
-  const status=message||(digest?`已覆盖 ${state.freshIds.size}/${chapters.length} 章${state.staleCount?' · '+state.staleCount+' 章待更新':''} · 全书记忆 ${Number(digest.compressed_chars||digest.content?.length||0).toLocaleString()} 字`:`尚未建立全书记忆 · 当前项目 ${chapters.length} 章`);
+  const factsLabel=state.foundationFresh?`设定/大纲已同步 ${Number(state.foundation.source_chars||0).toLocaleString()} 字`:`设定/大纲待读取 ${Number(state.foundationPacket.sourceText.length||0).toLocaleString()} 字`;
+  const status=message||(digest?`${factsLabel} · 正文 ${state.freshIds.size}/${chapters.length} 章${state.staleCount?' · '+state.staleCount+' 章待更新':''} · 全书记忆 ${Number(digest.compressed_chars||digest.content?.length||0).toLocaleString()} 字`:`${factsLabel} · 正文 ${chapters.length} 章尚未建立全书记忆`);
   for(const id of ['longContextStatus','mpLongContextStatus','longBookMemoryStatus']){const el=document.getElementById(id);if(el)el.textContent=status;}
   const arcMemories=memories.filter(memory=>memory.kind==='arc_summary').sort((a,b)=>Number(a.coverage_start)-Number(b.coverage_start));
   const summary=document.getElementById('longBookMemoryAuditSummary'),list=document.getElementById('longBookMemoryAuditList');
-  if(summary)summary.textContent=`压缩记录 · ${state.summaries.length} 章 / ${arcMemories.length} 阶段 / ${digest?1:0} 全书`;
+  if(summary)summary.textContent=`压缩记录 · ${state.foundation?1:0} 项目事实 / ${state.summaries.length} 章 / ${arcMemories.length} 阶段 / ${digest?1:0} 全书`;
   if(list){
-    const rows=state.summaries.sort((a,b)=>Number(a.coverage_index)-Number(b.coverage_index)).map(memory=>`<div class="longbook-audit-row"><span>${escapeHtml(memory.chapter_title||memory.title||'章节记忆')}</span><span>${Number(memory.chunks||1)} 块 · ${Number(memory.source_chars||0).toLocaleString()} 字 · ${state.freshIds.has(String(memory.chapter_id))?'已同步':'待更新'}</span></div>`);
+    const rows=[];
+    if(state.foundation)rows.push(`<div class="longbook-audit-row"><span>${escapeHtml(state.foundation.title||'项目资料记忆')}</span><span>${Number(state.foundation.chunks||1)} 块 · ${Number(state.foundation.source_chars||0).toLocaleString()} 字 · ${state.foundationFresh?'已同步':'待更新'}</span></div>`);
+    rows.push(...state.summaries.sort((a,b)=>Number(a.coverage_index)-Number(b.coverage_index)).map(memory=>`<div class="longbook-audit-row"><span>${escapeHtml(memory.chapter_title||memory.title||'章节记忆')}</span><span>${Number(memory.chunks||1)} 块 · ${Number(memory.source_chars||0).toLocaleString()} 字 · ${state.freshIds.has(String(memory.chapter_id))?'已同步':'待更新'}</span></div>`));
     rows.push(...arcMemories.map(memory=>`<div class="longbook-audit-row"><span>${escapeHtml(memory.title||'阶段记忆')}</span><span>第 ${Number(memory.coverage_start)+1}–${Number(memory.coverage_end)+1} 章</span></div>`));
     if(digest)rows.push(`<div class="longbook-audit-row"><span>${escapeHtml(digest.title||'全书记忆')}</span><span>${Number(digest.compressed_chars||digest.content?.length||0).toLocaleString()} 字 · ${state.complete?'已同步':'待更新'}</span></div>`);
     list.innerHTML=rows.join('')||'更新全书记忆后，可在这里核对每章和每个阶段的覆盖记录。';
@@ -3505,19 +3558,20 @@ async function updateLongBookMemory(){
   if(!aiHasConfig(S.apiConfig)){showToast('⚙',t('toast-no-api'));openModal('apiModal');return;}
   if(!(await flushActiveDocument()))return;
   const chapters=liveProjectChapters();
-  if(!chapters.length)return showToast('✕','当前项目没有正文章节');
   const existing=projectLongBookMemories();
-  const estimatedCalls=WWLongBookMemory.estimateRequests({chapters,existingMemories:existing});
-  if(!confirm(`将分块读取全部 ${chapters.length} 章，预计约 ${estimatedCalls} 次模型请求；未改章节会复用已有章节记忆。超长章节和超多阶段会继续分层合并，不会塞进单次请求。原文不会写入记忆，只保存压缩结果。继续吗？`))return;
+  const foundation=projectFactPacket();
+  const estimatedCalls=WWLongBookMemory.estimateRequests({chapters,foundation,existingMemories:existing});
+  if(!confirm(`将先完整分块读取世界观、大纲和人物卡（${foundation.sourceText.length.toLocaleString()} 字符），再读取全部 ${chapters.length} 章，预计约 ${estimatedCalls} 次模型请求；未改资料与章节会复用已有记忆。原始资料和正文不会写入记忆，只保存压缩结果。继续吗？`))return;
   setLongBookMemoryBusy(true);
   try{
     const result=await WWLongBookMemory.build({
       chapters,
+      foundation,
       existingMemories:existing,
-      onProgress:progress=>{if(progress.phase==='chapter')refreshLongBookMemoryUI(`读取章节 ${progress.chapterIndex+1}/${progress.chapterCount} · ${progress.title}${progress.reused?'（复用）':''}`);else if(progress.phase==='arc')refreshLongBookMemoryUI(`压缩阶段 ${progress.arcIndex+1}/${progress.arcCount}`);else refreshLongBookMemoryUI('正在合并全书记忆…');},
+      onProgress:progress=>{if(progress.phase==='foundation')refreshLongBookMemoryUI(`读取项目设定与大纲${progress.reused?'（复用）':'（分块压缩）'}`);else if(progress.phase==='chapter')refreshLongBookMemoryUI(`读取章节 ${progress.chapterIndex+1}/${progress.chapterCount} · ${progress.title}${progress.reused?'（复用）':''}`);else if(progress.phase==='arc')refreshLongBookMemoryUI(`压缩阶段 ${progress.arcIndex+1}/${progress.arcCount}`);else refreshLongBookMemoryUI('正在合并全书记忆…');},
       summarize:({taskId,prompt})=>callAITask(taskId,prompt,S.apiConfig,'你是长篇小说记忆压缩器。必须忠于输入、保留因果和人物知识边界、标出矛盾与不确定项，禁止补写剧情。')
     });
-    const now=Date.now(),all=[...result.chapterMemories,...result.arcMemories,result.digestMemory],existingByKey=new Map(existing.map(memory=>[memory.longbook_key,memory]));
+    const now=Date.now(),all=[result.foundationMemory,...result.chapterMemories,...result.arcMemories,result.digestMemory].filter(Boolean),existingByKey=new Map(existing.map(memory=>[memory.longbook_key,memory]));
     const keep=new Set();
     for(const memory of all){
       const previous=existingByKey.get(memory.longbook_key),row={...(previous||{}),...memory,project_id:S.proj.project.id,scope:'project',created_at:previous?.created_at||now,updated_at:now};
@@ -3526,7 +3580,7 @@ async function updateLongBookMemory(){
     }
     for(const memory of existing){if(!keep.has(memory.longbook_key))await dbDel('aiMemories',memory.id);}
     await loadMemories();
-    refreshLongBookMemoryUI(`已完整读取 ${result.stats.chapterCount} 章 · 新分析 ${result.stats.analyzedChapters} 章 · 复用 ${result.stats.reusedChapters} 章`);
+    refreshLongBookMemoryUI(`已读取设定/大纲 ${result.stats.foundationChars.toLocaleString()} 字符 · 正文 ${result.stats.chapterCount} 章 · 新分析 ${result.stats.analyzedChapters} 章 · 复用 ${result.stats.reusedChapters} 章`);
     setAIContextMode('smart');
     showToast('✓','全书分层记忆已更新');
   }catch(error){refreshLongBookMemoryUI('更新失败：'+String(error.message||error).slice(0,160));showToast('✕',error.message||'全书记忆更新失败');}
@@ -4406,7 +4460,7 @@ async function smartReduceAi(intensity = 'medium') {
 5. 避免过度修饰和堆砌
 6. 让文字有"人味"，而非机械精准
 
-直接输出改写后的文本，不要解释。`;
+直接输出改写后的文本，不要解释。\n\n${buildCtx()}`;
 
     showStreamingResult('reduceAiResult');
     const resultEl = document.getElementById('reduceAiResult');
@@ -4502,8 +4556,8 @@ async function aiSuggestContinuations() {
     return;
   }
 
-  // Get last 500 chars as context
-  const context = content.slice(-500);
+  const readingContext=buildAIWritingContext('smart');
+  const context = readingContext.text || content;
 
   const btn = event?.target;
   if (btn) {
@@ -4525,7 +4579,7 @@ async function aiSuggestContinuations() {
   ]
 }`;
 
-    const result = await callAITask('continuation.suggest', '请为以下文本提供3个续写方向：\n\n' + context, S.apiConfig, systemPrompt);
+    const result = await callAITask('continuation.suggest', '请依据项目正式事实、世界规则、大纲规划与现有正文，为以下内容提供3个续写方向。不得把尚未发生的大纲节点写成已经发生：\n\n' + buildCtx() + '\n\n【阅读上下文】\n' + context, S.apiConfig, systemPrompt);
 
     // Parse and display
     let suggestions;
@@ -5323,7 +5377,7 @@ function swMobileTab(tab,btn){
   }
 }
 function backToEditor(){const btn=document.querySelector('#bottomNav .btab');if(btn)swMobileTab('editor',btn);}
-function renderMpOutline(){if(!S.proj)return;const el=document.getElementById('mpOutlineList');if(!S.proj.outlines.length){el.innerHTML='<div style="text-align:center;padding:40px;color:var(--text-hint)">'+t('sb-empty-outline')+'</div>';return;}el.innerHTML=S.proj.outlines.map(o=>'<div class="outline-item'+(S.active&&S.active.type==='outline'&&S.active.id===o.id?' active':'')+'" onclick="loadOutlineContent('+Number(o.id)+');backToEditor()"><span class="oi-icon"><svg class="ic ic-sm"><use href="#ic-outline"/></svg></span><span class="oi-text">'+escapeHtml(o.title)+'</span><span class="oi-count">'+(o.content?countWords(o.content):0)+t('ps-units-2')+'</span></div>').join('');}
+function renderMpOutline(){if(!S.proj)return;const el=document.getElementById('mpOutlineList');const empty=S.proj.outlines.length?'':'<div style="text-align:center;padding:20px;color:var(--text-hint)">'+t('sb-empty-outline')+'</div>';el.innerHTML=worldSettingRow(true)+empty+S.proj.outlines.map(o=>'<div class="outline-item'+(S.active&&S.active.type==='outline'&&S.active.id===o.id?' active':'')+'" onclick="loadOutlineContent('+Number(o.id)+');backToEditor()"><span class="oi-icon"><svg class="ic ic-sm"><use href="#ic-outline"/></svg></span><span class="oi-text">'+escapeHtml(o.title)+'</span><span class="oi-count">'+(o.content?countWords(o.content):0)+t('ps-units-2')+'</span></div>').join('');}
 function renderMpChapter(){if(!S.proj)return;const el=document.getElementById('mpChapterList');if(!S.proj.chapters.length){el.innerHTML='<div style="text-align:center;padding:40px;color:var(--text-hint)">'+t('sb-empty-chapter')+'</div>';return;}el.innerHTML=S.proj.chapters.map(c=>'<div class="outline-item'+(S.active&&S.active.type==='chapter'&&S.active.id===c.id?' active':'')+'" onclick="loadChapterContent('+Number(c.id)+');backToEditor()"><span class="oi-icon"><svg class="ic ic-sm"><use href="#ic-chapter"/></svg></span><span class="oi-text">'+escapeHtml(c.title)+'</span><span class="oi-count">'+(c.word_count||0)+t('ps-units-2')+'</span></div>').join('');}
 function renderMpChar(){if(!S.proj)return;const el=document.getElementById('mpCharList');if(!S.proj.characters.length){el.innerHTML='<div style="text-align:center;padding:40px;color:var(--text-hint)">'+t('sb-empty-char')+'</div>';return;}el.innerHTML=S.proj.characters.map(c=>'<div class="char-card" onclick="loadCharContent('+Number(c.id)+');backToEditor()"><div class="char-name">'+escapeHtml(c.name)+'</div><span class="char-role">'+escapeHtml(c.role)+'</span><div class="char-desc">'+escapeHtml(c.personality||t('char-no-desc'))+'</div></div>').join('');}
 function renderMpNote(){if(!S.proj)return;const el=document.getElementById('mpNoteList');if(!el)return;const notes=S.proj.notes||[];if(!notes.length){el.innerHTML='<div class="sidebar-empty">'+t('sb-empty-notes')+'</div>';return;}el.innerHTML=notes.map(note=>'<div class="outline-item" onclick="loadNoteContent('+Number(note.id)+');backToEditor()"><span class="oi-icon"><svg class="ic ic-sm"><use href="#ic-note"/></svg></span><span class="oi-text">'+escapeHtml(note.title||'未命名笔记')+'</span><span class="oi-count">'+countWords(note.content||'')+t('ps-units-2')+'</span></div>').join('');}
