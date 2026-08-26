@@ -39,7 +39,8 @@ async function apiJSON(url,opts={}){
   const d=await r.json().catch(()=>({}));
   if(!r.ok){
     if(r.status===404&&location.hostname.endsWith('github.io'))throw new Error('当前 Pages 未连接 Go 后端；请使用 Docker 自部署版执行 API 与 Skill');
-    throw new Error(typeof d.error==='string'?d.error:(d.error?.message||('HTTP '+r.status)));
+    const error=new Error(typeof d.error==='string'?d.error:(d.error?.message||('HTTP '+r.status)));
+    error.status=r.status;error.payload=d;throw error;
   }
   return d;
 }
@@ -2541,6 +2542,7 @@ async function loadProject(id){
   renderChapterList();
   renderCharList();
   renderNoteList();
+  renderMemoryList();
   await renderHistory();
   await window.workflowRenderHistory?.();
   if(chs.length>0)await loadChapterContent(chs[0].id);
@@ -3595,21 +3597,26 @@ function renderMemoryList(){
     return;
   }
   const cats={plot:'☐ 剧情',style:'✎ 风格',world:'◆ 世界观',char:'● 人物',note:'📝 备注',rule:'─ 规则'};
-  el.innerHTML=projMem.map(m=>'<div class="char-card" style="position:relative"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px"><span style="font-size:10px;padding:1px 6px;border-radius:10px;background:var(--accent-glow);color:var(--accent)">'+escapeHtml(cats[m.category]||(window.wwCategoryLabel?window.wwCategoryLabel(m.category):m.category))+(m.source?' · '+escapeHtml(m.source):'')+'</span><div style="display:none;gap:4px" class="mem-actions"><button class="char-act-btn" onclick="event.stopPropagation();editMemory('+Number(m.id)+')">'+t('action-edit')+'</button><button class="char-act-btn" onclick="event.stopPropagation();delMemory('+Number(m.id)+')">'+t('action-delete')+'</button></div></div>'+(m.title?'<div style="font-size:12px;font-weight:700;margin-bottom:3px">'+escapeHtml(m.title)+'</div>':'')+'<div style="font-size:12px;color:var(--text-secondary);line-height:1.6">'+escapeHtml(m.content)+'</div></div>').join('');
-  el.querySelectorAll('.char-card').forEach(c=>{
-    c.addEventListener('mouseenter',()=>{const a=c.querySelector('.mem-actions');if(a)a.style.display='flex';});
-    c.addEventListener('mouseleave',()=>{const a=c.querySelector('.mem-actions');if(a)a.style.display='none';});
-  });
+  el.innerHTML=projMem.map(m=>{
+    const sync=m.backend_sync_status==='failed'?' · 后台待同步':(m.backend_sync_status==='stale'?' · 后台未更新':(m.backend_id?' · 后台已关联':''));
+    return '<div class="char-card" data-memory-id="'+Number(m.id)+'" style="position:relative"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;gap:6px"><span style="font-size:10px;padding:1px 6px;border-radius:10px;background:var(--accent-glow);color:var(--accent)">'+escapeHtml(cats[m.category]||(window.wwCategoryLabel?window.wwCategoryLabel(m.category):m.category))+(m.source?' · '+escapeHtml(m.source):'')+escapeHtml(sync)+'</span><div style="display:flex;gap:4px;flex-shrink:0" class="mem-actions"><button class="char-act-btn" onclick="event.stopPropagation();editMemory('+Number(m.id)+')">'+t('action-edit')+'</button><button class="char-act-btn" onclick="event.stopPropagation();delMemory('+Number(m.id)+')">'+t('action-delete')+'</button></div></div>'+(m.title?'<div style="font-size:12px;font-weight:700;margin-bottom:3px">'+escapeHtml(m.title)+'</div>':'')+'<div style="font-size:12px;color:var(--text-secondary);line-height:1.6">'+escapeHtml(m.content)+'</div></div>';
+  }).join('');
+}
+const BUILTIN_MEMORY_CATEGORIES={plot:'剧情',style:'风格',world:'世界观',char:'人物',note:'备注',rule:'规则'};
+function memoryCategoryKey(chip){
+  if(!chip)return'note';
+  if(chip.dataset.categoryId)return chip.dataset.categoryId;
+  const label=chip.textContent.trim();
+  return Object.entries(BUILTIN_MEMORY_CATEGORIES).find(([,name])=>label.endsWith(name))?.[0]||'note';
 }
 async function saveMemory(){
   const content=document.getElementById('memContent').value.trim();
   if(!content){showToast('✕',t('toast-enter-memory'));return;}
   const catEl=document.querySelector('#memCatGrid .genre-chip.on');
-  const category=catEl?catEl.textContent.replace(/^[^\s]+\s/,''):'备注';
-  const catMap={'☐ 剧情':'plot','✎ 风格':'style','◆ 世界观':'world','● 人物':'char','📝 备注':'note','─ 规则':'rule'};
-  const catKey=catEl?.dataset.categoryId||catMap[category]||'note';
+  const catKey=memoryCategoryKey(catEl);
+  const titleInput=document.getElementById('memTitle');
   try{
-    await remember(content,{...(S.pendingMemoryMeta||{}),id:S.editMemoryId||undefined,title:document.getElementById('memTitle')?.value.trim()||S.pendingMemoryMeta?.title||'',category:catKey,backend:!!document.getElementById('memBackend')?.checked});
+    await remember(content,{...(S.pendingMemoryMeta||{}),id:S.editMemoryId||undefined,title:titleInput?titleInput.value.trim():(S.pendingMemoryMeta?.title||''),category:catKey,backend:!!document.getElementById('memBackend')?.checked});
     S.editMemoryId=null;S.pendingMemoryMeta=null;
     document.getElementById('memContent').value='';if(document.getElementById('memTitle'))document.getElementById('memTitle').value='';if(document.getElementById('memBackend'))document.getElementById('memBackend').checked=false;
     closeModal('memoryModal');
@@ -3621,14 +3628,29 @@ async function remember(content,options={}){
   if(!value)throw new Error('记忆内容不能为空');
   if(!S.proj)throw new Error(t('toast-no-proj'));
   const now=Date.now();
-  const existing=options.id?S.aiMemories.find(m=>m.id===options.id):null;
-  const row={...(existing||{}),project_id:S.proj.project.id,category:options.category||existing?.category||'note',title:String(options.title||existing?.title||'').trim(),content:value,source:options.source||existing?.source||'manual',scope:options.scope||existing?.scope||'project',enabled:options.enabled??existing?.enabled??true,created_at:existing?.created_at||now,updated_at:now};
+  const existing=options.id?S.aiMemories.find(m=>m.id===options.id&&m.project_id===S.proj.project.id):null;
+  if(options.id&&!existing)throw new Error('当前项目中找不到这条记忆，已阻止跨项目覆盖');
+  const hasTitle=Object.prototype.hasOwnProperty.call(options,'title');
+  const row={...(existing||{}),project_id:S.proj.project.id,category:options.category||existing?.category||'note',title:hasTitle?String(options.title||'').trim():String(existing?.title||'').trim(),content:value,source:options.source||existing?.source||'manual',scope:options.scope||existing?.scope||'project',enabled:options.enabled??existing?.enabled??true,created_at:existing?.created_at||now,updated_at:now};
   if(options.id)row.id=options.id;
   const id=await dbPut('aiMemories',row);row.id=row.id||id;
+  let backendError=null;
   if(options.backend&&!WW_BROWSER_API_MODE){
-    await apiJSON('/api/memories',{method:'POST',body:JSON.stringify({title:row.title,content:row.content,category:row.category,source:row.source,scope:row.scope,project:S.proj.project.name,enabled:row.enabled})});
+    try{
+      const response=await apiJSON('/api/memories',{method:'POST',body:JSON.stringify({id:row.backend_id||'',title:row.title,content:row.content,category:row.category,source:row.source,scope:row.scope,project:S.proj.project.name,enabled:row.enabled})});
+      row.backend_id=response.memory?.id||row.backend_id||'';
+      row.backend_sync_status='synced';row.backend_synced_at=Date.now();delete row.backend_sync_error;
+      await dbPut('aiMemories',row);
+    }catch(error){
+      backendError=error;row.backend_sync_status='failed';row.backend_sync_error=String(error.message||error).slice(0,300);await dbPut('aiMemories',row);
+    }
+  }else if(existing?.backend_id&&!WW_BROWSER_API_MODE){
+    row.backend_sync_status='stale';row.backend_sync_error='本次只更新了浏览器记忆，Go 后台仍保留上一个版本';await dbPut('aiMemories',row);
   }
-  await loadMemories();showToast('◆',options.backend&&!WW_BROWSER_API_MODE?'已写入项目记忆与后台记忆':'记忆已保存');updateContextBar();return row;
+  await loadMemories();
+  if(backendError)showToast('!','本地记忆已保存；Go 后台写入失败，可编辑后重试：'+row.backend_sync_error);
+  else showToast('◆',options.backend&&!WW_BROWSER_API_MODE?'已写入项目记忆与后台记忆':'记忆已保存');
+  updateContextBar();return{...row,backend_error:backendError};
 }
 
 function stageMemory(content,options={}){
@@ -3641,7 +3663,13 @@ function stageMemory(content,options={}){
   openModal('memoryModal');
 }
 async function delMemory(id){
+  const memory=S.proj?S.aiMemories.find(item=>item.id===id&&item.project_id===S.proj.project.id):null;
+  if(!memory){showToast('✕','当前项目中找不到这条记忆，已阻止跨项目删除');await loadMemories();return;}
   if(!confirm('删除此记忆？'))return;
+  if(memory.backend_id&&!WW_BROWSER_API_MODE){
+    try{await apiJSON('/api/memories?id='+encodeURIComponent(memory.backend_id),{method:'DELETE'});}
+    catch(error){if(error.status!==404){showToast('✕','Go 后台删除失败，本地记忆已保留：'+(error.message||error));return;}}
+  }
   await dbDel('aiMemories',id);
   S.aiMemories=S.aiMemories.filter(m=>m.id!==id);
   renderMemoryList();
@@ -3649,12 +3677,13 @@ async function delMemory(id){
   updateContextBar();
 }
 function editMemory(id){
-  const m=S.aiMemories.find(x=>x.id===id);
-  if(!m)return;
+  const m=S.proj?S.aiMemories.find(x=>x.id===id&&x.project_id===S.proj.project.id):null;
+  if(!m){showToast('✕','当前项目中找不到这条记忆，已阻止跨项目编辑');loadMemories();return;}
   S.editMemoryId=id;
   S.pendingMemoryMeta={source:m.source||'manual',scope:m.scope||'project',title:m.title||'',category:m.category||'note'};
   if(document.getElementById('memTitle'))document.getElementById('memTitle').value=m.title||'';
   document.getElementById('memContent').value=m.content;
+  const backend=document.getElementById('memBackend');if(backend)backend.checked=!WW_BROWSER_API_MODE&&!!(m.backend_id||m.backend_sync_status==='failed');
   const catMap2={plot:'☐ 剧情',style:'✎ 风格',world:'◆ 世界观',char:'● 人物',note:'📝 备注',rule:'─ 规则'};
   document.querySelectorAll('#memCatGrid .genre-chip').forEach(c=>c.classList.toggle('on',c.dataset.categoryId===m.category||c.textContent===catMap2[m.category]));
   openModal('memoryModal');

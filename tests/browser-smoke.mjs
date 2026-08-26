@@ -293,6 +293,81 @@ must_not_create_chapters=true
   await page.locator('#newProjectModal .btn-confirm').click();
   await page.waitForFunction(() => document.getElementById('currentProjectName')?.textContent === '浏览器验收项目');
 
+  const memoryProjectId = await page.evaluate(() => S.proj.project.id);
+  await page.locator('.ai-tab', { hasText: '记忆' }).click();
+  await page.locator('#aiTab-memory button', { hasText: '＋ 添加' }).click();
+  await page.locator('#memCatGrid .genre-chip', { hasText: '世界观' }).click();
+  await page.locator('#memTitle').fill('世界规则·初版');
+  await page.locator('#memContent').fill('验收城每天凌晨会倒退十分钟。');
+  await page.locator('#memoryModal .btn-confirm').click();
+  await page.waitForFunction(() => document.querySelector('#memoryList')?.textContent.includes('验收城每天凌晨会倒退十分钟'));
+  let localMemory = await page.evaluate(async projectId => (await dbByIndex('aiMemories', 'project_id', projectId)).find(memory => memory.title === '世界规则·初版'), memoryProjectId);
+  assert.equal(localMemory.category, 'world', 'built-in memory categories must retain their exact category id');
+
+  let localMemoryCard = page.locator('#memoryList [data-memory-id]', { hasText: '世界规则·初版' });
+  assert.equal(await localMemoryCard.getByRole('button', { name: '编辑' }).isVisible(), true, 'memory edit must remain available on touch devices without hover');
+  await localMemoryCard.getByRole('button', { name: '编辑' }).click();
+  await page.locator('#memCatGrid .genre-chip', { hasText: '规则' }).click();
+  await page.locator('#memTitle').fill('');
+  await page.locator('#memContent').fill('验收城每天凌晨会倒退十二分钟。');
+  await page.locator('#memoryModal .btn-confirm').click();
+  await page.waitForFunction(() => document.querySelector('#memoryList')?.textContent.includes('倒退十二分钟'));
+  let localMemories = await page.evaluate(projectId => dbByIndex('aiMemories', 'project_id', projectId), memoryProjectId);
+  assert.equal(localMemories.length, 1, 'editing a memory must update the same IndexedDB row');
+  assert.equal(localMemories[0].category, 'rule');
+  assert.equal(localMemories[0].title, '', 'memory title must be clearable');
+
+  await page.reload({ waitUntil: 'networkidle' });
+  await page.waitForFunction(() => document.getElementById('currentProjectName')?.textContent === '浏览器验收项目');
+  await page.locator('.ai-tab', { hasText: '记忆' }).click();
+  assert.match(await page.locator('#memoryList').innerText(), /倒退十二分钟/, 'memory update must survive a full page reload');
+
+  const isolatedProjectId = await page.evaluate(async () => {
+    const now = Date.now();
+    const id = await importProjectBundleAtomic({ version: 6, project: { name: '记忆隔离验收项目', created_at: now }, outlines: [], characters: [], chapters: [], notes: [], memories: [], history: [], categories: [] });
+    await loadProjects();
+    await loadProject(id);
+    return id;
+  });
+  assert.match(await page.locator('#memoryList').innerText(), /暂无记忆条目/, 'switching projects must immediately rerender the scoped memory list');
+  await page.evaluate(async projectId => { await loadProject(projectId); }, memoryProjectId);
+  assert.match(await page.locator('#memoryList').innerText(), /倒退十二分钟/, 'switching back must restore only that project\'s memory cards');
+  await page.evaluate(async projectId => {
+    for (const store of ['outlines', 'characters', 'chapters', 'notes', 'aiMemories', 'aiHistory']) {
+      for (const row of await dbByIndex(store, 'project_id', projectId)) await dbDel(store, row.id);
+    }
+    await dbDel('projects', projectId);
+    await loadProjects();
+  }, isolatedProjectId);
+
+  await page.locator('#aiTab-memory button', { hasText: '＋ 添加' }).click();
+  await page.locator('#memTitle').fill('前后台联动验收');
+  await page.locator('#memContent').fill('后台联动第一版。');
+  await page.locator('#memBackend').check();
+  await page.locator('#memoryModal .btn-confirm').click();
+  await page.waitForFunction(() => document.querySelector('#memoryList')?.textContent.includes('后台已关联'));
+  const linkedMemory = await page.evaluate(async projectId => (await dbByIndex('aiMemories', 'project_id', projectId)).find(memory => memory.title === '前后台联动验收'), memoryProjectId);
+  assert.ok(linkedMemory.backend_id, 'dual-write memory must retain its backend id locally');
+  assert.equal(linkedMemory.backend_sync_status, 'synced');
+
+  let linkedCard = page.locator('#memoryList [data-memory-id]', { hasText: '前后台联动验收' });
+  await linkedCard.getByRole('button', { name: '编辑' }).click();
+  assert.equal(await page.locator('#memBackend').isChecked(), true, 'editing a linked memory should default to updating the backend record');
+  await page.locator('#memContent').fill('后台联动第二版。');
+  await page.locator('#memoryModal .btn-confirm').click();
+  await page.waitForFunction(() => document.querySelector('#memoryList')?.textContent.includes('后台联动第二版'));
+  const backendAfterUpdate = await page.evaluate(project => fetch('/api/memories?project=' + encodeURIComponent(project)).then(response => response.json()), '浏览器验收项目');
+  const linkedRows = backendAfterUpdate.memories.filter(memory => memory.id === linkedMemory.backend_id);
+  assert.equal(linkedRows.length, 1, 'linked edits must update, not duplicate, the Go backend memory');
+  assert.equal(linkedRows[0].content, '后台联动第二版。');
+
+  linkedCard = page.locator('#memoryList [data-memory-id]', { hasText: '前后台联动验收' });
+  page.once('dialog', dialog => dialog.accept());
+  await linkedCard.getByRole('button', { name: '删除' }).click();
+  await page.waitForFunction(id => !S.aiMemories.some(memory => memory.id === id), linkedMemory.id);
+  const backendAfterDelete = await page.evaluate(project => fetch('/api/memories?project=' + encodeURIComponent(project)).then(response => response.json()), '浏览器验收项目');
+  assert.equal(backendAfterDelete.memories.some(memory => memory.id === linkedMemory.backend_id), false, 'deleting a linked memory must delete its Go backend counterpart');
+
   await page.locator('.nav-tab', { hasText: '笔记' }).click();
   await page.locator('#tab-notes .add-item-btn').click();
   await page.waitForFunction(() => S.active?.type === 'note' && document.querySelector('#noteList .oi-text')?.textContent === '新笔记');

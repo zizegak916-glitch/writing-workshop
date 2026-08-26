@@ -84,7 +84,7 @@
 
         <div class="tutorial-step" id="tutorial-memory">
           <span class="tutorial-number">08</span>
-          <div><h3>把真正长期有效的结果记入记忆</h3><p>手工内容、写作候选、快捷工具、流程候选、语料总结、单张指导卡和提示词候选都能进入同一记忆表单。保存前编辑标题、分类、来源、项目范围和正文；一次性命令不要当长期记忆。</p><p class="tutorial-note">Pages 记忆进入浏览器 AI 请求。只有自部署且明确勾选“同时写入 Go 后台记忆”时，才会额外写入后端；两边不静默同步。</p></div>
+          <div><h3>把真正长期有效的结果记入记忆</h3><p>手工内容、写作候选、快捷工具、流程候选、语料总结、单张指导卡和提示词候选都能进入同一记忆表单。保存前编辑标题、分类、来源、项目范围和正文；一次性命令不要当长期记忆。</p><p class="tutorial-note">Pages 记忆进入浏览器 AI 请求。自部署时明确勾选“同时写入 Go 后台记忆”，浏览器会记录该后台条目的 ID；以后再次勾选保存会更新同一条，删除浏览器条目也会删除已关联的后台条目。后台管理页的独立改动不会反向覆盖浏览器。</p></div>
         </div>
 
         <div class="tutorial-step">
@@ -230,8 +230,8 @@ GOTOOLCHAIN=local CGO_ENABLED=0 go build -o writing-workshop ./cmd/writing-works
         </table>
         <div class="doc-callout"><b>记忆不是越多越智能：</b>重复、冲突、过时和一次性要求会争夺上下文。应定期修改、停用或删除；明确事实与当前要求永远高于来源不明的旧记忆。</div>
         <div class="doc-grid">
-          <article class="doc-card"><h3>Pages 浏览器记忆</h3><p>随当前项目保存在浏览器，可随 v6 项目包迁移；启用项进入 Pages 的模型请求。</p></article>
-          <article class="doc-card"><h3>Go 后台记忆</h3><p>自部署时由 <code>/api/memories</code> 管理，启用项按项目进入后端写作与改写；必须显式写入，不和浏览器静默同步。</p></article>
+          <article class="doc-card"><h3>Pages 浏览器记忆</h3><p>严格按当前项目保存在浏览器，切换项目会立即换表；分类、标题和正文均可修改，可随 v6 项目包迁移，启用项进入 Pages 的模型请求。</p></article>
+          <article class="doc-card"><h3>Go 后台记忆</h3><p>自部署时由 <code>/api/memories</code> 管理，启用项按项目进入后端写作与改写。只有明确勾选的浏览器条目会建立后台关联；关联后的保存和删除会作用于同一后台条目，后台管理页的独立变更仍不会静默回写浏览器。</p></article>
         </div>
       </section>
 
