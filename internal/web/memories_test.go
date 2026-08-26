@@ -11,7 +11,7 @@ import (
 
 func TestBackendMemoryCRUDAndRunContext(t *testing.T) {
 	server, mux := newTestServer(t)
-	body := bytes.NewBufferString(`{"project":"验收项目","category":"style","title":"对白规则","content":"对白必须改变信息或关系。","source":"calibration","scope":"project","enabled":true}`)
+	body := bytes.NewBufferString(`{"id":"memory-browser-idempotent-test","project":"验收项目","category":"style","title":"对白规则","content":"对白必须改变信息或关系。","source":"calibration","scope":"project","enabled":true}`)
 	req := httptest.NewRequest(http.MethodPost, "/api/memories", body)
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, req)
@@ -24,7 +24,7 @@ func TestBackendMemoryCRUDAndRunContext(t *testing.T) {
 	if err := json.Unmarshal(rec.Body.Bytes(), &saved); err != nil {
 		t.Fatal(err)
 	}
-	if saved.Memory.ID == "" || saved.Memory.Source != "calibration" {
+	if saved.Memory.ID != "memory-browser-idempotent-test" || saved.Memory.Source != "calibration" {
 		t.Fatalf("unexpected memory: %+v", saved.Memory)
 	}
 

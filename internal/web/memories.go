@@ -110,16 +110,17 @@ func (s *Server) handleMemories(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		input.Content = strings.TrimSpace(input.Content)
+		input.ID = strings.TrimSpace(input.ID)
 		if input.Content == "" {
 			httpError(w, errors.New("memory content is required"), http.StatusBadRequest)
 			return
 		}
-		if utf8.RuneCountInString(input.Content) > 30000 || utf8.RuneCountInString(input.Title) > 200 {
-			httpError(w, errors.New("memory content or title is too long"), http.StatusBadRequest)
+		if utf8.RuneCountInString(input.Content) > 30000 || utf8.RuneCountInString(input.Title) > 200 || utf8.RuneCountInString(input.ID) > 200 {
+			httpError(w, errors.New("memory content, title, or id is too long"), http.StatusBadRequest)
 			return
 		}
 		now := time.Now().UTC()
-		memory := backendMemory{ID: strings.TrimSpace(input.ID), Project: strings.TrimSpace(input.Project), Category: firstNonEmpty(strings.TrimSpace(input.Category), "note"), Title: strings.TrimSpace(input.Title), Content: input.Content, Source: firstNonEmpty(strings.TrimSpace(input.Source), "manual"), Scope: firstNonEmpty(strings.TrimSpace(input.Scope), "project"), Enabled: true, CreatedAt: now, UpdatedAt: now}
+		memory := backendMemory{ID: input.ID, Project: strings.TrimSpace(input.Project), Category: firstNonEmpty(strings.TrimSpace(input.Category), "note"), Title: strings.TrimSpace(input.Title), Content: input.Content, Source: firstNonEmpty(strings.TrimSpace(input.Source), "manual"), Scope: firstNonEmpty(strings.TrimSpace(input.Scope), "project"), Enabled: true, CreatedAt: now, UpdatedAt: now}
 		if input.Enabled != nil {
 			memory.Enabled = *input.Enabled
 		}
@@ -135,7 +136,9 @@ func (s *Server) handleMemories(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		if !updated {
-			memory.ID = "memory-" + strconv36(now.UnixNano())
+			if memory.ID == "" {
+				memory.ID = "memory-" + strconv36(now.UnixNano())
+			}
 			archive.Memories = append(archive.Memories, memory)
 		}
 		if len(archive.Memories) > 500 {

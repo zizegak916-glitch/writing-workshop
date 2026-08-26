@@ -3603,6 +3603,7 @@ function renderMemoryList(){
   }).join('');
 }
 const BUILTIN_MEMORY_CATEGORIES={plot:'剧情',style:'风格',world:'世界观',char:'人物',note:'备注',rule:'规则'};
+function newBackendMemoryId(){return'memory-browser-'+(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+'-'+Math.random().toString(36).slice(2));}
 function memoryCategoryKey(chip){
   if(!chip)return'note';
   if(chip.dataset.categoryId)return chip.dataset.categoryId;
@@ -3627,17 +3628,20 @@ async function remember(content,options={}){
   const value=String(content||'').trim();
   if(!value)throw new Error('记忆内容不能为空');
   if(!S.proj)throw new Error(t('toast-no-proj'));
+  const projectId=S.proj.project.id,projectName=S.proj.project.name;
   const now=Date.now();
-  const existing=options.id?S.aiMemories.find(m=>m.id===options.id&&m.project_id===S.proj.project.id):null;
+  const existing=options.id?S.aiMemories.find(m=>m.id===options.id&&m.project_id===projectId):null;
   if(options.id&&!existing)throw new Error('当前项目中找不到这条记忆，已阻止跨项目覆盖');
   const hasTitle=Object.prototype.hasOwnProperty.call(options,'title');
-  const row={...(existing||{}),project_id:S.proj.project.id,category:options.category||existing?.category||'note',title:hasTitle?String(options.title||'').trim():String(existing?.title||'').trim(),content:value,source:options.source||existing?.source||'manual',scope:options.scope||existing?.scope||'project',enabled:options.enabled??existing?.enabled??true,created_at:existing?.created_at||now,updated_at:now};
+  const wantsBackend=!!options.backend&&!WW_BROWSER_API_MODE;
+  const row={...(existing||{}),project_id:projectId,category:options.category||existing?.category||'note',title:hasTitle?String(options.title||'').trim():String(existing?.title||'').trim(),content:value,source:options.source||existing?.source||'manual',scope:options.scope||existing?.scope||'project',enabled:options.enabled??existing?.enabled??true,created_at:existing?.created_at||now,updated_at:now};
+  if(wantsBackend){row.backend_id=row.backend_id||newBackendMemoryId();row.backend_sync_status='pending';}
   if(options.id)row.id=options.id;
   const id=await dbPut('aiMemories',row);row.id=row.id||id;
   let backendError=null;
-  if(options.backend&&!WW_BROWSER_API_MODE){
+  if(wantsBackend){
     try{
-      const response=await apiJSON('/api/memories',{method:'POST',body:JSON.stringify({id:row.backend_id||'',title:row.title,content:row.content,category:row.category,source:row.source,scope:row.scope,project:S.proj.project.name,enabled:row.enabled})});
+      const response=await apiJSON('/api/memories',{method:'POST',body:JSON.stringify({id:row.backend_id,title:row.title,content:row.content,category:row.category,source:row.source,scope:row.scope,project:projectName,enabled:row.enabled})});
       row.backend_id=response.memory?.id||row.backend_id||'';
       row.backend_sync_status='synced';row.backend_synced_at=Date.now();delete row.backend_sync_error;
       await dbPut('aiMemories',row);
@@ -3649,7 +3653,7 @@ async function remember(content,options={}){
   }
   await loadMemories();
   if(backendError)showToast('!','本地记忆已保存；Go 后台写入失败，可编辑后重试：'+row.backend_sync_error);
-  else showToast('◆',options.backend&&!WW_BROWSER_API_MODE?'已写入项目记忆与后台记忆':'记忆已保存');
+  else showToast('◆',wantsBackend?'已写入项目记忆与后台记忆':'记忆已保存');
   updateContextBar();return{...row,backend_error:backendError};
 }
 
