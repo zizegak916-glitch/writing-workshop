@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 
 await import('../web/static/js/ai-task-contract.js');
 await import('../web/static/js/api-adapter.js');
@@ -8,6 +9,8 @@ const adapter = globalThis.WWApiAdapter;
 const tasks = contract.list();
 assert.equal(tasks.length, 58, 'every Prompt Skill and every non-Skill AI feature must be registered');
 assert.equal(tasks.filter(task => task.id.startsWith('skill.')).length, 32);
+const workbenchSource = readFileSync(new URL('../web/static/js/workbench.js', import.meta.url), 'utf8');
+assert.match(workbenchSource, /summarize:\(\{taskId,prompt\}\)=>callAITaskStream\(/, 'long-book memory updates must use the streaming transport');
 
 const longText = Array.from({ length: 5000 }, (_, index) => `第${index + 1}段：雨落在旧站台上，他核对门牌后才继续往前走；这段内容用于验证长文本不会在请求适配层被静默截断。`).join('\n');
 assert.ok(longText.length >= 250000, 'simulation fixture must be a genuinely long Chinese document');
@@ -64,5 +67,6 @@ assert.ok(requests.every(request => request.chars === longText.length));
 assert.ok(requests.every(request => request.url === 'https://bridge.example/api/http-bridge/longtext/v1/chat/completions'));
 assert.ok(requests.every(request => request.bridgeToken === 'longtext-bridge-token-for-simulation'));
 assert.ok(tasks.filter(task => task.maxTokens >= 8192).length >= 10, 'long-form transformations must not keep the old 2k output ceiling');
+assert.ok(tasks.filter(task => task.id.startsWith('memory.')).every(task => task.minTimeoutMs >= 300000), 'long-book memory tasks need a long-request timeout floor');
 
 console.log(`AI long-text bridge simulation OK: ${tasks.length} registered features × request/stream, ${longText.length.toLocaleString()} chars each, no external model called.`);

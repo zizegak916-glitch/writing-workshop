@@ -172,12 +172,29 @@ assert.throws(
 );
 
 assert.equal(A.parseResponse({ choices: [{ message: { content: 'chat ok' } }] }), 'chat ok');
+assert.equal(A.parseResponse({ choices: [{ delta: { content: 'aggregated delta ok' } }] }), 'aggregated delta ok');
+assert.equal(A.parseResponse({ data: { result: { choices: [{ message: { content: [{ type: 'text', text: 'wrapped proxy ok' }] } }] } } }), 'wrapped proxy ok');
+assert.equal(A.parseResponse('data: {"choices":[{"delta":{"content":"text body sse"}}]}\n\ndata: [DONE]\n\n'), 'text body sse');
 assert.equal(A.parseResponse({ output_text: 'responses ok' }), 'responses ok');
 assert.equal(A.parseResponse({ content: [{ type: 'text', text: 'anthropic ok' }] }), 'anthropic ok');
 assert.equal(A.parseResponse({ message: { content: 'ollama ok' } }), 'ollama ok');
 assert.deepEqual(A.parseUsage({ message: { usage: { input_tokens: 9, output_tokens: 2 } } }), { input: 9, output: 2 });
 assert.deepEqual(A.parseModelList({ data: [{ id: 'gpt-5.6-luna' }, { id: 'grok-4.5' }, { id: 'gpt-5.6-luna' }] }), ['gpt-5.6-luna', 'grok-4.5']);
 assert.deepEqual(A.parseModelList({ models: [{ name: 'qwen3:14b' }] }), ['qwen3:14b']);
+assert.match(
+  A.missingTextMessage({ choices: [{ finish_reason: 'length', message: { content: null, reasoning_content: '思考已占满额度' } }] }),
+  /思考内容.*最终文本为空.*finish_reason=length/
+);
+
+const deepSeekMemoryBody = A.buildBody({
+  provider: 'deepseek', protocol: 'openai-chat', model: 'deepseek-chat', disableThinking: true
+}, messages, { maxTokens: 4096 });
+assert.deepEqual(deepSeekMemoryBody.thinking, { type: 'disabled' });
+const explicitThinkingBody = A.buildBody({
+  provider: 'deepseek', protocol: 'openai-chat', model: 'deepseek-chat', disableThinking: true,
+  bodyOverrides: { thinking: { type: 'enabled' } }
+}, messages, { maxTokens: 4096 });
+assert.deepEqual(explicitThinkingBody.thinking, { type: 'enabled' }, 'an explicit user override must win');
 
 assert.equal(
   A.parseStreamRecord('data: {"choices":[{"delta":{"content":"甲"}}]}').delta,
@@ -264,6 +281,41 @@ try {
 
   globalThis.fetch = async (_url, options) => new Response(new ReadableStream({
     start(controller) {
+      let stopped = false;
+      const timers = [
+        setTimeout(() => { if (!stopped) controller.enqueue(new TextEncoder().encode('data: {"choices":[{"delta":{"content":"空"}}]}\n\n')); }, 450),
+        setTimeout(() => { if (!stopped) controller.enqueue(new TextEncoder().encode('data: {"choices":[{"delta":{"content":"闲"}}]}\n\n')); }, 900),
+        setTimeout(() => { if (!stopped) { controller.enqueue(new TextEncoder().encode('data: [DONE]\n\n')); controller.close(); } }, 1350)
+      ];
+      options.signal.addEventListener('abort', () => {
+        stopped = true;
+        timers.forEach(clearTimeout);
+        controller.error(new DOMException('aborted', 'AbortError'));
+      });
+    }
+  }), { status: 200, headers: { 'content-type': 'text/event-stream' } });
+  const longLivingStream = await A.stream(
+    { protocol: 'openai-chat', model: 'idle-timeout-test', baseUrl: 'https://relay.example/v1', timeout: 700 },
+    messages,
+    {}
+  );
+  assert.equal(longLivingStream.text, '空闲', 'active stream chunks must renew the idle timeout');
+
+  globalThis.fetch = async () => new Response(
+    'data: {"choices":[{"delta":{"reasoning_content":"只完成了思考"},"finish_reason":"length"}]}\n\ndata: [DONE]\n\n',
+    { status: 200, headers: { 'content-type': 'text/event-stream' } }
+  );
+  await assert.rejects(
+    A.stream(
+      { protocol: 'openai-chat', model: 'reasoning-only-test', baseUrl: 'https://relay.example/v1', timeout: 2000 },
+      messages,
+      {}
+    ),
+    /思考内容.*最终文本为空.*finish_reason=length/
+  );
+
+  globalThis.fetch = async (_url, options) => new Response(new ReadableStream({
+    start(controller) {
       options.signal.addEventListener('abort', () => controller.error(new DOMException('aborted', 'AbortError')));
     }
   }), { status: 200, headers: { 'content-type': 'text/event-stream' } });
@@ -306,4 +358,4 @@ try {
   globalThis.fetch = originalFetch;
 }
 
-console.log('API adapter contract OK: endpoints, auth, request bodies, response formats, true stream deltas and whole-stream timeout.');
+console.log('API adapter contract OK: endpoints, auth, nested response envelopes, DeepSeek thinking, stream deltas and renewable idle timeout.');

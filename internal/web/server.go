@@ -562,13 +562,15 @@ func (s *Server) handleAI(w http.ResponseWriter, r *http.Request) {
 		httpError(w, err, http.StatusBadRequest)
 		return
 	}
-	ctx, cancel := s.aiRequestContext(r.Context(), resolved.Key)
+	resolved = applyAIRequestOptions(resolved, req)
+	ctx, cancel := s.aiRequestContextForRequest(r.Context(), resolved.Key, req.RequestTimeoutMS)
 	defer cancel()
-	text, usage, providerKey, modelName, err := s.generateAI(ctx, resolved.Key, resolved.Model, messages)
+	text, usage, err := s.generateResolvedAI(ctx, resolved, messages)
 	if err != nil {
 		respond(w, nil, err)
 		return
 	}
+	providerKey, modelName := resolved.Key, resolved.Model
 	writeJSON(w, map[string]any{
 		"id":       "writing-workshop",
 		"object":   "chat.completion",
@@ -615,9 +617,19 @@ func decodeAIRequest(r *http.Request) (aiRequest, []engine.Message, error) {
 }
 
 func (s *Server) aiRequestContext(parent context.Context, provider string) (context.Context, context.CancelFunc) {
+	return s.aiRequestContextForRequest(parent, provider, 0)
+}
+
+func (s *Server) aiRequestContextForRequest(parent context.Context, provider string, requestedMS int) (context.Context, context.CancelFunc) {
 	timeout := 60 * time.Second
 	if pc, ok := s.host.Config().Providers[provider]; ok && pc.RequestTimeoutMS > 0 {
 		timeout = time.Duration(pc.RequestTimeoutMS) * time.Millisecond
+	}
+	if requested := time.Duration(requestedMS) * time.Millisecond; requested > timeout {
+		if requested > 10*time.Minute {
+			requested = 10 * time.Minute
+		}
+		timeout = requested
 	}
 	return context.WithTimeout(parent, timeout)
 }
@@ -627,6 +639,10 @@ func (s *Server) generateAIStream(ctx context.Context, provider, modelName strin
 	if err != nil {
 		return "", nil, err
 	}
+	return s.generateResolvedAIStream(ctx, resolved, messages, onDelta)
+}
+
+func (s *Server) generateResolvedAIStream(ctx context.Context, resolved resolvedAIProvider, messages []engine.Message, onDelta func(string)) (string, *engine.Usage, error) {
 	if useRawProvider(resolved) {
 		return rawProviderRequest(ctx, resolved, messages, true, onDelta)
 	}
@@ -690,6 +706,7 @@ func (s *Server) handleAIStream(w http.ResponseWriter, r *http.Request) {
 		httpError(w, err, http.StatusBadRequest)
 		return
 	}
+	resolved = applyAIRequestOptions(resolved, req)
 	providerKey, modelName := resolved.Key, resolved.Model
 	flusher, ok := w.(http.Flusher)
 	if !ok {
@@ -701,9 +718,9 @@ func (s *Server) handleAIStream(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Connection", "keep-alive")
 	writeSSE(w, "start", map[string]any{"provider": providerKey, "model": modelName})
 	flusher.Flush()
-	ctx, cancel := s.aiRequestContext(r.Context(), providerKey)
+	ctx, cancel := s.aiRequestContextForRequest(r.Context(), providerKey, req.RequestTimeoutMS)
 	defer cancel()
-	text, usage, err := s.generateAIStream(ctx, providerKey, modelName, messages, func(delta string) {
+	text, usage, err := s.generateResolvedAIStream(ctx, resolved, messages, func(delta string) {
 		writeSSE(w, "delta", map[string]any{"text": delta})
 		flusher.Flush()
 	})
@@ -977,11 +994,13 @@ type aiMessage struct {
 }
 
 type aiRequest struct {
-	Provider string      `json:"provider"`
-	Model    string      `json:"model"`
-	Messages []aiMessage `json:"messages"`
-	Message  string      `json:"message"`
-	Mode     string      `json:"mode"`
+	Provider         string      `json:"provider"`
+	Model            string      `json:"model"`
+	Messages         []aiMessage `json:"messages"`
+	Message          string      `json:"message"`
+	Mode             string      `json:"mode"`
+	MaxTokens        int         `json:"max_tokens"`
+	RequestTimeoutMS int         `json:"request_timeout_ms"`
 }
 
 func applyConfigUpdate(cfg *bootstrap.Config, req configUpdate) {

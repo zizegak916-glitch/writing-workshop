@@ -295,7 +295,7 @@ WRITING_WORKSHOP_ALLOWED_ORIGINS=https://zizegak916-glitch.github.io</code></pre
             <tr><td>Model</td><td><code>gpt-4.1-mini</code></td><td>必须是你的服务实际支持的模型 ID</td></tr>
             <tr><td>Base URL</td><td><code>https://api.openai.com/v1</code></td><td>可填域名、API 根路径或完整端点，不要填 ChatGPT 网页地址</td></tr>
             <tr><td>API Key</td><td><code>••••••</code></td><td>留空保持原值；只有勾选清除才删除，也可改用环境变量</td></tr>
-            <tr><td>Timeout</td><td><code>120</code> 秒</td><td>覆盖连接和完整响应体/流，范围 5–600 秒</td></tr>
+            <tr><td>Timeout</td><td><code>120</code> 秒</td><td>非流式为整次请求上限；流式为首个响应或相邻数据块的空闲上限，范围 5–600 秒。长篇记忆自动使用至少 300 秒</td></tr>
             <tr><td>Context limit</td><td><code>131072</code></td><td>未知模型可手动填写；留空时界面显示上限未知</td></tr>
           </tbody>
         </table>
@@ -395,7 +395,7 @@ WRITING_WORKSHOP_ALLOWED_ORIGINS=https://zizegak916-glitch.github.io</code></pre
             <tr><td>模型测试 404</td><td>Base URL、接口协议或 Model 不匹配</td><td>先确认协议，再检查自动补全后的接口类型和模型 ID；完整端点也可直接填写</td></tr>
             <tr><td>CPA / 自定义 URL 被请求到错误路径</td><td>只填根路径时采用了默认 Chat 路线，或完整非标准端点又被自动补全</td><td>先“预览实际请求”；按 CPA 接口选择 Chat 或 Responses，非标准完整端点勾选“按填写 URL 原样请求”</td></tr>
             <tr><td>接口拒绝 <code>max_tokens</code></td><td>兼容层或模型只接受 <code>max_completion_tokens</code></td><td>在请求体覆盖中填写 <code>{"max_tokens":null,"max_completion_tokens":4096}</code>，预览确认后重试</td></tr>
-            <tr><td>返回成功但没有文字</td><td>接口响应结构与所选协议不一致</td><td>在“高级网络适配”切换 Chat Completions、Responses、Anthropic 或 Ollama</td></tr>
+            <tr><td>返回成功但没有文字</td><td>协议不符、中转改写响应结构，或思考模型耗尽输出额度后只有 <code>reasoning_content</code></td><td>先看界面显示的 <code>finish_reason</code>；再核对协议与中转。长篇记忆会自动关闭官方 DeepSeek 思考模式并兼容常见嵌套响应</td></tr>
             <tr><td>显示“请求未获得 HTTP 响应”</td><td>浏览器在发送、预检或重定向阶段未得到可读 HTTP 响应</td><td>复制诊断中的最终 URL 和原始错误；再查 HTTPS 混合内容、重定向、CORS、DNS/代理，不要先把它笼统归为断网</td></tr>
             <tr><td>Pages 填写 <code>http://</code> API</td><td>未配置兼容桥时，HTTPS 页面会在发送前按混合内容策略拦截；这不是断网，POST 不会到达 API</td><td>改用 API 的 HTTPS 地址、打开自部署工作台，或按上文部署自己的 HTTPS Go 兼容桥；前端本身不能绕过浏览器安全策略</td></tr>
             <tr><td>兼容桥返回 401 / 403 / 404</td><td>桥令牌错误、Pages origin 未允许，或目标别名不在服务端白名单</td><td>分别核对桥令牌、<code>WRITING_WORKSHOP_ALLOWED_ORIGINS</code> 和目标 JSON；模型 Key 错误通常是上游返回的 401</td></tr>

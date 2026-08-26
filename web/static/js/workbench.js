@@ -3386,7 +3386,7 @@ function _runtimeConfig(conf,p){
     browserDirect:true
   };
 }
-async function _backendRequest(conf,msgs){
+async function _backendRequest(conf,msgs,options={}){
   const timeout=Math.max(5000,Number(conf.timeout||60000));
   const controller=new AbortController();
   const timer=setTimeout(()=>controller.abort(),timeout);
@@ -3394,7 +3394,7 @@ async function _backendRequest(conf,msgs){
     const response=await fetch('/api/ai',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({provider:conf.provider,model:conf.model||'',messages:msgs}),
+      body:JSON.stringify({provider:conf.provider,model:conf.model||'',messages:msgs,mode:conf.requestMode||'',max_tokens:Number(options.maxTokens||0),request_timeout_ms:timeout}),
       signal:controller.signal
     });
     const raw=await response.text();
@@ -3413,17 +3413,20 @@ async function _backendRequest(conf,msgs){
     throw new Error('无法连接同源后端：请检查服务是否启动、反向代理和网络设置');
   }finally{clearTimeout(timer);}
 }
-async function _backendStream(conf,msgs,onChunk){
+async function _backendStream(conf,msgs,onChunk,options={}){
   const timeout=Math.max(5000,Number(conf.timeout||60000));
   const controller=new AbortController();
-  const timer=setTimeout(()=>controller.abort(),timeout);
+  let timer=null;
+  const touch=()=>{clearTimeout(timer);timer=setTimeout(()=>controller.abort(),timeout);};
+  touch();
   try{
     const response=await fetch('/api/ai/stream',{
       method:'POST',
       headers:{'Content-Type':'application/json',Accept:'text/event-stream'},
-      body:JSON.stringify({provider:conf.provider,model:conf.model||'',messages:msgs}),
+      body:JSON.stringify({provider:conf.provider,model:conf.model||'',messages:msgs,mode:conf.requestMode||'',max_tokens:Number(options.maxTokens||0),request_timeout_ms:timeout}),
       signal:controller.signal
     });
+    touch();
     if(!response.ok){
       const raw=await response.text();
       let data={};
@@ -3447,6 +3450,7 @@ async function _backendStream(conf,msgs,onChunk){
     };
     while(true){
       const{value,done}=await reader.read();
+      if(value?.byteLength)touch();
       buffer+=decoder.decode(value||new Uint8Array(),{stream:!done});
       const records=buffer.split(/\r?\n\r?\n/);
       buffer=records.pop()||'';
@@ -3473,7 +3477,7 @@ async function callAI(prompt,conf,systemPrompt,options={}){
     try{
       const result=direct
         ?await WWApiAdapter.request(_runtimeConfig(conf,p),msgs,{maxTokens:Number(options.maxTokens||2000)})
-        :await _backendRequest(conf,msgs);
+        :await _backendRequest(conf,msgs,options);
       if(result.usage)updateUsageDisplay(result.usage);
       return result.text;
     }catch(e){lastErr=e;if(_isTransient(e)&&attempt<2){await _sleep(1000*Math.pow(2,attempt));continue;}throw e;}
@@ -3482,7 +3486,7 @@ async function callAI(prompt,conf,systemPrompt,options={}){
 }
 async function callAIStream(prompt,conf,systemPrompt,onChunk,options={}){
   if(!usesBrowserAPI(conf)){
-    const result=await _backendStream(conf,_parseMessages(prompt,systemPrompt),onChunk);
+    const result=await _backendStream(conf,_parseMessages(prompt,systemPrompt),onChunk,options);
     if(result.usage)updateUsageDisplay(result.usage);
     return result.text;
   }
@@ -3497,11 +3501,23 @@ async function callAIStream(prompt,conf,systemPrompt,onChunk,options={}){
 }
 async function callAITask(taskId,prompt,conf,systemPrompt){
   const task=WWAITaskContract.record(taskId,prompt,systemPrompt,false);
-  return callAI(prompt,conf,systemPrompt,{maxTokens:task.maxTokens});
+  return callAI(prompt,taskAIConfig(task,conf),systemPrompt,{maxTokens:task.maxTokens});
 }
 async function callAITaskStream(taskId,prompt,conf,systemPrompt,onChunk){
   const task=WWAITaskContract.record(taskId,prompt,systemPrompt,true);
-  return callAIStream(prompt,conf,systemPrompt,onChunk,{maxTokens:task.maxTokens});
+  return callAIStream(prompt,taskAIConfig(task,conf),systemPrompt,onChunk,{maxTokens:task.maxTokens});
+}
+function taskAIConfig(task,conf){
+  const memoryTask=String(task?.id||'').startsWith('memory.');
+  const preset=PROVIDERS[conf?.provider]||PROVIDERS.custom;
+  const endpoint=String(conf?.baseUrl||preset.url||'').toLowerCase();
+  const officialDeepSeek=conf?.provider==='deepseek'||endpoint.includes('api.deepseek.com');
+  return{
+    ...conf,
+    timeout:Math.max(Number(conf?.timeout||60000),Number(task?.minTimeoutMs||0)),
+    disableThinking:memoryTask&&officialDeepSeek,
+    requestMode:memoryTask?'longbook-memory':''
+  };
 }
 function showStreamingResult(elementId){const el=document.getElementById(elementId);if(!el)return;el.textContent='';el.classList.add('streaming-cursor');}
 function hideStreamingCursor(){const el=document.getElementById('arpText');if(el)el.classList.remove('streaming-cursor');}
@@ -3571,7 +3587,7 @@ async function updateLongBookMemory(){
       foundation,
       existingMemories:existing,
       onProgress:progress=>{if(progress.phase==='foundation')refreshLongBookMemoryUI(`读取项目设定与大纲${progress.reused?'（复用）':'（分块压缩）'}`);else if(progress.phase==='chapter')refreshLongBookMemoryUI(`读取章节 ${progress.chapterIndex+1}/${progress.chapterCount} · ${progress.title}${progress.reused?'（复用）':''}`);else if(progress.phase==='arc')refreshLongBookMemoryUI(`压缩阶段 ${progress.arcIndex+1}/${progress.arcCount}`);else refreshLongBookMemoryUI('正在合并全书记忆…');},
-      summarize:({taskId,prompt})=>callAITask(taskId,prompt,S.apiConfig,'你是长篇小说记忆压缩器。必须忠于输入、保留因果和人物知识边界、标出矛盾与不确定项，禁止补写剧情。')
+      summarize:({taskId,prompt})=>callAITaskStream(taskId,prompt,S.apiConfig,'你是长篇小说记忆压缩器。必须忠于输入、保留因果和人物知识边界、标出矛盾与不确定项，禁止补写剧情。',()=>{})
     });
     const now=Date.now(),all=[result.foundationMemory,...result.chapterMemories,...result.arcMemories,result.digestMemory].filter(Boolean),existingByKey=new Map(existing.map(memory=>[memory.longbook_key,memory]));
     const keep=new Set();

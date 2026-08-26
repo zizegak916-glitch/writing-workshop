@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -103,19 +104,59 @@ func (s *Server) generateAI(ctx context.Context, provider, modelName string, mes
 	if err != nil {
 		return "", nil, "", "", err
 	}
+	text, usage, err := s.generateResolvedAI(ctx, resolved, messages)
+	return text, usage, resolved.Key, resolved.Model, err
+}
+
+func (s *Server) generateResolvedAI(ctx context.Context, resolved resolvedAIProvider, messages []engine.Message) (string, *engine.Usage, error) {
 	if useRawProvider(resolved) {
 		text, usage, err := rawProviderRequest(ctx, resolved, messages, false, nil)
-		return text, usage, resolved.Key, resolved.Model, err
+		return text, usage, err
 	}
-	model, providerKey, selectedModel, err := s.aiModel(resolved.Key, resolved.Model)
+	model, _, _, err := s.aiModel(resolved.Key, resolved.Model)
 	if err != nil {
-		return "", nil, resolved.Key, resolved.Model, err
+		return "", nil, err
 	}
 	resp, err := model.Generate(ctx, messages, nil)
 	if err != nil {
-		return "", nil, providerKey, selectedModel, err
+		return "", nil, err
 	}
-	return resp.Message.TextContent(), resp.Message.Usage, providerKey, selectedModel, nil
+	return resp.Message.TextContent(), resp.Message.Usage, nil
+}
+
+func applyAIRequestOptions(resolved resolvedAIProvider, req aiRequest) resolvedAIProvider {
+	if strings.TrimSpace(resolved.Config.BaseURL) == "" {
+		return resolved
+	}
+	extra := make(map[string]any, len(resolved.Config.ExtraBody)+2)
+	for key, value := range resolved.Config.ExtraBody {
+		extra[key] = value
+	}
+	if req.MaxTokens > 0 {
+		maxTokens := min(req.MaxTokens, 65536)
+		key := "max_tokens"
+		if resolved.Protocol == "openai-responses" {
+			key = "max_output_tokens"
+		}
+		if _, exists := extra[key]; !exists {
+			extra[key] = maxTokens
+		}
+	}
+	if req.Mode == "longbook-memory" && isOfficialDeepSeekProvider(resolved) {
+		if _, exists := extra["thinking"]; !exists {
+			extra["thinking"] = map[string]any{"type": "disabled"}
+		}
+	}
+	resolved.Config.ExtraBody = extra
+	return resolved
+}
+
+func isOfficialDeepSeekProvider(provider resolvedAIProvider) bool {
+	if strings.EqualFold(strings.TrimSpace(provider.Key), "deepseek") {
+		return true
+	}
+	u, err := url.Parse(strings.TrimSpace(provider.Config.BaseURL))
+	return err == nil && strings.EqualFold(u.Hostname(), "api.deepseek.com")
 }
 
 func rawProviderRequest(ctx context.Context, provider resolvedAIProvider, messages []engine.Message, stream bool, onDelta func(string)) (string, *engine.Usage, error) {
@@ -164,7 +205,7 @@ func rawProviderRequest(ctx context.Context, provider resolvedAIProvider, messag
 	}
 	text := rawResponseText(decoded)
 	if strings.TrimSpace(text) == "" {
-		return "", rawUsage(decoded), fmt.Errorf("provider %q returned no recognized text", provider.Key)
+		return "", rawUsage(decoded), fmt.Errorf("provider %q: %s", provider.Key, rawMissingTextMessage(decoded, false, false, ""))
 	}
 	if onDelta != nil {
 		onDelta(text)
@@ -326,6 +367,8 @@ func readRawProviderStream(reader io.Reader, onDelta func(string)) (string, *eng
 	var text strings.Builder
 	var usage *engine.Usage
 	var sseData []string
+	sawReasoning := false
+	finishReason := ""
 	consume := func(payload string) error {
 		payload = strings.TrimSpace(payload)
 		if payload == "" || payload == "[DONE]" {
@@ -340,6 +383,12 @@ func readRawProviderStream(reader io.Reader, onDelta func(string)) (string, *eng
 		}
 		if current := rawUsage(decoded); current != nil {
 			usage = current
+		}
+		if rawResponseReasoningText(decoded) != "" {
+			sawReasoning = true
+		}
+		if reason := rawFinishReason(decoded); reason != "" {
+			finishReason = reason
 		}
 		delta := rawStreamDelta(decoded)
 		if delta != "" {
@@ -389,7 +438,7 @@ func readRawProviderStream(reader io.Reader, onDelta func(string)) (string, *eng
 		return text.String(), usage, err
 	}
 	if strings.TrimSpace(text.String()) == "" {
-		return "", usage, fmt.Errorf("provider stream ended without recognized text")
+		return "", usage, errors.New(rawMissingTextMessage(nil, true, sawReasoning, finishReason))
 	}
 	return text.String(), usage, nil
 }
@@ -425,6 +474,14 @@ func rawResponseText(data map[string]any) string {
 					return text
 				}
 			}
+			if delta, ok := choice["delta"].(map[string]any); ok {
+				if text := rawContentText(delta["content"]); text != "" {
+					return text
+				}
+			}
+			if text := rawContentText(choice["text"]); text != "" {
+				return text
+			}
 		}
 	}
 	if text := rawContentText(data["output_text"]); text != "" {
@@ -455,8 +512,12 @@ func rawResponseText(data map[string]any) string {
 			return text
 		}
 	}
-	if response, ok := data["response"].(map[string]any); ok {
-		return rawResponseText(response)
+	for _, key := range []string{"response", "data", "result", "body", "completion"} {
+		if nested, ok := data[key].(map[string]any); ok {
+			if text := rawResponseText(nested); text != "" {
+				return text
+			}
+		}
 	}
 	return rawContentText(data["response"])
 }
@@ -476,9 +537,93 @@ func rawContentText(value any) string {
 			}
 		}
 		return strings.Join(parts, "")
+	case map[string]any:
+		for _, key := range []string{"text", "content", "output_text", "value"} {
+			if text := rawContentText(value[key]); text != "" {
+				return text
+			}
+		}
+		return ""
 	default:
 		return ""
 	}
+}
+
+func rawResponseReasoningText(data map[string]any) string {
+	if data == nil {
+		return ""
+	}
+	if choices, ok := data["choices"].([]any); ok && len(choices) > 0 {
+		if choice, ok := choices[0].(map[string]any); ok {
+			for _, key := range []string{"message", "delta"} {
+				if block, ok := choice[key].(map[string]any); ok {
+					if text := rawContentText(block["reasoning_content"]); text != "" {
+						return text
+					}
+				}
+			}
+		}
+	}
+	if text := rawContentText(data["reasoning_content"]); text != "" {
+		return text
+	}
+	for _, key := range []string{"response", "data", "result", "body", "completion"} {
+		if nested, ok := data[key].(map[string]any); ok {
+			if text := rawResponseReasoningText(nested); text != "" {
+				return text
+			}
+		}
+	}
+	return ""
+}
+
+func rawFinishReason(data map[string]any) string {
+	if data == nil {
+		return ""
+	}
+	if choices, ok := data["choices"].([]any); ok && len(choices) > 0 {
+		if choice, ok := choices[0].(map[string]any); ok {
+			if reason := strings.TrimSpace(fmt.Sprint(choice["finish_reason"])); reason != "" && reason != "<nil>" {
+				return reason
+			}
+		}
+	}
+	for _, key := range []string{"finish_reason", "stop_reason"} {
+		if reason := strings.TrimSpace(fmt.Sprint(data[key])); reason != "" && reason != "<nil>" {
+			return reason
+		}
+	}
+	for _, key := range []string{"response", "data", "result", "body", "completion"} {
+		if nested, ok := data[key].(map[string]any); ok {
+			if reason := rawFinishReason(nested); reason != "" {
+				return reason
+			}
+		}
+	}
+	return ""
+}
+
+func rawMissingTextMessage(data map[string]any, streaming, sawReasoning bool, finishReason string) string {
+	if data != nil {
+		sawReasoning = sawReasoning || rawResponseReasoningText(data) != ""
+		if finishReason == "" {
+			finishReason = rawFinishReason(data)
+		}
+	}
+	if sawReasoning {
+		suffix := ""
+		if finishReason != "" {
+			suffix = fmt.Sprintf(" (finish_reason=%s)", finishReason)
+		}
+		return "model returned reasoning but no final text" + suffix + "; disable thinking or raise the output limit"
+	}
+	if finishReason == "length" {
+		return "model reached the output limit before producing usable text (finish_reason=length)"
+	}
+	if streaming {
+		return "provider stream ended without recognized final text; verify that the relay preserves content deltas"
+	}
+	return "provider returned no recognized text; verify the selected protocol and relay response envelope"
 }
 
 func rawUsage(data map[string]any) *engine.Usage {

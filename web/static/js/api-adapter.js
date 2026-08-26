@@ -256,7 +256,9 @@
     if (protocol === 'ollama') {
       return applyBodyOverrides({ model, messages: allMessages, stream }, config.bodyOverrides);
     }
-    return applyBodyOverrides({ model, max_tokens: maxTokens, messages: allMessages, stream }, config.bodyOverrides);
+    const body = { model, max_tokens: maxTokens, messages: allMessages, stream };
+    if (config.disableThinking) body.thinking = { type: 'disabled' };
+    return applyBodyOverrides(body, config.bodyOverrides);
   }
 
   function prepareRequest(config, messages, options = {}) {
@@ -304,32 +306,115 @@
     };
   }
 
-  function contentText(value) {
+  function contentText(value, depth = 0) {
+    if (depth > 5 || value == null) return '';
     if (typeof value === 'string') return value;
-    if (!Array.isArray(value)) return '';
-    return value.map(item => {
-      if (typeof item === 'string') return item;
-      return item?.text || item?.content || '';
-    }).join('');
+    if (Array.isArray(value)) return value.map(item => contentText(item, depth + 1)).join('');
+    if (typeof value !== 'object') return '';
+    for (const key of ['text', 'content', 'output_text', 'value']) {
+      if (value[key] != null) {
+        const text = contentText(value[key], depth + 1);
+        if (text) return text;
+      }
+    }
+    return '';
   }
 
-  function parseResponse(data) {
-    if (typeof data === 'string') return data;
-    const choice = data?.choices?.[0]?.message?.content;
-    if (choice != null) return contentText(choice);
-    if (typeof data?.output_text === 'string') return data.output_text;
+  function parseResponse(data, depth = 0) {
+    if (depth > 5 || data == null) return '';
+    if (Array.isArray(data)) return data.map(item => parseResponse(item, depth + 1)).join('');
+    if (typeof data === 'string') {
+      const source = data.trim();
+      if (/^(?:event:|data:)/m.test(source)) {
+        let text = '';
+        let parsedAny = false;
+        for (const record of source.split(/\r?\n\r?\n/)) {
+          const parsed = parseStreamRecord(record);
+          if (!parsed) continue;
+          parsedAny = true;
+          text += parsed.delta || '';
+          if (!text && parsed.done && parsed.data) text = parseResponse(parsed.data.response || parsed.data, depth + 1);
+        }
+        if (parsedAny) return text;
+      }
+      return data;
+    }
+    const choice = data?.choices?.[0];
+    if (choice?.message?.content != null) {
+      const text = contentText(choice.message.content);
+      if (text) return text;
+    }
+    if (choice?.delta?.content != null) {
+      const text = contentText(choice.delta.content);
+      if (text) return text;
+    }
+    if (choice?.text != null) {
+      const text = contentText(choice.text);
+      if (text) return text;
+    }
+    if (data?.output_text != null) {
+      const text = contentText(data.output_text);
+      if (text) return text;
+    }
     if (Array.isArray(data?.output)) {
-      const text = data.output.flatMap(item => item?.content || []).map(item => item?.text || '').join('');
+      const text = data.output.map(item => contentText(item)).join('');
       if (text) return text;
     }
-    if (Array.isArray(data?.content)) {
-      const text = data.content.map(item => item?.text || '').join('');
+    if (data?.content != null) {
+      const text = contentText(data.content);
       if (text) return text;
     }
-    if (data?.message?.content != null) return contentText(data.message.content);
+    if (data?.message?.content != null) {
+      const text = contentText(data.message.content);
+      if (text) return text;
+    }
     if (typeof data?.response === 'string') return data.response;
     if (typeof data?.text === 'string') return data.text;
+    for (const key of ['response', 'data', 'result', 'body', 'completion']) {
+      if (data?.[key] && typeof data[key] === 'object') {
+        const text = parseResponse(data[key], depth + 1);
+        if (text) return text;
+      }
+    }
     return '';
+  }
+
+  function responseReasoningText(data, depth = 0) {
+    if (depth > 5 || !data || typeof data !== 'object') return '';
+    const choice = data.choices?.[0];
+    for (const value of [choice?.message?.reasoning_content, choice?.delta?.reasoning_content, data.reasoning_content]) {
+      const text = contentText(value);
+      if (text) return text;
+    }
+    for (const key of ['response', 'data', 'result', 'body', 'completion']) {
+      const text = responseReasoningText(data[key], depth + 1);
+      if (text) return text;
+    }
+    return '';
+  }
+
+  function responseFinishReason(data, depth = 0) {
+    if (depth > 5 || !data || typeof data !== 'object') return '';
+    const reason = data.choices?.[0]?.finish_reason || data.finish_reason || data.stop_reason;
+    if (reason) return String(reason);
+    for (const key of ['response', 'data', 'result', 'body', 'completion']) {
+      const nested = responseFinishReason(data[key], depth + 1);
+      if (nested) return nested;
+    }
+    return '';
+  }
+
+  function missingTextMessage(data, streaming = false, sawReasoning = false, finishReason = '') {
+    const reasoning = sawReasoning || !!responseReasoningText(data);
+    const reason = finishReason || responseFinishReason(data);
+    if (reasoning) {
+      const suffix = reason ? `（finish_reason=${reason}）` : '';
+      return `模型返回了思考内容，但最终文本为空${suffix}。请关闭思考模式或提高输出上限；长篇记忆对官方 DeepSeek 会自动关闭思考模式。`;
+    }
+    if (reason === 'length') return '模型已达到输出上限，但没有生成可用正文（finish_reason=length）；请提高输出上限后重试。';
+    return streaming
+      ? '流式连接已结束，但没有识别到最终文本；可检查协议类型，或确认中转没有吞掉 content 增量'
+      : '接口返回成功，但没有识别到文本内容；请检查协议类型是否选对或中转是否改写了响应结构';
   }
 
   function parseUsage(data) {
@@ -396,10 +481,16 @@
   async function beginTimedStreamFetch(url, options, timeoutMs, meta = {}) {
     const controller = new AbortController();
     const timeout = Math.max(1000, Number(timeoutMs || 60000));
-    const timer = setTimeout(() => controller.abort(), timeout);
+    let timer = null;
+    const touch = () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => controller.abort(), timeout);
+    };
+    touch();
     try {
       const response = await fetch(url, { ...options, signal: controller.signal });
-      return { response, dispose: () => clearTimeout(timer) };
+      touch();
+      return { response, touch, dispose: () => clearTimeout(timer) };
     } catch (error) {
       clearTimeout(timer);
       throw networkError(error, { ...meta, endpoint: url });
@@ -479,7 +570,7 @@
       }
       const text = parseResponse(data);
       if (!text) throw withDiagnostic(
-        new Error('接口返回成功，但没有识别到文本内容；请检查协议类型是否选对'),
+        new Error(missingTextMessage(data)),
         { ...meta, stage: 'parse', endpoint: url }
       );
       return { text, usage: parseUsage(data), data, endpoint: url, upstreamEndpoint, transport, protocol };
@@ -548,7 +639,7 @@
       if (!response.body || contentType.includes('application/json') && !contentType.includes('ndjson')) {
         const data = await responseData(response);
         const text = parseResponse(data);
-        if (!text) throw new Error('接口返回成功，但没有识别到文本内容；请检查协议类型是否选对');
+        if (!text) throw new Error(missingTextMessage(data));
         if (options.onChunk) options.onChunk(text);
         return { text, usage: parseUsage(data), data, endpoint: url, upstreamEndpoint, transport, protocol };
       }
@@ -558,6 +649,8 @@
       let buffer = '';
       let text = '';
       let usage = null;
+      let sawReasoning = false;
+      let finishReason = '';
       const sse = contentType.includes('text/event-stream');
 
       function consume(record) {
@@ -565,6 +658,8 @@
         if (!parsed) return;
         if (parsed.data?.error) throw new Error(upstreamErrorText(parsed.data, '上游流式请求失败'));
         if (parsed.usage) usage = parsed.usage;
+        if (responseReasoningText(parsed.data)) sawReasoning = true;
+        finishReason = responseFinishReason(parsed.data) || finishReason;
         if (parsed.delta) {
           text += parsed.delta;
           if (options.onChunk) options.onChunk(parsed.delta);
@@ -580,6 +675,7 @@
       while (true) {
         const { value, done } = await reader.read();
         if (done) break;
+        if (value?.byteLength) timed.touch();
         buffer += decoder.decode(value, { stream: true });
         const separator = sse ? /\r?\n\r?\n/ : /\r?\n/;
         const records = buffer.split(separator);
@@ -588,7 +684,7 @@
       }
       buffer += decoder.decode();
       if (buffer.trim()) consume(buffer);
-      if (!text) throw new Error('流式连接已结束，但没有识别到文本增量；可尝试关闭流式或切换协议类型');
+      if (!text) throw new Error(missingTextMessage(null, true, sawReasoning, finishReason));
       return { text, usage, endpoint: url, upstreamEndpoint, transport, protocol };
     } catch (error) {
       throw responseError(error, { ...meta, stage: 'stream', endpoint: url });
@@ -613,6 +709,9 @@
     prepareRequest,
     inspectRequest,
     parseResponse,
+    responseReasoningText,
+    responseFinishReason,
+    missingTextMessage,
     parseUsage,
     parseStreamRecord,
     parseModelList,

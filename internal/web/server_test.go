@@ -533,6 +533,60 @@ func TestRawProviderExactEndpointAndBodyDeletion(t *testing.T) {
 	}
 }
 
+func TestLongBookDeepSeekRequestOptions(t *testing.T) {
+	resolved := resolvedAIProvider{
+		Key:      "deepseek",
+		Model:    "deepseek-chat",
+		Protocol: "openai-chat",
+		Config: bootstrap.ProviderConfig{
+			BaseURL: "https://api.deepseek.com/v1",
+		},
+	}
+	configured := applyAIRequestOptions(resolved, aiRequest{
+		Mode:      "longbook-memory",
+		MaxTokens: 8192,
+	})
+	if configured.Config.ExtraBody["max_tokens"] != 8192 {
+		t.Fatalf("max_tokens=%#v", configured.Config.ExtraBody["max_tokens"])
+	}
+	thinking, ok := configured.Config.ExtraBody["thinking"].(map[string]any)
+	if !ok || thinking["type"] != "disabled" {
+		t.Fatalf("thinking=%#v", configured.Config.ExtraBody["thinking"])
+	}
+
+	resolved.Config.ExtraBody = map[string]any{"thinking": map[string]any{"type": "enabled"}}
+	configured = applyAIRequestOptions(resolved, aiRequest{Mode: "longbook-memory", MaxTokens: 4096})
+	thinking, ok = configured.Config.ExtraBody["thinking"].(map[string]any)
+	if !ok || thinking["type"] != "enabled" {
+		t.Fatalf("explicit thinking override was lost: %#v", configured.Config.ExtraBody["thinking"])
+	}
+}
+
+func TestRawResponseTextSupportsRelayEnvelopeAndReasoningDiagnostic(t *testing.T) {
+	wrapped := map[string]any{
+		"data": map[string]any{
+			"result": map[string]any{
+				"choices": []any{map[string]any{
+					"message": map[string]any{"content": []any{map[string]any{"type": "text", "text": "wrapped ok"}}},
+				}},
+			},
+		},
+	}
+	if text := rawResponseText(wrapped); text != "wrapped ok" {
+		t.Fatalf("wrapped response text=%q", text)
+	}
+	reasoningOnly := map[string]any{
+		"choices": []any{map[string]any{
+			"finish_reason": "length",
+			"message":       map[string]any{"content": nil, "reasoning_content": "thinking"},
+		}},
+	}
+	message := rawMissingTextMessage(reasoningOnly, false, false, "")
+	if !strings.Contains(message, "reasoning") || !strings.Contains(message, "finish_reason=length") {
+		t.Fatalf("diagnostic=%q", message)
+	}
+}
+
 func TestValidateConfigUpdateRejectsTransportHeaders(t *testing.T) {
 	err := validateConfigUpdate(configUpdate{Extra: map[string]any{
 		"headers": map[string]any{"Sec-Fetch-Site": "cross-site"},
