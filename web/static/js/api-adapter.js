@@ -13,6 +13,7 @@
   ]);
   const PROTECTED_BODY_FIELDS = new Set(['model', 'messages', 'input', 'system', 'stream']);
   const UNSAFE_OBJECT_FIELDS = new Set(['__proto__', 'prototype', 'constructor']);
+  const RESPONSE_ENVELOPE_FIELDS = ['response', 'data', 'result', 'body', 'completion'];
 
   function cleanProtocol(value) {
     const protocol = String(value || 'auto').trim().toLowerCase();
@@ -370,7 +371,7 @@
     }
     if (typeof data?.response === 'string') return data.response;
     if (typeof data?.text === 'string') return data.text;
-    for (const key of ['response', 'data', 'result', 'body', 'completion']) {
+    for (const key of RESPONSE_ENVELOPE_FIELDS) {
       if (data?.[key] && typeof data[key] === 'object') {
         const text = parseResponse(data[key], depth + 1);
         if (text) return text;
@@ -386,7 +387,7 @@
       const text = contentText(value);
       if (text) return text;
     }
-    for (const key of ['response', 'data', 'result', 'body', 'completion']) {
+    for (const key of RESPONSE_ENVELOPE_FIELDS) {
       const text = responseReasoningText(data[key], depth + 1);
       if (text) return text;
     }
@@ -397,7 +398,8 @@
     if (depth > 5 || !data || typeof data !== 'object') return '';
     const reason = data.choices?.[0]?.finish_reason || data.finish_reason || data.stop_reason;
     if (reason) return String(reason);
-    for (const key of ['response', 'data', 'result', 'body', 'completion']) {
+    if (data.status === 'incomplete' && data.incomplete_details?.reason) return String(data.incomplete_details.reason);
+    for (const key of RESPONSE_ENVELOPE_FIELDS) {
       const nested = responseFinishReason(data[key], depth + 1);
       if (nested) return nested;
     }
@@ -411,25 +413,51 @@
       const suffix = reason ? `（finish_reason=${reason}）` : '';
       return `模型返回了思考内容，但最终文本为空${suffix}。请关闭思考模式或提高输出上限；长篇记忆对官方 DeepSeek 会自动关闭思考模式。`;
     }
-    if (reason === 'length') return '模型已达到输出上限，但没有生成可用正文（finish_reason=length）；请提高输出上限后重试。';
+    if (reason === 'length' || reason === 'max_output_tokens') return `模型已达到输出上限，但没有生成可用正文（finish_reason=${reason}）；请提高输出上限后重试。`;
     return streaming
       ? '流式连接已结束，但没有识别到最终文本；可检查协议类型，或确认中转没有吞掉 content 增量'
       : '接口返回成功，但没有识别到文本内容；请检查协议类型是否选对或中转是否改写了响应结构';
   }
 
-  function parseUsage(data) {
-    const usage = data?.usage || data?.response?.usage || data?.message?.usage;
-    if (!usage) return null;
-    const input = Number(usage.prompt_tokens ?? usage.input_tokens ?? usage.prompt_eval_count ?? 0);
-    const output = Number(usage.completion_tokens ?? usage.output_tokens ?? usage.eval_count ?? 0);
-    return input || output ? { input, output } : null;
+  function parseUsage(data, depth = 0) {
+    if (depth > 5 || !data || typeof data !== 'object') return null;
+    const usage = data.usage || data.message?.usage;
+    if (usage) {
+      const input = Number(usage.prompt_tokens ?? usage.input_tokens ?? usage.prompt_eval_count ?? 0);
+      const output = Number(usage.completion_tokens ?? usage.output_tokens ?? usage.eval_count ?? 0);
+      if (input || output) return { input, output };
+    }
+    for (const key of RESPONSE_ENVELOPE_FIELDS) {
+      const nested = parseUsage(data[key], depth + 1);
+      if (nested) return nested;
+    }
+    return null;
+  }
+
+  function responseErrorInfo(data, depth = 0) {
+    if (depth > 5 || !data || typeof data !== 'object') return null;
+    const error = data.error;
+    if (error != null && error !== false) {
+      if (typeof error === 'string' && error.trim()) {
+        return { message: error.trim().slice(0, 600), status: Number(data.status || data.status_code || 0) || 0 };
+      }
+      if (typeof error === 'object') {
+        const message = String(error.message || error.detail || error.error || data.message || '上游接口返回错误').slice(0, 600);
+        const status = Number(error.status || error.status_code || data.status || data.status_code || 0) || 0;
+        return { message, status };
+      }
+    }
+    for (const key of RESPONSE_ENVELOPE_FIELDS) {
+      const nested = responseErrorInfo(data[key], depth + 1);
+      if (nested) return nested;
+    }
+    return null;
   }
 
   function upstreamErrorText(data, fallback) {
     if (typeof data === 'string' && data.trim()) return data.trim().slice(0, 600);
-    const error = data?.error;
-    if (typeof error === 'string') return error.slice(0, 600);
-    if (error?.message) return String(error.message).slice(0, 600);
+    const nested = responseErrorInfo(data);
+    if (nested?.message) return nested.message;
     if (data?.message) return String(data.message).slice(0, 600);
     return fallback;
   }
@@ -525,12 +553,15 @@
     const timed = await beginTimedStreamFetch(routed.endpoint, { method: 'GET', headers }, config.timeoutMs || config.timeout, meta);
     try {
       const data = await responseData(timed.response);
-      if (!timed.response.ok || data?.error) {
+      const embeddedError = responseErrorInfo(data);
+      if (!timed.response.ok || embeddedError) {
         const id = requestId(timed.response);
         const detail = upstreamErrorText(data, timed.response.statusText || '读取模型列表失败');
+        const status = timed.response.ok ? embeddedError?.status || 0 : timed.response.status;
+        const prefix = status ? 'HTTP ' + status : '接口错误';
         throw withDiagnostic(
-          new Error('HTTP ' + timed.response.status + ': ' + detail + (id ? '（请求 ID：' + id + '）' : '')),
-          { ...meta, stage: 'http', endpoint: routed.endpoint, status: timed.response.status }
+          new Error(prefix + ': ' + detail + (id ? '（请求 ID：' + id + '）' : '')),
+          { ...meta, stage: 'http', endpoint: routed.endpoint, status }
         );
       }
       const models = parseModelList(data);
@@ -560,12 +591,15 @@
     const response = timed.response;
     try {
       const data = await responseData(response);
-      if (!response.ok || data?.error) {
+      const embeddedError = responseErrorInfo(data);
+      if (!response.ok || embeddedError) {
         const id = requestId(response);
         const detail = upstreamErrorText(data, response.statusText || '上游接口返回错误');
+        const status = response.ok ? embeddedError?.status || 0 : response.status;
+        const prefix = status ? 'HTTP ' + status : '接口错误';
         throw withDiagnostic(
-          new Error('HTTP ' + response.status + ': ' + detail + (id ? '（请求 ID：' + id + '）' : '')),
-          { ...meta, stage: 'http', endpoint: url, status: response.status }
+          new Error(prefix + ': ' + detail + (id ? '（请求 ID：' + id + '）' : '')),
+          { ...meta, stage: 'http', endpoint: url, status }
         );
       }
       const text = parseResponse(data);
@@ -581,15 +615,25 @@
     }
   }
 
-  function streamDelta(data) {
-    if (!data || typeof data !== 'object') return '';
+  function streamDelta(data, depth = 0) {
+    if (depth > 5 || !data || typeof data !== 'object') return '';
     const choice = data.choices?.[0];
     if (choice?.delta?.content != null) return contentText(choice.delta.content);
     if (data.type === 'response.output_text.delta') return data.delta || '';
     if (data.type === 'content_block_delta') return data.delta?.text || '';
     if (data.message?.content != null) return contentText(data.message.content);
     if (typeof data.response === 'string') return data.response;
+    for (const key of RESPONSE_ENVELOPE_FIELDS) {
+      const nested = streamDelta(data[key], depth + 1);
+      if (nested) return nested;
+    }
     return '';
+  }
+
+  function streamRecordDone(data, depth = 0) {
+    if (depth > 5 || !data || typeof data !== 'object') return false;
+    if (data.done || data.type === 'response.completed' || data.type === 'message_stop') return true;
+    return RESPONSE_ENVELOPE_FIELDS.some(key => streamRecordDone(data[key], depth + 1));
   }
 
   function parseStreamRecord(record) {
@@ -602,7 +646,7 @@
     if (!payload || payload === '[DONE]') return { done: true, delta: '', data: null };
     try {
       const data = JSON.parse(payload);
-      const done = !!data.done || data.type === 'response.completed' || data.type === 'message_stop';
+      const done = streamRecordDone(data);
       return { done, delta: streamDelta(data), usage: parseUsage(data), data };
     } catch (_) {
       return null;
@@ -638,6 +682,12 @@
       const contentType = response.headers.get('content-type') || '';
       if (!response.body || contentType.includes('application/json') && !contentType.includes('ndjson')) {
         const data = await responseData(response);
+        const embeddedError = responseErrorInfo(data);
+        if (embeddedError) {
+          const error = new Error(upstreamErrorText(data, '上游流式请求失败'));
+          if (embeddedError.status) error.status = embeddedError.status;
+          throw error;
+        }
         const text = parseResponse(data);
         if (!text) throw new Error(missingTextMessage(data));
         if (options.onChunk) options.onChunk(text);
@@ -651,12 +701,19 @@
       let usage = null;
       let sawReasoning = false;
       let finishReason = '';
+      let lastData = null;
       const sse = contentType.includes('text/event-stream');
 
       function consume(record) {
         const parsed = parseStreamRecord(record);
         if (!parsed) return;
-        if (parsed.data?.error) throw new Error(upstreamErrorText(parsed.data, '上游流式请求失败'));
+        lastData = parsed.data || lastData;
+        const embeddedError = responseErrorInfo(parsed.data);
+        if (embeddedError) {
+          const error = new Error(upstreamErrorText(parsed.data, '上游流式请求失败'));
+          if (embeddedError.status) error.status = embeddedError.status;
+          throw error;
+        }
         if (parsed.usage) usage = parsed.usage;
         if (responseReasoningText(parsed.data)) sawReasoning = true;
         finishReason = responseFinishReason(parsed.data) || finishReason;
@@ -684,6 +741,13 @@
       }
       buffer += decoder.decode();
       if (buffer.trim()) consume(buffer);
+      if (!text && lastData) {
+        const finalText = parseResponse(lastData);
+        if (finalText) {
+          text = finalText;
+          if (options.onChunk) options.onChunk(finalText);
+        }
+      }
       if (!text) throw new Error(missingTextMessage(null, true, sawReasoning, finishReason));
       return { text, usage, endpoint: url, upstreamEndpoint, transport, protocol };
     } catch (error) {
@@ -711,6 +775,7 @@
     parseResponse,
     responseReasoningText,
     responseFinishReason,
+    responseErrorInfo,
     missingTextMessage,
     parseUsage,
     parseStreamRecord,

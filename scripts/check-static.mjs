@@ -136,6 +136,15 @@ for (const marker of ['WWProjectContext', '项目正式事实包', '世界观与
 for (const marker of ['buildProjectAIContext', 'projectFactPacket', 'loadWorldContent', "S.active.type==='world'", 'foundation_hash']) {
   assert(workbenchSource.includes(marker), `Pages project-fact integration is missing: ${marker}`);
 }
+assert(workbenchSource.includes('if(memoryState.complete&&digest?.content)'), 'stale full-book digests must not enter writing requests');
+assert(workbenchSource.includes("memoryState.freshIds.has(String(memory.chapter_id))"), 'stale adjacent chapter summaries must not enter writing requests');
+for (const marker of ['replaceLongBookMemories(rows,existingAll)', 'const projectId=S.proj.project.id', 'S.longBookMemoryRun', 'existingAll.filter(memory=>memory.enabled!==false)']) {
+  assert(workbenchSource.includes(marker), `long-book refresh transaction/project pinning is missing: ${marker}`);
+}
+for (const marker of ['remapImportedMemory', 'covered_chapter_ids', "next.longbook_key='chapter:'"]) {
+  assert(workbenchSource.includes(marker), `imported long-book chapter ID remapping is missing: ${marker}`);
+}
+assert(workbenchSource.includes('isOfficialDeepSeekConfig(conf)') && workbenchSource.includes('deepseek-v4-flash'), 'official DeepSeek detection/default model is stale');
 for (const marker of ['memory.foundation-compress', 'memory.foundation-merge', 'memory.chapter-compress', 'memory.chapter-merge', 'memory.arc-compress', 'memory.book-compress', 'foundation_hash', 'source_hash']) {
   assert(longBookSource.includes(marker), `long-book memory engine is missing: ${marker}`);
 }

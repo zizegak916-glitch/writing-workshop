@@ -3,15 +3,27 @@ package web
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"sync/atomic"
 	"testing"
+	"time"
 )
 
 const testHTTPBridgeToken = "test-bridge-token-with-32-characters"
+
+type failingBridgeReader struct{ sent bool }
+
+func (r *failingBridgeReader) Read(buffer []byte) (int, error) {
+	if !r.sent {
+		r.sent = true
+		return copy(buffer, []byte("data: partial\n\n")), nil
+	}
+	return 0, errors.New("upstream connection reset")
+}
 
 func TestHTTPBridgeRequiresCompleteSafeConfiguration(t *testing.T) {
 	t.Setenv("WRITING_WORKSHOP_HTTP_BRIDGE_TARGETS", "")
@@ -40,6 +52,37 @@ func TestHTTPBridgeRequiresCompleteSafeConfiguration(t *testing.T) {
 	t.Setenv("WRITING_WORKSHOP_HTTP_BRIDGE_TARGETS", `{"cpa":"http://user:pass@127.0.0.1:8317"}`)
 	if _, err := newHTTPBridgeFromEnv(); err == nil || !strings.Contains(err.Error(), "credentials") {
 		t.Fatalf("embedded credentials error = %v", err)
+	}
+}
+
+func TestHTTPBridgeUsesHeaderTimeoutWithoutCuttingActiveStreams(t *testing.T) {
+	t.Setenv("WRITING_WORKSHOP_HTTP_BRIDGE_TARGETS", `{"cpa":"http://127.0.0.1:8317"}`)
+	t.Setenv("WRITING_WORKSHOP_HTTP_BRIDGE_TOKEN", testHTTPBridgeToken)
+	t.Setenv("WRITING_WORKSHOP_HTTP_BRIDGE_TIMEOUT_MS", "5000")
+	bridge, err := newHTTPBridgeFromEnv()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bridge.client.Timeout != 0 {
+		t.Fatalf("client total timeout=%s; active streams must not have a fixed total deadline", bridge.client.Timeout)
+	}
+	transport, ok := bridge.client.Transport.(*http.Transport)
+	if !ok {
+		t.Fatalf("transport=%T", bridge.client.Transport)
+	}
+	if transport.ResponseHeaderTimeout != 5*time.Second {
+		t.Fatalf("response header timeout=%v", transport.ResponseHeaderTimeout)
+	}
+
+	recorder := httptest.NewRecorder()
+	recorder.Header().Set("Content-Type", "text/event-stream")
+	if err := copyBridgeResponse(recorder, &failingBridgeReader{}); err == nil {
+		t.Fatal("a broken upstream stream must return an error")
+	} else {
+		writeBridgeStreamError(recorder, recorder.Header().Get("Content-Type"))
+	}
+	if body := recorder.Body.String(); !strings.Contains(body, "partial") || !strings.Contains(body, "event: error") {
+		t.Fatalf("broken stream was silently accepted: %q", body)
 	}
 }
 
@@ -208,6 +251,39 @@ func TestHTTPBridgeRejectsRedirectOutsideConfiguredTarget(t *testing.T) {
 	}
 	if escaped.Load() {
 		t.Fatal("bridge followed redirect outside configured target")
+	}
+}
+
+func TestHTTPBridgeRejectsRedirectOutsideConfiguredPathPrefix(t *testing.T) {
+	var escaped atomic.Bool
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/capture" {
+			escaped.Store(true)
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		w.Header().Set("Location", "/capture")
+		w.WriteHeader(http.StatusTemporaryRedirect)
+	}))
+	defer upstream.Close()
+
+	t.Setenv("WRITING_WORKSHOP_HTTP_BRIDGE_TARGETS", mustJSON(t, map[string]string{"cpa": upstream.URL + "/allowed"}))
+	t.Setenv("WRITING_WORKSHOP_HTTP_BRIDGE_TOKEN", testHTTPBridgeToken)
+	bridge, err := newHTTPBridgeFromEnv()
+	if err != nil {
+		t.Fatal(err)
+	}
+	server, handler := newTestServer(t)
+	server.httpBridge = bridge
+	request := httptest.NewRequest(http.MethodGet, "/api/http-bridge/cpa/v1/models", nil)
+	request.Header.Set(httpBridgeTokenHeader, testHTTPBridgeToken)
+	recorder := httptest.NewRecorder()
+	handler.ServeHTTP(recorder, request)
+	if recorder.Code != http.StatusBadGateway {
+		t.Fatalf("status=%d body=%s", recorder.Code, recorder.Body.String())
+	}
+	if escaped.Load() {
+		t.Fatal("bridge followed redirect outside configured target path")
 	}
 }
 

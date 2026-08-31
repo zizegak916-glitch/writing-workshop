@@ -17,8 +17,8 @@ Writing Workshop 的解决方案是把自己的 Go 服务部署为 HTTPS 兼容�
 - 桥必须使用独立的高强度令牌，至少 24 个字符；它不是模型 API Key。
 - 只开放实际使用的 Pages origin。不要写 `*`，也不要把桥令牌提交到仓库、Pages 源码、Issue 或截图。
 - 桥转发模型鉴权头，但不会把桥令牌、Cookie、Origin、Referer、转发头或浏览器 `Sec-*` 头发送给上游。
-- 响应中的 Cookie 和上游 CORS 头不会传回浏览器；跳转到白名单目标之外会被拒绝。
-- 默认单请求最大 16 MiB、最多 4 个并发请求、10 分钟超时。可按机器能力收紧。
+- 响应中的 Cookie 和上游 CORS 头不会传回浏览器；跳转到白名单目标的来源或固定路径前缀之外会被拒绝。
+- 默认单请求最大 16 MiB、最多 4 个并发请求；默认最多等待上游响应头 10 分钟。响应头到达后，活跃 SSE/NDJSON 流不再受固定总时长截断，浏览器和 Go 流式链路按相邻数据块的空闲时间判断超时。
 
 ## 选择 Go 1.21 或 Go 1.25
 
@@ -39,6 +39,8 @@ Writing Workshop 的解决方案是把自己的 Go 服务部署为 HTTPS 兼容�
     WRITING_WORKSHOP_HTTP_BRIDGE_MAX_BYTES=16777216
     WRITING_WORKSHOP_HTTP_BRIDGE_MAX_CONCURRENT=4
     WRITING_WORKSHOP_HTTP_BRIDGE_TIMEOUT_MS=600000
+
+`WRITING_WORKSHOP_HTTP_BRIDGE_TIMEOUT_MS` 只约束等待上游响应头的最长时间，不是整条流的总寿命。持续输出的数据流会继续转发；上游连接异常中断时，桥会向 SSE/NDJSON 客户端发送明确错误，避免把半段记忆当成完整结果。
 
 `WRITING_WORKSHOP_HTTP_BRIDGE_TARGETS` 是 JSON 对象，最多 16 个目标。例如：
 

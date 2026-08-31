@@ -7,6 +7,7 @@ function dbGet(s,id){return new Promise((r,j)=>{const t=db.transaction(s,'readon
 function dbDel(s,id){return new Promise((r,j)=>{const t=db.transaction(s,'readwrite');const q=t.objectStore(s).delete(id);t.oncomplete=()=>r();t.onabort=()=>j(t.error||q.error||new Error('浏览器存储事务已中止'));t.onerror=()=>j(t.error||q.error||new Error('浏览器存储删除失败'));q.onerror=()=>j(q.error);});}
 function dbAll(s){return new Promise((r,j)=>{const t=db.transaction(s,'readonly');const q=t.objectStore(s).getAll();q.onsuccess=()=>r(q.result);q.onerror=()=>j(q.error);});}
 function dbByIndex(s,f,v){return new Promise((r,j)=>{const t=db.transaction(s,'readonly');const st=t.objectStore(s);if(st.indexNames.contains(f)){const q=st.index(f).getAll(v);q.onsuccess=()=>r(q.result);q.onerror=()=>j(q.error);return;}const a=[];const q=st.openCursor();q.onsuccess=e=>{const c=e.target.result;if(c){if(c.value[f]===v)a.push(c.value);c.continue();}else r(a);};q.onerror=()=>j(q.error);});}
+function replaceLongBookMemories(rows,previous){return new Promise((resolve,reject)=>{const tx=db.transaction('aiMemories','readwrite'),store=tx.objectStore('aiMemories'),keepIds=new Set(rows.map(row=>row.id).filter(id=>id!=null));try{for(const row of rows)store.put(row);for(const row of previous){if(row.id!=null&&!keepIds.has(row.id))store.delete(row.id);}}catch(error){try{tx.abort();}catch(_){}reject(error);return;}tx.oncomplete=()=>resolve();tx.onabort=()=>reject(tx.error||new Error('全书记忆事务已中止，旧记忆保持不变'));tx.onerror=()=>reject(tx.error||new Error('全书记忆写入失败，旧记忆保持不变'));});}
 
 // ═══ Writing Workshop runtime and backend bridge ═══
 let WW_BROWSER_API_MODE=location.hostname.endsWith('github.io')||new URLSearchParams(location.search).get('api_mode')==='browser';
@@ -99,8 +100,11 @@ function loadStoredApiConfig(){
   try{stored=JSON.parse(localStorage.getItem('ww_api')||'{}')||{};}catch(_){}
   return stored;
 }
+function isOfficialDeepSeekEndpoint(value){try{return new URL(String(value||'')).hostname.toLowerCase()==='api.deepseek.com';}catch(_){return false;}}
+function isOfficialDeepSeekConfig(conf){const explicit=String(conf?.baseUrl||'').trim();return explicit?isOfficialDeepSeekEndpoint(explicit):conf?.provider==='deepseek';}
 function reconcileStoredApiConfig(){
   let stored=loadStoredApiConfig();
+  if(stored.provider==='deepseek'&&isOfficialDeepSeekConfig(stored)&&['deepseek-chat','deepseek-reasoner'].includes(stored.model))stored.model='deepseek-v4-flash';
   if(WW_BROWSER_API_MODE&&stored.key&&stored.key!=='backend'){
     stored.transport='browser';
     localStorage.setItem('ww_api',JSON.stringify(stored));
@@ -110,14 +114,15 @@ function reconcileStoredApiConfig(){
   }
   S.apiConfig=stored;
 }
-const S={proj:null,active:null,editCharId:null,aiMode:'润色',aiTemp:'mid',aiLen:'long',apiConfig:loadStoredApiConfig(),autoSave:true,unsaved:false,editorRevision:0,wordGoal:2000,curFontSize:16,lastArpResult:'',aiRunSnapshot:null,multiRunSnapshot:null,selectedProvider:'claude',previewMode:false,projects:[],aiMemories:[],pendingMemoryMeta:null};
+const S={proj:null,active:null,editCharId:null,aiMode:'润色',aiTemp:'mid',aiLen:'long',apiConfig:loadStoredApiConfig(),autoSave:true,unsaved:false,editorRevision:0,wordGoal:2000,curFontSize:16,lastArpResult:'',aiRunSnapshot:null,multiRunSnapshot:null,longBookMemoryRun:null,selectedProvider:'claude',previewMode:false,projects:[],aiMemories:[],pendingMemoryMeta:null};
 
 
 // ═══ Token Estimation & Context Limits ═══
 const MODEL_CONTEXT_LIMITS={
   'claude-sonnet-4-20250514':200000,'claude-sonnet-4':200000,'claude-3-5-sonnet':200000,'claude-3-haiku':200000,
   'gpt-4o':128000,'gpt-4o-mini':128000,'gpt-4-turbo':128000,'gpt-4':8192,'gpt-3.5-turbo':16385,
-  'deepseek-chat':65536,'deepseek-reasoner':65536,
+  'deepseek-v4-flash':1048576,'deepseek-v4-pro':1048576,'deepseek-v4-flash-vision-exp':1048576,
+  'deepseek-chat':131072,'deepseek-reasoner':131072,
   'mimo-v2.5-pro':131072,'mimo-v2.5':131072,
   'qwen-plus':131072,'qwen-turbo':131072,'qwen-max':32768,
   'glm-4-flash':128000,'glm-4':128000,
@@ -170,6 +175,7 @@ function liveProjectBundle(){
 }
 function projectFactPacket(){return WWProjectContext.build(liveProjectBundle());}
 function projectLongBookMemories(){return S.proj?S.aiMemories.filter(memory=>memory.project_id===S.proj.project.id&&memory.source==='longbook'&&memory.enabled!==false):[];}
+function allProjectLongBookMemories(projectId=S.proj?.project?.id){return projectId==null?[]:S.aiMemories.filter(memory=>memory.project_id===projectId&&memory.source==='longbook');}
 function currentBookDigest(){return projectLongBookMemories().filter(memory=>memory.kind==='book_digest').sort((a,b)=>(b.built_at||b.updated_at||0)-(a.built_at||a.updated_at||0))[0]||null;}
 function currentFoundationDigest(){return projectLongBookMemories().filter(memory=>memory.kind==='foundation_digest').sort((a,b)=>(b.updated_at||b.created_at||0)-(a.updated_at||a.created_at||0))[0]||null;}
 function buildProjectAIContext(options={}){
@@ -208,11 +214,11 @@ function buildAIWritingContext(mode=getAIContextMode()){
   }
   const blocks=[];
   const memoryState=longBookMemoryFreshness(chapters),digest=memoryState.digest;
-  if(digest?.content)blocks.push(`【全书分层记忆 · 完整覆盖 ${digest.chapter_count||digest.covered_chapter_ids?.length||0} 章】\n${digest.content}`);
+  if(memoryState.complete&&digest?.content)blocks.push(`【全书分层记忆 · 完整覆盖 ${digest.chapter_count||digest.covered_chapter_ids?.length||0} 章】\n${digest.content}`);
   const activeIndex=S.active?.type==='chapter'?chapters.findIndex(chapter=>chapter.id===S.active.id):-1;
   if(activeIndex>=0){
     const wanted=new Set([activeIndex-2,activeIndex-1,activeIndex+1].filter(index=>index>=0&&index<chapters.length));
-    const related=projectLongBookMemories().filter(memory=>memory.kind==='chapter_summary'&&wanted.has(Number(memory.coverage_index))).sort((a,b)=>Number(a.coverage_index)-Number(b.coverage_index));
+    const related=projectLongBookMemories().filter(memory=>memory.kind==='chapter_summary'&&memoryState.freshIds.has(String(memory.chapter_id))&&wanted.has(Number(memory.coverage_index))).sort((a,b)=>Number(a.coverage_index)-Number(b.coverage_index));
     if(related.length)blocks.push('【相邻章节压缩记忆】\n'+related.map(memory=>`${memory.chapter_title||memory.title}\n${memory.content}`).join('\n\n'));
   }
   if(current)blocks.push(`【${S.active?.type==='chapter'?'当前章节完整原文':'当前文档'}】\n${current}`);
@@ -2571,6 +2577,18 @@ async function exportProject(){
   showToast('↓',t('toast-exported'));
 }
 function cloneWithoutId(v){const x={...(v||{})};delete x.id;return x;}
+function importedMappedId(map,value){if(value==null)return value;for(const candidate of [value,String(value),Number(value)]){if(map.has(candidate))return map.get(candidate);}return value;}
+function remapImportedMemory(row,chapterMap){
+  const next={...row};
+  if(next.source!=='longbook')return next;
+  if(next.chapter_id!=null)next.chapter_id=importedMappedId(chapterMap,next.chapter_id);
+  if(Array.isArray(next.covered_chapter_ids))next.covered_chapter_ids=next.covered_chapter_ids.map(id=>importedMappedId(chapterMap,id));
+  if(typeof next.longbook_key==='string'&&next.longbook_key.startsWith('chapter:')){
+    const oldId=next.longbook_key.slice('chapter:'.length),mapped=importedMappedId(chapterMap,oldId);
+    next.longbook_key='chapter:'+String(mapped);
+  }
+  return next;
+}
 // ═══ DOCX Parser (minimal ZIP XML extraction) ═══
 const MAX_IMPORT_FILES=50;
 const MAX_IMPORT_FILE_BYTES=25*1024*1024;
@@ -2627,8 +2645,7 @@ function importProjectBundleAtomic(data,projectOverride={}){
       projectId=projectReq.result;
       try{
         const idMaps={outline:new Map(),character:new Map(),chapter:new Map(),note:new Map()};
-        let pendingChildren=0;
-        let historyQueued=false;
+        let pendingChildren=0,memoryQueued=false,historyQueued=false;
         const queueHistory=()=>{
           if(historyQueued)return;
           historyQueued=true;
@@ -2640,10 +2657,13 @@ function importProjectBundleAtomic(data,projectOverride={}){
             store.put(next);
           }
         };
-        const childDone=()=>{
-          pendingChildren--;
+        const queueMemories=()=>{
+          if(memoryQueued)return;
+          memoryQueued=true;
+          putRows('aiMemories',data.memories,null,row=>remapImportedMemory(row,idMaps.chapter));
           if(pendingChildren===0)queueHistory();
         };
+        const childDone=()=>{pendingChildren--;if(pendingChildren===0){if(memoryQueued)queueHistory();else queueMemories();}};
         const putRows=(storeName,rows,activeType,transform=row=>row)=>{
           const store=tx.objectStore(storeName);
           for(const row of rows||[]){
@@ -2659,14 +2679,13 @@ function importProjectBundleAtomic(data,projectOverride={}){
         putRows('outlines',data.outlines,'outline');
         putRows('characters',data.characters,'character');
         putRows('notes',data.notes,'note');
-        putRows('aiMemories',data.memories,null);
         putRows('chapters',data.chapters,'chapter',row=>({
           ...row,
           title:row.title||'未命名章节',
           word_count:row.word_count||countWords(row.content||''),
           sort_order:Number.isFinite(Number(row.sort_order))?Number(row.sort_order):0
         }));
-        if(pendingChildren===0)queueHistory();
+        if(pendingChildren===0)queueMemories();
       }catch(_){
         try{tx.abort();}catch(_){}
       }
@@ -3356,7 +3375,7 @@ function setLen(v,btn){btn.parentElement.querySelectorAll('.seg-btn').forEach(b=
 
 
 // ═══ API ═══
-const PROVIDERS={claude:{url:'https://api.anthropic.com/v1/messages',model:'claude-sonnet-4-20250514',type:'anthropic'},openai:{url:'https://api.openai.com/v1/chat/completions',model:'gpt-4o',type:'openai'},deepseek:{url:'https://api.deepseek.com/v1/chat/completions',model:'deepseek-chat',type:'openai'},xiaomi:{url:'https://api.xiaomimimo.com/v1/chat/completions',model:'mimo-v2.5-pro',type:'openai'},qwen:{url:'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',model:'qwen-plus',type:'openai'},zhipu:{url:'https://open.bigmodel.cn/api/paas/v4/chat/completions',model:'glm-4-flash',type:'openai'},moonshot:{url:'https://api.moonshot.cn/v1/chat/completions',model:'moonshot-v1-8k',type:'openai'},siliconflow:{url:'https://api.siliconflow.cn/v1/chat/completions',model:'deepseek-ai/DeepSeek-V3',type:'openai'},openrouter:{url:'https://openrouter.ai/api/v1/chat/completions',model:'anthropic/claude-sonnet-4',type:'openai'},gemini:{url:'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',model:'gemini-2.0-flash',type:'openai'},grok:{url:'https://api.x.ai/v1/chat/completions',model:'grok-3',type:'openai'},custom:{url:'',model:'',type:'openai'}};
+const PROVIDERS={claude:{url:'https://api.anthropic.com/v1/messages',model:'claude-sonnet-4-20250514',type:'anthropic'},openai:{url:'https://api.openai.com/v1/chat/completions',model:'gpt-4o',type:'openai'},deepseek:{url:'https://api.deepseek.com/v1/chat/completions',model:'deepseek-v4-flash',type:'openai'},xiaomi:{url:'https://api.xiaomimimo.com/v1/chat/completions',model:'mimo-v2.5-pro',type:'openai'},qwen:{url:'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',model:'qwen-plus',type:'openai'},zhipu:{url:'https://open.bigmodel.cn/api/paas/v4/chat/completions',model:'glm-4-flash',type:'openai'},moonshot:{url:'https://api.moonshot.cn/v1/chat/completions',model:'moonshot-v1-8k',type:'openai'},siliconflow:{url:'https://api.siliconflow.cn/v1/chat/completions',model:'deepseek-ai/DeepSeek-V3',type:'openai'},openrouter:{url:'https://openrouter.ai/api/v1/chat/completions',model:'anthropic/claude-sonnet-4',type:'openai'},gemini:{url:'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',model:'gemini-2.0-flash',type:'openai'},grok:{url:'https://api.x.ai/v1/chat/completions',model:'grok-3',type:'openai'},custom:{url:'',model:'',type:'openai'}};
 const TRANSIENT_ERRORS=[429,500,502,503,504];
 function _isTransient(err){const m=err.message?.match?.(/HTTP (\d+)/);return m&&TRANSIENT_ERRORS.includes(+m[1]);}
 async function _sleep(ms){return new Promise(r=>setTimeout(r,ms));}
@@ -3509,9 +3528,7 @@ async function callAITaskStream(taskId,prompt,conf,systemPrompt,onChunk){
 }
 function taskAIConfig(task,conf){
   const memoryTask=String(task?.id||'').startsWith('memory.');
-  const preset=PROVIDERS[conf?.provider]||PROVIDERS.custom;
-  const endpoint=String(conf?.baseUrl||preset.url||'').toLowerCase();
-  const officialDeepSeek=conf?.provider==='deepseek'||endpoint.includes('api.deepseek.com');
+  const officialDeepSeek=isOfficialDeepSeekConfig(conf);
   return{
     ...conf,
     timeout:Math.max(Number(conf?.timeout||60000),Number(task?.minTimeoutMs||0)),
@@ -3573,36 +3590,42 @@ function refreshLongBookMemoryUI(message=''){
 function setLongBookMemoryBusy(busy){for(const id of ['longBookMemoryBtn']){const button=document.getElementById(id);if(button){button.disabled=busy;button.textContent=busy?'正在分批阅读…':'读取全书并更新';}}document.querySelectorAll('.long-context-head button').forEach(button=>{button.disabled=busy;button.textContent=busy?'阅读中…':button.closest('.long-context-control-mobile')?'更新记忆':'更新全书记忆';});}
 async function updateLongBookMemory(){
   if(!S.proj)return showToast('✕',t('toast-no-proj'));
+  if(S.longBookMemoryRun)return showToast('…','已有全书记忆任务正在运行');
   if(!aiHasConfig(S.apiConfig)){showToast('⚙',t('toast-no-api'));openModal('apiModal');return;}
   if(!(await flushActiveDocument()))return;
-  const chapters=liveProjectChapters();
-  const existing=projectLongBookMemories();
+  const projectId=S.proj.project.id,projectName=S.proj.project.name||'当前项目';
+  const chapters=liveProjectChapters().map(chapter=>({...chapter}));
+  const existingAll=allProjectLongBookMemories(projectId),existing=existingAll.filter(memory=>memory.enabled!==false);
   const foundation=projectFactPacket();
+  const apiConfig={...S.apiConfig};
   const estimatedCalls=WWLongBookMemory.estimateRequests({chapters,foundation,existingMemories:existing});
   if(!confirm(`将先完整分块读取世界观、大纲和人物卡（${foundation.sourceText.length.toLocaleString()} 字符），再读取全部 ${chapters.length} 章，预计约 ${estimatedCalls} 次模型请求；未改资料与章节会复用已有记忆。原始资料和正文不会写入记忆，只保存压缩结果。继续吗？`))return;
+  const run={projectId,projectName};S.longBookMemoryRun=run;
   setLongBookMemoryBusy(true);
   try{
     const result=await WWLongBookMemory.build({
       chapters,
       foundation,
       existingMemories:existing,
-      onProgress:progress=>{if(progress.phase==='foundation')refreshLongBookMemoryUI(`读取项目设定与大纲${progress.reused?'（复用）':'（分块压缩）'}`);else if(progress.phase==='chapter')refreshLongBookMemoryUI(`读取章节 ${progress.chapterIndex+1}/${progress.chapterCount} · ${progress.title}${progress.reused?'（复用）':''}`);else if(progress.phase==='arc')refreshLongBookMemoryUI(`压缩阶段 ${progress.arcIndex+1}/${progress.arcCount}`);else refreshLongBookMemoryUI('正在合并全书记忆…');},
-      summarize:({taskId,prompt})=>callAITaskStream(taskId,prompt,S.apiConfig,'你是长篇小说记忆压缩器。必须忠于输入、保留因果和人物知识边界、标出矛盾与不确定项，禁止补写剧情。',()=>{})
+      onProgress:progress=>{if(S.proj?.project?.id!==projectId)return;if(progress.phase==='foundation')refreshLongBookMemoryUI(`读取项目设定与大纲${progress.reused?'（复用）':'（分块压缩）'}`);else if(progress.phase==='chapter')refreshLongBookMemoryUI(`读取章节 ${progress.chapterIndex+1}/${progress.chapterCount} · ${progress.title}${progress.reused?'（复用）':''}`);else if(progress.phase==='arc')refreshLongBookMemoryUI(`压缩阶段 ${progress.arcIndex+1}/${progress.arcCount}`);else refreshLongBookMemoryUI('正在合并全书记忆…');},
+      summarize:({taskId,prompt})=>callAITaskStream(taskId,prompt,apiConfig,'你是长篇小说记忆压缩器。必须忠于输入、保留因果和人物知识边界、标出矛盾与不确定项，禁止补写剧情。',()=>{})
     });
-    const now=Date.now(),all=[result.foundationMemory,...result.chapterMemories,...result.arcMemories,result.digestMemory].filter(Boolean),existingByKey=new Map(existing.map(memory=>[memory.longbook_key,memory]));
-    const keep=new Set();
+    if(S.longBookMemoryRun!==run)throw new Error('全书记忆任务已取消');
+    if(!(await dbGet('projects',projectId)))throw new Error('原项目已不存在，未写入压缩结果');
+    const now=Date.now(),all=[result.foundationMemory,...result.chapterMemories,...result.arcMemories,result.digestMemory].filter(Boolean),existingByKey=new Map();
+    for(const memory of [...existingAll].sort((a,b)=>(b.updated_at||b.created_at||0)-(a.updated_at||a.created_at||0))){if(!existingByKey.has(memory.longbook_key))existingByKey.set(memory.longbook_key,memory);}
+    const rows=[];
     for(const memory of all){
-      const previous=existingByKey.get(memory.longbook_key),row={...(previous||{}),...memory,project_id:S.proj.project.id,scope:'project',created_at:previous?.created_at||now,updated_at:now};
+      const previous=existingByKey.get(memory.longbook_key),row={...(previous||{}),...memory,project_id:projectId,scope:'project',created_at:previous?.created_at||now,updated_at:now};
       if(previous?.id)row.id=previous.id;
-      await dbPut('aiMemories',row);keep.add(memory.longbook_key);
+      rows.push(row);
     }
-    for(const memory of existing){if(!keep.has(memory.longbook_key))await dbDel('aiMemories',memory.id);}
+    await replaceLongBookMemories(rows,existingAll);
     await loadMemories();
-    refreshLongBookMemoryUI(`已读取设定/大纲 ${result.stats.foundationChars.toLocaleString()} 字符 · 正文 ${result.stats.chapterCount} 章 · 新分析 ${result.stats.analyzedChapters} 章 · 复用 ${result.stats.reusedChapters} 章`);
-    setAIContextMode('smart');
-    showToast('✓','全书分层记忆已更新');
-  }catch(error){refreshLongBookMemoryUI('更新失败：'+String(error.message||error).slice(0,160));showToast('✕',error.message||'全书记忆更新失败');}
-  finally{setLongBookMemoryBusy(false);}
+    if(S.proj?.project?.id===projectId){refreshLongBookMemoryUI(`已读取设定/大纲 ${result.stats.foundationChars.toLocaleString()} 字符 · 正文 ${result.stats.chapterCount} 章 · 新分析 ${result.stats.analyzedChapters} 章 · 复用 ${result.stats.reusedChapters} 章`);setAIContextMode('smart');}
+    showToast('✓',projectName+'：全书分层记忆已更新');
+  }catch(error){if(S.proj?.project?.id===projectId)refreshLongBookMemoryUI('更新失败：'+String(error.message||error).slice(0,160));showToast('✕',error.message||'全书记忆更新失败');}
+  finally{if(S.longBookMemoryRun===run)S.longBookMemoryRun=null;setLongBookMemoryBusy(false);}
 }
 function renderMemoryList(){
   const el=document.getElementById('memoryList');
@@ -3686,8 +3709,9 @@ async function delMemory(id){
   const memory=S.proj?S.aiMemories.find(item=>item.id===id&&item.project_id===S.proj.project.id):null;
   if(!memory){showToast('✕','当前项目中找不到这条记忆，已阻止跨项目删除');await loadMemories();return;}
   if(!confirm('删除此记忆？'))return;
+  const projectName=S.proj.project.name||'';
   if(memory.backend_id&&!WW_BROWSER_API_MODE){
-    try{await apiJSON('/api/memories?id='+encodeURIComponent(memory.backend_id),{method:'DELETE'});}
+    try{await apiJSON('/api/memories?id='+encodeURIComponent(memory.backend_id)+'&project='+encodeURIComponent(projectName),{method:'DELETE'});}
     catch(error){if(error.status!==404){showToast('✕','Go 后台删除失败，本地记忆已保留：'+(error.message||error));return;}}
   }
   await dbDel('aiMemories',id);
@@ -3711,7 +3735,7 @@ function editMemory(id){
 window.wwRemember=remember;
 window.wwStageMemory=stageMemory;
 function toggleMemCat(el){el.parentElement.querySelectorAll('.genre-chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');}
-function selectProvider(el,p){el.parentElement.querySelectorAll('.provider-chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');S.selectedProvider=p;const cur=el.closest('.provider-grid').id;const d={claude:'claude-sonnet-4-20250514',openai:'gpt-4o',deepseek:'deepseek-chat',xiaomi:'mimo-v2.5-pro',qwen:'qwen-plus',zhipu:'glm-4-flash',moonshot:'moonshot-v1-8k',siliconflow:'deepseek-ai/DeepSeek-V3',openrouter:'anthropic/claude-sonnet-4',gemini:'gemini-2.0-flash',grok:'grok-3',custom:''};const modelEl=cur==='sProviderGrid'?document.getElementById('sApiModel'):document.getElementById('apiModel');const urlEl=cur==='sProviderGrid'?document.getElementById('sApiBaseUrl'):document.getElementById('apiBaseUrl');if(modelEl)modelEl.placeholder=d[p]||'填写目标模型名';if(urlEl)urlEl.placeholder=PROVIDERS[p]?.url||'https://api.example.com/v1';}
+function selectProvider(el,p){el.parentElement.querySelectorAll('.provider-chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');S.selectedProvider=p;const cur=el.closest('.provider-grid').id;const d={claude:'claude-sonnet-4-20250514',openai:'gpt-4o',deepseek:'deepseek-v4-flash',xiaomi:'mimo-v2.5-pro',qwen:'qwen-plus',zhipu:'glm-4-flash',moonshot:'moonshot-v1-8k',siliconflow:'deepseek-ai/DeepSeek-V3',openrouter:'anthropic/claude-sonnet-4',gemini:'gemini-2.0-flash',grok:'grok-3',custom:''};const modelEl=cur==='sProviderGrid'?document.getElementById('sApiModel'):document.getElementById('apiModel');const urlEl=cur==='sProviderGrid'?document.getElementById('sApiBaseUrl'):document.getElementById('apiBaseUrl');if(modelEl)modelEl.placeholder=d[p]||'填写目标模型名';if(urlEl)urlEl.placeholder=PROVIDERS[p]?.url||'https://api.example.com/v1';}
 function apiFormConfig(prefix=''){
   const fieldStem=prefix?prefix+'Api':'api';
   const fieldValue=name=>{
@@ -3913,7 +3937,7 @@ function closeAiResult(){document.getElementById('aiResultPopup').classList.remo
 
 
 // ═══ Multi-AI ═══
-const SLOT_PRESETS={xiaomi:{url:'https://api.xiaomimimo.com/v1/chat/completions',model:'mimo-v2.5-pro'},claude:{url:'https://api.anthropic.com/v1/messages',model:'claude-sonnet-4-20250514'},openai:{url:'https://api.openai.com/v1/chat/completions',model:'gpt-4o'},deepseek:{url:'https://api.deepseek.com/v1/chat/completions',model:'deepseek-chat'},qwen:{url:'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',model:'qwen-plus'},openrouter:{url:'https://openrouter.ai/api/v1/chat/completions',model:'anthropic/claude-sonnet-4'},siliconflow:{url:'https://api.siliconflow.cn/v1/chat/completions',model:'deepseek-ai/DeepSeek-V3'},gemini:{url:'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',model:'gemini-2.0-flash'},grok:{url:'https://api.x.ai/v1/chat/completions',model:'grok-3'}};
+const SLOT_PRESETS={xiaomi:{url:'https://api.xiaomimimo.com/v1/chat/completions',model:'mimo-v2.5-pro'},claude:{url:'https://api.anthropic.com/v1/messages',model:'claude-sonnet-4-20250514'},openai:{url:'https://api.openai.com/v1/chat/completions',model:'gpt-4o'},deepseek:{url:'https://api.deepseek.com/v1/chat/completions',model:'deepseek-v4-flash'},qwen:{url:'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',model:'qwen-plus'},openrouter:{url:'https://openrouter.ai/api/v1/chat/completions',model:'anthropic/claude-sonnet-4'},siliconflow:{url:'https://api.siliconflow.cn/v1/chat/completions',model:'deepseek-ai/DeepSeek-V3'},gemini:{url:'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions',model:'gemini-2.0-flash'},grok:{url:'https://api.x.ai/v1/chat/completions',model:'grok-3'}};
 function loadSlot(n){
   let slot={};
   try{slot=JSON.parse(localStorage.getItem('ww_slot'+n)||'{}')||{};}catch(_){}

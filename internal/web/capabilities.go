@@ -193,7 +193,7 @@ func (s *Server) streamRun(ctx context.Context, w http.ResponseWriter, runID str
 			return
 		}
 		providerKey, modelName := resolved.Key, resolved.Model
-		streamCtx, cancel := s.aiRequestContext(ctx, providerKey)
+		streamCtx, touch, cancel := s.aiStreamRequestContextForRequest(ctx, providerKey, 0)
 		defer cancel()
 		w.Header().Set("Content-Type", "text/event-stream; charset=utf-8")
 		w.Header().Set("Cache-Control", "no-cache")
@@ -210,6 +210,7 @@ func (s *Server) streamRun(ctx context.Context, w http.ResponseWriter, runID str
 			Content: []engine.ContentBlock{engine.TextBlock(req.Message)},
 		}}
 		text, usage, streamErr := s.generateAIStream(streamCtx, providerKey, modelName, messages, func(delta string) {
+			touch()
 			writeSSE(w, "delta", map[string]any{"run_id": runID, "text": delta})
 			h.Flush()
 		})

@@ -91,7 +91,9 @@ func newHTTPBridgeFromEnv() (*httpBridge, error) {
 		maxBodyBytes: maxBodyBytes,
 		client: &http.Client{
 			Transport: transport,
-			Timeout:   time.Duration(timeoutMS) * time.Millisecond,
+			// ResponseHeaderTimeout limits a silent upstream before headers. A
+			// fixed Client.Timeout would corrupt healthy long-lived SSE streams.
+			Timeout: 0,
 		},
 		slots: make(chan struct{}, int(maxConcurrent)),
 	}, nil
@@ -141,15 +143,6 @@ func (b *httpBridge) serveHTTP(w http.ResponseWriter, r *http.Request) {
 		httpError(w, errors.New("HTTP bridge token is missing or invalid"), http.StatusUnauthorized)
 		return
 	}
-	select {
-	case b.slots <- struct{}{}:
-		defer func() { <-b.slots }()
-	default:
-		w.Header().Set("Retry-After", "2")
-		httpError(w, errors.New("HTTP bridge concurrency limit reached"), http.StatusTooManyRequests)
-		return
-	}
-
 	targetName, suffix, err := bridgeTargetAndPath(r.URL.Path)
 	if err != nil {
 		httpError(w, err, http.StatusBadRequest)
@@ -178,6 +171,14 @@ func (b *httpBridge) serveHTTP(w http.ResponseWriter, r *http.Request) {
 		httpError(w, fmt.Errorf("HTTP bridge request exceeds %d bytes", b.maxBodyBytes), http.StatusRequestEntityTooLarge)
 		return
 	}
+	select {
+	case b.slots <- struct{}{}:
+		defer func() { <-b.slots }()
+	default:
+		w.Header().Set("Retry-After", "2")
+		httpError(w, errors.New("HTTP bridge concurrency limit reached"), http.StatusTooManyRequests)
+		return
+	}
 
 	upstreamURL := *base
 	upstreamURL.Path = joinURLPath(base.Path, suffix)
@@ -194,7 +195,7 @@ func (b *httpBridge) serveHTTP(w http.ResponseWriter, r *http.Request) {
 		if len(previous) >= 5 {
 			return errors.New("HTTP bridge stopped after 5 redirects")
 		}
-		if !sameURLOrigin(next.URL, base) {
+		if !sameURLOrigin(next.URL, base) || !urlWithinBridgeTarget(next.URL, base) {
 			return errors.New("HTTP bridge rejected a redirect outside the configured target")
 		}
 		return nil
@@ -209,7 +210,9 @@ func (b *httpBridge) serveHTTP(w http.ResponseWriter, r *http.Request) {
 	copyBridgeResponseHeaders(w.Header(), response.Header)
 	w.Header().Set("X-Writing-Workshop-Bridge", targetName)
 	w.WriteHeader(response.StatusCode)
-	copyBridgeResponse(w, response.Body)
+	if err := copyBridgeResponse(w, response.Body); err != nil {
+		writeBridgeStreamError(w, response.Header.Get("Content-Type"))
+	}
 }
 
 func bridgeTokenEqual(provided, expected string) bool {
@@ -251,6 +254,14 @@ func joinURLPath(base, suffix string) string {
 
 func sameURLOrigin(left, right *url.URL) bool {
 	return strings.EqualFold(left.Scheme, right.Scheme) && strings.EqualFold(left.Host, right.Host)
+}
+
+func urlWithinBridgeTarget(candidate, target *url.URL) bool {
+	basePath := strings.TrimRight(target.Path, "/")
+	if basePath == "" {
+		return true
+	}
+	return candidate.Path == basePath || strings.HasPrefix(candidate.Path, basePath+"/")
 }
 
 func copyBridgeRequestHeaders(destination, source http.Header) {
@@ -296,21 +307,40 @@ func hopByHopHeader(lower string) bool {
 	}
 }
 
-func copyBridgeResponse(w http.ResponseWriter, source io.Reader) {
+func copyBridgeResponse(w http.ResponseWriter, source io.Reader) error {
 	buffer := make([]byte, 32<<10)
 	flusher, canFlush := w.(http.Flusher)
 	for {
 		count, err := source.Read(buffer)
 		if count > 0 {
 			if _, writeErr := w.Write(buffer[:count]); writeErr != nil {
-				return
+				return nil
 			}
 			if canFlush {
 				flusher.Flush()
 			}
 		}
 		if err != nil {
-			return
+			if errors.Is(err, io.EOF) {
+				return nil
+			}
+			return err
 		}
+	}
+}
+
+func writeBridgeStreamError(w http.ResponseWriter, contentType string) {
+	payload, _ := json.Marshal(map[string]any{"error": map[string]string{"message": "HTTP bridge upstream stream ended unexpectedly"}})
+	lower := strings.ToLower(contentType)
+	switch {
+	case strings.Contains(lower, "text/event-stream"):
+		_, _ = fmt.Fprintf(w, "\nevent: error\ndata: %s\n\n", payload)
+	case strings.Contains(lower, "ndjson"):
+		_, _ = fmt.Fprintf(w, "%s\n", payload)
+	default:
+		return
+	}
+	if flusher, ok := w.(http.Flusher); ok {
+		flusher.Flush()
 	}
 }

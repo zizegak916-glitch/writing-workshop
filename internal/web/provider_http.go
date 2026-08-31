@@ -23,6 +23,21 @@ type resolvedAIProvider struct {
 	Protocol string
 }
 
+var rawResponseEnvelopeKeys = []string{"response", "data", "result", "body", "completion"}
+
+type streamActivityReader struct {
+	reader io.Reader
+	ctx    context.Context
+}
+
+func (r streamActivityReader) Read(buffer []byte) (int, error) {
+	count, err := r.reader.Read(buffer)
+	if count > 0 {
+		streamActivity(r.ctx)
+	}
+	return count, err
+}
+
 func (s *Server) resolveAIProvider(provider, modelName string) (resolvedAIProvider, error) {
 	cfg := s.host.Config()
 	provider = strings.TrimSpace(provider)
@@ -126,7 +141,12 @@ func (s *Server) generateResolvedAI(ctx context.Context, resolved resolvedAIProv
 
 func applyAIRequestOptions(resolved resolvedAIProvider, req aiRequest) resolvedAIProvider {
 	if strings.TrimSpace(resolved.Config.BaseURL) == "" {
-		return resolved
+		if !isOfficialDeepSeekProvider(resolved) {
+			return resolved
+		}
+		resolved.Config.BaseURL = "https://api.deepseek.com/v1"
+		resolved.Config.Protocol = "openai-chat"
+		resolved.Protocol = "openai-chat"
 	}
 	extra := make(map[string]any, len(resolved.Config.ExtraBody)+2)
 	for key, value := range resolved.Config.ExtraBody {
@@ -152,10 +172,11 @@ func applyAIRequestOptions(resolved resolvedAIProvider, req aiRequest) resolvedA
 }
 
 func isOfficialDeepSeekProvider(provider resolvedAIProvider) bool {
-	if strings.EqualFold(strings.TrimSpace(provider.Key), "deepseek") {
-		return true
+	baseURL := strings.TrimSpace(provider.Config.BaseURL)
+	if baseURL == "" {
+		return strings.EqualFold(strings.TrimSpace(provider.Key), "deepseek")
 	}
-	u, err := url.Parse(strings.TrimSpace(provider.Config.BaseURL))
+	u, err := url.Parse(baseURL)
 	return err == nil && strings.EqualFold(u.Hostname(), "api.deepseek.com")
 }
 
@@ -185,12 +206,13 @@ func rawProviderRequest(ctx context.Context, provider resolvedAIProvider, messag
 		return "", nil, fmt.Errorf("request provider %q: %w", provider.Key, err)
 	}
 	defer resp.Body.Close()
+	streamActivity(ctx)
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		data, _ := io.ReadAll(io.LimitReader(resp.Body, 64<<10))
 		return "", nil, fmt.Errorf("provider %q returned HTTP %d: %s", provider.Key, resp.StatusCode, upstreamMessage(data, resp.Status))
 	}
 	if stream && resp.Body != nil && !strings.Contains(strings.ToLower(resp.Header.Get("Content-Type")), "application/json") {
-		return readRawProviderStream(resp.Body, onDelta)
+		return readRawProviderStream(streamActivityReader{reader: resp.Body, ctx: ctx}, onDelta)
 	}
 	data, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -444,6 +466,13 @@ func readRawProviderStream(reader io.Reader, onDelta func(string)) (string, *eng
 }
 
 func rawStreamDelta(data map[string]any) string {
+	return rawStreamDeltaAt(data, 0)
+}
+
+func rawStreamDeltaAt(data map[string]any, depth int) string {
+	if data == nil || depth > 5 {
+		return ""
+	}
 	if choices, ok := data["choices"].([]any); ok && len(choices) > 0 {
 		if choice, ok := choices[0].(map[string]any); ok {
 			if delta, ok := choice["delta"].(map[string]any); ok {
@@ -461,9 +490,21 @@ func rawStreamDelta(data map[string]any) string {
 		}
 	}
 	if message, ok := data["message"].(map[string]any); ok {
-		return rawContentText(message["content"])
+		if text := rawContentText(message["content"]); text != "" {
+			return text
+		}
 	}
-	return rawContentText(data["response"])
+	if response, ok := data["response"].(string); ok {
+		return response
+	}
+	for _, key := range rawResponseEnvelopeKeys {
+		if nested, ok := data[key].(map[string]any); ok {
+			if text := rawStreamDeltaAt(nested, depth+1); text != "" {
+				return text
+			}
+		}
+	}
+	return ""
 }
 
 func rawResponseText(data map[string]any) string {
@@ -512,7 +553,7 @@ func rawResponseText(data map[string]any) string {
 			return text
 		}
 	}
-	for _, key := range []string{"response", "data", "result", "body", "completion"} {
+	for _, key := range rawResponseEnvelopeKeys {
 		if nested, ok := data[key].(map[string]any); ok {
 			if text := rawResponseText(nested); text != "" {
 				return text
@@ -567,7 +608,7 @@ func rawResponseReasoningText(data map[string]any) string {
 	if text := rawContentText(data["reasoning_content"]); text != "" {
 		return text
 	}
-	for _, key := range []string{"response", "data", "result", "body", "completion"} {
+	for _, key := range rawResponseEnvelopeKeys {
 		if nested, ok := data[key].(map[string]any); ok {
 			if text := rawResponseReasoningText(nested); text != "" {
 				return text
@@ -593,7 +634,14 @@ func rawFinishReason(data map[string]any) string {
 			return reason
 		}
 	}
-	for _, key := range []string{"response", "data", "result", "body", "completion"} {
+	if status, _ := data["status"].(string); status == "incomplete" {
+		if details, ok := data["incomplete_details"].(map[string]any); ok {
+			if reason := strings.TrimSpace(fmt.Sprint(details["reason"])); reason != "" && reason != "<nil>" {
+				return reason
+			}
+		}
+	}
+	for _, key := range rawResponseEnvelopeKeys {
 		if nested, ok := data[key].(map[string]any); ok {
 			if reason := rawFinishReason(nested); reason != "" {
 				return reason
@@ -617,8 +665,8 @@ func rawMissingTextMessage(data map[string]any, streaming, sawReasoning bool, fi
 		}
 		return "model returned reasoning but no final text" + suffix + "; disable thinking or raise the output limit"
 	}
-	if finishReason == "length" {
-		return "model reached the output limit before producing usable text (finish_reason=length)"
+	if finishReason == "length" || finishReason == "max_output_tokens" {
+		return fmt.Sprintf("model reached the output limit before producing usable text (finish_reason=%s)", finishReason)
 	}
 	if streaming {
 		return "provider stream ended without recognized final text; verify that the relay preserves content deltas"
@@ -627,18 +675,27 @@ func rawMissingTextMessage(data map[string]any, streaming, sawReasoning bool, fi
 }
 
 func rawUsage(data map[string]any) *engine.Usage {
-	usage, ok := data["usage"].(map[string]any)
-	if !ok {
-		if response, ok := data["response"].(map[string]any); ok {
-			usage, _ = response["usage"].(map[string]any)
-		}
+	return rawUsageAt(data, 0)
+}
+
+func rawUsageAt(data map[string]any, depth int) *engine.Usage {
+	if data == nil || depth > 5 {
+		return nil
 	}
+	usage, _ := data["usage"].(map[string]any)
 	if len(usage) == 0 {
 		if message, ok := data["message"].(map[string]any); ok {
 			usage, _ = message["usage"].(map[string]any)
 		}
 	}
 	if len(usage) == 0 {
+		for _, key := range rawResponseEnvelopeKeys {
+			if nested, ok := data[key].(map[string]any); ok {
+				if current := rawUsageAt(nested, depth+1); current != nil {
+					return current
+				}
+			}
+		}
 		return nil
 	}
 	input := intAny(firstAny(usage["prompt_tokens"], usage["input_tokens"], usage["prompt_eval_count"]))
@@ -651,8 +708,22 @@ func rawUsage(data map[string]any) *engine.Usage {
 }
 
 func rawProviderError(data map[string]any) error {
+	return rawProviderErrorAt(data, 0)
+}
+
+func rawProviderErrorAt(data map[string]any, depth int) error {
+	if data == nil || depth > 5 {
+		return nil
+	}
 	value, ok := data["error"]
 	if !ok || value == nil {
+		for _, key := range rawResponseEnvelopeKeys {
+			if nested, ok := data[key].(map[string]any); ok {
+				if err := rawProviderErrorAt(nested, depth+1); err != nil {
+					return err
+				}
+			}
+		}
 		return nil
 	}
 	switch value := value.(type) {

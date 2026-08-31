@@ -88,7 +88,7 @@ func (s *Server) handleMemories(w http.ResponseWriter, r *http.Request) {
 		project := strings.TrimSpace(r.URL.Query().Get("project"))
 		items := make([]backendMemory, 0, len(archive.Memories))
 		for _, memory := range archive.Memories {
-			if project == "" || memory.Scope == "global" || memory.Project == "" || memory.Project == project {
+			if project == "" || memory.Scope == "global" || memory.Project == project {
 				items = append(items, memory)
 			}
 		}
@@ -121,6 +121,17 @@ func (s *Server) handleMemories(w http.ResponseWriter, r *http.Request) {
 		}
 		now := time.Now().UTC()
 		memory := backendMemory{ID: input.ID, Project: strings.TrimSpace(input.Project), Category: firstNonEmpty(strings.TrimSpace(input.Category), "note"), Title: strings.TrimSpace(input.Title), Content: input.Content, Source: firstNonEmpty(strings.TrimSpace(input.Source), "manual"), Scope: firstNonEmpty(strings.TrimSpace(input.Scope), "project"), Enabled: true, CreatedAt: now, UpdatedAt: now}
+		if memory.Scope != "project" && memory.Scope != "global" {
+			httpError(w, errors.New("memory scope must be project or global"), http.StatusBadRequest)
+			return
+		}
+		if memory.Scope == "project" && memory.Project == "" {
+			httpError(w, errors.New("project-scoped memory requires a project"), http.StatusBadRequest)
+			return
+		}
+		if memory.Scope == "global" {
+			memory.Project = ""
+		}
 		if input.Enabled != nil {
 			memory.Enabled = *input.Enabled
 		}
@@ -128,6 +139,10 @@ func (s *Server) handleMemories(w http.ResponseWriter, r *http.Request) {
 		if memory.ID != "" {
 			for i, existing := range archive.Memories {
 				if existing.ID == memory.ID {
+					if existing.Scope != memory.Scope || existing.Project != memory.Project {
+						httpError(w, errors.New("memory id belongs to a different project or scope"), http.StatusConflict)
+						return
+					}
 					memory.CreatedAt = existing.CreatedAt
 					archive.Memories[i] = memory
 					updated = true
@@ -151,6 +166,7 @@ func (s *Server) handleMemories(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, map[string]any{"saved": true, "memory": memory})
 	case http.MethodDelete:
 		id := strings.TrimSpace(r.URL.Query().Get("id"))
+		project := strings.TrimSpace(r.URL.Query().Get("project"))
 		if id == "" {
 			httpError(w, errors.New("id is required"), http.StatusBadRequest)
 			return
@@ -158,7 +174,7 @@ func (s *Server) handleMemories(w http.ResponseWriter, r *http.Request) {
 		kept := archive.Memories[:0]
 		deleted := false
 		for _, memory := range archive.Memories {
-			if memory.ID == id {
+			if memory.ID == id && (project == "" || memory.Project == project) {
 				deleted = true
 				continue
 			}
@@ -190,7 +206,7 @@ func (s *Server) backendMemoryContext(req runRequest) string {
 		if !memory.Enabled {
 			continue
 		}
-		if memory.Scope == "global" || memory.Project == "" || project == "" || memory.Project == project {
+		if memory.Scope == "global" || (project != "" && memory.Project == project) {
 			items = append(items, memory)
 		}
 	}

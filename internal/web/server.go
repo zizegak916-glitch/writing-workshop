@@ -620,7 +620,7 @@ func (s *Server) aiRequestContext(parent context.Context, provider string) (cont
 	return s.aiRequestContextForRequest(parent, provider, 0)
 }
 
-func (s *Server) aiRequestContextForRequest(parent context.Context, provider string, requestedMS int) (context.Context, context.CancelFunc) {
+func (s *Server) aiRequestTimeout(provider string, requestedMS int) time.Duration {
 	timeout := 60 * time.Second
 	if pc, ok := s.host.Config().Providers[provider]; ok && pc.RequestTimeoutMS > 0 {
 		timeout = time.Duration(pc.RequestTimeoutMS) * time.Millisecond
@@ -631,7 +631,57 @@ func (s *Server) aiRequestContextForRequest(parent context.Context, provider str
 		}
 		timeout = requested
 	}
+	return timeout
+}
+
+func (s *Server) aiRequestContextForRequest(parent context.Context, provider string, requestedMS int) (context.Context, context.CancelFunc) {
+	timeout := s.aiRequestTimeout(provider, requestedMS)
 	return context.WithTimeout(parent, timeout)
+}
+
+type streamActivityContextKey struct{}
+
+func streamActivity(ctx context.Context) {
+	if touch, ok := ctx.Value(streamActivityContextKey{}).(func()); ok {
+		touch()
+	}
+}
+
+func (s *Server) aiStreamRequestContextForRequest(parent context.Context, provider string, requestedMS int) (context.Context, func(), context.CancelFunc) {
+	timeout := s.aiRequestTimeout(provider, requestedMS)
+	ctx, baseCancel := context.WithCancel(parent)
+	var mu sync.Mutex
+	active := true
+	var timer *time.Timer
+	touch := func() {
+		mu.Lock()
+		defer mu.Unlock()
+		if active {
+			timer.Reset(timeout)
+		}
+	}
+	timer = time.AfterFunc(timeout, func() {
+		mu.Lock()
+		shouldCancel := active
+		active = false
+		mu.Unlock()
+		if shouldCancel {
+			baseCancel()
+		}
+	})
+	cancel := func() {
+		mu.Lock()
+		wasActive := active
+		active = false
+		if timer != nil {
+			timer.Stop()
+		}
+		mu.Unlock()
+		if wasActive {
+			baseCancel()
+		}
+	}
+	return context.WithValue(ctx, streamActivityContextKey{}, touch), touch, cancel
 }
 
 func (s *Server) generateAIStream(ctx context.Context, provider, modelName string, messages []engine.Message, onDelta func(string)) (string, *engine.Usage, error) {
@@ -718,9 +768,10 @@ func (s *Server) handleAIStream(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Connection", "keep-alive")
 	writeSSE(w, "start", map[string]any{"provider": providerKey, "model": modelName})
 	flusher.Flush()
-	ctx, cancel := s.aiRequestContextForRequest(r.Context(), providerKey, req.RequestTimeoutMS)
+	ctx, touch, cancel := s.aiStreamRequestContextForRequest(r.Context(), providerKey, req.RequestTimeoutMS)
 	defer cancel()
 	text, usage, err := s.generateResolvedAIStream(ctx, resolved, messages, func(delta string) {
+		touch()
 		writeSSE(w, "delta", map[string]any{"text": delta})
 		flusher.Flush()
 	})

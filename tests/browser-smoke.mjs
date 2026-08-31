@@ -169,6 +169,92 @@ try {
   assert.ok(longBookContract.foundationChunks >= 2, 'browser long-book engine must fully chunk project facts');
   assert.equal(longBookContract.chunkedChapters, 5, 'browser long-book engine must read every chapter');
 
+  const longBookPersistenceGuards = await page.evaluate(async () => {
+    const originalProjectId = S.proj.project.id;
+    const now = Date.now();
+    const oldChapterIds = [701, 702, 703];
+    const staleProjectId = await importProjectBundleAtomic({
+      version: 6,
+      project: { name: '过期记忆与导入映射验收', world_setting: '当前世界规则', created_at: now, updated_at: now },
+      outlines: [], characters: [], notes: [], history: [], categories: [],
+      chapters: oldChapterIds.map((id, index) => ({ id, title: `第${index + 1}章`, content: `当前正文${index + 1}`, sort_order: index, created_at: now })),
+      memories: [
+        ...oldChapterIds.map((id, index) => ({ id: 900 + index, source: 'longbook', kind: 'chapter_summary', longbook_key: `chapter:${id}`, chapter_id: id, coverage_index: index, source_hash: 'stale-source', content: index === 1 ? 'STALE_NEIGHBOR_MARKER' : `旧摘要${index + 1}`, enabled: true })),
+        { id: 999, source: 'longbook', kind: 'book_digest', longbook_key: 'book', covered_chapter_ids: oldChapterIds, content: 'STALE_BOOK_MARKER', enabled: true }
+      ]
+    });
+    await loadProject(staleProjectId);
+    const importedChapters = await dbByIndex('chapters', 'project_id', staleProjectId);
+    const importedMemories = await dbByIndex('aiMemories', 'project_id', staleProjectId);
+    const chapterIds = importedChapters.sort((a, b) => a.sort_order - b.sort_order).map(chapter => chapter.id);
+    const summaryIds = importedMemories.filter(memory => memory.kind === 'chapter_summary').sort((a, b) => a.coverage_index - b.coverage_index).map(memory => memory.chapter_id);
+    const digestIds = importedMemories.find(memory => memory.kind === 'book_digest').covered_chapter_ids;
+    const contextText = buildAIWritingContext('smart').text;
+
+    const beforeRollback = importedMemories.map(memory => ({ id: memory.id, content: memory.content })).sort((a, b) => a.id - b.id);
+    let rollbackRejected = false;
+    try {
+      await replaceLongBookMemories([
+        { ...importedMemories[0], content: 'MUTATED_SHOULD_ROLLBACK' },
+        { ...importedMemories[1], id: () => 'invalid-indexeddb-key' }
+      ], importedMemories);
+    } catch (_) {
+      rollbackRejected = true;
+    }
+    const afterRollback = (await dbByIndex('aiMemories', 'project_id', staleProjectId)).map(memory => ({ id: memory.id, content: memory.content })).sort((a, b) => a.id - b.id);
+
+    const projectA = await importProjectBundleAtomic({ version: 6, project: { name: '更新竞态 A', created_at: now }, outlines: [], characters: [], chapters: [], notes: [], memories: [], history: [], categories: [] });
+    const projectB = await importProjectBundleAtomic({ version: 6, project: { name: '更新竞态 B', created_at: now }, outlines: [], characters: [], chapters: [], notes: [], memories: [], history: [], categories: [] });
+    await loadProject(projectA);
+    const originalBuild = WWLongBookMemory.build;
+    const originalConfirm = window.confirm;
+    const originalConfig = S.apiConfig;
+    let releaseBuild;
+    WWLongBookMemory.build = () => new Promise(resolve => { releaseBuild = resolve; });
+    window.confirm = () => true;
+    S.apiConfig = { provider: 'test-provider' };
+    const updateTask = updateLongBookMemory();
+    while (!S.longBookMemoryRun || !releaseBuild) await new Promise(resolve => setTimeout(resolve, 0));
+    await loadProject(projectB);
+    releaseBuild({
+      foundationMemory: { source: 'longbook', kind: 'foundation_digest', longbook_key: 'foundation', content: 'PROJECT_A_PINNED_RESULT', enabled: true },
+      chapterMemories: [], arcMemories: [], digestMemory: null,
+      stats: { foundationChars: 0, chapterCount: 0, analyzedChapters: 0, reusedChapters: 0 }
+    });
+    await updateTask;
+    const rowsA = await dbByIndex('aiMemories', 'project_id', projectA);
+    const rowsB = await dbByIndex('aiMemories', 'project_id', projectB);
+    WWLongBookMemory.build = originalBuild;
+    window.confirm = originalConfirm;
+    S.apiConfig = originalConfig;
+
+    await loadProject(originalProjectId);
+    for (const projectId of [staleProjectId, projectA, projectB]) {
+      for (const store of ['outlines', 'characters', 'chapters', 'notes', 'aiMemories', 'aiHistory']) {
+        for (const row of await dbByIndex(store, 'project_id', projectId)) await dbDel(store, row.id);
+      }
+      await dbDel('projects', projectId);
+    }
+    await loadProjects();
+    return {
+      chapterIds, summaryIds, digestIds,
+      staleBookInjected: contextText.includes('STALE_BOOK_MARKER'),
+      staleNeighborInjected: contextText.includes('STALE_NEIGHBOR_MARKER'),
+      rollbackRejected,
+      rollbackPreserved: JSON.stringify(beforeRollback) === JSON.stringify(afterRollback),
+      projectARows: rowsA.map(row => row.content),
+      projectBRows: rowsB.map(row => row.content)
+    };
+  });
+  assert.deepEqual(longBookPersistenceGuards.summaryIds, longBookPersistenceGuards.chapterIds, 'imported chapter summaries must follow remapped chapter IDs');
+  assert.deepEqual(longBookPersistenceGuards.digestIds, longBookPersistenceGuards.chapterIds, 'imported book coverage must follow remapped chapter IDs');
+  assert.equal(longBookPersistenceGuards.staleBookInjected, false, 'stale book digests must not enter smart writing context');
+  assert.equal(longBookPersistenceGuards.staleNeighborInjected, false, 'stale adjacent summaries must not enter smart writing context');
+  assert.equal(longBookPersistenceGuards.rollbackRejected, true, 'invalid long-book replacement must reject');
+  assert.equal(longBookPersistenceGuards.rollbackPreserved, true, 'failed long-book replacement must roll back every row');
+  assert.deepEqual(longBookPersistenceGuards.projectARows, ['PROJECT_A_PINNED_RESULT'], 'an in-flight update must stay pinned to its starting project');
+  assert.deepEqual(longBookPersistenceGuards.projectBRows, [], 'switching projects during an update must not contaminate the new project');
+
   const importRouting = await page.evaluate(() => {
     const outlineText = `[WRITING_WORKSHOP_IMPORT_HINT_V1]
 project=续人间

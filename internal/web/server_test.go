@@ -560,6 +560,21 @@ func TestLongBookDeepSeekRequestOptions(t *testing.T) {
 	if !ok || thinking["type"] != "enabled" {
 		t.Fatalf("explicit thinking override was lost: %#v", configured.Config.ExtraBody["thinking"])
 	}
+
+	configured = applyAIRequestOptions(resolvedAIProvider{
+		Key: "deepseek", Model: "deepseek-v4-flash", Protocol: "openai-chat",
+	}, aiRequest{Mode: "longbook-memory", MaxTokens: 4096})
+	if configured.Config.BaseURL != "https://api.deepseek.com/v1" || !useRawProvider(configured) {
+		t.Fatalf("official DeepSeek defaults must use the real streaming path: %#v", configured)
+	}
+
+	relay := applyAIRequestOptions(resolvedAIProvider{
+		Key: "deepseek", Model: "relay-model", Protocol: "openai-chat",
+		Config: bootstrap.ProviderConfig{BaseURL: "https://relay.example/v1"},
+	}, aiRequest{Mode: "longbook-memory", MaxTokens: 4096})
+	if _, exists := relay.Config.ExtraBody["thinking"]; exists {
+		t.Fatalf("a third-party relay named deepseek must not receive official-only thinking fields: %#v", relay.Config.ExtraBody)
+	}
 }
 
 func TestRawResponseTextSupportsRelayEnvelopeAndReasoningDiagnostic(t *testing.T) {
@@ -584,6 +599,23 @@ func TestRawResponseTextSupportsRelayEnvelopeAndReasoningDiagnostic(t *testing.T
 	message := rawMissingTextMessage(reasoningOnly, false, false, "")
 	if !strings.Contains(message, "reasoning") || !strings.Contains(message, "finish_reason=length") {
 		t.Fatalf("diagnostic=%q", message)
+	}
+	nestedStream := map[string]any{"data": map[string]any{"result": map[string]any{
+		"choices": []any{map[string]any{"delta": map[string]any{"content": "nested delta"}}},
+		"usage":   map[string]any{"prompt_tokens": 7.0, "completion_tokens": 4.0},
+	}}}
+	if delta := rawStreamDelta(nestedStream); delta != "nested delta" {
+		t.Fatalf("nested stream delta=%q", delta)
+	}
+	if usage := rawUsage(nestedStream); usageInput(usage) != 7 || usageOutput(usage) != 4 {
+		t.Fatalf("nested usage=%#v", usage)
+	}
+	if err := rawProviderError(map[string]any{"data": map[string]any{"result": map[string]any{"error": map[string]any{"message": "nested failure"}}}}); err == nil || !strings.Contains(err.Error(), "nested failure") {
+		t.Fatalf("nested error=%v", err)
+	}
+	incomplete := map[string]any{"response": map[string]any{"status": "incomplete", "incomplete_details": map[string]any{"reason": "max_output_tokens"}}}
+	if reason := rawFinishReason(incomplete); reason != "max_output_tokens" || !strings.Contains(rawMissingTextMessage(incomplete, false, false, ""), "max_output_tokens") {
+		t.Fatalf("responses incomplete diagnostic reason=%q message=%q", reason, rawMissingTextMessage(incomplete, false, false, ""))
 	}
 }
 

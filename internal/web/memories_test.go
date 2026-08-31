@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 )
@@ -66,7 +67,32 @@ func TestBackendMemoryCRUDAndRunContext(t *testing.T) {
 		t.Fatalf("update must not duplicate backend memory: %+v", listed.Memories)
 	}
 
-	req = httptest.NewRequest(http.MethodDelete, "/api/memories?id="+saved.Memory.ID, nil)
+	req = httptest.NewRequest(http.MethodGet, "/api/memories?project=其他项目", nil)
+	rec = httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK || strings.Contains(rec.Body.String(), "对白规则") {
+		t.Fatalf("project memory leaked through filtered list: status=%d body=%s", rec.Code, rec.Body.String())
+	}
+	if context := server.backendMemoryContext(runRequest{Context: map[string]any{}}); context != "" {
+		t.Fatalf("a run without project_name must not receive every project memory: %q", context)
+	}
+
+	req = httptest.NewRequest(http.MethodPost, "/api/memories", bytes.NewBufferString(`{"content":"missing project","scope":"project"}`))
+	rec = httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("project-scoped memory without project status=%d body=%s", rec.Code, rec.Body.String())
+	}
+
+	conflictBody := bytes.NewBufferString(`{"id":"` + saved.Memory.ID + `","project":"其他项目","content":"overwrite","scope":"project"}`)
+	req = httptest.NewRequest(http.MethodPut, "/api/memories", conflictBody)
+	rec = httptest.NewRecorder()
+	mux.ServeHTTP(rec, req)
+	if rec.Code != http.StatusConflict {
+		t.Fatalf("cross-project memory id overwrite status=%d body=%s", rec.Code, rec.Body.String())
+	}
+
+	req = httptest.NewRequest(http.MethodDelete, "/api/memories?id="+saved.Memory.ID+"&project="+url.QueryEscape("验收项目"), nil)
 	rec = httptest.NewRecorder()
 	mux.ServeHTTP(rec, req)
 	if rec.Code != http.StatusOK {

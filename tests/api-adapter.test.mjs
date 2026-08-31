@@ -179,6 +179,8 @@ assert.equal(A.parseResponse({ output_text: 'responses ok' }), 'responses ok');
 assert.equal(A.parseResponse({ content: [{ type: 'text', text: 'anthropic ok' }] }), 'anthropic ok');
 assert.equal(A.parseResponse({ message: { content: 'ollama ok' } }), 'ollama ok');
 assert.deepEqual(A.parseUsage({ message: { usage: { input_tokens: 9, output_tokens: 2 } } }), { input: 9, output: 2 });
+assert.deepEqual(A.parseUsage({ data: { result: { usage: { prompt_tokens: 7, completion_tokens: 4 } } } }), { input: 7, output: 4 });
+assert.deepEqual(A.responseErrorInfo({ data: { result: { error: { message: 'relay quota exhausted', status: 429 } } } }), { message: 'relay quota exhausted', status: 429 });
 assert.deepEqual(A.parseModelList({ data: [{ id: 'gpt-5.6-luna' }, { id: 'grok-4.5' }, { id: 'gpt-5.6-luna' }] }), ['gpt-5.6-luna', 'grok-4.5']);
 assert.deepEqual(A.parseModelList({ models: [{ name: 'qwen3:14b' }] }), ['qwen3:14b']);
 assert.match(
@@ -211,6 +213,14 @@ assert.equal(
 assert.equal(
   A.parseStreamRecord('{"message":{"content":"丁"},"done":false}').delta,
   '丁'
+);
+assert.equal(
+  A.parseStreamRecord('data: {"data":{"result":{"choices":[{"delta":{"content":"嵌套"}}]}}}').delta,
+  '嵌套'
+);
+assert.match(
+  A.missingTextMessage({ response: { status: 'incomplete', incomplete_details: { reason: 'max_output_tokens' } } }),
+  /max_output_tokens/
 );
 
 const originalFetch = globalThis.fetch;
@@ -266,6 +276,30 @@ try {
   );
   assert.equal(streamed.text, '真流');
   assert.deepEqual(chunks, ['真', '流']);
+
+  globalThis.fetch = async () => new Response(
+    'data: {"data":{"result":{"choices":[{"delta":{"content":"代理"}}]}}}\n\ndata: {"data":{"result":{"choices":[{"delta":{"content":"流"}}]}}}\n\ndata: [DONE]\n\n',
+    { status: 200, headers: { 'content-type': 'text/event-stream' } }
+  );
+  const wrappedStream = await A.stream(
+    { protocol: 'openai-chat', model: 'wrapped-stream-test', baseUrl: 'https://relay.example/v1', timeout: 2000 },
+    messages,
+    {}
+  );
+  assert.equal(wrappedStream.text, '代理流');
+
+  globalThis.fetch = async () => new Response(
+    'data: {"data":{"result":{"error":{"message":"relay quota exhausted","status":429}}}}\n\n',
+    { status: 200, headers: { 'content-type': 'text/event-stream' } }
+  );
+  await assert.rejects(
+    A.stream(
+      { protocol: 'openai-chat', model: 'wrapped-error-test', baseUrl: 'https://relay.example/v1', timeout: 2000 },
+      messages,
+      {}
+    ),
+    error => error.status === 429 && /quota exhausted/.test(error.message)
+  );
 
   globalThis.fetch = async () => new Response(
     'data: {"type":"response.completed","response":{"output_text":"完整回退","usage":{"input_tokens":5,"output_tokens":2}}}\n\n',

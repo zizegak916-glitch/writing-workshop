@@ -47,7 +47,7 @@ HTTPS Pages 不能直接请求 `http://` API。需要保留 HTTP 上游时，可
 | `WRITING_WORKSHOP_HTTP_BRIDGE_TOKEN` | 未启用 | Pages 访问桥的独立令牌，至少 24 个字符 |
 | `WRITING_WORKSHOP_HTTP_BRIDGE_MAX_BYTES` | 16777216 | 单次请求正文上限 |
 | `WRITING_WORKSHOP_HTTP_BRIDGE_MAX_CONCURRENT` | 4 | 同时转发的请求数量 |
-| `WRITING_WORKSHOP_HTTP_BRIDGE_TIMEOUT_MS` | 600000 | 包含长响应流在内的完整请求超时 |
+| `WRITING_WORKSHOP_HTTP_BRIDGE_TIMEOUT_MS` | 600000 | 等待上游响应头的超时；响应头到达后不再用固定总时长截断活跃流 |
 
 在 Pages 中，Base URL 继续填写真实 HTTP 上游；“HTTPS 桥地址”填写 `https://你的域名/api/http-bridge/目标别名`，再填写桥令牌。桥令牌与模型 API Key 是两个不同凭据。完整的 Caddy、systemd 和安全说明见 [`docs/HTTP_BRIDGE.md`](docs/HTTP_BRIDGE.md)。
 
