@@ -208,34 +208,30 @@ try {
     const projectA = await importProjectBundleAtomic({ version: 6, project: { name: '更新竞态 A', world_setting: 'PROJECT_A_SOURCE_RULE', created_at: now }, outlines: [], characters: [], chapters: [], notes: [], memories: [], history: [], categories: [] });
     const projectB = await importProjectBundleAtomic({ version: 6, project: { name: '更新竞态 B', world_setting: 'PROJECT_B_SOURCE_RULE', created_at: now }, outlines: [], characters: [], chapters: [], notes: [], memories: [], history: [], categories: [] });
     await loadProject(projectA);
-    const originalBuild = WWLongBookMemory.build;
+    const originalCallAITaskStream = window.callAITaskStream;
     const originalConfirm = window.confirm;
     const originalConfig = S.apiConfig;
-    let releaseBuild;
-    let announceBuild;
-    const buildStarted = new Promise(resolve => { announceBuild = resolve; });
-    WWLongBookMemory.build = () => {
-      announceBuild();
-      return new Promise(resolve => { releaseBuild = resolve; });
+    let releaseSummary;
+    let announceSummary;
+    const summaryStarted = new Promise(resolve => { announceSummary = resolve; });
+    window.callAITaskStream = () => {
+      announceSummary();
+      return new Promise(resolve => { releaseSummary = resolve; });
     };
     window.confirm = () => true;
     S.apiConfig = { provider: 'test-provider' };
     const updateTask = updateLongBookMemory();
     await Promise.race([
-      buildStarted,
-      new Promise((_, reject) => setTimeout(() => reject(new Error('long-book update did not enter the build phase')), 3000))
+      summaryStarted,
+      new Promise((_, reject) => setTimeout(() => reject(new Error('long-book update did not request its first summary')), 3000))
     ]);
-    if (!S.longBookMemoryRun || !releaseBuild) throw new Error('long-book update did not publish its run guard');
+    if (!S.longBookMemoryRun || !releaseSummary) throw new Error('long-book update did not publish its run guard');
     await loadProject(projectB);
-    releaseBuild({
-      foundationMemory: { source: 'longbook', kind: 'foundation_digest', longbook_key: 'foundation', content: 'PROJECT_A_PINNED_RESULT', enabled: true },
-      chapterMemories: [], arcMemories: [], digestMemory: null,
-      stats: { foundationChars: 0, chapterCount: 0, analyzedChapters: 0, reusedChapters: 0 }
-    });
+    releaseSummary('PROJECT_A_PINNED_RESULT');
     await updateTask;
     const rowsA = await dbByIndex('aiMemories', 'project_id', projectA);
     const rowsB = await dbByIndex('aiMemories', 'project_id', projectB);
-    WWLongBookMemory.build = originalBuild;
+    window.callAITaskStream = originalCallAITaskStream;
     window.confirm = originalConfirm;
     S.apiConfig = originalConfig;
 
