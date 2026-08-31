@@ -170,7 +170,9 @@ try {
   assert.equal(longBookContract.chunkedChapters, 5, 'browser long-book engine must read every chapter');
 
   const longBookPersistenceGuards = await page.evaluate(async () => {
-    const originalProjectId = S.proj.project.id;
+    // A fresh browser profile legitimately starts without a project. Keep the
+    // regression self-contained instead of assuming startup created one.
+    const originalProjectId = S.proj?.project?.id ?? null;
     const now = Date.now();
     const oldChapterIds = [701, 702, 703];
     const staleProjectId = await importProjectBundleAtomic({
@@ -228,12 +230,18 @@ try {
     window.confirm = originalConfirm;
     S.apiConfig = originalConfig;
 
-    await loadProject(originalProjectId);
     for (const projectId of [staleProjectId, projectA, projectB]) {
       for (const store of ['outlines', 'characters', 'chapters', 'notes', 'aiMemories', 'aiHistory']) {
         for (const row of await dbByIndex(store, 'project_id', projectId)) await dbDel(store, row.id);
       }
       await dbDel('projects', projectId);
+    }
+    if (originalProjectId != null) {
+      await loadProject(originalProjectId);
+    } else {
+      S.proj = null;
+      S.active = null;
+      S.aiMemories = [];
     }
     await loadProjects();
     return {
