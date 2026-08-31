@@ -205,18 +205,27 @@ try {
     }
     const afterRollback = (await dbByIndex('aiMemories', 'project_id', staleProjectId)).map(memory => ({ id: memory.id, content: memory.content })).sort((a, b) => a.id - b.id);
 
-    const projectA = await importProjectBundleAtomic({ version: 6, project: { name: '更新竞态 A', created_at: now }, outlines: [], characters: [], chapters: [], notes: [], memories: [], history: [], categories: [] });
-    const projectB = await importProjectBundleAtomic({ version: 6, project: { name: '更新竞态 B', created_at: now }, outlines: [], characters: [], chapters: [], notes: [], memories: [], history: [], categories: [] });
+    const projectA = await importProjectBundleAtomic({ version: 6, project: { name: '更新竞态 A', world_setting: 'PROJECT_A_SOURCE_RULE', created_at: now }, outlines: [], characters: [], chapters: [], notes: [], memories: [], history: [], categories: [] });
+    const projectB = await importProjectBundleAtomic({ version: 6, project: { name: '更新竞态 B', world_setting: 'PROJECT_B_SOURCE_RULE', created_at: now }, outlines: [], characters: [], chapters: [], notes: [], memories: [], history: [], categories: [] });
     await loadProject(projectA);
     const originalBuild = WWLongBookMemory.build;
     const originalConfirm = window.confirm;
     const originalConfig = S.apiConfig;
     let releaseBuild;
-    WWLongBookMemory.build = () => new Promise(resolve => { releaseBuild = resolve; });
+    let announceBuild;
+    const buildStarted = new Promise(resolve => { announceBuild = resolve; });
+    WWLongBookMemory.build = () => {
+      announceBuild();
+      return new Promise(resolve => { releaseBuild = resolve; });
+    };
     window.confirm = () => true;
     S.apiConfig = { provider: 'test-provider' };
     const updateTask = updateLongBookMemory();
-    while (!S.longBookMemoryRun || !releaseBuild) await new Promise(resolve => setTimeout(resolve, 0));
+    await Promise.race([
+      buildStarted,
+      new Promise((_, reject) => setTimeout(() => reject(new Error('long-book update did not enter the build phase')), 3000))
+    ]);
+    if (!S.longBookMemoryRun || !releaseBuild) throw new Error('long-book update did not publish its run guard');
     await loadProject(projectB);
     releaseBuild({
       foundationMemory: { source: 'longbook', kind: 'foundation_digest', longbook_key: 'foundation', content: 'PROJECT_A_PINNED_RESULT', enabled: true },
